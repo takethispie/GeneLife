@@ -17,4 +17,11 @@ public static class AgeMutator
 
         var p => p
     };
+    
+    public static IPerson MutateAbsolute(IPerson person) => person switch {
+        { } p when person.Genome.Age >= Constant.ChildToTeenagerTickCount => new Teenager(p.Id, p.Name, p.LastName, p.Genome, p.Traits),
+        { } p when person.Genome.Age >= Constant.TeenagerToAdultTickCount => new Adult(p.Id, p.Name, p.LastName, p.Genome, p.Traits),
+        { } p when person.Genome.Age >= Constant.AdultToElderTickCOunt => new Adult(p.Id, p.Name, p.LastName, p.Genome, p.Traits),
+        _ => person
+    };
 }
