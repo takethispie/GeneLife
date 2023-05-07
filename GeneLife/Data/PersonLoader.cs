@@ -1,5 +1,4 @@
 ﻿using System.Text.Json;
-using System.Text.Json.Serialization;
 using GeneLife.Data.DTOs;
 using GeneLife.Data.Exceptions;
 using GeneLife.Entities.Person;

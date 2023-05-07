@@ -5,6 +5,8 @@ VisualStudioVersion = 17.5.33530.505
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GeneLife", "GeneLife\GeneLife.csproj", "{B8BDBDD9-D3A4-4494-AEE5-81C9A90FE95E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GeneLife.Tests", "GeneLife.Tests\GeneLife.Tests.csproj", "{C4BB31C3-76BF-4345-8EBC-2853DA67DA7E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{B8BDBDD9-D3A4-4494-AEE5-81C9A90FE95E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B8BDBDD9-D3A4-4494-AEE5-81C9A90FE95E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B8BDBDD9-D3A4-4494-AEE5-81C9A90FE95E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C4BB31C3-76BF-4345-8EBC-2853DA67DA7E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C4BB31C3-76BF-4345-8EBC-2853DA67DA7E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C4BB31C3-76BF-4345-8EBC-2853DA67DA7E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C4BB31C3-76BF-4345-8EBC-2853DA67DA7E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
