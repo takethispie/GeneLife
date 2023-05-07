@@ -3,9 +3,8 @@ using GeneLife.Environment;
 
 namespace GeneLife.Entities.Person;
 
-public interface IPerson
+public interface IPerson : IEntity
 {
-    int Id { get; init; }
     string Name { get; init; }
     string LastName { get; init; }
     Genome Genome { get; init; }

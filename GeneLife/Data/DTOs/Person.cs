@@ -4,7 +4,7 @@ namespace GeneLife.Data.DTOs;
 
 public class Person
 {
-    public Person(int id, int age, string name, string lastName, string genome, EnvironmentalTraits traits)
+    public Person(Guid id, int age, string name, string lastName, string genome, EnvironmentalTraits traits)
     {
         Id = id;
         Age = age;
@@ -14,7 +14,7 @@ public class Person
         LastName = lastName;
     }
 
-    public int Id { get; init; }
+    public Guid Id { get; init; }
     public int Age { get; }
     public string Name { get; init; }
     public string LastName { get; init; }

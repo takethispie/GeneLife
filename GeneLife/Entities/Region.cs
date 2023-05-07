@@ -2,4 +2,4 @@
 
 namespace GeneLife.Entities;
 
-public record Region(int Id, int CountryId, string Name, SocialEnvironment SocialEnvironment, int RevenueDelta);
+public record Region(Guid Id, string Name, int AverageSalary) : IEntity;

@@ -2,6 +2,7 @@
 using GeneLife.Data.DTOs;
 using GeneLife.Data.Exceptions;
 using GeneLife.Entities.Person;
+using GeneLife.Genetic.Data;
 
 namespace GeneLife.Data;
 
@@ -26,12 +27,12 @@ public static class PersonLoader
     
     private static IPerson ToIPerson(Person x) => x switch
     {
-        not null when x.Age < Constant.ChildToTeenagerTickCount => BuildPerson(x, PersonType.Child),
-        not null when x.Age >= Constant.ChildToTeenagerTickCount && x.Age < Constant.TeenagerToAdultTickCount
+        not null when x.Age < Constants.ChildToTeenagerTickCount => BuildPerson(x, PersonType.Child),
+        not null when x.Age >= Constants.ChildToTeenagerTickCount && x.Age < Constants.TeenagerToAdultTickCount
             => BuildPerson(x, PersonType.Teenager),
-        not null when x.Age >= Constant.TeenagerToAdultTickCount && x.Age < Constant.AdultToElderTickCOunt
+        not null when x.Age >= Constants.TeenagerToAdultTickCount && x.Age < Constants.AdultToElderTickCOunt
             => BuildPerson(x, PersonType.Adult),
-        not null when x.Age >= Constant.AdultToElderTickCOunt => BuildPerson(x, PersonType.Elder),
+        not null when x.Age >= Constants.AdultToElderTickCOunt => BuildPerson(x, PersonType.Elder),
         _ => throw new ParsingPersonSaveException()
     };
 

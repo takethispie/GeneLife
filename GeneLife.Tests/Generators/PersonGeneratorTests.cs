@@ -1,6 +1,6 @@
 ﻿using FluentAssertions;
 using GeneLife.Generators;
-using GeneLife.GeneticTraits;
+using GeneLife.Genetic.GeneticTraits;
 
 namespace GeneLife.Tests.Generators;
 

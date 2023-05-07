@@ -1,4 +1,6 @@
-﻿namespace GeneLife.Mutators;
+﻿using GeneLife.Entities.Person;
+
+namespace GeneLife.Genetic.Mutators;
 
 public static class GeneticMergingMutator
 {

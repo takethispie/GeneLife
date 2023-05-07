@@ -1,6 +1,6 @@
-using GeneLife.GeneticTraits;
+using GeneLife.Genetic.GeneticTraits;
 
-namespace GeneLife;
+namespace GeneLife.Entities.Person;
 
 public record Genome (
     int Age,
@@ -11,5 +11,6 @@ public record Genome (
     Morphotype Morphotype,
     Intelligence Intelligence,
     HeightPotential HeightPotential,
-    BehaviorPropension BehaviorPropension
+    BehaviorPropension BehaviorPropension,
+    string Sequence
 );

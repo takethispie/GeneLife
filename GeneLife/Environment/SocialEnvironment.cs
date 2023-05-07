@@ -3,7 +3,7 @@
 public enum SocialEnvironment
 {
     Wholesome,
-    Peacefull,
+    Peaceful,
     Neutral,
     Violent,
     Dangerous

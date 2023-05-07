@@ -1,8 +1,9 @@
 namespace GeneLife.Data;
 
-public static class Constant
+public static class Constants
 {
-    public static int MillisecondsPerTick = 1000;
+    // a day is 5 minutes
+    public static int MillisecondsPerTick = 300000;
      
     //8760
     public static int TicksForAYear = 365 * 24;
