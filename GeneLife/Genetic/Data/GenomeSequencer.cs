@@ -1,6 +1,4 @@
-﻿using GeneLife.Data.Exceptions;
-using GeneLife.Entities.Person;
-using GeneLife.Genetic.Exceptions;
+﻿using GeneLife.Genetic.Exceptions;
 using GeneLife.Genetic.GeneticTraits;
 
 namespace GeneLife.Genetic.Data;
@@ -10,9 +8,7 @@ public static class GenomeSequencer
     public static Genome ToGenome(string sequence)
     {
         string originalSequence = "" + sequence;
-        if (!sequence.ToLower().StartsWith("$$") && !sequence.ToLower().EndsWith("$$")) 
-            throw new GenomeParsingError();
-        sequence = sequence[2..^2];
+        sequence = RemoveDelimiters(sequence);
         IEnumerable<ChromosomePair> gen = new List<ChromosomePair>();
         while (sequence != "") (sequence, gen) = SequenceTransformStep(sequence, gen);
         var chromosomePairs = gen.ToList();
@@ -27,9 +23,15 @@ public static class GenomeSequencer
             MorphotypeGenome(gen.FirstOrDefault(x => x.Id == 7)),
             IntelligenceGenome(gen.FirstOrDefault(x => x.Id == 4)),
             HeightPotentialGenome(gen.FirstOrDefault(x => x.Id == 8)),
-            BehaviorPropensionGenome(gen.FirstOrDefault(x => x.Id == 9)),
-            originalSequence
+            BehaviorPropensionGenome(gen.FirstOrDefault(x => x.Id == 9))
         );
+    }
+
+    public static string RemoveDelimiters(string sequence)
+    {
+        if (!sequence.ToLower().StartsWith("$$") && !sequence.ToLower().EndsWith("$$")) 
+            throw new GenomeParsingError();
+        return sequence[2..^2];
     }
     
     

@@ -1,4 +1,4 @@
-﻿namespace GeneLife.Data.DTOs;
+﻿namespace GeneLife.Data.Person;
 
 public class PersonSave
 {

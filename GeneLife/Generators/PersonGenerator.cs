@@ -1,23 +1,23 @@
-﻿using Bogus.DataSets;
+﻿using Arch.Core;
+using Arch.Core.Extensions;
+using Bogus.DataSets;
+using GeneLife.Components;
 using GeneLife.Data;
-using GeneLife.Entities.Person;
-using GeneLife.Environment;
-using GeneLife.Genetic.Data;
+using GeneLife.Entities;
+using GeneLife.Genetic;
 using GeneLife.Genetic.GeneticTraits;
-using GeneLife.Mutators;
 using GeneLife.Utils;
 
 namespace GeneLife.Generators;
 
 public static class PersonGenerator
 {
-    public static IPerson CreatePure(Sex sex, int startAge = 0)
+    public static Entity CreatePure(World world, Sex sex, int startAge = 0)
     {
         var random = new Random();
         var nameGenerator = new Name();
         var gender = sex == Sex.Male ? Name.Gender.Male : Name.Gender.Female;
-        var name = nameGenerator.FirstName(gender);
-        var lastName = nameGenerator.LastName(gender);
+        var identity = new Identity { Id = Guid.NewGuid(), FirstName = nameGenerator.FirstName(gender), LastName = nameGenerator.LastName(gender)};
         var age = random.Next(startAge, Constants.TicksUntilDeath - Constants.TicksForAYear * 2);
         var behavior = Enum.GetValues<BehaviorPropension>().Random(random);
         var eyeColor = Enum.GetValues<EyeColor>().Random(random);
@@ -26,10 +26,10 @@ public static class PersonGenerator
         var heightPotential = Enum.GetValues<HeightPotential>().Random(random);
         var intel = Enum.GetValues<Intelligence>().Random(random);
         var morpho = Enum.GetValues<Morphotype>().Random(random);
-        var genome = new Genome(age, sex, eyeColor, hairColor, handedness, morpho, intel, heightPotential, behavior, "");
-        var sequence = GenomeSequencer.ToSequence(genome);
-        var id = Guid.NewGuid();
-        var p = new Child(id, name, lastName, genome with { Sequence = sequence }, new EnvironmentalTraits());
-        return AgeMutator.MutateAbsolute(p);
+        var gen = new Genome(age, sex, eyeColor, hairColor, handedness, morpho, intel, heightPotential, behavior);
+        var entity = world.Create(ArchetypeFactory.Person());
+        entity.Set(identity);
+        entity.Set(gen);
+        return entity;
     }
 }

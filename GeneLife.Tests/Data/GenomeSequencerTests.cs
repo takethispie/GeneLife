@@ -1,5 +1,5 @@
 using FluentAssertions;
-using GeneLife.Entities.Person;
+using GeneLife.Genetic;
 using GeneLife.Genetic.Data;
 using GeneLife.Genetic.GeneticTraits;
 
@@ -20,7 +20,7 @@ public class GenomeSequencerTests
     public void GenomeSequencingShouldWork()
     {
         var gen = new Genome(10, Sex.Male, EyeColor.Blue, HairColor.Blond, Handedness.Ambidextrous,
-            Morphotype.Ectomorph, Intelligence.Art, HeightPotential.Average, BehaviorPropension.Emotional, "");
+            Morphotype.Ectomorph, Intelligence.Art, HeightPotential.Average, BehaviorPropension.Emotional);
 
         var sequence = GenomeSequencer.ToSequence(gen);
         sequence.Should().NotBeEmpty();

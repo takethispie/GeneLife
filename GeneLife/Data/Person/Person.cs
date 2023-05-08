@@ -1,6 +1,6 @@
 ﻿using GeneLife.Environment;
 
-namespace GeneLife.Data.DTOs;
+namespace GeneLife.Data.Person;
 
 public class Person
 {
