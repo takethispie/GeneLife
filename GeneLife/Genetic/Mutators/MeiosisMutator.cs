@@ -13,7 +13,7 @@ public static class MeiosisMutator
         while (sequence != "") (sequence, gen) = GenomeSequencer.SequenceTransformStep(sequence, gen);
         var chromosomePairs = gen.ToList();
         if (gen == null || !chromosomePairs.Any()) throw new GenomeParsingError();
-        gen = chromosomePairs.DistinctBy(x => x.Values);
+        gen = chromosomePairs.DistinctBy(x => x.Values).Where(x => x.Id != 10);
         var random = new Random();
         return new string(gen.Select(x => x.Values.Random(random)).ToArray());
     }
