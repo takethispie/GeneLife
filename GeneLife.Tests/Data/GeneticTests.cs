@@ -2,10 +2,11 @@ using FluentAssertions;
 using GeneLife.Genetic;
 using GeneLife.Genetic.Data;
 using GeneLife.Genetic.GeneticTraits;
+using GeneLife.Genetic.Mutators;
 
 namespace GeneLife.Tests.Data;
 
-public class GenomeSequencerTests
+public class GeneticTests
 {
     [Fact]
     public void SequenceIsCorrect()
@@ -40,5 +41,16 @@ public class GenomeSequencerTests
         gen.Intelligence.Should().Be(Intelligence.Art);
         gen.HeightPotential.Should().Be(HeightPotential.Average);
         gen.BehaviorPropension.Should().Be(BehaviorPropension.Emotional);
+    }
+
+    [Fact]
+    public void CreateChildGenome()
+    {
+        var mom = GenomeSequencer.ToGenome("$$BBHhAaMmXXeeJjUU#30#$$");
+        var dad = GenomeSequencer.ToGenome("$$bbHHAAMMXYEejjuu#30#$$");
+        var dadGamete = MeiosisMutator.BuildGamete(dad);
+        var momGamete = MeiosisMutator.BuildGamete(mom);
+        var childGenome = GeneticMergingMutator.ProduceZygote(dadGamete, momGamete);
+        childGenome.Should().NotBeNull();
     }
 }

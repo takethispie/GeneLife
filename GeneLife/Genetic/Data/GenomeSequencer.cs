@@ -128,7 +128,7 @@ public static class GenomeSequencer
     
     private static HairColor HairGenome(ChromosomePair genome) => genome.Values switch
     {
-        "bB" => HairColor.Blond,
+        "bB" or "Bb" => HairColor.Blond,
         "bb" => HairColor.Ginger,
         "BB" => HairColor.Brown,
         _ => throw new GenomeParsingError()
@@ -137,7 +137,7 @@ public static class GenomeSequencer
     private static EyeColor EyeColorGenome(ChromosomePair genome) => genome.Values switch
     {
         "HH" => EyeColor.Brown,
-        "Hh" => EyeColor.Blue,
+        "Hh" or "hH" => EyeColor.Blue,
         "hh" => EyeColor.Green,
         _ => throw new GenomeParsingError()
     };
@@ -145,7 +145,7 @@ public static class GenomeSequencer
     private static Handedness HandednessGenome(ChromosomePair genome) => genome.Values switch
     {
         "AA" => Handedness.RightHanded,
-        "Aa" => Handedness.LeftHanded,
+        "Aa" or "Aa" => Handedness.LeftHanded,
         "aa" => Handedness.Ambidextrous,
         _ => throw new GenomeParsingError()
     };
@@ -153,14 +153,14 @@ public static class GenomeSequencer
     private static Intelligence IntelligenceGenome(ChromosomePair genome) => genome.Values switch
     {
         "MM" => Intelligence.Art,
-        "mM" => Intelligence.Science,
+        "mM" or "mm" or "Mm" => Intelligence.Science,
         _ => throw new GenomeParsingError()
     };
 
     private static Sex SexGenome(ChromosomePair genome) => genome.Values switch
     {
-        "XY" => Sex.Male,
-        "XX" => Sex.Female,
+        "XY" or "xy" => Sex.Male,
+        "XX" or "xx" => Sex.Female,
         _ => throw new GenomeParsingError()
     };
 
@@ -168,14 +168,14 @@ public static class GenomeSequencer
     {
         "ee" => Morphotype.Ectomorph,
         "EE" => Morphotype.Mesomorph,
-        "Ee" => Morphotype.Endomorph,
+        "Ee" or "eE" => Morphotype.Endomorph,
         _ => throw new GenomeParsingError()
     };
 
     private static HeightPotential HeightPotentialGenome(ChromosomePair genome) => genome.Values switch
     {
         "jj" => HeightPotential.Short,
-        "Jj" => HeightPotential.Average,
+        "Jj" or "jJ" => HeightPotential.Average,
         "JJ" => HeightPotential.Tall,
         _ => throw new GenomeParsingError()
     };
@@ -183,7 +183,7 @@ public static class GenomeSequencer
     private static BehaviorPropension BehaviorPropensionGenome(ChromosomePair genome) => genome.Values switch
     {
         "uu" => BehaviorPropension.Peaceful,
-        "Uu" => BehaviorPropension.Emotional,
+        "Uu" or "uU" => BehaviorPropension.Emotional,
         "UU" => BehaviorPropension.Violent,
         _ => throw new GenomeParsingError()
     };
