@@ -1,4 +1,4 @@
-﻿namespace GeneLife.Components;
+﻿namespace GeneLife.CommonComponents.Utils;
 
 public struct Identity
 {

@@ -1,7 +1,7 @@
 ﻿using Arch.Core;
 using Arch.Core.Extensions;
 using Bogus.DataSets;
-using GeneLife.Components;
+using GeneLife.CommonComponents.Utils;
 using GeneLife.Data;
 using GeneLife.Entities;
 using GeneLife.Genetic;
@@ -27,7 +27,7 @@ public static class PersonGenerator
         var intel = Enum.GetValues<Intelligence>().Random(random);
         var morpho = Enum.GetValues<Morphotype>().Random(random);
         var gen = new Genome(age, sex, eyeColor, hairColor, handedness, morpho, intel, heightPotential, behavior);
-        var entity = world.Create(ArchetypeFactory.Person());
+        var entity = world.Create(NpcArchetypeFactory.PersonArchetype());
         entity.Set(identity);
         entity.Set(gen);
         return entity;

@@ -1,5 +1,5 @@
 ﻿using Arch.Core;
-using Arch.Core.Extensions;
+using GeneLife.Entities;
 using GeneLife.Generators;
 using GeneLife.Genetic.GeneticTraits;
 
@@ -12,10 +12,11 @@ public class GeneLife
     public GeneLife()
     {
         Main = World.Create();
+        
     }
 
     public void AddNewHuman(Sex sex)
     {
-        PersonGenerator.CreatePure(Main, Sex.Male);
+        PersonGenerator.CreatePure(Main, sex);
     }
 }

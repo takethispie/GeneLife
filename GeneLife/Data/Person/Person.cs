@@ -1,4 +1,4 @@
-﻿using GeneLife.Environment;
+﻿using GeneLife.CommonComponents.Environment;
 
 namespace GeneLife.Data.Person;
 

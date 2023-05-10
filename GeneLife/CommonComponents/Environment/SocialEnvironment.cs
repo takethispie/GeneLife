@@ -1,4 +1,4 @@
-﻿namespace GeneLife.Environment;
+﻿namespace GeneLife.CommonComponents.Environment;
 
 public enum SocialEnvironment
 {
