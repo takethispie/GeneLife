@@ -4,6 +4,7 @@ using GeneLife.CommonComponents.Alcohol;
 using GeneLife.CommonComponents.Environment;
 using GeneLife.CommonComponents.Utils;
 using GeneLife.Genetic;
+using GeneLife.Sybil.Components;
 
 namespace GeneLife.Entities;
 
@@ -18,6 +19,7 @@ public static class NpcArchetypeFactory
         typeof(Lifespan),
         typeof(Flammable),
         typeof(Movable),
-        typeof(AlcoholAbsorber)
+        typeof(AlcoholAbsorber),
+        typeof(KnowledgeList)
     };
 }

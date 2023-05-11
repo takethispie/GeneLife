@@ -1,11 +1,13 @@
 ﻿using Arch.Core;
 using Arch.Core.Extensions;
 using Bogus.DataSets;
+using GeneLife.CommonComponents.Environment;
 using GeneLife.CommonComponents.Utils;
 using GeneLife.Data;
 using GeneLife.Entities;
 using GeneLife.Genetic;
 using GeneLife.Genetic.GeneticTraits;
+using GeneLife.Sybil.Components;
 using GeneLife.Utils;
 
 namespace GeneLife.Generators;
@@ -30,6 +32,8 @@ public static class PersonGenerator
         var entity = world.Create(NpcArchetypeFactory.PersonArchetype());
         entity.Set(identity);
         entity.Set(gen);
+        entity.Set(new KnowledgeList());
+        entity.Set(new EnvironmentalTraits());
         return entity;
     }
 }

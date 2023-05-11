@@ -1,6 +1,6 @@
 ﻿namespace GeneLife.CommonComponents;
 
-public class Living
+public struct Living
 {
     public int MaxHitPoints;
     public int HitPoints;

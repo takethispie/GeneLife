@@ -2,6 +2,8 @@
 
 public enum KnowledgeLevel
 {
+    None,
+    Beginner,
     Elementary,
     Medium,
     Advanced,

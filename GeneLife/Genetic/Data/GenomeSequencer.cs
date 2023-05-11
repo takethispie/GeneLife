@@ -12,8 +12,9 @@ public static class GenomeSequencer
         IEnumerable<ChromosomePair> gen = new List<ChromosomePair>();
         while (sequence != "") (sequence, gen) = SequenceTransformStep(sequence, gen);
         var chromosomePairs = gen.ToList();
-        if (gen == null || !chromosomePairs.Any()) throw new GenomeParsingError();
+        if (!chromosomePairs.Any()) throw new GenomeParsingError();
         gen = chromosomePairs.DistinctBy(x => x.Values);
+        if (gen == null) throw new GenomeParsingError();
         return new Genome(
             AgeGenome(gen.FirstOrDefault(x => x.Id == 10)),
             SexGenome(gen.FirstOrDefault(x => x.Id == 5)),

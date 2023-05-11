@@ -2,6 +2,7 @@
 using GeneLife.CommonComponents;
 using GeneLife.CommonComponents.Containers;
 using GeneLife.CommonComponents.Utils;
+using GeneLife.Sybil.Components;
 using GeneLife.Sybil.Core;
 
 namespace GeneLife.Entities;
