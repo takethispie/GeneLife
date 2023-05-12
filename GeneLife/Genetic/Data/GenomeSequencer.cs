@@ -65,7 +65,7 @@ public static class GenomeSequencer
 
     private static string HairSequence(Genome genome) => genome switch
     {
-        { HairColor: HairColor.Blond } => "bB",
+        { HairColor: HairColor.Blonde } => "bB",
         { HairColor: HairColor.Ginger } => "bb",
         { HairColor: HairColor.Brown } => "BB",
         _ => throw new GenomeParsingError()
@@ -129,7 +129,7 @@ public static class GenomeSequencer
     
     private static HairColor HairGenome(ChromosomePair genome) => genome.Values switch
     {
-        "bB" or "Bb" => HairColor.Blond,
+        "bB" or "Bb" => HairColor.Blonde,
         "bb" => HairColor.Ginger,
         "BB" => HairColor.Brown,
         _ => throw new GenomeParsingError()

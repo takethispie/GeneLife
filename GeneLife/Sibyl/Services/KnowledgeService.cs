@@ -2,7 +2,7 @@
 using GeneLife.Sibyl.Components;
 using GeneLife.Sibyl.Core;
 
-namespace GeneLife.Sibyl.Service;
+namespace GeneLife.Sibyl.Services;
 
 public static class KnowledgeService
 {

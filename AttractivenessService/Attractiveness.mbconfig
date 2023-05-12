@@ -1,0 +1,560 @@
+﻿{
+  "Scenario": "Classification",
+  "DataSource": {
+    "Type": "TabularFile",
+    "Version": 1,
+    "FilePath": "D:\\Dev\\GeneLife\\GeneLife\\Data\\MLDataset\\RelationDataSet.csv",
+    "Delimiter": ",",
+    "DecimalMarker": ".",
+    "HasHeader": true,
+    "ColumnProperties": [
+      {
+        "ColumnName": "F_EyeColor",
+        "ColumnPurpose": "Feature",
+        "ColumnDataFormat": "String",
+        "IsCategorical": false,
+        "Type": "Column",
+        "Version": 4
+      },
+      {
+        "ColumnName": "F_HairType",
+        "ColumnPurpose": "Feature",
+        "ColumnDataFormat": "String",
+        "IsCategorical": false,
+        "Type": "Column",
+        "Version": 4
+      },
+      {
+        "ColumnName": "F_Handedness",
+        "ColumnPurpose": "Feature",
+        "ColumnDataFormat": "String",
+        "IsCategorical": false,
+        "Type": "Column",
+        "Version": 4
+      },
+      {
+        "ColumnName": "F_Morphotype",
+        "ColumnPurpose": "Feature",
+        "ColumnDataFormat": "String",
+        "IsCategorical": false,
+        "Type": "Column",
+        "Version": 4
+      },
+      {
+        "ColumnName": "F_Intelligence",
+        "ColumnPurpose": "Feature",
+        "ColumnDataFormat": "String",
+        "IsCategorical": false,
+        "Type": "Column",
+        "Version": 4
+      },
+      {
+        "ColumnName": "F_HeightPotential",
+        "ColumnPurpose": "Feature",
+        "ColumnDataFormat": "String",
+        "IsCategorical": false,
+        "Type": "Column",
+        "Version": 4
+      },
+      {
+        "ColumnName": "F_Age",
+        "ColumnPurpose": "Feature",
+        "ColumnDataFormat": "Single",
+        "IsCategorical": false,
+        "Type": "Column",
+        "Version": 4
+      },
+      {
+        "ColumnName": "F_Sex",
+        "ColumnPurpose": "Feature",
+        "ColumnDataFormat": "String",
+        "IsCategorical": false,
+        "Type": "Column",
+        "Version": 4
+      },
+      {
+        "ColumnName": "F_BehaviorPropension",
+        "ColumnPurpose": "Feature",
+        "ColumnDataFormat": "String",
+        "IsCategorical": false,
+        "Type": "Column",
+        "Version": 4
+      },
+      {
+        "ColumnName": "S_EyeColor",
+        "ColumnPurpose": "Feature",
+        "ColumnDataFormat": "String",
+        "IsCategorical": false,
+        "Type": "Column",
+        "Version": 4
+      },
+      {
+        "ColumnName": "S_HairType",
+        "ColumnPurpose": "Feature",
+        "ColumnDataFormat": "String",
+        "IsCategorical": false,
+        "Type": "Column",
+        "Version": 4
+      },
+      {
+        "ColumnName": "S_Handedness",
+        "ColumnPurpose": "Feature",
+        "ColumnDataFormat": "String",
+        "IsCategorical": false,
+        "Type": "Column",
+        "Version": 4
+      },
+      {
+        "ColumnName": "S_Morphotype",
+        "ColumnPurpose": "Feature",
+        "ColumnDataFormat": "String",
+        "IsCategorical": false,
+        "Type": "Column",
+        "Version": 4
+      },
+      {
+        "ColumnName": "S_Intelligence",
+        "ColumnPurpose": "Feature",
+        "ColumnDataFormat": "String",
+        "IsCategorical": false,
+        "Type": "Column",
+        "Version": 4
+      },
+      {
+        "ColumnName": "S_HeightPotential",
+        "ColumnPurpose": "Feature",
+        "ColumnDataFormat": "String",
+        "IsCategorical": false,
+        "Type": "Column",
+        "Version": 4
+      },
+      {
+        "ColumnName": "S_Age",
+        "ColumnPurpose": "Feature",
+        "ColumnDataFormat": "Single",
+        "IsCategorical": false,
+        "Type": "Column",
+        "Version": 4
+      },
+      {
+        "ColumnName": "S_Sex",
+        "ColumnPurpose": "Feature",
+        "ColumnDataFormat": "String",
+        "IsCategorical": false,
+        "Type": "Column",
+        "Version": 4
+      },
+      {
+        "ColumnName": "S_BehaviorPropension",
+        "ColumnPurpose": "Feature",
+        "ColumnDataFormat": "String",
+        "IsCategorical": false,
+        "Type": "Column",
+        "Version": 4
+      },
+      {
+        "ColumnName": "Result",
+        "ColumnPurpose": "Label",
+        "ColumnDataFormat": "Single",
+        "IsCategorical": false,
+        "Type": "Column",
+        "Version": 4
+      }
+    ]
+  },
+  "Environment": {
+    "Type": "LocalCPU",
+    "Version": 1
+  },
+  "RunHistory": {
+    "Version": 3,
+    "Type": "Result",
+    "Trials": [
+      {
+        "Version": 1,
+        "Type": "Trial",
+        "TrainerName": "FastForestOva",
+        "Score": 0.6,
+        "RuntimeInSeconds": 1.833,
+        "Parameter": {
+          "_SCHEMA_": "e0 * e1 * e2 * e3 * e4 * e5 * e6 * e7 * e8 * e9 * e10 * e11 * e12 * e13 * e14 * e15 * e16 * e17 * e18 * e20 * e26",
+          "e0": {
+            "OutputColumnNames": [
+              "F_Age",
+              "S_Age"
+            ],
+            "InputColumnNames": [
+              "F_Age",
+              "S_Age"
+            ]
+          },
+          "e1": {
+            "InputColumnName": "F_EyeColor",
+            "OutputColumnName": "F_EyeColor"
+          },
+          "e10": {
+            "InputColumnName": "S_HairType",
+            "OutputColumnName": "S_HairType"
+          },
+          "e11": {
+            "InputColumnName": "S_Handedness",
+            "OutputColumnName": "S_Handedness"
+          },
+          "e12": {
+            "InputColumnName": "S_Morphotype",
+            "OutputColumnName": "S_Morphotype"
+          },
+          "e13": {
+            "InputColumnName": "S_Intelligence",
+            "OutputColumnName": "S_Intelligence"
+          },
+          "e14": {
+            "InputColumnName": "S_HeightPotential",
+            "OutputColumnName": "S_HeightPotential"
+          },
+          "e15": {
+            "InputColumnName": "S_Sex",
+            "OutputColumnName": "S_Sex"
+          },
+          "e16": {
+            "InputColumnName": "S_BehaviorPropension",
+            "OutputColumnName": "S_BehaviorPropension"
+          },
+          "e17": {
+            "InputColumnNames": [
+              "F_Age",
+              "S_Age",
+              "F_EyeColor",
+              "F_HairType",
+              "F_Handedness",
+              "F_Morphotype",
+              "F_Intelligence",
+              "F_HeightPotential",
+              "F_Sex",
+              "F_BehaviorPropension",
+              "S_EyeColor",
+              "S_HairType",
+              "S_Handedness",
+              "S_Morphotype",
+              "S_Intelligence",
+              "S_HeightPotential",
+              "S_Sex",
+              "S_BehaviorPropension"
+            ],
+            "OutputColumnName": "Features"
+          },
+          "e18": {
+            "OutputColumnName": "Result",
+            "InputColumnName": "Result",
+            "AddKeyValueAnnotationsAsText": false
+          },
+          "e2": {
+            "InputColumnName": "F_HairType",
+            "OutputColumnName": "F_HairType"
+          },
+          "e20": {
+            "NumberOfTrees": 4,
+            "NumberOfLeaves": 4,
+            "FeatureFraction": 1.0,
+            "LabelColumnName": "Result",
+            "FeatureColumnName": "Features"
+          },
+          "e26": {
+            "OutputColumnName": "PredictedLabel",
+            "InputColumnName": "PredictedLabel"
+          },
+          "e3": {
+            "InputColumnName": "F_Handedness",
+            "OutputColumnName": "F_Handedness"
+          },
+          "e4": {
+            "InputColumnName": "F_Morphotype",
+            "OutputColumnName": "F_Morphotype"
+          },
+          "e5": {
+            "InputColumnName": "F_Intelligence",
+            "OutputColumnName": "F_Intelligence"
+          },
+          "e6": {
+            "InputColumnName": "F_HeightPotential",
+            "OutputColumnName": "F_HeightPotential"
+          },
+          "e7": {
+            "InputColumnName": "F_Sex",
+            "OutputColumnName": "F_Sex"
+          },
+          "e8": {
+            "InputColumnName": "F_BehaviorPropension",
+            "OutputColumnName": "F_BehaviorPropension"
+          },
+          "e9": {
+            "InputColumnName": "S_EyeColor",
+            "OutputColumnName": "S_EyeColor"
+          },
+          "e19": {
+            "NumberOfLeaves": 4,
+            "MinimumExampleCountPerLeaf": 20,
+            "NumberOfTrees": 4,
+            "MaximumBinCountPerFeature": 255,
+            "FeatureFraction": 1.0,
+            "LearningRate": 0.099999999999999978,
+            "LabelColumnName": "Result",
+            "FeatureColumnName": "Features"
+          },
+          "e21": {
+            "NumberOfLeaves": 4,
+            "MinimumExampleCountPerLeaf": 20,
+            "LearningRate": 1.0,
+            "NumberOfTrees": 4,
+            "SubsampleFraction": 1.0,
+            "MaximumBinCountPerFeature": 255,
+            "FeatureFraction": 1.0,
+            "L1Regularization": 2E-10,
+            "L2Regularization": 1.0,
+            "LabelColumnName": "Result",
+            "FeatureColumnName": "Features"
+          },
+          "e22": {
+            "L1Regularization": 1.0,
+            "L2Regularization": 1.0,
+            "LabelColumnName": "Result",
+            "FeatureColumnName": "Features"
+          },
+          "e23": {
+            "L1Regularization": 1.0,
+            "L2Regularization": 1.0,
+            "LabelColumnName": "Result",
+            "FeatureColumnName": "Features"
+          },
+          "e24": {
+            "L1Regularization": 1.0,
+            "L2Regularization": 0.1,
+            "LabelColumnName": "Result",
+            "FeatureColumnName": "Features"
+          },
+          "e25": {
+            "L1Regularization": 1.0,
+            "L2Regularization": 0.1,
+            "LabelColumnName": "Result",
+            "FeatureColumnName": "Features"
+          }
+        }
+      },
+      {
+        "Version": 1,
+        "Type": "Trial",
+        "TrainerName": "FastTreeOva",
+        "Score": 0.4,
+        "RuntimeInSeconds": 1.887,
+        "Parameter": {
+          "_SCHEMA_": "e0 * e1 * e2 * e3 * e4 * e5 * e6 * e7 * e8 * e9 * e10 * e11 * e12 * e13 * e14 * e15 * e16 * e17 * e18 * e19 * e26",
+          "e0": {
+            "OutputColumnNames": [
+              "F_Age",
+              "S_Age"
+            ],
+            "InputColumnNames": [
+              "F_Age",
+              "S_Age"
+            ]
+          },
+          "e1": {
+            "InputColumnName": "F_EyeColor",
+            "OutputColumnName": "F_EyeColor"
+          },
+          "e10": {
+            "InputColumnName": "S_HairType",
+            "OutputColumnName": "S_HairType"
+          },
+          "e11": {
+            "InputColumnName": "S_Handedness",
+            "OutputColumnName": "S_Handedness"
+          },
+          "e12": {
+            "InputColumnName": "S_Morphotype",
+            "OutputColumnName": "S_Morphotype"
+          },
+          "e13": {
+            "InputColumnName": "S_Intelligence",
+            "OutputColumnName": "S_Intelligence"
+          },
+          "e14": {
+            "InputColumnName": "S_HeightPotential",
+            "OutputColumnName": "S_HeightPotential"
+          },
+          "e15": {
+            "InputColumnName": "S_Sex",
+            "OutputColumnName": "S_Sex"
+          },
+          "e16": {
+            "InputColumnName": "S_BehaviorPropension",
+            "OutputColumnName": "S_BehaviorPropension"
+          },
+          "e17": {
+            "InputColumnNames": [
+              "F_Age",
+              "S_Age",
+              "F_EyeColor",
+              "F_HairType",
+              "F_Handedness",
+              "F_Morphotype",
+              "F_Intelligence",
+              "F_HeightPotential",
+              "F_Sex",
+              "F_BehaviorPropension",
+              "S_EyeColor",
+              "S_HairType",
+              "S_Handedness",
+              "S_Morphotype",
+              "S_Intelligence",
+              "S_HeightPotential",
+              "S_Sex",
+              "S_BehaviorPropension"
+            ],
+            "OutputColumnName": "Features"
+          },
+          "e18": {
+            "OutputColumnName": "Result",
+            "InputColumnName": "Result",
+            "AddKeyValueAnnotationsAsText": false
+          },
+          "e19": {
+            "NumberOfLeaves": 4,
+            "MinimumExampleCountPerLeaf": 20,
+            "NumberOfTrees": 4,
+            "MaximumBinCountPerFeature": 254,
+            "FeatureFraction": 1.0,
+            "LearningRate": 0.099999999999999978,
+            "LabelColumnName": "Result",
+            "FeatureColumnName": "Features"
+          },
+          "e2": {
+            "InputColumnName": "F_HairType",
+            "OutputColumnName": "F_HairType"
+          },
+          "e26": {
+            "OutputColumnName": "PredictedLabel",
+            "InputColumnName": "PredictedLabel"
+          },
+          "e3": {
+            "InputColumnName": "F_Handedness",
+            "OutputColumnName": "F_Handedness"
+          },
+          "e4": {
+            "InputColumnName": "F_Morphotype",
+            "OutputColumnName": "F_Morphotype"
+          },
+          "e5": {
+            "InputColumnName": "F_Intelligence",
+            "OutputColumnName": "F_Intelligence"
+          },
+          "e6": {
+            "InputColumnName": "F_HeightPotential",
+            "OutputColumnName": "F_HeightPotential"
+          },
+          "e7": {
+            "InputColumnName": "F_Sex",
+            "OutputColumnName": "F_Sex"
+          },
+          "e8": {
+            "InputColumnName": "F_BehaviorPropension",
+            "OutputColumnName": "F_BehaviorPropension"
+          },
+          "e9": {
+            "InputColumnName": "S_EyeColor",
+            "OutputColumnName": "S_EyeColor"
+          },
+          "e20": {
+            "NumberOfTrees": 4,
+            "NumberOfLeaves": 4,
+            "FeatureFraction": 1.0,
+            "LabelColumnName": "Result",
+            "FeatureColumnName": "Features"
+          },
+          "e21": {
+            "NumberOfLeaves": 4,
+            "MinimumExampleCountPerLeaf": 20,
+            "LearningRate": 1.0,
+            "NumberOfTrees": 4,
+            "SubsampleFraction": 1.0,
+            "MaximumBinCountPerFeature": 255,
+            "FeatureFraction": 1.0,
+            "L1Regularization": 2E-10,
+            "L2Regularization": 1.0,
+            "LabelColumnName": "Result",
+            "FeatureColumnName": "Features"
+          },
+          "e22": {
+            "L1Regularization": 1.0,
+            "L2Regularization": 1.0,
+            "LabelColumnName": "Result",
+            "FeatureColumnName": "Features"
+          },
+          "e23": {
+            "L1Regularization": 1.0,
+            "L2Regularization": 1.0,
+            "LabelColumnName": "Result",
+            "FeatureColumnName": "Features"
+          },
+          "e24": {
+            "L1Regularization": 1.0,
+            "L2Regularization": 0.1,
+            "LabelColumnName": "Result",
+            "FeatureColumnName": "Features"
+          },
+          "e25": {
+            "L1Regularization": 1.0,
+            "L2Regularization": 0.1,
+            "LabelColumnName": "Result",
+            "FeatureColumnName": "Features"
+          }
+        }
+      }
+    ],
+    "Estimators": {
+      "e0": "ReplaceMissingValues",
+      "e1": "FeaturizeText",
+      "e2": "FeaturizeText",
+      "e3": "FeaturizeText",
+      "e4": "FeaturizeText",
+      "e5": "FeaturizeText",
+      "e6": "FeaturizeText",
+      "e7": "FeaturizeText",
+      "e8": "FeaturizeText",
+      "e9": "FeaturizeText",
+      "e10": "FeaturizeText",
+      "e11": "FeaturizeText",
+      "e12": "FeaturizeText",
+      "e13": "FeaturizeText",
+      "e14": "FeaturizeText",
+      "e15": "FeaturizeText",
+      "e16": "FeaturizeText",
+      "e17": "Concatenate",
+      "e18": "MapValueToKey",
+      "e19": "FastTreeOva",
+      "e20": "FastForestOva",
+      "e21": "LightGbmMulti",
+      "e22": "LbfgsLogisticRegressionOva",
+      "e23": "LbfgsMaximumEntropyMulti",
+      "e24": "SdcaMaximumEntropyMulti",
+      "e25": "SdcaLogisticRegressionOva",
+      "e26": "MapKeyToValue"
+    },
+    "Schema": "e0 * e1 * e2 * e3 * e4 * e5 * e6 * e7 * e8 * e9 * e10 * e11 * e12 * e13 * e14 * e15 * e16 * e17 * e18 * (e19 + e20 + e21 + e22 + e23 + e24 + e25) * e26",
+    "MetricName": "MacroAccuracy",
+    "ModelFilePath": "D:\\Dev\\GeneLife\\GeneLife\\Attractiveness.mlnet"
+  },
+  "Type": "TrainingConfig",
+  "Version": 4,
+  "TrainingOption": {
+    "Version": 1,
+    "Type": "ClassificationTrainingOption",
+    "TrainingTime": 30,
+    "LabelColumn": "Result",
+    "ValidationOption": {
+      "Version": 0,
+      "Type": "CrossValidationValidationOption",
+      "NumberOfFolds": 5
+    }
+  }
+}
