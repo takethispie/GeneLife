@@ -1,8 +1,8 @@
 ﻿using GeneLife.Data;
-using GeneLife.Sybil.Components;
-using GeneLife.Sybil.Core;
+using GeneLife.Sibyl.Components;
+using GeneLife.Sibyl.Core;
 
-namespace GeneLife.Sybil.Service;
+namespace GeneLife.Sibyl.Service;
 
 public static class KnowledgeService
 {

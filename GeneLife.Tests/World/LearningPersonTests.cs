@@ -6,9 +6,9 @@ using GeneLife.CommonComponents;
 using GeneLife.Entities;
 using GeneLife.Generators;
 using GeneLife.Genetic.GeneticTraits;
-using GeneLife.Sybil.Components;
-using GeneLife.Sybil.Core;
-using GeneLife.Sybil.Systems;
+using GeneLife.Sibyl.Components;
+using GeneLife.Sibyl.Core;
+using GeneLife.Sibyl.Systems;
 
 namespace GeneLife.Tests.World;
 

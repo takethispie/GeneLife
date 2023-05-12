@@ -1,6 +1,6 @@
-﻿using GeneLife.Sybil.Core;
+﻿using GeneLife.Sibyl.Core;
 
-namespace GeneLife.Sybil.Components;
+namespace GeneLife.Sibyl.Components;
 
 public struct KnowledgeList
 {

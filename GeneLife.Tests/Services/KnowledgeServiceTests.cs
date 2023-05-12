@@ -1,7 +1,7 @@
 ﻿using FluentAssertions;
-using GeneLife.Sybil.Components;
-using GeneLife.Sybil.Core;
-using GeneLife.Sybil.Service;
+using GeneLife.Sibyl.Components;
+using GeneLife.Sibyl.Core;
+using GeneLife.Sibyl.Service;
 
 namespace GeneLife.Tests.Services;
 

@@ -7,7 +7,7 @@ using GeneLife.Data;
 using GeneLife.Entities;
 using GeneLife.Genetic;
 using GeneLife.Genetic.GeneticTraits;
-using GeneLife.Sybil.Components;
+using GeneLife.Sibyl.Components;
 using GeneLife.Utils;
 
 namespace GeneLife.Generators;

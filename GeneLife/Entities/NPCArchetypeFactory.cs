@@ -4,7 +4,7 @@ using GeneLife.CommonComponents.Alcohol;
 using GeneLife.CommonComponents.Environment;
 using GeneLife.CommonComponents.Utils;
 using GeneLife.Genetic;
-using GeneLife.Sybil.Components;
+using GeneLife.Sibyl.Components;
 
 namespace GeneLife.Entities;
 

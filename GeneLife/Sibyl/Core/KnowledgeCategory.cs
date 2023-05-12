@@ -1,4 +1,4 @@
-﻿namespace GeneLife.Sybil.Core;
+﻿namespace GeneLife.Sibyl.Core;
 
 public enum KnowledgeCategory
 {

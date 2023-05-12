@@ -2,10 +2,10 @@
 using Arch.Core.Extensions;
 using Arch.System;
 using GeneLife.CommonComponents;
-using GeneLife.Sybil.Components;
-using GeneLife.Sybil.Service;
+using GeneLife.Sibyl.Components;
+using GeneLife.Sibyl.Service;
 
-namespace GeneLife.Sybil.Systems;
+namespace GeneLife.Sibyl.Systems;
 
 public class LearningSystem : BaseSystem<World, float>
 {

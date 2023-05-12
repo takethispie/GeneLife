@@ -1,4 +1,4 @@
-﻿namespace GeneLife.Sybil.Components;
+﻿namespace GeneLife.Sibyl.Components;
 
 public enum CriminalLevel
 {
