@@ -22,7 +22,8 @@ public class NpcArchetypeFactory : IArchetypeBuilder
         typeof(Flammable),
         typeof(Movable),
         typeof(AlcoholAbsorber),
-        typeof(KnowledgeList)
+        typeof(KnowledgeList),
+        typeof(Position)
     };
 
     public ComponentType[] Build(string type) => type.ToLower() switch

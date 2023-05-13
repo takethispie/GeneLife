@@ -3,7 +3,7 @@ using Arch.Core.Utils;
 using Arch.System;
 using GeneLife.Entities;
 using GeneLife.Entities.Factories;
-using GeneLife.Generators;
+using GeneLife.Entities.Generators;
 using GeneLife.Genetic.GeneticTraits;
 using GeneLife.Sibyl;
 

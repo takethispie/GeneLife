@@ -3,15 +3,13 @@ using Arch.Core.Extensions;
 using Bogus.DataSets;
 using GeneLife.CommonComponents.Environment;
 using GeneLife.CommonComponents.Utils;
-using GeneLife.Data;
-using GeneLife.Entities;
 using GeneLife.Entities.Factories;
 using GeneLife.Genetic;
 using GeneLife.Genetic.GeneticTraits;
 using GeneLife.Sibyl.Components;
 using GeneLife.Utils;
 
-namespace GeneLife.Generators;
+namespace GeneLife.Entities.Generators;
 
 public static class PersonGenerator
 {

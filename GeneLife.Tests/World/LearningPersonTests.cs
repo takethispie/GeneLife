@@ -4,7 +4,7 @@ using Arch.System;
 using FluentAssertions;
 using GeneLife.CommonComponents;
 using GeneLife.Entities;
-using GeneLife.Generators;
+using GeneLife.Entities.Generators;
 using GeneLife.Genetic.GeneticTraits;
 using GeneLife.Sibyl.Components;
 using GeneLife.Sibyl.Core;
