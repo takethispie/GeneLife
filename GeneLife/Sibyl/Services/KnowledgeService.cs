@@ -44,4 +44,7 @@ public static class KnowledgeService
 
         return (learning, knowledgeList);
     }
+
+    public static bool DoesSchoolTeach(School school, Knowledge knowledge) => 
+        school.Classes.Any(cl => cl.Category == knowledge.Category && cl.Level == knowledge.Level);
 }

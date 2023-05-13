@@ -3,14 +3,16 @@ using GeneLife.CommonComponents;
 using GeneLife.CommonComponents.Alcohol;
 using GeneLife.CommonComponents.Environment;
 using GeneLife.CommonComponents.Utils;
+using GeneLife.Entities.Exceptions;
+using GeneLife.Entities.Interfaces;
 using GeneLife.Genetic;
 using GeneLife.Sibyl.Components;
 
-namespace GeneLife.Entities;
+namespace GeneLife.Entities.Factories;
 
-public static class NpcArchetypeFactory
+public class NpcArchetypeFactory : IArchetypeBuilder
 {
-    public static ComponentType[] PersonArchetype() => new ComponentType[]
+    private static ComponentType[] PersonArchetype() => new ComponentType[]
     {
         typeof(Identity), 
         typeof(Genome), 
@@ -22,4 +24,12 @@ public static class NpcArchetypeFactory
         typeof(AlcoholAbsorber),
         typeof(KnowledgeList)
     };
+
+    public ComponentType[] Build(string type) => type.ToLower() switch
+    {
+        "Person" => PersonArchetype(),
+        _ => throw new ArchetypeNotFoundException()
+    };
+
+    public string[] ArchetypesList() => new[] { "Person" };
 }

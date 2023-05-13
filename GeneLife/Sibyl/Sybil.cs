@@ -1,6 +1,13 @@
-﻿namespace GeneLife.Sibyl;
+﻿using Arch.Core;
+using Arch.System;
+using GeneLife.Sibyl.Systems;
 
-public class Sybil
+namespace GeneLife.Sibyl;
+
+public static class Sybil
 {
-    
+    public static void Register(World world, Group<float> group)
+    {
+        group.Add(new LearningSystem(world));
+    }
 }

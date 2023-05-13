@@ -17,4 +17,9 @@
   <ItemGroup>
     <Folder Include="Oracle\Systems\" />
   </ItemGroup>
+  <ItemGroup>
+    <None Update="Oracle\Core\Attractiveness.mlnet">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>
