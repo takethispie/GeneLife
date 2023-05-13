@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace GeneLife;
+namespace GeneLife.CommonComponents;
 
 public struct Position
 {

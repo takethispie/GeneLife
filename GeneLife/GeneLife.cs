@@ -5,6 +5,7 @@ using GeneLife.Entities;
 using GeneLife.Entities.Factories;
 using GeneLife.Entities.Generators;
 using GeneLife.Genetic.GeneticTraits;
+using GeneLife.Oracle;
 using GeneLife.Sibyl;
 
 namespace GeneLife;
@@ -29,7 +30,8 @@ public class GeneLife : IDisposable
     public void Initialize()
     {
         Systems.Initialize();
-        Sybil.Register(Main, Systems);
+        SibylSystem.Register(Main, Systems);
+        OracleSystem.Register(Main, Systems);
         _archetypeFactory.RegisterFactory(new NpcArchetypeFactory());
         _archetypeFactory.RegisterFactory(new VehicleArchetypeFactory());
         _archetypeFactory.RegisterFactory(new BuildingsArchetypeBuilderFactory());

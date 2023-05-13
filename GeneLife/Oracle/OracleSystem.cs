@@ -1,13 +1,14 @@
 ﻿using Arch.Core;
 using Arch.System;
+using GeneLife.Oracle.Systems;
 using GeneLife.Sibyl.Systems;
 
-namespace GeneLife.Sibyl;
+namespace GeneLife.Oracle;
 
-public static class Sybil
+public static class OracleSystem
 {
     public static void Register(World world, Group<float> group)
     {
-        group.Add(new LearningSystem(world));
+        group.Add(new LoveInterestSystem(world));
     }
 }

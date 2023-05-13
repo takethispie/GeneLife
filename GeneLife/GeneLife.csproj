@@ -15,11 +15,13 @@
     <PackageReference Include="Microsoft.ML.FastTree" Version="2.0.0" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Oracle\Systems\" />
-  </ItemGroup>
-  <ItemGroup>
     <None Update="Oracle\Core\Attractiveness.mlnet">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup Label="Attractiveness">
+    <None Include="Attractiveness.mlnet">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 </Project>

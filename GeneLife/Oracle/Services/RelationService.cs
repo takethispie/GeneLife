@@ -4,6 +4,7 @@ using GeneLife.CommonComponents;
 using GeneLife.Genetic;
 using GeneLife.Oracle.Components;
 using GeneLife.Oracle.Core;
+using GeneLife.Utils;
 
 namespace GeneLife.Oracle.Services;
 
@@ -56,4 +57,25 @@ public static class RelationService
     }
 
     public static bool EndsUpTogether(float chances) => new Random().NextSingle() <= chances;
+
+    public static void LoveLoop(List<Entity> entities)
+    {
+        entities.ForEach(entity =>
+        {
+            if (entity.Has<Relation>()) return;
+            var pos = entity.Get<Position>();
+            var possibleMatches = pos.Coordinates.GetEntitiesInsideCube(20, entities.ToArray())
+                .Where(x => x.Id != entity.Id);
+            foreach (var pMatch in possibleMatches)
+            {
+                if(!CanBeTogether(entity, pMatch)) continue;
+                var result = ComputeAttractivenessChances(entity.Get<Genome>(), pMatch.Get<Genome>());
+                if (EndsUpTogether(result))
+                {
+                    entity.Set(new Relation(pMatch.Id));
+                    pMatch.Set(new Relation(entity.Id));
+                };
+            }
+        });
+    }
 }
