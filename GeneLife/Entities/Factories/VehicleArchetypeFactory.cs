@@ -10,7 +10,7 @@ public class VehicleArchetypeFactory : IArchetypeBuilder
 {
     private static ComponentType[] CarArchetype() => new ComponentType[]
     {
-        typeof(Movable),
+        typeof(Moving),
         typeof(Flammable),
         typeof(LivingBeingContainer),
         typeof(Lifespan),

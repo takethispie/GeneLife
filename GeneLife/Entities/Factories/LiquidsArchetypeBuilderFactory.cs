@@ -13,7 +13,7 @@ public class LiquidsArchetypeBuilderFactory : IArchetypeBuilder
         typeof(Liquid),
         typeof(Ownable),
         typeof(Wet),
-        typeof(Movable)
+        typeof(Moving)
     };
 
     private static ComponentType[] Alcohol() => new ComponentType[]
@@ -22,7 +22,7 @@ public class LiquidsArchetypeBuilderFactory : IArchetypeBuilder
         typeof(Ownable),
         typeof(Flammable),
         typeof(Wet),
-        typeof(Movable)
+        typeof(Moving)
     };
 
     public ComponentType[] Build(string type) => type.ToLower() switch

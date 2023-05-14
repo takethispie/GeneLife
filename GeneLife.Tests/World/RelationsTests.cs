@@ -81,11 +81,11 @@ public class RelationsTests
         for (var i = 0; i < 10000 * factor; i++)
         {
             var t = PersonGenerator.CreatePure(_world, Sex.Male, 20);
-            t.Set(new Position(new Vector3(rnd.Next(0, 6000 * factor * 2), rnd.Next(0, 6000 * factor * 2),
-                rnd.Next(0, 30))));
+            t.Set(new Position(new Vector3(rnd.Next(0, 6000 * factor), rnd.Next(0, 6000 * factor),
+                rnd.Next(0, 20))));
             var t2 = PersonGenerator.CreatePure(_world, Sex.Female, 20);
-            t2.Set(new Position(new Vector3(rnd.Next(0, 6000 * factor * 2), rnd.Next(0, 6000 * factor * 2),
-                rnd.Next(0, 30))));
+            t2.Set(new Position(new Vector3(rnd.Next(0, 6000 * factor), rnd.Next(0, 6000 * factor),
+                rnd.Next(0, 20))));
         }
         RunSystemsOnce(800f);
     }

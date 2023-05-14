@@ -20,7 +20,7 @@ public class NpcArchetypeFactory : IArchetypeBuilder
         typeof(Living),
         typeof(Lifespan),
         typeof(Flammable),
-        typeof(Movable),
+        typeof(Moving),
         typeof(AlcoholAbsorber),
         typeof(KnowledgeList),
         typeof(Position)

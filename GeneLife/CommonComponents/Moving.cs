@@ -2,14 +2,14 @@
 
 namespace GeneLife.CommonComponents;
 
-public struct Movable
+public struct Moving
 {
     /// <summary>
     /// velocity in meters
     /// </summary>
     public Vector3 Velocity;
 
-    public Movable()
+    public Moving()
     {
         Velocity = Vector3.Zero;
     }

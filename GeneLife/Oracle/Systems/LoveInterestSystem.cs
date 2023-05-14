@@ -12,9 +12,9 @@ namespace GeneLife.Oracle.Systems;
 
 public class LoveInterestSystem : BaseSystem<World, float>
 {
-    private float _interval;
+    private readonly float _interval;
     private float currentTimeCount;
-    private QueryDescription potentiallySingleNPCs = new QueryDescription().WithAll<Living, Position, Movable, Identity, Genome>().WithNone<Relation>();
+    private readonly QueryDescription potentiallySingleNPCs = new QueryDescription().WithAll<Living, Position, Moving, Identity, Genome>().WithNone<Relation>();
 
     public LoveInterestSystem(World world, float interval = 600) : base(world)
     {
