@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.33530.505
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GeneLife", "GeneLife\GeneLife.csproj", "{B8BDBDD9-D3A4-4494-AEE5-81C9A90FE95E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GeneLife", "GeneLife\GeneLife.csproj", "{B8BDBDD9-D3A4-4494-AEE5-81C9A90FE95E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GeneLife.Tests", "GeneLife.Tests\GeneLife.Tests.csproj", "{C4BB31C3-76BF-4345-8EBC-2853DA67DA7E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GeneLife.Tests", "GeneLife.Tests\GeneLife.Tests.csproj", "{C4BB31C3-76BF-4345-8EBC-2853DA67DA7E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

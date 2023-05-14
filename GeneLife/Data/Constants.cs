@@ -7,9 +7,9 @@ public static class Constants
     // a day is 5 minutes
     public static int TickPerDay = 300;
      
-    public static int TicksForAYear = 365 * 24 * TickPerDay;
+    public static int TicksForAYear = 365 * TickPerDay;
 
-    public static int TicksUntilDeath = TicksForAYear * 79;
+    public static int TicksUntilDeath = TicksForAYear * 80;
 
     public static int ChildToTeenagerTickCount = TicksForAYear * 12;
 
@@ -20,4 +20,6 @@ public static class Constants
     public static int HumanBodyInCubicCentimeters = 50000;
 
     public static float LearningMultiplier = 0.1f;
+
+    public static int MaxAttractionComputePerLoveInterestLoop = 5;
 }

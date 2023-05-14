@@ -1,7 +1,7 @@
 ﻿using FluentAssertions;
 using GeneLife.Sibyl.Components;
 using GeneLife.Sibyl.Core;
-using GeneLife.Sibyl.Service;
+using GeneLife.Sibyl.Services;
 
 namespace GeneLife.Tests.Services;
 
@@ -57,7 +57,7 @@ public class KnowledgeServiceTests
     public void ShouldFinishLearning()
     {
         var kl = new KnowledgeList { KnownCategories = _knowledgeList.ToArray() };
-        (_learning, kl) = KnowledgeService.LearningLoop(_learning, kl, 100f);
+        (_learning, kl) = KnowledgeService.LearningLoop(_learning, kl, 1000f);
         kl.KnownCategories.Should().HaveCount(2);
         kl.KnownCategories.FirstOrDefault(x => x.Category == KnowledgeCategory.Cooking)
             .Level.Should().Be(KnowledgeLevel.Beginner);

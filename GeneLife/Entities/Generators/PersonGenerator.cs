@@ -3,14 +3,13 @@ using Arch.Core.Extensions;
 using Bogus.DataSets;
 using GeneLife.CommonComponents.Environment;
 using GeneLife.CommonComponents.Utils;
-using GeneLife.Data;
-using GeneLife.Entities;
+using GeneLife.Entities.Factories;
 using GeneLife.Genetic;
 using GeneLife.Genetic.GeneticTraits;
 using GeneLife.Sibyl.Components;
 using GeneLife.Utils;
 
-namespace GeneLife.Generators;
+namespace GeneLife.Entities.Generators;
 
 public static class PersonGenerator
 {
@@ -20,7 +19,7 @@ public static class PersonGenerator
         var nameGenerator = new Name();
         var gender = sex == Sex.Male ? Name.Gender.Male : Name.Gender.Female;
         var identity = new Identity { Id = Guid.NewGuid(), FirstName = nameGenerator.FirstName(gender), LastName = nameGenerator.LastName(gender)};
-        var age = random.Next(startAge, Constants.TicksUntilDeath - Constants.TicksForAYear * 2);
+        var age = random.Next(startAge, 80);
         var behavior = Enum.GetValues<BehaviorPropension>().Random(random);
         var eyeColor = Enum.GetValues<EyeColor>().Random(random);
         var hairColor = Enum.GetValues<HairColor>().Random(random);
@@ -29,7 +28,7 @@ public static class PersonGenerator
         var intel = Enum.GetValues<Intelligence>().Random(random);
         var morpho = Enum.GetValues<Morphotype>().Random(random);
         var gen = new Genome(age, sex, eyeColor, hairColor, handedness, morpho, intel, heightPotential, behavior);
-        var entity = world.Create(NpcArchetypeFactory.PersonArchetype());
+        var entity = world.Create(new NpcArchetypeFactory().Build("Person"));
         entity.Set(identity);
         entity.Set(gen);
         entity.Set(new KnowledgeList());

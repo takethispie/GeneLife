@@ -30,4 +30,10 @@
       <ProjectReference Include="..\GeneLife\GeneLife.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <None Update="Attractiveness.mlnet">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
 </Project>

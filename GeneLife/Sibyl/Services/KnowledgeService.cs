@@ -2,7 +2,7 @@
 using GeneLife.Sibyl.Components;
 using GeneLife.Sibyl.Core;
 
-namespace GeneLife.Sibyl.Service;
+namespace GeneLife.Sibyl.Services;
 
 public static class KnowledgeService
 {
@@ -44,4 +44,7 @@ public static class KnowledgeService
 
         return (learning, knowledgeList);
     }
+
+    public static bool DoesSchoolTeach(School school, Knowledge knowledge) => 
+        school.Classes.Any(cl => cl.Category == knowledge.Category && cl.Level == knowledge.Level);
 }

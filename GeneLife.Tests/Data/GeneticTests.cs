@@ -20,7 +20,7 @@ public class GeneticTests
     [Fact]
     public void GenomeSequencingShouldWork()
     {
-        var gen = new Genome(10, Sex.Male, EyeColor.Blue, HairColor.Blond, Handedness.Ambidextrous,
+        var gen = new Genome(10, Sex.Male, EyeColor.Blue, HairColor.Blonde, Handedness.Ambidextrous,
             Morphotype.Ectomorph, Intelligence.Art, HeightPotential.Average, BehaviorPropension.Emotional);
 
         var sequence = GenomeSequencer.ToSequence(gen);
@@ -35,12 +35,13 @@ public class GeneticTests
         var gen = GenomeSequencer.ToGenome("$$bBHhaaMMXYeeJjUu#10#$$");
         gen.Sex.Should().Be(Sex.Male);
         gen.EyeColor.Should().Be(EyeColor.Blue);
-        gen.HairColor.Should().Be(HairColor.Blond);
+        gen.HairColor.Should().Be(HairColor.Blonde);
         gen.Handedness.Should().Be(Handedness.Ambidextrous);
         gen.Morphotype.Should().Be(Morphotype.Ectomorph);
         gen.Intelligence.Should().Be(Intelligence.Art);
         gen.HeightPotential.Should().Be(HeightPotential.Average);
         gen.BehaviorPropension.Should().Be(BehaviorPropension.Emotional);
+        gen.Age.Should().Be(10);
     }
 
     [Fact]

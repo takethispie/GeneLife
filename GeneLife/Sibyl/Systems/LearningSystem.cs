@@ -3,7 +3,7 @@ using Arch.Core.Extensions;
 using Arch.System;
 using GeneLife.CommonComponents;
 using GeneLife.Sibyl.Components;
-using GeneLife.Sibyl.Service;
+using GeneLife.Sibyl.Services;
 
 namespace GeneLife.Sibyl.Systems;
 

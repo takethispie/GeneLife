@@ -3,8 +3,7 @@ using Arch.Core.Extensions;
 using Arch.System;
 using FluentAssertions;
 using GeneLife.CommonComponents;
-using GeneLife.Entities;
-using GeneLife.Generators;
+using GeneLife.Entities.Generators;
 using GeneLife.Genetic.GeneticTraits;
 using GeneLife.Sibyl.Components;
 using GeneLife.Sibyl.Core;
@@ -23,7 +22,6 @@ public class LearningPersonTests
     public LearningPersonTests()
     {
         _world = Arch.Core.World.Create();
-        _human = PersonGenerator.CreatePure(_world, Sex.Male, 300000);
         _knowledgeList = new List<(KnowledgeCategory knowledgeCategory, KnowledgeLevel level)>
         {
             (KnowledgeCategory.Biology, KnowledgeLevel.Beginner),
@@ -58,6 +56,7 @@ public class LearningPersonTests
     [Fact]
     public void HumanShouldLearnCooking()
     {
+        _human = PersonGenerator.CreatePure(_world, Sex.Male, 20);
         _human.Add(_learning);
         var allTheLearningNPCQuery = new QueryDescription().WithAll<Learning, Living, KnowledgeList>();
         var entities = new List<Entity>();
