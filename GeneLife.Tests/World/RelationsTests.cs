@@ -69,7 +69,8 @@ public class RelationsTests
         man.Has<Relation>().Should().BeFalse();
     }
 
-    [Fact]
+    [Fact(Skip = "performance only test")]
+
     public void ShouldComputeAttractivenessOnCloseHumansBigSample()
     {
         var man = PersonGenerator.CreatePure(_world, Sex.Male, 20);
