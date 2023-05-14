@@ -33,7 +33,6 @@ public static class RelationService
         {
             F_EyeColor = first.EyeColor.ToString(),
             F_HairType = first.HairColor.ToString(),
-            F_Handedness = first.Handedness.ToString(),
             F_Morphotype = first.Morphotype.ToString(),
             F_Intelligence = first.Intelligence.ToString(),
             F_HeightPotential = first.HeightPotential.ToString(),
@@ -42,7 +41,6 @@ public static class RelationService
             F_BehaviorPropension = first.BehaviorPropension.ToString(),
             S_EyeColor = second.EyeColor.ToString(),
             S_HairType = second.HairColor.ToString(),
-            S_Handedness = second.Handedness.ToString(),
             S_Morphotype = second.Morphotype.ToString(),
             S_Intelligence = second.Intelligence.ToString(),
             S_HeightPotential = second.HeightPotential.ToString(),
