@@ -20,4 +20,6 @@ public static class Constants
     public static int HumanBodyInCubicCentimeters = 50000;
 
     public static float LearningMultiplier = 0.1f;
+
+    public static int MaxAttractionComputePerLoveInterestLoop = 5;
 }

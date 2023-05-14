@@ -21,7 +21,7 @@ public class VehicleArchetypeFactory : IArchetypeBuilder
 
     public ComponentType[] Build(string type) => type.ToLower() switch
     {
-        "Car" => CarArchetype(),
+        "car" => CarArchetype(),
         _ => throw new ArchetypeNotFoundException()
     };
 

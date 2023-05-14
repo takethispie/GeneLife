@@ -28,7 +28,7 @@ public class NpcArchetypeFactory : IArchetypeBuilder
 
     public ComponentType[] Build(string type) => type.ToLower() switch
     {
-        "Person" => PersonArchetype(),
+        "person" => PersonArchetype(),
         _ => throw new ArchetypeNotFoundException()
     };
 

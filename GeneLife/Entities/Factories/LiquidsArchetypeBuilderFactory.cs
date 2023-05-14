@@ -27,8 +27,8 @@ public class LiquidsArchetypeBuilderFactory : IArchetypeBuilder
 
     public ComponentType[] Build(string type) => type.ToLower() switch
     {
-        "Water" => Water(),
-        "Alcohol" => Alcohol(),
+        "water" => Water(),
+        "alcohol" => Alcohol(),
         _ => throw new ArchetypeNotFoundException()
     };
 
