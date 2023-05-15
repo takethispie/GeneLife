@@ -1,7 +1,7 @@
 ﻿using Arch.Core;
 using Arch.Core.Extensions;
 using Arch.System;
-using GeneLife.CommonComponents;
+using GeneLife.Common.Components;
 using GeneLife.Sibyl.Components;
 using GeneLife.Sibyl.Services;
 

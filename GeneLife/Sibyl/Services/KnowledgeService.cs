@@ -1,4 +1,4 @@
-﻿using GeneLife.Data;
+﻿using GeneLife.Common.Data;
 using GeneLife.Sibyl.Components;
 using GeneLife.Sibyl.Core;
 

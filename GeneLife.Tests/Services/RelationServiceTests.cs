@@ -1,6 +1,6 @@
 ﻿using Arch.Core.Extensions;
 using FluentAssertions;
-using GeneLife.Entities.Generators;
+using GeneLife.Common.Entities.Generators;
 using GeneLife.Genetic;
 using GeneLife.Genetic.GeneticTraits;
 using GeneLife.Oracle.Services;

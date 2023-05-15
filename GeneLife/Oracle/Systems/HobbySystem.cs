@@ -2,9 +2,9 @@
 using Arch.Core;
 using Arch.Core.Extensions;
 using Arch.System;
-using GeneLife.CommonComponents;
-using GeneLife.CommonComponents.Utils;
-using GeneLife.Data;
+using GeneLife.Common.Components;
+using GeneLife.Common.Components.Utils;
+using GeneLife.Common.Data;
 using GeneLife.Genetic;
 using GeneLife.Oracle.Components;
 using GeneLife.Oracle.Core;

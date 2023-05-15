@@ -2,8 +2,8 @@
 using Arch.Core.Extensions;
 using Arch.System;
 using FluentAssertions;
-using GeneLife.CommonComponents;
-using GeneLife.Entities.Generators;
+using GeneLife.Common.Components;
+using GeneLife.Common.Entities.Generators;
 using GeneLife.Genetic.GeneticTraits;
 using GeneLife.Sibyl.Components;
 using GeneLife.Sibyl.Core;

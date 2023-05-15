@@ -2,7 +2,7 @@
 using System.Numerics;
 using Arch.Core;
 using Arch.Core.Extensions;
-using GeneLife.CommonComponents;
+using GeneLife.Common.Components;
 
 namespace GeneLife.Utils;
 

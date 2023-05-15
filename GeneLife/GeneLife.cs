@@ -1,12 +1,11 @@
 ﻿using Arch.Core;
 using Arch.Core.Utils;
 using Arch.System;
-using GeneLife.Entities;
-using GeneLife.Entities.Factories;
+using GeneLife.Common.Entities;
+using GeneLife.Common.Entities.Factories;
 using GeneLife.Oracle;
 using GeneLife.Sibyl;
-using GeneLife.Systems;
-using JobScheduler = JobScheduler.JobScheduler;
+using LogSystem = GeneLife.Common.Systems.LogSystem;
 
 namespace GeneLife;
 
