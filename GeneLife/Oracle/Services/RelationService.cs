@@ -1,7 +1,9 @@
 ﻿using System.Collections.Concurrent;
+using Arch.Bus;
 using Arch.Core;
 using Arch.Core.Extensions;
 using GeneLife.CommonComponents;
+using GeneLife.CommonComponents.Utils;
 using GeneLife.Data;
 using GeneLife.Genetic;
 using GeneLife.Oracle.Components;
@@ -94,6 +96,9 @@ public static class RelationService
             {
                 var result = ComputeAttractivenessChances(matchList.entity.Get<Genome>(), match.Get<Genome>());
                 if (!EndsUpTogether(result)) continue;
+                var first = matchList.entity.Get<Identity>();
+                var second = match.Get<Identity>();
+                EventBus.Send(new LogEvent { Message = $"{first.FirstName} {first.LastName} and {second.FirstName} {second.LastName} are now together !"});
                 matchList.entity.Add(new Relation(match.Id));
                 match.Add(new Relation(matchList.entity.Id));
             }

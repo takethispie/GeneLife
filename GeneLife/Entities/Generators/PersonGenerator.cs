@@ -1,6 +1,7 @@
 ﻿using Arch.Core;
 using Arch.Core.Extensions;
 using Bogus.DataSets;
+using GeneLife.CommonComponents;
 using GeneLife.CommonComponents.Environment;
 using GeneLife.CommonComponents.Utils;
 using GeneLife.Entities.Factories;
@@ -32,7 +33,7 @@ public static class PersonGenerator
         entity.Set(identity);
         entity.Set(gen);
         entity.Set(new KnowledgeList());
-        entity.Set(new EnvironmentalTraits());
+        entity.Set(new Psychology());
         return entity;
     }
 }

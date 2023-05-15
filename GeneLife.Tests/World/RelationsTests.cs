@@ -1,13 +1,18 @@
 ﻿using System.Numerics;
 using Arch.Core.Extensions;
 using Arch.System;
+using Arch.Bus;
 using FluentAssertions;
 using GeneLife.CommonComponents;
+using GeneLife.Data;
 using GeneLife.Entities.Generators;
 using GeneLife.Genetic.GeneticTraits;
 using GeneLife.Oracle.Components;
+using GeneLife.Oracle.Core;
 using GeneLife.Oracle.Systems;
+using GeneLife.Systems;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace GeneLife.Tests.World;
 
@@ -15,15 +20,19 @@ public class RelationsTests
 {
     private Arch.Core.World _world;
     private readonly Group<float> _systems;
+    private readonly ITestOutputHelper output;
+    private global::JobScheduler.JobScheduler _jobScheduler;
 
-    public RelationsTests()
+    public RelationsTests(ITestOutputHelper output)
     {
         _world = Arch.Core.World.Create();
-        _systems = new Group<float>(new LoveInterestSystem(_world));
+        _systems = new Group<float>(new LoveInterestSystem(_world), new HobbySystem(_world));
         _systems.Initialize();
+        this.output = output;
+        _jobScheduler = new global::JobScheduler.JobScheduler("glife");
     }
 
-    public void RunSystemsOnce(float delta)
+    private void RunSystemsOnce(float delta)
     {
         _systems.BeforeUpdate(delta);
         _systems.Update(delta);
@@ -69,7 +78,7 @@ public class RelationsTests
         man.Has<Relation>().Should().BeFalse();
     }
 
-    [Fact]
+    [Fact(Skip = "performance only test")]
     public void ShouldComputeAttractivenessOnCloseHumansBigSample()
     {
         var man = PersonGenerator.CreatePure(_world, Sex.Male, 20);
@@ -88,5 +97,28 @@ public class RelationsTests
                 rnd.Next(0, 20))));
         }
         RunSystemsOnce(800f);
+    }
+
+    [Fact]
+    public void ShouldHaveEnoughMoneyForHobby()
+    {
+        Constants.HobbyChangeChances = 0;
+        var man = PersonGenerator.CreatePure(_world, Sex.Male, 20);
+        man.Add(new Wallet { Money = 1000f });
+        man.Add(new Hobby { Type = HobbyType.Biking, NeedsMoney = true, MoneyPerWeek = 100, Started = DateTime.Now });
+        RunSystemsOnce(Constants.TickPerDay * 10);
+        man.Get<Wallet>().Money.Should().BeLessThan(1000f);
+    }
+    
+    [Fact]
+    public void ShouldNotHaveEnoughMoneyForHobby()
+    {
+        Constants.HobbyChangeChances = 0;
+        Constants.GettingHobbyChances = 0;
+        var man = PersonGenerator.CreatePure(_world, Sex.Male, 20);
+        man.Add(new Wallet { Money = 0 });
+        man.Add(new Hobby { Type = HobbyType.Biking, NeedsMoney = true, MoneyPerWeek = 100, Started = DateTime.Now });
+        RunSystemsOnce(Constants.TickPerDay * 10);
+        man.Has<Hobby>().Should().BeFalse();
     }
 }

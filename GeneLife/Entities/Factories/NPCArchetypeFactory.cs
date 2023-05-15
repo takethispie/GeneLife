@@ -16,14 +16,15 @@ public class NpcArchetypeFactory : IArchetypeBuilder
     {
         typeof(Identity), 
         typeof(Genome), 
-        typeof(EnvironmentalTraits), 
+        typeof(Psychology), 
         typeof(Living),
         typeof(Lifespan),
         typeof(Flammable),
         typeof(Moving),
         typeof(AlcoholAbsorber),
         typeof(KnowledgeList),
-        typeof(Position)
+        typeof(Position),
+        typeof(Wallet)
     };
 
     public ComponentType[] Build(string type) => type.ToLower() switch

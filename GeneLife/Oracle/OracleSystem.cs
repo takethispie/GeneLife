@@ -10,5 +10,6 @@ public static class OracleSystem
     public static void Register(World world, Group<float> group)
     {
         group.Add(new LoveInterestSystem(world));
+        group.Add(new HobbySystem(world));
     }
 }
