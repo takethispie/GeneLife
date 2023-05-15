@@ -30,4 +30,6 @@ public static class Constants
     public static float HappinessLossOnHobbyLoss = 0.1f;
     
     public static float NoHobbyReplacementChances = 0.2f;
+
+    public static string CurrencyLabel = "$";
 }

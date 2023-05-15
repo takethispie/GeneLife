@@ -3,26 +3,29 @@ using Arch.Core.Utils;
 using Arch.System;
 using GeneLife.Entities;
 using GeneLife.Entities.Factories;
-using GeneLife.Entities.Generators;
-using GeneLife.Genetic.GeneticTraits;
 using GeneLife.Oracle;
 using GeneLife.Sibyl;
+using GeneLife.Systems;
+using JobScheduler = JobScheduler.JobScheduler;
 
 namespace GeneLife;
 
 public class GeneLife : IDisposable
 {
     public World Main { get; init; }
+    
     private Arch.System.Group<float> Systems;
-
     private ArchetypeFactory _archetypeFactory;
+    private LogSystem _logSystem;
+    private global::JobScheduler.JobScheduler _jobScheduler;
 
     public GeneLife()
     {
         Main = World.Create();
         Systems = new Arch.System.Group<float>();
         _archetypeFactory = new ArchetypeFactory();
-        
+        _logSystem = new LogSystem();
+        _jobScheduler = new global::JobScheduler.JobScheduler("glife");
     }
 
     public void AddSystem(BaseSystem<World, float> system) => Systems.Add(system);
@@ -48,11 +51,6 @@ public class GeneLife : IDisposable
         Systems.BeforeUpdate(delta);    
         Systems.Update(delta);          
         Systems.AfterUpdate(delta);     
-    }
-
-    public void AddNewHuman(Sex sex)
-    {
-        PersonGenerator.CreatePure(Main, sex);
     }
 
     public ComponentType[] GetArchetype(string name) => _archetypeFactory.Build(name);

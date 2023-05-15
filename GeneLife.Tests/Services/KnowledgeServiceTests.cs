@@ -48,7 +48,7 @@ public class KnowledgeServiceTests
         var kl = new KnowledgeList { KnownCategories = _knowledgeList.ToArray() };
         (_learning, kl) = KnowledgeService.LearningLoop(_learning, kl, 0.8f);
         kl.KnownCategories.Should().HaveCount(2);
-        kl.KnownCategories.FirstOrDefault(x => x.Category == KnowledgeCategory.Cooking)
+        kl.KnownCategories.First(x => x.Category == KnowledgeCategory.Cooking)
             .Level.Should().Be(KnowledgeLevel.None);
         _learning.CurrentLearningLevel.Should().BeGreaterThan(0);
     }
@@ -59,7 +59,7 @@ public class KnowledgeServiceTests
         var kl = new KnowledgeList { KnownCategories = _knowledgeList.ToArray() };
         (_learning, kl) = KnowledgeService.LearningLoop(_learning, kl, 1000f);
         kl.KnownCategories.Should().HaveCount(2);
-        kl.KnownCategories.FirstOrDefault(x => x.Category == KnowledgeCategory.Cooking)
+        kl.KnownCategories.First(x => x.Category == KnowledgeCategory.Cooking)
             .Level.Should().Be(KnowledgeLevel.Beginner);
         _learning.CurrentLearningLevel.Should().BeGreaterThan(0);
     }
