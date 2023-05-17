@@ -27,7 +27,7 @@ public static class Constants
 
     public static float HobbyChangeChances = 0.1f;
 
-    public static float HappinessLossOnHobbyLoss = 0.1f;
+    public static int HappinessLossOnHobbyLoss = 1;
     
     public static float NoHobbyReplacementChances = 0.2f;
 

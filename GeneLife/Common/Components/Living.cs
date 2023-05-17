@@ -2,32 +2,39 @@
 
 public struct Living
 {
-    public int MaxHitPoints;
-    public int HitPoints;
+    public int Damage;
+    
+    /// <summary>
+    /// goes down with time, the lower it is the higher the hunger is
+    /// </summary>
     public int Hunger;
+    
+    /// <summary>
+    /// goes down with time, the lower it is the higher the thirst is
+    /// </summary>
     public int Thirst;
-    public int MaxStamina;
+    
+    
     public int Stamina;
+    
+    public bool Hungry;
+    public bool Thirsty;
 
     /// <summary>
     /// constructor without arguments sets default values
     /// </summary>
     public Living()
     {
-        MaxHitPoints = 10;
-        HitPoints = MaxHitPoints;
+        Damage = 0;
         Hunger = 10;
         Thirst = 20;
-        MaxStamina = 10;
-        Stamina = MaxStamina;
+        Stamina = 10;
     }
 
-    public Living(int maxHitPoints, int maxStamina, int hunger, int thirst)
+    public Living(int maxStamina, int hunger, int thirst)
     {
-        MaxHitPoints = maxHitPoints;
-        HitPoints = MaxHitPoints;
-        MaxStamina = maxStamina;
-        Stamina = MaxStamina;
+        Damage = 0;
+        Stamina = maxStamina;
         Hunger = hunger;
         Thirst = thirst;
     }

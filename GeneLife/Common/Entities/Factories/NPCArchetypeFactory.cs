@@ -23,7 +23,8 @@ public class NpcArchetypeFactory : IArchetypeBuilder
         typeof(AlcoholAbsorber),
         typeof(KnowledgeList),
         typeof(Position),
-        typeof(Wallet)
+        typeof(Wallet),
+        typeof(Inventory)
     };
 
     public ComponentType[] Build(string type) => type.ToLower() switch
