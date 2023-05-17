@@ -3,6 +3,7 @@ using Arch.Core.Utils;
 using Arch.System;
 using GeneLife.Common.Entities;
 using GeneLife.Common.Entities.Factories;
+using GeneLife.Demeter;
 using GeneLife.Oracle;
 using GeneLife.Sibyl;
 using LogSystem = GeneLife.Common.Systems.LogSystem;
@@ -11,7 +12,7 @@ namespace GeneLife;
 
 public class GeneLife : IDisposable
 {
-    public World Main { get; init; }
+    public World Overworld { get; init; }
     
     private Arch.System.Group<float> Systems;
     private ArchetypeFactory _archetypeFactory;
@@ -20,7 +21,7 @@ public class GeneLife : IDisposable
 
     public GeneLife()
     {
-        Main = World.Create();
+        Overworld = World.Create();
         Systems = new Arch.System.Group<float>();
         _archetypeFactory = new ArchetypeFactory();
         _logSystem = new LogSystem();
@@ -29,18 +30,26 @@ public class GeneLife : IDisposable
 
     public void AddSystem(BaseSystem<World, float> system) => Systems.Add(system);
 
-    public void Initialize()
+    public void Initialize(bool overrideDefaultSystems = false, bool overrideDefaultArchetypes = false)
     {
         Systems.Initialize();
-        SibylSystem.Register(Main, Systems);
-        OracleSystem.Register(Main, Systems);
-        _archetypeFactory.RegisterFactory(new NpcArchetypeFactory());
-        _archetypeFactory.RegisterFactory(new VehicleArchetypeFactory());
-        _archetypeFactory.RegisterFactory(new BuildingsArchetypeBuilderFactory());
-        _archetypeFactory.RegisterFactory(new LiquidsArchetypeBuilderFactory());
+        
+        if (!overrideDefaultArchetypes)
+        {
+            _archetypeFactory.RegisterFactory(new NpcArchetypeFactory());
+            _archetypeFactory.RegisterFactory(new VehicleArchetypeFactory());
+            _archetypeFactory.RegisterFactory(new BuildingsArchetypeBuilderFactory());
+            _archetypeFactory.RegisterFactory(new LiquidsArchetypeBuilderFactory());
+        }
+        
+        if (!overrideDefaultSystems)
+        {
+            SibylSystem.Register(Overworld, Systems);
+            OracleSystem.Register(Overworld, Systems);
+            DemeterSystem.Register(Overworld, Systems);
+        }
     }
 
-    
     /// <summary>
     /// Update loop
     /// </summary>
@@ -56,7 +65,7 @@ public class GeneLife : IDisposable
 
     public void Dispose()
     {
-        Main.Dispose();
+        Overworld.Dispose();
         Systems.Dispose();
     }
 }

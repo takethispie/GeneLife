@@ -12,20 +12,30 @@ public class BuildingsArchetypeBuilderFactory : IArchetypeBuilder
 {
     private static ComponentType[] House() => new ComponentType[]
     {
-        typeof(LivingBeingContainer),
         typeof(Flammable),
         typeof(Lifespan),
         typeof(Ownable),
-        typeof(Adress)
+        typeof(Position),
+        typeof(Adress),
+    };
+    
+    private static ComponentType[] OccupiedHouse() => new ComponentType[]
+    {
+        typeof(Flammable),
+        typeof(Lifespan),
+        typeof(Ownable),
+        typeof(Position),
+        typeof(Adress),
+        typeof(HouseHold)
     };
 
     private static ComponentType[] SchoolBuilding() => new ComponentType[]
     {
-        typeof(LivingBeingContainer),
         typeof(Flammable),
-        typeof(Adress),
         typeof(Lifespan),
         typeof(Ownable),
+        typeof(Position),
+        typeof(Adress),
         typeof(School)
     };
 
@@ -34,10 +44,11 @@ public class BuildingsArchetypeBuilderFactory : IArchetypeBuilder
         return type.ToLower() switch
         {
             "house" => House(),
+            "occupiedhouse" => OccupiedHouse(),
             "schoolbuilding" => SchoolBuilding(),
             _ => throw new ArchetypeNotFoundException()
         };
     }
 
-    public string[] ArchetypesList() => new[] { "House", "SchoolBuilding" };
+    public string[] ArchetypesList() => new[] { "House", "SchoolBuilding", "OccupiedHouse" };
 }
