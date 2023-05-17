@@ -5,15 +5,20 @@ namespace GeneLifeConsole.CommandParser;
 
 public class CreateParser
 {
-    public string Parse(GeneLifeSimulation simulation, string[] text)
+    public static string Parse(GeneLifeSimulation simulation, string[] text)
     {
         return text switch
         {
-            ["npc", "male"] => CreateNPC(simulation, Sex.Male),
-            ["npc", "female"] => CreateNPC(simulation, Sex.Female),
+            ["male", var rest] => CreateNPCWithMinimumAge(simulation, Sex.Male, rest),
+            ["female", var rest] => CreateNPCWithMinimumAge(simulation, Sex.Female, rest),
+            ["male", ..] => CreateNPC(simulation, Sex.Male),
+            ["female", ..] => CreateNPC(simulation, Sex.Female),
             _ => "unknown create command"
         };
     }
 
-    public string CreateNPC(GeneLifeSimulation simulation, Sex sex) => simulation.AddNPC(Sex.Male);
+    private static string CreateNPC(GeneLifeSimulation simulation, Sex sex) => simulation.AddNPC(sex);
+
+    private static string CreateNPCWithMinimumAge(GeneLifeSimulation simulation, Sex sex, string startAge) => 
+        int.TryParse(startAge, out var age) ? simulation.AddNPC(sex, age) : "Could not parse the age parameter";
 }

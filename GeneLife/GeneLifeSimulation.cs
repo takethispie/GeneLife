@@ -22,7 +22,7 @@ public class GeneLifeSimulation : IDisposable
     
     private Arch.System.Group<float> Systems;
     private ArchetypeFactory _archetypeFactory;
-    private LogSystem _logSystem;
+    public LogSystem LogSystem;
     private global::JobScheduler.JobScheduler _jobScheduler;
 
     public GeneLifeSimulation()
@@ -30,7 +30,7 @@ public class GeneLifeSimulation : IDisposable
         Overworld = World.Create();
         Systems = new Arch.System.Group<float>();
         _archetypeFactory = new ArchetypeFactory();
-        _logSystem = new LogSystem();
+        LogSystem = new LogSystem(false);
         _jobScheduler = new global::JobScheduler.JobScheduler("glife");
     }
 
@@ -56,11 +56,13 @@ public class GeneLifeSimulation : IDisposable
             DemeterSystem.Register(Overworld, Systems);
             EventBus.Send(new LogEvent { Message = "All systems loaded" });
         }
+        
+        EventBus.Send(new LogEvent { Message = "Simulation Initialized" });
     }
 
-    public string AddNPC(Sex sex)
+    public string AddNPC(Sex sex, int startAge = 0)
     {
-        var entity = PersonGenerator.CreatePure(Overworld, sex);
+        var entity = PersonGenerator.CreatePure(Overworld, sex, startAge);
         var identity = entity.Get<Identity>();
         return $"{identity.FirstName} {identity.LastName} was created";
     }

@@ -15,7 +15,10 @@ public class CommandParser
     public string Parse(string command) =>
         command.ToLower().Split(" ") switch
         {
-            ["create", ..] => _createParser.Parse(_simulation, command.ToLower().Split(" ").Skip(1).ToArray()),
+            ["create", ..] => CreateParser.Parse(_simulation, skipHead(command)),
+            ["change", ..] => ChangeParser.Parse(_simulation, skipHead(command)),
             _ => "Unknow Command"
         };
+
+    public string[] skipHead(string command) => command.ToLower().Split(" ").Skip(1).ToArray();
 }
