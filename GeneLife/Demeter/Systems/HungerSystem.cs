@@ -20,24 +20,26 @@ public class HungerSystem : BaseSystem<World, float>
     public override void Update(in float delta)
     {
         _tickAccumulator += delta;
-        if (_tickAccumulator >= 300)
+        //TODO move accumulator to accumulators component or living component
+        if (_tickAccumulator >= 10)
         {
             _tickAccumulator = 0;
             World.Query(in livingEntities, (ref Living living, ref Identity identity, ref Psychology psychology) =>
             {
                 living.Hunger -= 2;
-                if (living.Hunger <= 2)
+                if (living is { Hunger: <= 2, Hungry: false })
                 {
                     EventBus.Send(new LogEvent { Message = $"{identity.FirstName} {identity.LastName} is starting to be very hungry"});
                     living.Hungry = true;
                 }
-                else if(living.Hunger <= 0)
+                else if(living.Hunger <= 0 && living.Hungry)
                 {
                     living.Stamina -= 5;
                     EventBus.Send(new LogEvent { Message = $"{identity.FirstName} {identity.LastName} is starving"});
                 }
 
                 if (living is not { Hungry: true, Stamina: <= 0 }) return;
+                EventBus.Send(new LogEvent { Message = $"{identity.FirstName} {identity.LastName} is slowly dying from starvation"});
                 living.Damage += 1;
                 psychology.EmotionalBalance -= 20;
                 psychology.Stress += 20;

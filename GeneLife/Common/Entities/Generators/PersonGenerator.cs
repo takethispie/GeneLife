@@ -33,6 +33,9 @@ public static class PersonGenerator
         entity.Set(gen);
         entity.Set(new KnowledgeList());
         entity.Set(new Psychology());
+        entity.Set(new Living());
+        entity.Set(new Wallet { Money = 100 });
+        entity.Set(new Inventory());
         return entity;
     }
 }

@@ -1,16 +1,22 @@
-﻿using Arch.Core;
+﻿using Arch.Bus;
+using Arch.Core;
+using Arch.Core.Extensions;
 using Arch.Core.Utils;
 using Arch.System;
+using GeneLife.Common.Components.Utils;
+using GeneLife.Common.Data;
 using GeneLife.Common.Entities;
 using GeneLife.Common.Entities.Factories;
+using GeneLife.Common.Entities.Generators;
 using GeneLife.Demeter;
+using GeneLife.Genetic.GeneticTraits;
 using GeneLife.Oracle;
 using GeneLife.Sibyl;
 using LogSystem = GeneLife.Common.Systems.LogSystem;
 
 namespace GeneLife;
 
-public class GeneLife : IDisposable
+public class GeneLifeSimulation : IDisposable
 {
     public World Overworld { get; init; }
     
@@ -19,7 +25,7 @@ public class GeneLife : IDisposable
     private LogSystem _logSystem;
     private global::JobScheduler.JobScheduler _jobScheduler;
 
-    public GeneLife()
+    public GeneLifeSimulation()
     {
         Overworld = World.Create();
         Systems = new Arch.System.Group<float>();
@@ -40,6 +46,7 @@ public class GeneLife : IDisposable
             _archetypeFactory.RegisterFactory(new VehicleArchetypeFactory());
             _archetypeFactory.RegisterFactory(new BuildingsArchetypeBuilderFactory());
             _archetypeFactory.RegisterFactory(new LiquidsArchetypeBuilderFactory());
+            EventBus.Send(new LogEvent { Message = "All archetypes factories loaded" });
         }
         
         if (!overrideDefaultSystems)
@@ -47,7 +54,15 @@ public class GeneLife : IDisposable
             SibylSystem.Register(Overworld, Systems);
             OracleSystem.Register(Overworld, Systems);
             DemeterSystem.Register(Overworld, Systems);
+            EventBus.Send(new LogEvent { Message = "All systems loaded" });
         }
+    }
+
+    public string AddNPC(Sex sex)
+    {
+        var entity = PersonGenerator.CreatePure(Overworld, sex);
+        var identity = entity.Get<Identity>();
+        return $"{identity.FirstName} {identity.LastName} was created";
     }
 
     /// <summary>
