@@ -17,6 +17,7 @@ public class CommandParser
         {
             ["create", ..] => CreateParser.Parse(_simulation, skipHead(command)),
             ["change", ..] => ChangeParser.Parse(_simulation, skipHead(command)),
+            ["give", ..] => GiveParser.Parse(_simulation, skipHead(command)),
             _ => "Unknow Command"
         };
 

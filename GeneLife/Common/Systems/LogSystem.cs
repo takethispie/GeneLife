@@ -1,5 +1,6 @@
 ﻿using Arch.Bus;
 using GeneLife.Common.Data;
+using GeneLife.Core.Events;
 
 namespace GeneLife.Common.Systems;
 
@@ -24,14 +25,14 @@ public partial class LogSystem
         if(_logToConsole) Console.WriteLine(log.Message);
         else
         {
+            if (string.IsNullOrEmpty(log.Message)) return;
             Logs.Add(log.Message);
             OnLogNotification();
         }
     }
     
-    protected virtual void OnLogNotification() //protected virtual method
+    protected virtual void OnLogNotification()
     {
-        //if ProcessCompleted is not null then call delegate
         LogAdded?.Invoke(); 
     }
 }

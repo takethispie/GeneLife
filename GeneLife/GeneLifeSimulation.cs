@@ -3,15 +3,21 @@ using Arch.Core;
 using Arch.Core.Extensions;
 using Arch.Core.Utils;
 using Arch.System;
+using GeneLife.Common.Components;
 using GeneLife.Common.Components.Utils;
 using GeneLife.Common.Data;
 using GeneLife.Common.Entities;
 using GeneLife.Common.Entities.Factories;
 using GeneLife.Common.Entities.Generators;
+using GeneLife.Common.Systems;
+using GeneLife.Core.Commands;
+using GeneLife.Core.Events;
+using GeneLife.Core.Items;
 using GeneLife.Demeter;
 using GeneLife.Genetic.GeneticTraits;
 using GeneLife.Oracle;
 using GeneLife.Sibyl;
+using GeneLife.Utils;
 using LogSystem = GeneLife.Common.Systems.LogSystem;
 
 namespace GeneLife;
@@ -65,6 +71,24 @@ public class GeneLifeSimulation : IDisposable
         var entity = PersonGenerator.CreatePure(Overworld, sex, startAge);
         var identity = entity.Get<Identity>();
         return $"{identity.FirstName} {identity.LastName} was created";
+    }
+
+    public void SendCommand(GiveCommand command)
+    {
+        var livingEntities = new QueryDescription().WithAll<Living, Identity, Inventory>();
+        Overworld.Query(in livingEntities, (ref Living living, ref Identity identity, ref Inventory inventory) =>
+        {
+            if (identity.FirstName.ToLower() != command.TargetFirstName ||
+                identity.LastName.ToLower() != command.TargetLastName) return;
+            var idx = inventory.items.ToList().FindIndex(x => x.Type == ItemType.None);
+            if (idx == -1) return;
+            inventory.items[idx] = command.Item;
+            EventBus.Send(new LogEvent
+            {
+                Message =
+                    $"item with id {command.Item.Id} of type {command.Item.Type} was given to {identity.FullName()}"
+            });
+        });
     }
 
     /// <summary>

@@ -4,6 +4,7 @@ using Arch.System;
 using GeneLife.Common.Components;
 using GeneLife.Common.Components.Utils;
 using GeneLife.Common.Data;
+using GeneLife.Core.Events;
 
 namespace GeneLife.Demeter.Systems;
 

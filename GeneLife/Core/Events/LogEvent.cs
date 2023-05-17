@@ -1,4 +1,4 @@
-﻿namespace GeneLife.Common.Data;
+﻿namespace GeneLife.Core.Events;
 
 public struct LogEvent
 {
