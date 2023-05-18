@@ -52,16 +52,11 @@ var win = new Window ($"GeneLife Simulator version {Assembly.GetExecutingAssembl
     Height = Dim.Fill ()
 };
 
-geneLifeSimulation.LogSystem.LogAdded += () => Application.MainLoop.Invoke(() =>
-{
-    logs.SelectedItem = geneLifeSimulation.LogSystem.Logs.Count - 1;
-    logs.SetNeedsDisplay();
-});
 
-var npcView = new NPCView(geneLifeSimulation);
+var npcView = new NPCView(geneLifeSimulation, ExecuteAndLog);
 npcView.DrawContent += _ =>
 {
-    npcView.Load(geneLifeSimulation.GetLivingNPC());
+    npcView.Load(geneLifeSimulation.GetAllLivingNPC());
 };
 
 var logTab = new TabView.Tab { View = logs, Text = "Logs"};
@@ -70,6 +65,12 @@ var npcListTab = new TabView.Tab { View = npcView,Text = "NPCs" };
 var tabView = new TabView { Visible = true,X = 0, Y = 0, Width = Dim.Fill(), Height = Dim.Fill() - 1 };
 tabView.AddTab(logTab, true);
 tabView.AddTab(npcListTab, false);
+
+geneLifeSimulation.LogSystem.LogAdded += () => Application.MainLoop.Invoke(() =>
+{
+    logs.SelectedItem = geneLifeSimulation.LogSystem.Logs.Count - 1;
+    logs.SetNeedsDisplay();
+});
 
 #region Command input
 var input = new TextField { Visible = true, X = 1, Y = Pos.Bottom(tabView) , Width = Dim.Percent(80), Height = 1 };
@@ -90,5 +91,5 @@ win.Add(input);
 win.Add(executeCmd);
 
 Application.Top.Add (menu, win);
-Application.Run ();
-Application.Shutdown ();
+Application.Run();
+Application.Shutdown();

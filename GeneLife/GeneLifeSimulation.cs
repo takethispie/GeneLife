@@ -27,9 +27,10 @@ public class GeneLifeSimulation : IDisposable
     private Arch.System.Group<float> Systems;
     private ArchetypeFactory _archetypeFactory;
     private global::JobScheduler.JobScheduler _jobScheduler;
-    private World _overworld { get; init; }
-    public LogSystem LogSystem { get; init; }
-    public List<Entity> Entities { get; init; }
+    private World _overworld { get; }
+    public LogSystem LogSystem { get; }
+    public UIHookSystem UiHookSystem { get; }
+    public List<Entity> Entities { get; }
 
     public GeneLifeSimulation()
     {
@@ -39,6 +40,7 @@ public class GeneLifeSimulation : IDisposable
         LogSystem = new LogSystem(false);
         _jobScheduler = new global::JobScheduler.JobScheduler("glife");
         Entities = new List<Entity>();
+        UiHookSystem = new UIHookSystem(_overworld);
     }
 
     public void AddSystem(BaseSystem<World, float> system) => Systems.Add(system);
@@ -63,7 +65,8 @@ public class GeneLifeSimulation : IDisposable
             DemeterSystem.Register(_overworld, Systems);
             EventBus.Send(new LogEvent { Message = "All systems loaded" });
         }
-        
+
+        Systems.Add(UiHookSystem);
         EventBus.Send(new LogEvent { Message = "Simulation Initialized" });
     }
 
@@ -75,12 +78,31 @@ public class GeneLifeSimulation : IDisposable
         return $"{identity.FullName()} was created";
     }
 
-    public List<Entity> GetLivingNPC()
+    public List<Entity> GetAllLivingNPC()
     {
         var query = new QueryDescription().WithAll<Living, Identity>();
         var entities = new List<Entity>();
         _overworld.GetEntities(query, entities);
         return entities;
+    }
+
+    public void SetLivingEntityUpdateHook(int id)
+    {
+        var query = new QueryDescription().WithAll<Living, Identity>();
+        _overworld.ParallelQuery(in query, (in Entity entity) =>
+        {
+            if (entity.Id != id) return;
+            entity.Add(new UIHook());
+        });
+    }
+    
+    public void removeLivingEntityUpdateHook(int id)
+    {
+        var query = new QueryDescription();
+        _overworld.ParallelQuery(in query, (in Entity entity) =>
+        {
+            if(entity.Id == id) entity.Remove<UIHook>();
+        });
     }
 
     public void SendCommand(GiveCommand command)

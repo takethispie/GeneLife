@@ -19,6 +19,12 @@ public class GiveParser
                 TargetFirstName = entityNames[0],
                 TargetLastName = entityNames[1]
             },
+            2 => new GiveCommand
+            {
+                Item = new Item { Id = 2, Type = ItemType.Drink }, 
+                TargetFirstName = entityNames[0],
+                TargetLastName = entityNames[1]
+            },
             _ => null
         };
         if (command == null) return "Unknown Command";

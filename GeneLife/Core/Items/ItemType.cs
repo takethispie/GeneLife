@@ -8,5 +8,6 @@ public enum ItemType
     Appliance,
     Armor,
     Weapon,
-    Tool
+    Tool,
+    Drink
 }

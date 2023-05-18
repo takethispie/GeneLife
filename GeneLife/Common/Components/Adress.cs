@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace GeneLife.Common.Components.Utils;
+namespace GeneLife.Common.Components;
 
 public struct Adress
 {

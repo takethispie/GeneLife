@@ -2,6 +2,7 @@
 using Arch.Core.Extensions;
 using Arch.System;
 using GeneLife.Common.Components;
+using GeneLife.Common.Components.Utils;
 using GeneLife.Sibyl.Components;
 using GeneLife.Sibyl.Services;
 
@@ -20,6 +21,7 @@ public class LearningSystem : BaseSystem<World, float>
         var delta = t;
         World.Query(in _LearningNPCs, (ref Learning learning, ref Living being, ref KnowledgeList knowledgeList) =>
         {
+            if (being.IsDead) return;
             (learning, knowledgeList) = KnowledgeService.LearningLoop(learning, knowledgeList, delta);
         });
         
@@ -28,7 +30,8 @@ public class LearningSystem : BaseSystem<World, float>
         foreach (var entity in entities)
         {
             var learning = entity.Get<Learning>();
-            if(learning.Finished) entity.Remove<Learning>();
+            if (!learning.Finished && !entity.Get<Living>().IsDead) continue;
+            entity.Remove<Learning>();
         }
     }
 }
