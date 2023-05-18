@@ -32,4 +32,6 @@ public static class Constants
     public static float NoHobbyReplacementChances = 0.2f;
 
     public static string CurrencyLabel = "$";
+    public static int HungryThreshold = 2;
+    public static int ThirstyThreshold = 6;
 }

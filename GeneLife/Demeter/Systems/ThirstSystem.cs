@@ -8,12 +8,12 @@ using GeneLife.Core.Events;
 
 namespace GeneLife.Demeter.Systems;
 
-public class HungerSystem : BaseSystem<World, float>
+public class ThirstSystem : BaseSystem<World, float>
 {
     private readonly QueryDescription livingEntities = new QueryDescription().WithAll<Living, Identity, Psychology>();
     private float _tickAccumulator;
     
-    public HungerSystem(World world) : base(world)
+    public ThirstSystem(World world) : base(world)
     {
         _tickAccumulator = 0;
     }
@@ -25,24 +25,24 @@ public class HungerSystem : BaseSystem<World, float>
         if (_tickAccumulator >= Constants.TickPerDay)
         {
             _tickAccumulator = 0;
-            World.Query(in livingEntities, (ref Living living, ref Identity identity, ref Psychology psychology) =>
+            World.ParallelQuery(in livingEntities, (ref Living living, ref Identity identity, ref Psychology psychology) =>
             {
-                living.Hunger -= 1;
+                living.Thirst -= 4;
                 switch (living)
                 {
-                    case { Hungry: false } when living.Hunger <= Constants.HungryThreshold:
-                        EventBus.Send(new LogEvent { Message = $"{identity.FirstName} {identity.LastName} is starting to be very hungry"});
-                        living.Hungry = true;
+                    case { Thirsty: false } when living.Thirst <= Constants.ThirstyThreshold:
+                        EventBus.Send(new LogEvent { Message = $"{identity.FirstName} {identity.LastName} is starting to be very Thirsty"});
+                        living.Thirsty = true;
                         break;
                     
-                    case { Hunger: <= 0, Hungry: true, Stamina: > 0 }:
+                    case { Thirst: <= 0, Thirsty: true, Stamina: > 0 }:
                         living.Stamina -= 5;
-                        EventBus.Send(new LogEvent { Message = $"{identity.FirstName} {identity.LastName} is starving"});
+                        EventBus.Send(new LogEvent { Message = $"{identity.FirstName} {identity.LastName} is Dehydrated"});
                         break;
                     
-                    case { Hungry: true, Stamina: <= 0 }:
+                    case { Thirsty: true, Stamina: <= 0 }:
                         EventBus.Send(new LogEvent
-                            { Message = $"{identity.FirstName} {identity.LastName} is slowly dying from starvation" });
+                            { Message = $"{identity.FirstName} {identity.LastName} is slowly dying from Dehydration" });
                         living.Damage += 1;
                         psychology.EmotionalBalance -= 20;
                         psychology.Stress += 20;
