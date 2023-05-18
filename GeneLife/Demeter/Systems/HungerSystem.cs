@@ -27,7 +27,7 @@ public class HungerSystem : BaseSystem<World, float>
             _tickAccumulator = 0;
             World.Query(in livingEntities, (ref Living living, ref Identity identity, ref Psychology psychology) =>
             {
-                living.Hunger -= 2;
+                living.Hunger -= 1;
                 switch (living)
                 {
                     case { Hunger: <= 2, Hungry: false }:

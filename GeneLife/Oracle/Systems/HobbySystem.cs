@@ -76,7 +76,6 @@ public class HobbySystem : BaseSystem<World, float>
 
                     case true when !entity.Has<Wallet>():
                         entity.Remove<Hobby>();
-                        
                         break;
                 }
             }

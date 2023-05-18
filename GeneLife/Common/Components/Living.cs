@@ -17,8 +17,8 @@ public struct Living
     
     public int Stamina;
     
-    public bool Hungry;
-    public bool Thirsty;
+    public bool Hungry, Thirsty, IsDead;
+    
 
     /// <summary>
     /// constructor without arguments sets default values
@@ -29,6 +29,7 @@ public struct Living
         Hunger = 10;
         Thirst = 20;
         Stamina = 10;
+        IsDead = false;
     }
 
     public Living(int maxStamina, int hunger, int thirst)
@@ -37,5 +38,6 @@ public struct Living
         Stamina = maxStamina;
         Hunger = hunger;
         Thirst = thirst;
+        IsDead = false;
     }
 }

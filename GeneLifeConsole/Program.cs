@@ -4,6 +4,7 @@ using GeneLifeConsole.CommandParser;
 using Terminal.Gui;
 using Arch.Bus;
 using GeneLife.Common.Data;
+using GeneLifeConsole.Views;
 
 var geneLifeSimulation = new GeneLifeSimulation(); 
 geneLifeSimulation.Initialize();
@@ -15,16 +16,6 @@ bool GenelifeTick(MainLoop loop)
     return true;
 }
 
-void ExecuteAndLog(string command, ListView logView)
-{
-    geneLifeSimulation.LogSystem.Logs.Add(commandParser.Parse(command));
-    Application.MainLoop.Invoke(() =>
-    {
-        logView.SelectedItem = geneLifeSimulation.LogSystem.Logs.Count - 1;
-        logView.SetNeedsDisplay();
-    });
-    
-}
 
 Application.Init();
 
@@ -42,25 +33,17 @@ var logs = new ListView
     Enabled = false,
 };
 
-var menu = new MenuBar (new MenuBarItem [] {
-    new("_File", new MenuItem [] {
-        new("_Quit", "", () => { 
-            Application.RequestStop ();
-            Application.MainLoop.RemoveTimeout(token);
-            geneLifeSimulation.Dispose();
-        })
-    }),
-    new("_Create", new MenuItem[]
+void ExecuteAndLog(string command)
+{
+    geneLifeSimulation.LogSystem.Logs.Add(commandParser.Parse(command));
+    Application.MainLoop.Invoke(() =>
     {
-        new("_Male NPC", "", () => ExecuteAndLog("create male", logs)),
-        new("_Female NPC", "", () => ExecuteAndLog("create female", logs)),
-    }),
-    new("_Settings", new MenuItem[]
-    {
-        new("_Set ticks per day: 10", "", () => ExecuteAndLog("change ticksperday 10",logs)),
-        new("_Set ticks per day: 100", "", () => ExecuteAndLog("change ticksperday 100",logs))
-    })
-});
+        logs.SelectedItem = geneLifeSimulation.LogSystem.Logs.Count - 1;
+        logs.SetNeedsDisplay();
+    });
+}
+
+var menu = MenuBuilder.Build(geneLifeSimulation, ExecuteAndLog, token);
 
 var win = new Window ($"GeneLife Simulator version {Assembly.GetExecutingAssembly().GetName().Version}") {
     X = 0,
@@ -69,33 +52,44 @@ var win = new Window ($"GeneLife Simulator version {Assembly.GetExecutingAssembl
     Height = Dim.Fill ()
 };
 
+
+var npcView = new NPCView(geneLifeSimulation, ExecuteAndLog);
+npcView.DrawContent += _ =>
+{
+    npcView.Load(geneLifeSimulation.GetAllLivingNPC());
+};
+
+var logTab = new TabView.Tab { View = logs, Text = "Logs"};
+var npcListTab = new TabView.Tab { View = npcView,Text = "NPCs" };
+
+var tabView = new TabView { Visible = true,X = 0, Y = 0, Width = Dim.Fill(), Height = Dim.Fill() - 1 };
+tabView.AddTab(logTab, true);
+tabView.AddTab(npcListTab, false);
+
 geneLifeSimulation.LogSystem.LogAdded += () => Application.MainLoop.Invoke(() =>
 {
     logs.SelectedItem = geneLifeSimulation.LogSystem.Logs.Count - 1;
     logs.SetNeedsDisplay();
 });
 
-var tab = new TabView.Tab { View = logs, Text = "Logs"};
-var tabView = new TabView { Visible = true,X = 0, Y = 0, Width = Dim.Fill(), Height = Dim.Fill() - 1 };
-tabView.AddTab(tab, true);
-var input = new TextField { Visible = true, X = 0, Y = Pos.Bottom(tabView) , Width = Dim.Percent(80), Height = 1 };
-
+#region Command input
+var input = new TextField { Visible = true, X = 1, Y = Pos.Bottom(tabView) , Width = Dim.Percent(80), Height = 1 };
 var executeCmd = new Button
 {
     Visible = true, X = Pos.Right(input), Y = Pos.Bottom(tabView), Width = Dim.Percent(20), Height = 1, Text = "Execute"
 };
-
 executeCmd.Clicked += () =>
 {
     if (string.IsNullOrEmpty(input.Text.ToString())) return;
-    ExecuteAndLog(input.Text.ToString() ?? string.Empty, logs);
+    ExecuteAndLog(input.Text.ToString() ?? string.Empty);
     input.Text = "";
 };
+#endregion
 
 win.Add(tabView);
 win.Add(input);
 win.Add(executeCmd);
 
 Application.Top.Add (menu, win);
-Application.Run ();
-Application.Shutdown ();
+Application.Run();
+Application.Shutdown();

@@ -24,20 +24,23 @@ namespace GeneLife;
 
 public class GeneLifeSimulation : IDisposable
 {
-    public World Overworld { get; init; }
-    
     private Arch.System.Group<float> Systems;
     private ArchetypeFactory _archetypeFactory;
-    public LogSystem LogSystem;
     private global::JobScheduler.JobScheduler _jobScheduler;
+    private World _overworld { get; }
+    public LogSystem LogSystem { get; }
+    public UIHookSystem UiHookSystem { get; }
+    public List<Entity> Entities { get; }
 
     public GeneLifeSimulation()
     {
-        Overworld = World.Create();
+        _overworld = World.Create();
         Systems = new Arch.System.Group<float>();
         _archetypeFactory = new ArchetypeFactory();
         LogSystem = new LogSystem(false);
         _jobScheduler = new global::JobScheduler.JobScheduler("glife");
+        Entities = new List<Entity>();
+        UiHookSystem = new UIHookSystem(_overworld);
     }
 
     public void AddSystem(BaseSystem<World, float> system) => Systems.Add(system);
@@ -57,26 +60,55 @@ public class GeneLifeSimulation : IDisposable
         
         if (!overrideDefaultSystems)
         {
-            SibylSystem.Register(Overworld, Systems);
-            OracleSystem.Register(Overworld, Systems);
-            DemeterSystem.Register(Overworld, Systems);
+            SibylSystem.Register(_overworld, Systems);
+            OracleSystem.Register(_overworld, Systems);
+            DemeterSystem.Register(_overworld, Systems);
             EventBus.Send(new LogEvent { Message = "All systems loaded" });
         }
-        
+
+        Systems.Add(UiHookSystem);
         EventBus.Send(new LogEvent { Message = "Simulation Initialized" });
     }
 
     public string AddNPC(Sex sex, int startAge = 0)
     {
-        var entity = PersonGenerator.CreatePure(Overworld, sex, startAge);
+        var entity = PersonGenerator.CreatePure(_overworld, sex, startAge);
+        Entities.Add(entity);
         var identity = entity.Get<Identity>();
-        return $"{identity.FirstName} {identity.LastName} was created";
+        return $"{identity.FullName()} was created";
+    }
+
+    public List<Entity> GetAllLivingNPC()
+    {
+        var query = new QueryDescription().WithAll<Living, Identity>();
+        var entities = new List<Entity>();
+        _overworld.GetEntities(query, entities);
+        return entities;
+    }
+
+    public void SetLivingEntityUpdateHook(int id)
+    {
+        var query = new QueryDescription().WithAll<Living, Identity>();
+        _overworld.ParallelQuery(in query, (in Entity entity) =>
+        {
+            if (entity.Id != id) return;
+            entity.Add(new UIHook());
+        });
+    }
+    
+    public void removeLivingEntityUpdateHook(int id)
+    {
+        var query = new QueryDescription();
+        _overworld.ParallelQuery(in query, (in Entity entity) =>
+        {
+            if(entity.Id == id) entity.Remove<UIHook>();
+        });
     }
 
     public void SendCommand(GiveCommand command)
     {
         var livingEntities = new QueryDescription().WithAll<Living, Identity, Inventory>();
-        Overworld.Query(in livingEntities, (ref Living living, ref Identity identity, ref Inventory inventory) =>
+        _overworld.Query(in livingEntities, (ref Living living, ref Identity identity, ref Inventory inventory) =>
         {
             if (identity.FirstName.ToLower() != command.TargetFirstName ||
                 identity.LastName.ToLower() != command.TargetLastName) return;
@@ -106,7 +138,7 @@ public class GeneLifeSimulation : IDisposable
 
     public void Dispose()
     {
-        Overworld.Dispose();
+        _overworld.Dispose();
         Systems.Dispose();
     }
 }
