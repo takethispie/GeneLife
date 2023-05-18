@@ -8,6 +8,11 @@ public class DemeterSystem
 {
     public static void Register(World world, Group<float> group)
     {
-        group.Add(new EatingSystem(world), new HungerSystem(world));
+        group.Add(
+            new EatingSystem(world), 
+            new DrinkingSystem(world), 
+            new HungerSystem(world), 
+            new ThirstSystem(world)
+        );
     }
 }
