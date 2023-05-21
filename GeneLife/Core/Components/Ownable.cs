@@ -2,5 +2,10 @@
 
 public struct Ownable
 {
-    public int Owner;
+    public int OwnerId;
+
+    public Ownable(int ownerId)
+    {
+        OwnerId = ownerId;
+    }
 }

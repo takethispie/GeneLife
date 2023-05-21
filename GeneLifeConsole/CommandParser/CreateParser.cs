@@ -3,7 +3,7 @@ using GeneLife.Genetic.GeneticTraits;
 
 namespace GeneLifeConsole.CommandParser;
 
-public class CreateParser
+internal class CreateParser
 {
     public static string Parse(GeneLifeSimulation simulation, string[] text)
     {

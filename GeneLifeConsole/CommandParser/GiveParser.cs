@@ -4,7 +4,7 @@ using GeneLife.Core.Items;
 
 namespace GeneLifeConsole.CommandParser;
 
-public class GiveParser
+internal class GiveParser
 {
     public static string Parse(GeneLifeSimulation simulation, string[] text)
     {
@@ -15,13 +15,13 @@ public class GiveParser
         {
             1 => new GiveCommand
             {
-                Item = new Item { Id = 1, Type = ItemType.Food }, 
+                Item = new Item(1, ItemType.Food, "Burger"), 
                 TargetFirstName = entityNames[0],
                 TargetLastName = entityNames[1]
             },
             2 => new GiveCommand
             {
-                Item = new Item { Id = 2, Type = ItemType.Drink }, 
+                Item = new Item(id: 2, ItemType.Drink, "Water"), 
                 TargetFirstName = entityNames[0],
                 TargetLastName = entityNames[1]
             },

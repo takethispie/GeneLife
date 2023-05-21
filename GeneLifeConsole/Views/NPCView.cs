@@ -11,7 +11,7 @@ using Terminal.Gui;
 
 namespace GeneLifeConsole.Views;
 
-public class NPCView : View
+public sealed class NPCView : View
 {
     public ListView EntitiesList { get; }
     public FrameView Details { get; }

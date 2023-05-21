@@ -2,6 +2,17 @@
 
 public struct Lifespan
 {
-    public int Age;
-    public int MaxAge;
+    public TimeSpan Age;
+    public TimeSpan MaxAge;
+
+    public Lifespan(TimeSpan maxAge)
+    {
+        Age = TimeSpan.Zero;
+        MaxAge = maxAge;
+    }
+    public Lifespan(TimeSpan age, TimeSpan maxAge)
+    {
+        Age = age;
+        MaxAge = maxAge;
+    }
 }

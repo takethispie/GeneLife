@@ -2,10 +2,9 @@
 
 namespace GeneLifeConsole.CommandParser;
 
-public class CommandParser
+public sealed class CommandParser
 {
     private readonly GeneLifeSimulation _simulation;
-    private readonly CreateParser _createParser = new();
 
     public CommandParser(GeneLifeSimulation simulation)
     {
@@ -21,5 +20,5 @@ public class CommandParser
             _ => "Unknow Command"
         };
 
-    public string[] skipHead(string command) => command.ToLower().Split(" ").Skip(1).ToArray();
+    private static string[] skipHead(string command) => command.ToLower().Split(" ").Skip(1).ToArray();
 }

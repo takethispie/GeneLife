@@ -4,7 +4,7 @@ using GeneLife.Genetic.GeneticTraits;
 
 namespace GeneLifeConsole.CommandParser;
 
-public class ChangeParser
+internal class ChangeParser
 {
     public static string Parse(GeneLifeSimulation simulation, string[] text)
     {
