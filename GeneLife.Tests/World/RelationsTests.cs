@@ -3,14 +3,14 @@ using Arch.Core.Extensions;
 using Arch.System;
 using Arch.Bus;
 using FluentAssertions;
-using GeneLife.Common.Components;
-using GeneLife.Common.Data;
-using GeneLife.Common.Entities.Generators;
+using GeneLife.Core.Components;
+using GeneLife.Core.Components.Characters;
 using GeneLife.Genetic.GeneticTraits;
 using GeneLife.Oracle.Components;
 using GeneLife.Oracle.Core;
 using GeneLife.Oracle.Systems;
-using GeneLife.Common.Systems;
+using GeneLife.Core.Data;
+using GeneLife.Core.Entities.Generators;
 using Xunit;
 using Xunit.Abstractions;
 

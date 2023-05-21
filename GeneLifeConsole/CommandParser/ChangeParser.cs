@@ -1,5 +1,5 @@
 ﻿using GeneLife;
-using GeneLife.Common.Data;
+using GeneLife.Core.Data;
 using GeneLife.Genetic.GeneticTraits;
 
 namespace GeneLifeConsole.CommandParser;

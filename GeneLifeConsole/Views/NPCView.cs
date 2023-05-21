@@ -1,12 +1,12 @@
 ﻿using Arch.Core;
 using Arch.Core.Extensions;
 using GeneLife;
-using GeneLife.Common.Components;
-using GeneLife.Common.Components.Utils;
+using GeneLife.Core.Components;
+using GeneLife.Core.Components.Characters;
 using GeneLife.Core.Items;
+using GeneLife.Core.Utils;
 using GeneLife.Genetic;
 using GeneLife.Sibyl.Components;
-using GeneLife.Utils;
 using Terminal.Gui;
 
 namespace GeneLifeConsole.Views;

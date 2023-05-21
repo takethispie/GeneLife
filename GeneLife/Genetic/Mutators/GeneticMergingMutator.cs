@@ -1,5 +1,5 @@
-﻿using GeneLife.Genetic.Data;
-using GeneLife.Utils;
+﻿using GeneLife.Core.Utils;
+using GeneLife.Genetic.Data;
 
 namespace GeneLife.Genetic.Mutators;
 

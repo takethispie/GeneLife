@@ -3,7 +3,6 @@ using GeneLife;
 using GeneLifeConsole.CommandParser;
 using Terminal.Gui;
 using Arch.Bus;
-using GeneLife.Common.Data;
 using GeneLifeConsole.Views;
 
 var geneLifeSimulation = new GeneLifeSimulation(); 
