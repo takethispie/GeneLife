@@ -10,6 +10,7 @@ using GeneLife.Core.Components.Utils;
 using GeneLife.Core.Entities;
 using GeneLife.Core.Entities.Factories;
 using GeneLife.Core.Entities.Generators;
+using GeneLife.Core.Entities.Interfaces;
 using GeneLife.Core.Events;
 using GeneLife.Core.Items;
 using GeneLife.Core.Systems;
@@ -31,6 +32,8 @@ public class GeneLifeSimulation : IDisposable
     public LogSystem LogSystem { get; }
     public UIHookSystem UiHookSystem { get; }
     public List<Entity> Entities { get; }
+    public Item[] Items { get; }
+    public ItemWithPrice[] ItemsWithPrices { get; }
 
     public GeneLifeSimulation()
     {
@@ -41,6 +44,8 @@ public class GeneLifeSimulation : IDisposable
         _jobScheduler = new global::JobScheduler.JobScheduler("glife");
         Entities = new List<Entity>();
         UiHookSystem = new UIHookSystem(_overworld);
+        Items = new BaseItemGenerator().GetItemList();
+        ItemsWithPrices = new BaseItemWithWithPriceGenerator().GetItemsWithPrice(Items);
     }
 
     public void AddSystem(BaseSystem<World, float> system) => Systems.Add(system);

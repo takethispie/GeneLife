@@ -3,6 +3,7 @@ using System.Numerics;
 using Arch.Core;
 using Arch.Core.Extensions;
 using GeneLife.Core.Components;
+using GeneLife.Core.Data;
 
 namespace GeneLife.Core.Utils;
 
@@ -30,4 +31,7 @@ public static class Vector3Extensions
         }
         return insideEntities.ToArray();
     }
+
+    public static bool CloseEnoughForWalkingTo(this Vector3 origin, Vector3 target) 
+        => Vector3.Distance(origin, target) < Constants.MaxWalkingDistance;
 }
