@@ -1,9 +1,9 @@
 ﻿using Arch.Bus;
 using Arch.Core;
 using Arch.System;
-using GeneLife.Common.Components;
-using GeneLife.Common.Components.Utils;
-using GeneLife.Common.Data;
+using GeneLife.Core.Components;
+using GeneLife.Core.Components.Characters;
+using GeneLife.Core.Data;
 using GeneLife.Core.Events;
 
 namespace GeneLife.Demeter.Systems;

@@ -1,6 +1,6 @@
-﻿using GeneLife.Genetic.Data;
+﻿using GeneLife.Core.Utils;
+using GeneLife.Genetic.Data;
 using GeneLife.Genetic.Exceptions;
-using GeneLife.Utils;
 
 namespace GeneLife.Genetic.Mutators;
 

@@ -3,7 +3,7 @@ using Terminal.Gui;
 
 namespace GeneLifeConsole.Views;
 
-public class MenuBuilder
+public sealed class MenuBuilder
 {
     public static View Build(GeneLifeSimulation simulation, Action<string> executeAndLog, object token)
     {

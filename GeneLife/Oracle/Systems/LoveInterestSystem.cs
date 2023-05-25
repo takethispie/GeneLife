@@ -1,12 +1,11 @@
 ﻿using Arch.Core;
 using Arch.Core.Extensions;
 using Arch.System;
-using GeneLife.Common.Components;
-using GeneLife.Common.Components.Utils;
+using GeneLife.Core.Components;
+using GeneLife.Core.Components.Characters;
 using GeneLife.Genetic;
 using GeneLife.Oracle.Components;
 using GeneLife.Oracle.Services;
-using GeneLife.Utils;
 
 namespace GeneLife.Oracle.Systems;
 

@@ -2,13 +2,12 @@
 using Arch.Core;
 using Arch.Core.Extensions;
 using Arch.System;
-using GeneLife.Common.Components;
-using GeneLife.Common.Components.Utils;
-using GeneLife.Common.Data;
+using GeneLife.Core.Components;
+using GeneLife.Core.Components.Characters;
 using GeneLife.Core.Events;
 using GeneLife.Core.Items;
 using GeneLife.Core.Objectives;
-using GeneLife.Utils;
+using GeneLife.Core.Utils;
 
 namespace GeneLife.Demeter.Systems;
 
