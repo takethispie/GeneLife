@@ -10,7 +10,6 @@ using GeneLife.Core.Components.Utils;
 using GeneLife.Core.Entities;
 using GeneLife.Core.Entities.Factories;
 using GeneLife.Core.Entities.Generators;
-using GeneLife.Core.Entities.Interfaces;
 using GeneLife.Core.Events;
 using GeneLife.Core.Items;
 using GeneLife.Core.Systems;
@@ -31,7 +30,6 @@ public class GeneLifeSimulation : IDisposable
     private World _overworld { get; }
     public LogSystem LogSystem { get; }
     public UIHookSystem UiHookSystem { get; }
-    public List<Entity> Entities { get; }
     public Item[] Items { get; }
     public ItemWithPrice[] ItemsWithPrices { get; }
 
@@ -42,7 +40,6 @@ public class GeneLifeSimulation : IDisposable
         _archetypeFactory = new ArchetypeFactory();
         LogSystem = new LogSystem(false);
         _jobScheduler = new global::JobScheduler.JobScheduler("glife");
-        Entities = new List<Entity>();
         UiHookSystem = new UIHookSystem(_overworld);
         Items = new BaseItemGenerator().GetItemList();
         ItemsWithPrices = new BaseItemWithWithPriceGenerator().GetItemsWithPrice(Items);
@@ -78,7 +75,6 @@ public class GeneLifeSimulation : IDisposable
     public string AddNPC(Sex sex, int startAge = 0)
     {
         var entity = PersonGenerator.CreatePure(_overworld, sex, startAge);
-        Entities.Add(entity);
         var identity = entity.Get<Identity>();
         return $"{identity.FullName()} was created";
     }
@@ -145,5 +141,12 @@ public class GeneLifeSimulation : IDisposable
     {
         _overworld.Dispose();
         Systems.Dispose();
+    }
+
+    public Entity[] GetLivingEntities()
+    {
+        var entities = new List<Entity>();
+        _overworld.GetEntities(in new QueryDescription().WithAll<Living, Position>(), entities);
+        return entities.ToArray();
     }
 }

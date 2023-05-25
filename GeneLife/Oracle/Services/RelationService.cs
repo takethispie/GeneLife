@@ -19,7 +19,7 @@ public static class RelationService
     {
         var related = false;
         if (first.Has<FamilyMember>() && second.Has<FamilyMember>())
-            related = first.Get<FamilyMember>().FamilyId == second.Get<FamilyMember>().FamilyId;
+            related = FamilyService.AreRelated(first.Get<FamilyMember>(), second.Get<FamilyMember>());
         return new
             {
                 fLiving = first.Has<Living>(),

@@ -13,13 +13,13 @@ namespace GeneLife.Core.Entities.Generators;
 
 public static class PersonGenerator
 {
-    public static Entity CreatePure(World world, Sex sex, int startAge = 0)
+    public static Entity CreatePure(World world, Sex sex, int startAge = 0, int endAge = 80)
     {
         var random = new Random();
         var nameGenerator = new Name();
         var gender = sex == Sex.Male ? Name.Gender.Male : Name.Gender.Female;
         var identity = new Identity { Id = Guid.NewGuid(), FirstName = nameGenerator.FirstName(gender), LastName = nameGenerator.LastName(gender)};
-        var age = random.Next(startAge, 80);
+        var age = random.Next(startAge, endAge);
         var behavior = Enum.GetValues<BehaviorPropension>().Random(random);
         var eyeColor = Enum.GetValues<EyeColor>().Random(random);
         var hairColor = Enum.GetValues<HairColor>().Random(random);

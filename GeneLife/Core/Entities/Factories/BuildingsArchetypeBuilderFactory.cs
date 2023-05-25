@@ -16,15 +16,6 @@ public class BuildingsArchetypeBuilderFactory : IArchetypeBuilder
         typeof(Ownable),
         typeof(Position),
         typeof(Adress),
-    };
-    
-    private static ComponentType[] OccupiedHouse() => new ComponentType[]
-    {
-        typeof(Flammable),
-        typeof(Lifespan),
-        typeof(Ownable),
-        typeof(Position),
-        typeof(Adress),
         typeof(HouseHold)
     };
 
@@ -53,7 +44,6 @@ public class BuildingsArchetypeBuilderFactory : IArchetypeBuilder
         return type.ToLower() switch
         {
             "house" => House(),
-            "occupiedhouse" => OccupiedHouse(),
             "schoolbuilding" => SchoolBuilding(),
             "shop" => Shop(),
             _ => throw new ArchetypeNotFoundException()

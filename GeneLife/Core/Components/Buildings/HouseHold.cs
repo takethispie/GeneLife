@@ -3,5 +3,14 @@
 public struct HouseHold
 {
     public int[] Members;
-    public bool HasUnlimitedWaterSource;
+
+    public HouseHold()
+    {
+        Members = Array.Empty<int>();
+    }
+
+    public HouseHold(int[] members)
+    {
+        Members = members;
+    }
 }

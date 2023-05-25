@@ -41,8 +41,8 @@ public sealed class NPCView : View
             Width = Dim.Percent(30), 
             Height = Dim.Fill() - 1, 
             Visible = true,
-            Source = new ListWrapper(simulation.Entities.Select(x => x.Id.ToString()).ToArray()),
-            SelectedItem = simulation.Entities.Count - 1
+            Source = new ListWrapper(simulation.GetLivingEntities().Select(x => x.Id.ToString()).ToArray()),
+            SelectedItem = simulation.GetLivingEntities().Length - 1
         };
         EntitiesList.SelectedItemChanged += SetDetails;
         Details = new FrameView
@@ -195,7 +195,7 @@ public sealed class NPCView : View
     private void SetDetails(ListViewItemEventArgs args)
     {
         Simulation.removeLivingEntityUpdateHook(_selected.Id);
-        _selected = Simulation.Entities.First(x => x.Id == (int)args.Value);
+        _selected = Simulation.GetLivingEntities().First(x => x.Id == (int)args.Value);
         if (!_selected.Has<Identity>()) return;
         Simulation.SetLivingEntityUpdateHook(_selected.Id);
         LoadEntityData();
