@@ -4,17 +4,19 @@ using Arch.System;
 using GeneLife.Core.Components;
 using GeneLife.Core.Components.Characters;
 using GeneLife.Core.Data;
+using GeneLife.Core.Entities;
 using GeneLife.Core.Events;
 
 namespace GeneLife.Demeter.Systems;
 
 public class ThirstSystem : BaseSystem<World, float>
 {
-    private readonly QueryDescription livingEntities = new QueryDescription().WithAll<Living, Identity, Psychology>();
+    private readonly QueryDescription livingEntities = new QueryDescription();
     private float _tickAccumulator;
     
     public ThirstSystem(World world) : base(world)
     {
+        livingEntities.All = new ArchetypeFactory().Build("person");
         _tickAccumulator = 0;
     }
 
@@ -22,33 +24,31 @@ public class ThirstSystem : BaseSystem<World, float>
     {
         _tickAccumulator += delta;
         //TODO move accumulator to accumulators component or living component
-        if (_tickAccumulator >= Constants.TickPerDay)
+        if (_tickAccumulator < Constants.TicksPerDay) return;
+        _tickAccumulator = 0;
+        World.ParallelQuery(in livingEntities, (ref Living living, ref Identity identity, ref Psychology psychology) =>
         {
-            _tickAccumulator = 0;
-            World.ParallelQuery(in livingEntities, (ref Living living, ref Identity identity, ref Psychology psychology) =>
+            living.Thirst -= 1;
+            switch (living)
             {
-                living.Thirst -= 4;
-                switch (living)
-                {
-                    case { Thirsty: false } when living.Thirst <= Constants.ThirstyThreshold:
-                        EventBus.Send(new LogEvent { Message = $"{identity.FirstName} {identity.LastName} is starting to be very Thirsty"});
-                        living.Thirsty = true;
-                        break;
+                case { Thirsty: false } when living.Thirst <= Constants.ThirstyThreshold:
+                    EventBus.Send(new LogEvent { Message = $"{identity.FirstName} {identity.LastName} is starting to be very Thirsty"});
+                    living.Thirsty = true;
+                    break;
                     
-                    case { Thirst: <= 0, Thirsty: true, Stamina: > 0 }:
-                        living.Stamina -= 5;
-                        EventBus.Send(new LogEvent { Message = $"{identity.FirstName} {identity.LastName} is Dehydrated"});
-                        break;
+                case { Thirst: <= 0, Thirsty: true, Stamina: > 0 }:
+                    living.Stamina -= 5;
+                    EventBus.Send(new LogEvent { Message = $"{identity.FirstName} {identity.LastName} is Dehydrated"});
+                    break;
                     
-                    case { Thirsty: true, Stamina: <= 0 }:
-                        EventBus.Send(new LogEvent
-                            { Message = $"{identity.FirstName} {identity.LastName} is slowly dying from Dehydration" });
-                        living.Damage += 1;
-                        psychology.EmotionalBalance -= 20;
-                        psychology.Stress += 20;
-                        break;
-                }
-            });
-        }
+                case { Thirsty: true, Stamina: <= 0 }:
+                    EventBus.Send(new LogEvent
+                        { Message = $"{identity.FirstName} {identity.LastName} is slowly dying from Dehydration" });
+                    living.Damage += 1;
+                    psychology.EmotionalBalance -= 20;
+                    psychology.Stress += 20;
+                    break;
+            }
+        });
     }
 }

@@ -1,9 +1,7 @@
-﻿using System.Numerics;
-using GeneLife.Core.Components;
-using GeneLife.Core.Components.Buildings;
+﻿using GeneLife.Core.Components.Buildings;
 using GeneLife.Core.Items;
 
-namespace GeneLife.Core.Utils;
+namespace GeneLife.Core.Extensions;
 
 public static class ShopExtensions
 {

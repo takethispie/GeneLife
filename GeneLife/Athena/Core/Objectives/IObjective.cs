@@ -1,4 +1,4 @@
-﻿namespace GeneLife.Core.Objectives;
+﻿namespace GeneLife.Athena.Core.Objectives;
 
 public interface IObjective
 {

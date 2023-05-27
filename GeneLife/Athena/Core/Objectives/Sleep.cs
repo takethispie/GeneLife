@@ -1,3 +1,3 @@
-﻿namespace GeneLife.Core.Objectives;
+﻿namespace GeneLife.Athena.Core.Objectives;
 
 public record Sleep(int Priority, string Name = "Sleep"): IObjective;

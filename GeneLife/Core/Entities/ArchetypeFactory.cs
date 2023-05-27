@@ -6,7 +6,7 @@ namespace GeneLife.Core.Entities;
 
 public class ArchetypeFactory
 {
-    private List<IArchetypeBuilder> factories;
+    private readonly List<IArchetypeBuilder> factories;
 
     public ArchetypeFactory()
     {
@@ -20,12 +20,13 @@ public class ArchetypeFactory
         factories.Add(factory);
     }
 
-    public bool IsBuildableArchetype(string name) => 
+    private bool IsBuildableArchetype(string name) => 
         factories.Any(x => x.ArchetypesList().Any(archetype => archetype == name));
 
     public ComponentType[] Build(string name)
     {
         var factory = factories.FirstOrDefault(x => x.ArchetypesList().Any(arch => arch == name));
-        return factory?.Build(name);
+        if (factory == null) throw new ArchetypeNotFoundException();
+        return factory.Build(name);
     }
 }

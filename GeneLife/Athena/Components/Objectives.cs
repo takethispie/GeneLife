@@ -1,6 +1,6 @@
-﻿using GeneLife.Core.Objectives;
+﻿using GeneLife.Athena.Core.Objectives;
 
-namespace GeneLife.Core.Components.Characters;
+namespace GeneLife.Athena.Components;
 
 public struct Objectives
 {

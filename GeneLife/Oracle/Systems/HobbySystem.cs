@@ -6,7 +6,7 @@ using GeneLife.Core.Components;
 using GeneLife.Core.Components.Characters;
 using GeneLife.Core.Data;
 using GeneLife.Core.Events;
-using GeneLife.Core.Utils;
+using GeneLife.Core.Extensions;
 using GeneLife.Genetic;
 using GeneLife.Oracle.Components;
 using GeneLife.Oracle.Core;
@@ -24,7 +24,7 @@ public class HobbySystem : BaseSystem<World, float>
 
     public HobbySystem(World world) : base(world)
     {
-        _interval = Constants.TickPerDay * 7;
+        _interval = Constants.TicksPerDay * 7;
         _currentTimeCount = 0;
         _random = new Random();
     }

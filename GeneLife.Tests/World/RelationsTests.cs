@@ -106,7 +106,7 @@ public class RelationsTests
         var man = PersonGenerator.CreatePure(_world, Sex.Male, 20);
         man.Add(new Wallet { Money = 1000f });
         man.Add(new Hobby { Type = HobbyType.Biking, NeedsMoney = true, MoneyPerWeek = 100, Started = DateTime.Now });
-        RunSystemsOnce(Constants.TickPerDay * 10);
+        RunSystemsOnce(Constants.TicksPerDay * 10);
         man.Get<Wallet>().Money.Should().BeLessThan(1000f);
     }
     
@@ -118,7 +118,7 @@ public class RelationsTests
         var man = PersonGenerator.CreatePure(_world, Sex.Male, 20);
         man.Add(new Wallet { Money = 0 });
         man.Add(new Hobby { Type = HobbyType.Biking, NeedsMoney = true, MoneyPerWeek = 100, Started = DateTime.Now });
-        RunSystemsOnce(Constants.TickPerDay * 10);
+        RunSystemsOnce(Constants.TicksPerDay * 10);
         man.Has<Hobby>().Should().BeFalse();
     }
 }

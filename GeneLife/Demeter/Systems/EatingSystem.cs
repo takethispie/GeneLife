@@ -2,12 +2,14 @@
 using Arch.Core;
 using Arch.Core.Extensions;
 using Arch.System;
+using GeneLife.Athena.Components;
+using GeneLife.Athena.Core.Objectives;
 using GeneLife.Core.Components;
 using GeneLife.Core.Components.Characters;
+using GeneLife.Core.Data;
 using GeneLife.Core.Events;
+using GeneLife.Core.Extensions;
 using GeneLife.Core.Items;
-using GeneLife.Core.Objectives;
-using GeneLife.Core.Utils;
 
 namespace GeneLife.Demeter.Systems;
 
@@ -43,7 +45,7 @@ public class EatingSystem : BaseSystem<World, float>
                         if (idx <= -1) return;
                         inventory.items[idx] = new Item { Type = ItemType.None, Id = -1 };
                         living.Hungry = false;
-                        living.Hunger = 10;
+                        living.Hunger = Constants.MaxHunger;
                         objectives.CurrentObjectives = objectives.CurrentObjectives.Where(x => x is not Eat).ToArray();
                         EventBus.Send(new LogEvent
                             { Message = $"{identity.FirstName} {identity.LastName} has filled his/her stomach" });

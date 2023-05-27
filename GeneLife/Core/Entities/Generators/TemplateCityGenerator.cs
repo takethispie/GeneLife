@@ -3,7 +3,6 @@ using Arch.Core;
 using Arch.Core.Extensions;
 using GeneLife.Core.Components;
 using GeneLife.Core.Components.Buildings;
-using GeneLife.Core.Utils;
 using GeneLife.Genetic.GeneticTraits;
 using GeneLife.Oracle.Components;
 using GeneLife.Oracle.Core;

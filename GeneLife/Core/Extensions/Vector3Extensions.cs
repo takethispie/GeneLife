@@ -5,7 +5,7 @@ using Arch.Core.Extensions;
 using GeneLife.Core.Components;
 using GeneLife.Core.Data;
 
-namespace GeneLife.Core.Utils;
+namespace GeneLife.Core.Extensions;
 
 public static class Vector3Extensions
 {

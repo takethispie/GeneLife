@@ -5,9 +5,9 @@ public static class Constants
     public static int MillisecondsPerTick = 1000;
     
     // a day is 5 minutes
-    public static int TickPerDay = 300;
+    public static int TicksPerDay = 300;
      
-    public static int TicksForAYear = 365 * TickPerDay;
+    public static int TicksForAYear = 365 * TicksPerDay;
 
     public static int TicksUntilDeath = TicksForAYear * 80;
 
@@ -32,7 +32,9 @@ public static class Constants
     public static float NoHobbyReplacementChances = 0.2f;
 
     public static string CurrencyLabel = "$";
-    
+
+    public static int MaxHunger = 20, MaxThirst = 10;
+
     public static int HungryThreshold = 2;
     
     public static int ThirstyThreshold = 6;

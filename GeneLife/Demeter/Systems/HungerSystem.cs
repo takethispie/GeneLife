@@ -22,7 +22,7 @@ public class HungerSystem : BaseSystem<World, float>
     {
         _tickAccumulator += delta;
         //TODO move accumulator to accumulators component or living component
-        if (_tickAccumulator >= Constants.TickPerDay)
+        if (_tickAccumulator >= Constants.TicksPerDay)
         {
             _tickAccumulator = 0;
             World.Query(in livingEntities, (ref Living living, ref Identity identity, ref Psychology psychology) =>

@@ -1,3 +1,3 @@
-﻿namespace GeneLife.Core.Objectives;
+﻿namespace GeneLife.Athena.Core.Objectives;
 
 public record BuyItem(int Priority, int ItemId, string Name = "BuyItem") : IObjective;

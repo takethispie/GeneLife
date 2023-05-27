@@ -4,7 +4,7 @@ using Bogus.DataSets;
 using GeneLife.Core.Components;
 using GeneLife.Core.Components.Characters;
 using GeneLife.Core.Entities.Factories;
-using GeneLife.Core.Utils;
+using GeneLife.Core.Extensions;
 using GeneLife.Genetic;
 using GeneLife.Genetic.GeneticTraits;
 using GeneLife.Sibyl.Components;
