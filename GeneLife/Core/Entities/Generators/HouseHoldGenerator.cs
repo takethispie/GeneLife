@@ -10,7 +10,7 @@ public static class HouseHoldGenerator
 {
     public static Entity House(World world, Position position, Adress adress)
     {
-        var entity = world.Create(new NpcArchetypeFactory().Build("house"));
+        var entity = world.Create(new BuildingsArchetypeFactory().Build("house"));
         entity.Set(position);
         entity.Set(adress);
         entity.Set(new Flammable(1));

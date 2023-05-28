@@ -1,27 +1,31 @@
 ﻿using Arch.Bus;
 using Arch.Core;
 using Arch.Core.Extensions;
+using Arch.Core.Utils;
 using Arch.System;
 using GeneLife.Athena.Components;
 using GeneLife.Athena.Core.Objectives;
-using GeneLife.Core.Components;
 using GeneLife.Core.Components.Characters;
 using GeneLife.Core.Data;
+using GeneLife.Core.Entities.Factories;
 using GeneLife.Core.Events;
 using GeneLife.Core.Extensions;
 using GeneLife.Core.Items;
 
 namespace GeneLife.Demeter.Systems;
 
-public class DrinkingSystem : BaseSystem<World, float>
+internal sealed class DrinkingSystem : BaseSystem<World, float>
 {
-    private readonly QueryDescription livingEntitiesWithObjective = new QueryDescription().WithAll<Living, Identity, Inventory, Objectives>();
-    private readonly QueryDescription livingEntitiesWithoutObjectives = new QueryDescription().WithAll<Living, Identity, Inventory>().WithNone<Objectives>();
+    private readonly QueryDescription livingEntitiesWithObjective = new();
+    private readonly QueryDescription livingEntitiesWithoutObjectives = new();
     private float _tickAccumulator;
     
-    public DrinkingSystem(World world) : base(world)
+    public DrinkingSystem(World world, ArchetypeFactory archetypeFactory) : base(world)
     {
         _tickAccumulator = 0;
+        livingEntitiesWithObjective.All = archetypeFactory.Build("person").Append(typeof(Objectives)).ToArray();
+        livingEntitiesWithoutObjectives.All = archetypeFactory.Build("person");
+        livingEntitiesWithoutObjectives.None = new ComponentType[] { typeof(Objectives) };
     }
 
     public override void Update(in float delta)
@@ -59,7 +63,7 @@ public class DrinkingSystem : BaseSystem<World, float>
                     if (!entity.Get<Living>().Thirsty) return;
                     entity.Add(new Objectives
                     {
-                        CurrentObjectives = new []
+                        CurrentObjectives = new IObjective[]
                         {
                             new Drink(10)
                         }

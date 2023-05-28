@@ -14,7 +14,7 @@ using GeneLife.Oracle.Services;
 
 namespace GeneLife.Oracle.Systems;
 
-public class HobbySystem : BaseSystem<World, float>
+internal sealed class HobbySystem : BaseSystem<World, float>
 {
     private readonly float _interval;
     private float _currentTimeCount;

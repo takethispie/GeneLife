@@ -9,7 +9,7 @@ using GeneLife.Oracle.Services;
 
 namespace GeneLife.Oracle.Systems;
 
-public class LoveInterestSystem : BaseSystem<World, float>
+internal sealed class LoveInterestSystem : BaseSystem<World, float>
 {
     private readonly float _interval;
     private float currentTimeCount;

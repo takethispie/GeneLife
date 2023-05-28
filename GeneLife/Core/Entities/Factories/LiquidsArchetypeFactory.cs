@@ -6,7 +6,7 @@ using GeneLife.Core.Entities.Interfaces;
 
 namespace GeneLife.Core.Entities.Factories;
 
-public class LiquidsArchetypeBuilderFactory : IArchetypeBuilder
+internal class LiquidsArchetypeFactory : IArchetypeBuilder
 {
     private static ComponentType[] Water() => new ComponentType[]
     {

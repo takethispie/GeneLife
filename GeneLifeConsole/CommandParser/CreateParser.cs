@@ -1,4 +1,5 @@
 ﻿using GeneLife;
+using GeneLife.Core.Commands;
 using GeneLife.Genetic.GeneticTraits;
 
 namespace GeneLifeConsole.CommandParser;
@@ -13,6 +14,7 @@ internal class CreateParser
             ["female", var rest] => CreateNPCWithMinimumAge(simulation, Sex.Female, rest),
             ["male", ..] => CreateNPC(simulation, Sex.Male),
             ["female", ..] => CreateNPC(simulation, Sex.Female),
+            ["city", "small"] => simulation.SendCommand(new CreateCityCommand { Size = TemplateCitySize.Small }),
             _ => "unknown create command"
         };
     }

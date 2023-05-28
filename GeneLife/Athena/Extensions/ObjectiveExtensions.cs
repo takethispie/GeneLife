@@ -9,4 +9,10 @@ public static class ObjectiveExtensions
         var top = currentObjectives.MaxBy(x => x.Priority);
         return top != null && top.GetType() == objectiveType;
     }
+
+    public static IEnumerable<IObjective> SetNewHighestPriority(this IEnumerable<IObjective> objectives,
+        IObjective objective)
+    {
+        return objectives.Prepend(objective);
+    }
 }

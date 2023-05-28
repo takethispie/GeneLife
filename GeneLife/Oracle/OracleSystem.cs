@@ -5,7 +5,7 @@ using GeneLife.Sibyl.Systems;
 
 namespace GeneLife.Oracle;
 
-public class OracleSystem
+public static class OracleSystem
 {
     public static void Register(World world, Group<float> group)
     {

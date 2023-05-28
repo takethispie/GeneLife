@@ -5,7 +5,7 @@ using Microsoft.ML.Trainers;
 
 namespace GeneLife.Oracle.Core
 {
-    public partial class Attractiveness
+    internal partial class Attractiveness
     {
         public const string RetrainFilePath =  @"D:\Dev\GeneLife\GeneLife\Data\MLDataset\RelationDataSet.csv";
         public const char RetrainSeparatorChar = ',';

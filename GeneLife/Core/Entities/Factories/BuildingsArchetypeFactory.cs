@@ -7,7 +7,7 @@ using GeneLife.Sibyl.Components;
 
 namespace GeneLife.Core.Entities.Factories;
 
-public class BuildingsArchetypeBuilderFactory : IArchetypeBuilder
+internal class BuildingsArchetypeFactory : IArchetypeBuilder
 {
     private static ComponentType[] House() => new ComponentType[]
     {
@@ -50,5 +50,5 @@ public class BuildingsArchetypeBuilderFactory : IArchetypeBuilder
         };
     }
 
-    public string[] ArchetypesList() => new[] { "House", "SchoolBuilding", "OccupiedHouse", "shop" };
+    public string[] ArchetypesList() => new[] { "House", "SchoolBuilding", "shop" };
 }

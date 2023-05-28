@@ -4,18 +4,20 @@ using Arch.System;
 using GeneLife.Core.Components;
 using GeneLife.Core.Components.Characters;
 using GeneLife.Core.Data;
+using GeneLife.Core.Entities.Factories;
 using GeneLife.Core.Events;
 
 namespace GeneLife.Demeter.Systems;
 
-public class HungerSystem : BaseSystem<World, float>
+internal sealed class HungerSystem : BaseSystem<World, float>
 {
-    private readonly QueryDescription livingEntities = new QueryDescription().WithAll<Living, Identity, Psychology>();
+    private readonly QueryDescription livingEntities = new();
     private float _tickAccumulator;
     
-    public HungerSystem(World world) : base(world)
+    public HungerSystem(World world, ArchetypeFactory archetypeFactory) : base(world)
     {
         _tickAccumulator = 0;
+        livingEntities.All = archetypeFactory.Build("person");
     }
 
     public override void Update(in float delta)

@@ -1,27 +1,32 @@
 ﻿using Arch.Bus;
 using Arch.Core;
 using Arch.Core.Extensions;
+using Arch.Core.Utils;
 using Arch.System;
 using GeneLife.Athena.Components;
 using GeneLife.Athena.Core.Objectives;
 using GeneLife.Core.Components;
 using GeneLife.Core.Components.Characters;
 using GeneLife.Core.Data;
+using GeneLife.Core.Entities.Factories;
 using GeneLife.Core.Events;
 using GeneLife.Core.Extensions;
 using GeneLife.Core.Items;
 
 namespace GeneLife.Demeter.Systems;
 
-public class EatingSystem : BaseSystem<World, float>
+internal sealed class EatingSystem : BaseSystem<World, float>
 {
-    private readonly QueryDescription livingEntitiesWithObjective = new QueryDescription().WithAll<Living, Identity, Inventory, Objectives>();
-    private readonly QueryDescription livingEntitiesWithoutObjectives = new QueryDescription().WithAll<Living, Identity, Inventory>().WithNone<Objectives>();
+    private readonly QueryDescription livingEntitiesWithObjective = new();
+    private readonly QueryDescription livingEntitiesWithoutObjectives = new();
     private float _tickAccumulator;
     
-    public EatingSystem(World world) : base(world)
+    public EatingSystem(World world, ArchetypeFactory archetypeFactory) : base(world)
     {
         _tickAccumulator = 0;
+        livingEntitiesWithObjective.All = archetypeFactory.Build("person").Append(typeof(Objectives)).ToArray();
+        livingEntitiesWithoutObjectives.All = archetypeFactory.Build("person");
+        livingEntitiesWithoutObjectives.None = new ComponentType[] { typeof(Objectives) };
     }
 
     public override void Update(in float delta)

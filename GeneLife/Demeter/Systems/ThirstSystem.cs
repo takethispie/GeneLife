@@ -5,18 +5,19 @@ using GeneLife.Core.Components;
 using GeneLife.Core.Components.Characters;
 using GeneLife.Core.Data;
 using GeneLife.Core.Entities;
+using GeneLife.Core.Entities.Factories;
 using GeneLife.Core.Events;
 
 namespace GeneLife.Demeter.Systems;
 
-public class ThirstSystem : BaseSystem<World, float>
+internal sealed class ThirstSystem : BaseSystem<World, float>
 {
     private readonly QueryDescription livingEntities = new QueryDescription();
     private float _tickAccumulator;
     
-    public ThirstSystem(World world) : base(world)
+    public ThirstSystem(World world, ArchetypeFactory archetypeFactory) : base(world)
     {
-        livingEntities.All = new ArchetypeFactory().Build("person");
+        livingEntities.All = archetypeFactory.Build("person");
         _tickAccumulator = 0;
     }
 

@@ -11,7 +11,7 @@ public static class ShopGenerator
 {
     private static Entity ShopBluePrint(World world, Position position, Adress adress)
     {
-        var newShop = world.Create(new BuildingsArchetypeBuilderFactory().Build("shop"));
+        var newShop = world.Create(new BuildingsArchetypeFactory().Build("shop"));
         newShop.Set(position);
         newShop.Set(adress);
         newShop.Set(new Flammable(1));

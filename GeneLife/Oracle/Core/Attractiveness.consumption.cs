@@ -5,7 +5,7 @@ using Microsoft.ML.Data;
 
 namespace GeneLife.Oracle.Core
 {
-    public partial class Attractiveness
+    internal partial class Attractiveness
     {
         /// <summary>
         /// model input class for Attractiveness.

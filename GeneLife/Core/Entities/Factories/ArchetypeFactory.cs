@@ -2,7 +2,7 @@
 using GeneLife.Core.Entities.Exceptions;
 using GeneLife.Core.Entities.Interfaces;
 
-namespace GeneLife.Core.Entities;
+namespace GeneLife.Core.Entities.Factories;
 
 public class ArchetypeFactory
 {
@@ -25,7 +25,7 @@ public class ArchetypeFactory
 
     public ComponentType[] Build(string name)
     {
-        var factory = factories.FirstOrDefault(x => x.ArchetypesList().Any(arch => arch == name));
+        var factory = factories.FirstOrDefault(x => x.ArchetypesList().Any(arch => arch.ToLower() == name.ToLower()));
         if (factory == null) throw new ArchetypeNotFoundException();
         return factory.Build(name);
     }

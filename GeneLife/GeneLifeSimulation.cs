@@ -3,6 +3,7 @@ using Arch.Core;
 using Arch.Core.Extensions;
 using Arch.Core.Utils;
 using Arch.System;
+using GeneLife.Athena;
 using GeneLife.Core.Commands;
 using GeneLife.Core.Components;
 using GeneLife.Core.Components.Characters;
@@ -55,8 +56,8 @@ public class GeneLifeSimulation : IDisposable
         {
             _archetypeFactory.RegisterFactory(new NpcArchetypeFactory());
             _archetypeFactory.RegisterFactory(new VehicleArchetypeFactory());
-            _archetypeFactory.RegisterFactory(new BuildingsArchetypeBuilderFactory());
-            _archetypeFactory.RegisterFactory(new LiquidsArchetypeBuilderFactory());
+            _archetypeFactory.RegisterFactory(new BuildingsArchetypeFactory());
+            _archetypeFactory.RegisterFactory(new LiquidsArchetypeFactory());
             EventBus.Send(new LogEvent { Message = "All archetypes factories loaded" });
         }
         
@@ -64,7 +65,8 @@ public class GeneLifeSimulation : IDisposable
         {
             SibylSystem.Register(_overworld, Systems);
             OracleSystem.Register(_overworld, Systems);
-            DemeterSystem.Register(_overworld, Systems);
+            DemeterSystem.Register(_overworld, Systems, _archetypeFactory);
+            AthenaSystem.Register(_overworld, Systems, _archetypeFactory);
             EventBus.Send(new LogEvent { Message = "All systems loaded" });
         }
 
@@ -122,6 +124,18 @@ public class GeneLifeSimulation : IDisposable
                     $"item with id {command.Item.Id} of type {command.Item.Type} was given to {identity.FullName()}"
             });
         });
+    }
+
+    public string SendCommand(CreateCityCommand command)
+    {
+        switch (command.Size)
+        {
+            case TemplateCitySize.Small:
+                TemplateCityGenerator.CreateSmallCity(_overworld);
+                return "Created Small City";
+            
+            default: return "";
+        } 
     }
 
     /// <summary>

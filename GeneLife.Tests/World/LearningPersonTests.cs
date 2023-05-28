@@ -6,6 +6,7 @@ using GeneLife.Core.Components;
 using GeneLife.Core.Components.Characters;
 using GeneLife.Core.Entities.Generators;
 using GeneLife.Genetic.GeneticTraits;
+using GeneLife.Sibyl;
 using GeneLife.Sibyl.Components;
 using GeneLife.Sibyl.Core;
 using GeneLife.Sibyl.Systems;
@@ -43,7 +44,8 @@ public class LearningPersonTests
             CurrentLearningLevel = 0,
             Finished = false
         };
-        _systems = new Group<float>(new LearningSystem(_world));
+        _systems = new Group<float>();
+        SibylSystem.Register(_world, _systems);
         _systems.Initialize();
     }
 

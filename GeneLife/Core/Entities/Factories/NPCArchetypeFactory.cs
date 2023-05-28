@@ -9,7 +9,7 @@ using GeneLife.Sibyl.Components;
 
 namespace GeneLife.Core.Entities.Factories;
 
-public class NpcArchetypeFactory : IArchetypeBuilder
+internal class NpcArchetypeFactory : IArchetypeBuilder
 {
     private static ComponentType[] PersonArchetype() => new ComponentType[]
     {

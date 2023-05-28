@@ -71,9 +71,9 @@ public static class RelationService
         return result.Score[1];
     }
 
-    public static bool EndsUpTogether(float chances) => new Random().NextSingle() <= chances;
+    private static bool EndsUpTogether(float chances) => new Random().NextSingle() <= chances;
 
-    public static void LoveLoop(List<Entity> entities)
+    internal static void LoveLoop(List<Entity> entities)
     {
         var matchLists = new List<(Entity entity, IEnumerable<Entity> matches)>();
         //Parallel.ForEach(entities, entity => { });
