@@ -5,6 +5,7 @@ using Arch.Core.Utils;
 using Arch.System;
 using GeneLife.Athena.Components;
 using GeneLife.Athena.Core.Objectives;
+using GeneLife.Athena.Extensions;
 using GeneLife.Core.Components;
 using GeneLife.Core.Components.Characters;
 using GeneLife.Core.Data;
@@ -40,7 +41,7 @@ internal sealed class EatingSystem : BaseSystem<World, float>
                 {
                     if (living.Hungry && !objectives.CurrentObjectives.Any(x => x is Eat))
                     {
-                        objectives.CurrentObjectives = objectives.CurrentObjectives.Append(new Eat(10)).ToArray();
+                        objectives.CurrentObjectives = objectives.CurrentObjectives.SetNewHighestPriority(new Eat(10)).ToArray();
                         EventBus.Send(new LogEvent { Message = $"{identity.FullName()} has set a new high priority objective: eating"});
                     }
                     
@@ -64,7 +65,7 @@ internal sealed class EatingSystem : BaseSystem<World, float>
                     if (!entity.Get<Living>().Hungry) return;
                     entity.Add(new Objectives
                     {
-                        CurrentObjectives = new []
+                        CurrentObjectives = new IObjective[]
                         {
                             new Eat(10)
                         }

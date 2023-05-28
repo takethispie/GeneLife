@@ -2,6 +2,6 @@
 
 public interface IObjective
 {
-    public int Priority { get; init; }
+    public int Priority { get; set; }
     public string Name { get; init; }
 }

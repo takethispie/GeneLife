@@ -35,9 +35,7 @@ public static class Constants
 
     public static int MaxHunger = 20, MaxThirst = 10;
 
-    public static int HungryThreshold = 3;
-    
-    public static int ThirstyThreshold = 3;
+    public static int HungryThreshold = 3, ThirstyThreshold = 3;
     
     public static float MaxWalkingDistance = 2000f;
 }

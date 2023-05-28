@@ -24,7 +24,7 @@ public class ShopPathSystem : BaseSystem<World, float>
 
     public override void Update(in float t)
     {
-        World.Query(in entitiesWithObjectives,
+        World.ParallelQuery(in entitiesWithObjectives,
             (ref Living living, ref Position position, ref Wallet wallet, ref Objectives objectives) =>
         {
             if (!objectives.CurrentObjectives.IsHighestPriority(typeof(BuyItem))) return;
@@ -35,7 +35,8 @@ public class ShopPathSystem : BaseSystem<World, float>
             {
                 Message = $"new objective set: going to a shop at {shopPos.Coordinates.X}:{shopPos.Coordinates.Y}:{shopPos.Coordinates.Z}"
             });
-            objectives.CurrentObjectives.SetNewHighestPriority(new MoveTo(10, shopPos.Coordinates));
+            objectives.CurrentObjectives = 
+                objectives.CurrentObjectives.SetNewHighestPriority(new MoveTo(10, shopPos.Coordinates)).ToArray();
         });
     }
 }

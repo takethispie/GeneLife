@@ -65,7 +65,7 @@ public class GeneLifeSimulation : IDisposable
         {
             SibylSystem.Register(_overworld, Systems);
             OracleSystem.Register(_overworld, Systems);
-            DemeterSystem.Register(_overworld, Systems, _archetypeFactory);
+            DemeterSystem.Register(_overworld, Systems, _archetypeFactory, ItemsWithPrices);
             AthenaSystem.Register(_overworld, Systems, _archetypeFactory);
             EventBus.Send(new LogEvent { Message = "All systems loaded" });
         }

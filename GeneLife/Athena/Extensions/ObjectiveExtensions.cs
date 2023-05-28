@@ -13,6 +13,10 @@ public static class ObjectiveExtensions
     public static IEnumerable<IObjective> SetNewHighestPriority(this IEnumerable<IObjective> objectives,
         IObjective objective)
     {
-        return objectives.Prepend(objective);
+        return objectives.Select(x =>
+        {
+            if (x.Priority == 10) x.Priority = 9;
+            return x;
+        }).Prepend(objective);
     }
 }

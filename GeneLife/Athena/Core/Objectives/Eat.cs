@@ -1,3 +1,13 @@
 ﻿namespace GeneLife.Athena.Core.Objectives;
 
-public record Eat(int Priority, string Name = "Eat") : IObjective;
+public struct Eat : IObjective
+{
+    public int Priority { get; set; }
+    public string Name { get; init; }
+    
+    public Eat(int Priority, string Name = "Eat")
+    {
+        this.Priority = Priority;
+        this.Name = Name;
+    }
+}
