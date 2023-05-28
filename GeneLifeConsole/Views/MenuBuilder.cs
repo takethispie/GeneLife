@@ -24,6 +24,8 @@ public sealed class MenuBuilder
             new("_Settings", new MenuItem[]
             {
                 new("_Set ticks per day: 1", "", () => executeAndLog("change ticksperday 1")),
+                new("_Set ticks per day: 3", "", () => executeAndLog("change ticksperday 3")),
+                new("_Set ticks per day: 5", "", () => executeAndLog("change ticksperday 5")),
                 new("_Set ticks per day: 10", "", () => executeAndLog("change ticksperday 10")),
                 new("_Set ticks per day: 100", "", () => executeAndLog("change ticksperday 100"))
             })

@@ -19,12 +19,12 @@ public class ShopPathSystem : BaseSystem<World, float>
     
     public ShopPathSystem(World world, ArchetypeFactory archetypeFactory) : base(world)
     {
-        entitiesWithObjectives.All = archetypeFactory.Build("person");
+        entitiesWithObjectives.All = archetypeFactory.Build("person").Append(typeof(Objectives)).ToArray();
     }
 
     public override void Update(in float t)
     {
-        World.ParallelQuery(in entitiesWithObjectives,
+        World.Query(in entitiesWithObjectives,
             (ref Living living, ref Position position, ref Wallet wallet, ref Objectives objectives) =>
         {
             if (!objectives.CurrentObjectives.IsHighestPriority(typeof(BuyItem))) return;
