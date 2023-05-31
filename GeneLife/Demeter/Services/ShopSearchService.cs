@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using Arch.Core;
+using Arch.Core.Extensions;
 using GeneLife.Core.Components;
 using GeneLife.Core.Components.Buildings;
 
@@ -7,24 +8,29 @@ namespace GeneLife.Demeter.Services;
 
 public static class ShopSearchService
 {
-    public static (Position position, Adress adress, bool valid) NearestShopWithItem(World world, int itemid, Position npcPosition)
+    public static Entity? NearestShopWithItem(World world,
+        IEnumerable<Entity> shops, int itemId, Position npcPosition)
     {
-        var closestDistance = 0f;
-        (Position Position, Adress adress, bool valid) currentClosest = (new Position(), new Adress(), false); 
-        var shopQuery = new QueryDescription().WithAll<Shop, Adress, Position>();
-        world.ParallelQuery(in shopQuery, (ref Shop shop, ref Adress adress, ref Position position) =>
+        var shopArray = shops.ToArray();
+        if(!shopArray.Any()) return null;
+        float closestDistance = -1;
+        Entity? currentClosest = null; 
+        foreach (var entity in shopArray)
         {
+            var position = entity.Get<Position>();
+            var shopComponent = entity.Get<Shop>();
             var distance = Vector3.Distance(position.Coordinates, npcPosition.Coordinates);
-            if (!IsCurrentClosestShop(itemid, shop, distance, closestDistance)) return;
+            if (!IsCurrentClosestShop(itemId, shopComponent, distance, closestDistance)) continue;
             closestDistance = distance;
-            currentClosest = (position, adress, true);
-        });
-        return currentClosest.valid ? currentClosest : (new Position(), new Adress(), false);
+            currentClosest = entity;
+        }
+
+        return currentClosest;
     }
 
     private static bool IsCurrentClosestShop(int itemId, Shop shop, float distance, float closestDistance)
     {
         var hasItemNeeded = shop.AvailableItems.Any(itemWithPrice => itemWithPrice.Item.Id == itemId);
-        return distance < closestDistance && hasItemNeeded;
+        return distance < closestDistance && hasItemNeeded || hasItemNeeded && closestDistance < 0;
     }
 }
