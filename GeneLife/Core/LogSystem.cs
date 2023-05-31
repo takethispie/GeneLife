@@ -8,12 +8,14 @@ public delegate void LogNotification();
 public partial class LogSystem
 {
     private readonly bool _logToConsole;
+    private readonly int _maxLogLines;
     public List<string> Logs { get; init; }
     public event LogNotification LogAdded;
 
-    public LogSystem(bool logToConsole)
+    public LogSystem(bool logToConsole, int maxLogLines = 25)
     {
         _logToConsole = logToConsole;
+        _maxLogLines = maxLogLines;
         Logs = new List<string>();
         Hook();
     }
@@ -26,6 +28,7 @@ public partial class LogSystem
         {
             if (string.IsNullOrEmpty(log.Message)) return;
             Logs.Add(log.Message);
+            if(Logs.Count > _maxLogLines) Logs.RemoveAt(0);
             OnLogNotification();
         }
     }

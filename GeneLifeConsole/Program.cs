@@ -67,7 +67,7 @@ tabView.AddTab(npcListTab, false);
 
 geneLifeSimulation.LogSystem.LogAdded += () => Application.MainLoop.Invoke(() =>
 {
-    logs.MoveEnd();
+    logs.MoveDown();
     logs.SetNeedsDisplay();
 });
 
