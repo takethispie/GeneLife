@@ -4,7 +4,7 @@ using Microsoft.ML;
 
 namespace GeneLife.Oracle.Core
 {
-    public partial class Attractiveness
+    internal partial class Attractiveness
     {
         /// <summary>
         /// Permutation feature importance (PFI) is a technique to determine the importance 

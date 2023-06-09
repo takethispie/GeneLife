@@ -6,7 +6,7 @@ using GeneLife.Core.Components;
 using GeneLife.Core.Components.Characters;
 using GeneLife.Core.Data;
 using GeneLife.Core.Events;
-using GeneLife.Core.Utils;
+using GeneLife.Core.Extensions;
 using GeneLife.Genetic;
 using GeneLife.Oracle.Components;
 using GeneLife.Oracle.Core;
@@ -19,7 +19,7 @@ public static class RelationService
     {
         var related = false;
         if (first.Has<FamilyMember>() && second.Has<FamilyMember>())
-            related = first.Get<FamilyMember>().FamilyId == second.Get<FamilyMember>().FamilyId;
+            related = FamilyService.AreRelated(first.Get<FamilyMember>(), second.Get<FamilyMember>());
         return new
             {
                 fLiving = first.Has<Living>(),
@@ -71,9 +71,9 @@ public static class RelationService
         return result.Score[1];
     }
 
-    public static bool EndsUpTogether(float chances) => new Random().NextSingle() <= chances;
+    private static bool EndsUpTogether(float chances) => new Random().NextSingle() <= chances;
 
-    public static void LoveLoop(List<Entity> entities)
+    internal static void LoveLoop(List<Entity> entities)
     {
         var matchLists = new List<(Entity entity, IEnumerable<Entity> matches)>();
         //Parallel.ForEach(entities, entity => { });

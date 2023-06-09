@@ -37,7 +37,7 @@ void ExecuteAndLog(string command)
     geneLifeSimulation.LogSystem.Logs.Add(commandParser.Parse(command));
     Application.MainLoop.Invoke(() =>
     {
-        logs.SelectedItem = geneLifeSimulation.LogSystem.Logs.Count - 1;
+        logs.MoveEnd();
         logs.SetNeedsDisplay();
     });
 }
@@ -67,7 +67,7 @@ tabView.AddTab(npcListTab, false);
 
 geneLifeSimulation.LogSystem.LogAdded += () => Application.MainLoop.Invoke(() =>
 {
-    logs.SelectedItem = geneLifeSimulation.LogSystem.Logs.Count - 1;
+    logs.MoveDown();
     logs.SetNeedsDisplay();
 });
 

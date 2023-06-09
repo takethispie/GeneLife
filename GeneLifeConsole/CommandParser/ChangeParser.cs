@@ -4,7 +4,7 @@ using GeneLife.Genetic.GeneticTraits;
 
 namespace GeneLifeConsole.CommandParser;
 
-internal class ChangeParser
+internal static class ChangeParser
 {
     public static string Parse(GeneLifeSimulation simulation, string[] text)
     {
@@ -18,7 +18,7 @@ internal class ChangeParser
     private static string ChangeTicksPerDay(GeneLifeSimulation simulation, string value)
     {
         if (!int.TryParse(value, out var ticks)) return "Could not parse the age parameter";
-        Constants.TickPerDay = ticks;
+        Constants.TicksPerDay = ticks;
         return $"Changed ticks per day to {ticks}";
     }
 }

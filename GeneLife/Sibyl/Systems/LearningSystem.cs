@@ -8,7 +8,7 @@ using GeneLife.Sibyl.Services;
 
 namespace GeneLife.Sibyl.Systems;
 
-public class LearningSystem : BaseSystem<World, float>
+internal sealed class LearningSystem : BaseSystem<World, float>
 {
     private QueryDescription _LearningNPCs = new QueryDescription().WithAll<Learning, Living, KnowledgeList>();
     

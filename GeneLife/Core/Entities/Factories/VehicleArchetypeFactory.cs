@@ -6,7 +6,7 @@ using GeneLife.Core.Entities.Interfaces;
 
 namespace GeneLife.Core.Entities.Factories;
 
-public class VehicleArchetypeFactory : IArchetypeBuilder
+internal class VehicleArchetypeFactory : IArchetypeBuilder
 {
     private static ComponentType[] CarArchetype() => new ComponentType[]
     {

@@ -8,5 +8,4 @@ public struct Adress
     public string Street;
     public string City;
     public string ZipCode;
-    public Vector2 Coordinates;
 }

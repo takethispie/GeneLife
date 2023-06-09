@@ -8,7 +8,7 @@ namespace GeneLife.Oracle.Components;
 /// </summary>
 public struct FamilyMember
 {
-    public int FamilyId;
+    public Guid FamilyId;
     public int Generation;
     public FamilyMemberType MemberType;
 }

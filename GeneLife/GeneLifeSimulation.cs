@@ -3,6 +3,7 @@ using Arch.Core;
 using Arch.Core.Extensions;
 using Arch.Core.Utils;
 using Arch.System;
+using GeneLife.Athena;
 using GeneLife.Core.Commands;
 using GeneLife.Core.Components;
 using GeneLife.Core.Components.Characters;
@@ -10,11 +11,10 @@ using GeneLife.Core.Components.Utils;
 using GeneLife.Core.Entities;
 using GeneLife.Core.Entities.Factories;
 using GeneLife.Core.Entities.Generators;
-using GeneLife.Core.Entities.Interfaces;
 using GeneLife.Core.Events;
+using GeneLife.Core.Extensions;
 using GeneLife.Core.Items;
 using GeneLife.Core.Systems;
-using GeneLife.Core.Utils;
 using GeneLife.Demeter;
 using GeneLife.Genetic.GeneticTraits;
 using GeneLife.Oracle;
@@ -31,7 +31,6 @@ public class GeneLifeSimulation : IDisposable
     private World _overworld { get; }
     public LogSystem LogSystem { get; }
     public UIHookSystem UiHookSystem { get; }
-    public List<Entity> Entities { get; }
     public Item[] Items { get; }
     public ItemWithPrice[] ItemsWithPrices { get; }
 
@@ -42,7 +41,6 @@ public class GeneLifeSimulation : IDisposable
         _archetypeFactory = new ArchetypeFactory();
         LogSystem = new LogSystem(false);
         _jobScheduler = new global::JobScheduler.JobScheduler("glife");
-        Entities = new List<Entity>();
         UiHookSystem = new UIHookSystem(_overworld);
         Items = new BaseItemGenerator().GetItemList();
         ItemsWithPrices = new BaseItemWithWithPriceGenerator().GetItemsWithPrice(Items);
@@ -58,8 +56,8 @@ public class GeneLifeSimulation : IDisposable
         {
             _archetypeFactory.RegisterFactory(new NpcArchetypeFactory());
             _archetypeFactory.RegisterFactory(new VehicleArchetypeFactory());
-            _archetypeFactory.RegisterFactory(new BuildingsArchetypeBuilderFactory());
-            _archetypeFactory.RegisterFactory(new LiquidsArchetypeBuilderFactory());
+            _archetypeFactory.RegisterFactory(new BuildingsArchetypeFactory());
+            _archetypeFactory.RegisterFactory(new LiquidsArchetypeFactory());
             EventBus.Send(new LogEvent { Message = "All archetypes factories loaded" });
         }
         
@@ -67,7 +65,8 @@ public class GeneLifeSimulation : IDisposable
         {
             SibylSystem.Register(_overworld, Systems);
             OracleSystem.Register(_overworld, Systems);
-            DemeterSystem.Register(_overworld, Systems);
+            DemeterSystem.Register(_overworld, Systems, _archetypeFactory, ItemsWithPrices);
+            AthenaSystem.Register(_overworld, Systems, _archetypeFactory);
             EventBus.Send(new LogEvent { Message = "All systems loaded" });
         }
 
@@ -78,7 +77,6 @@ public class GeneLifeSimulation : IDisposable
     public string AddNPC(Sex sex, int startAge = 0)
     {
         var entity = PersonGenerator.CreatePure(_overworld, sex, startAge);
-        Entities.Add(entity);
         var identity = entity.Get<Identity>();
         return $"{identity.FullName()} was created";
     }
@@ -128,6 +126,18 @@ public class GeneLifeSimulation : IDisposable
         });
     }
 
+    public string SendCommand(CreateCityCommand command)
+    {
+        switch (command.Size)
+        {
+            case TemplateCitySize.Small:
+                TemplateCityGenerator.CreateSmallCity(_overworld);
+                return "Created Small City";
+            
+            default: return "";
+        } 
+    }
+
     /// <summary>
     /// Update loop
     /// </summary>
@@ -145,5 +155,12 @@ public class GeneLifeSimulation : IDisposable
     {
         _overworld.Dispose();
         Systems.Dispose();
+    }
+
+    public Entity[] GetLivingEntities()
+    {
+        var entities = new List<Entity>();
+        _overworld.GetEntities(in new QueryDescription().WithAll<Living, Position>(), entities);
+        return entities.ToArray();
     }
 }

@@ -13,13 +13,13 @@ public static class KnowledgeService
         return cat?.Level ?? KnowledgeLevel.None;
     }
 
-    public static (Learning learning, KnowledgeList knowledgeList) LearningLoop(Learning learning, KnowledgeList knowledgeList, float delta)
+    internal static (Learning learning, KnowledgeList knowledgeList) LearningLoop(Learning learning, KnowledgeList knowledgeList, float delta)
     {
         var learningCategory = learning.Class.Category;
         var minLevel = (int)learning.Class.MinRequiredLevel;
         var knowledgeLevel =
             (int)GetKnowledgeLevel(learningCategory, knowledgeList.KnownCategories);
-        if (minLevel == 0 && knowledgeLevel == 0 && !learning.Finished && learning.CurrentLearningLevel == 0)
+        if (minLevel == 0 && knowledgeLevel == 0 && learning is { Finished: false, CurrentLearningLevel: 0 })
         {
             knowledgeList.KnownCategories = 
                 knowledgeList.KnownCategories.Append(new Knowledge(learningCategory, KnowledgeLevel.None)).ToArray();

@@ -1,4 +1,5 @@
 ﻿using Arch.Core.Utils;
+using GeneLife.Athena.Components;
 using GeneLife.Core.Components;
 using GeneLife.Core.Components.Alcohol;
 using GeneLife.Core.Components.Characters;
@@ -9,7 +10,7 @@ using GeneLife.Sibyl.Components;
 
 namespace GeneLife.Core.Entities.Factories;
 
-public class NpcArchetypeFactory : IArchetypeBuilder
+internal class NpcArchetypeFactory : IArchetypeBuilder
 {
     private static ComponentType[] PersonArchetype() => new ComponentType[]
     {
@@ -19,12 +20,12 @@ public class NpcArchetypeFactory : IArchetypeBuilder
         typeof(Living),
         typeof(Lifespan),
         typeof(Flammable),
-        typeof(Moving),
         typeof(AlcoholAbsorber),
         typeof(KnowledgeList),
         typeof(Position),
         typeof(Wallet),
-        typeof(Inventory)
+        typeof(Inventory),
+        typeof(Objectives)
     };
 
     public ComponentType[] Build(string type) => type.ToLower() switch

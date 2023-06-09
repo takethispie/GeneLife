@@ -1,4 +1,4 @@
-﻿using GeneLife.Core.Utils;
+﻿using GeneLife.Core.Extensions;
 using GeneLife.Genetic.Data;
 using GeneLife.Genetic.Exceptions;
 
