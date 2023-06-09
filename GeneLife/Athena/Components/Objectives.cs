@@ -8,6 +8,15 @@ public struct Objectives
 
     public Objectives()
     {
-        CurrentObjectives = new IObjective[8];
+        CurrentObjectives = new IObjective[] { 
+            new EmptyObjective(), 
+            new EmptyObjective(),
+            new EmptyObjective(),
+            new EmptyObjective(),
+            new EmptyObjective(),
+            new EmptyObjective(),
+            new EmptyObjective(),
+            new EmptyObjective(),
+        };
     }
 }

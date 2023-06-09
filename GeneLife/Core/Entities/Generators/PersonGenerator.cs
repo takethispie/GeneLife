@@ -1,6 +1,7 @@
 ﻿using Arch.Core;
 using Arch.Core.Extensions;
 using Bogus.DataSets;
+using GeneLife.Athena.Components;
 using GeneLife.Core.Components;
 using GeneLife.Core.Components.Characters;
 using GeneLife.Core.Entities.Factories;
@@ -36,6 +37,7 @@ public static class PersonGenerator
         entity.Set(new Living());
         entity.Set(new Wallet { Money = 100 });
         entity.Set(new Inventory());
+        entity.Set(new Objectives());
         return entity;
     }
 }

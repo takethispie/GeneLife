@@ -6,6 +6,7 @@ public static class ObjectiveExtensions
 {
     public static bool IsHighestPriority(this IEnumerable<IObjective> currentObjectives, Type objectiveType)
     {
+        if(currentObjectives == null) return false;
         var top = currentObjectives.MaxBy(x => x.Priority);
         return top != null && top.GetType() == objectiveType;
     }

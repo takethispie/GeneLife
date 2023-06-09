@@ -1,4 +1,5 @@
 ﻿using Arch.Core.Utils;
+using GeneLife.Athena.Components;
 using GeneLife.Core.Components;
 using GeneLife.Core.Components.Alcohol;
 using GeneLife.Core.Components.Characters;
@@ -23,7 +24,8 @@ internal class NpcArchetypeFactory : IArchetypeBuilder
         typeof(KnowledgeList),
         typeof(Position),
         typeof(Wallet),
-        typeof(Inventory)
+        typeof(Inventory),
+        typeof(Objectives)
     };
 
     public ComponentType[] Build(string type) => type.ToLower() switch
