@@ -31,6 +31,8 @@ public struct Living
         Stamina = 10;
         IsDead = false;
         Static = false;
+        Thirsty = false;
+        Hungry = false;
     }
 
     public Living(int maxStamina, int hunger, int thirst)
@@ -39,7 +41,9 @@ public struct Living
         Stamina = maxStamina;
         Hunger = hunger;
         Thirst = thirst;
+        Thirsty = false;
         IsDead = false;
         Static = false;
+        Hungry= false;
     }
 }

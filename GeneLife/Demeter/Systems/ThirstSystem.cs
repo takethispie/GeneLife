@@ -4,13 +4,10 @@ using Arch.System;
 using GeneLife.Athena.Components;
 using GeneLife.Athena.Core.Objectives;
 using GeneLife.Athena.Extensions;
-using GeneLife.Core.Components;
 using GeneLife.Core.Components.Characters;
 using GeneLife.Core.Data;
-using GeneLife.Core.Entities;
 using GeneLife.Core.Entities.Factories;
 using GeneLife.Core.Events;
-using GeneLife.Core.Extensions;
 using GeneLife.Core.Items;
 
 namespace GeneLife.Demeter.Systems;
@@ -35,7 +32,7 @@ internal sealed class ThirstSystem : BaseSystem<World, float>
         //TODO move accumulator to accumulators component or living component
         if (_tickAccumulator < Constants.TicksPerDay) return;
         _tickAccumulator = 0;
-        World.Query(in livingEntities, (ref Living living, ref Identity identity, ref Psychology psychology, ref Objectives objectives, ref Inventory inventory) =>
+        World.ParallelQuery(in livingEntities, (ref Living living, ref Identity identity, ref Psychology psychology, ref Objectives objectives, ref Inventory inventory) =>
         {
             living.Thirst -= 1;
             var hasDrinkInInventory = inventory.items.Any(x => x.Type == ItemType.Drink);
@@ -76,7 +73,7 @@ internal sealed class ThirstSystem : BaseSystem<World, float>
                     break;
             }
 
-            if (living.Thirst < Constants.ThirstyThreshold && !hasDrinkInInventory) {
+            if (living.Thirst < Constants.ThirstyThreshold && !hasDrinkInInventory && !objectives.CurrentObjectives.IsHighestPriority(typeof(BuyItem))) {
                 objectives.CurrentObjectives.SetNewHighestPriority(new BuyItem { Priority = 10, ItemId = 2 });
                 EventBus.Send(new LogEvent { 
                         Message = $"{identity.FirstName} {identity.LastName} has set a new high priority objective: buy drink" 
