@@ -34,7 +34,7 @@ internal sealed class HungerSystem : BaseSystem<World, float>
         if (_tickAccumulator >= Constants.TicksPerDay)
         {
             _tickAccumulator = 0;
-            World.Query(
+            World.ParallelQuery(
                 in livingEntities,
                 (ref Living living, ref Identity identity, ref Psychology psychology, ref Objectives objectives, ref Inventory inventory) =>
             {
@@ -80,7 +80,9 @@ internal sealed class HungerSystem : BaseSystem<World, float>
                         break;
                 }
 
-                if (living.Hunger < Constants.HungryThreshold && !inventory.items.Any(x => x.Type == ItemType.Food)) {
+                if (living.Hunger < Constants.HungryThreshold 
+                        && !inventory.items.Any(x => x.Type == ItemType.Food)
+                        && !objectives.CurrentObjectives.IsHighestPriority(typeof(BuyItem))) {
                     objectives.CurrentObjectives.SetNewHighestPriority(new BuyItem { Priority = 10, ItemId = 1 });
                     EventBus.Send(new LogEvent { 
                             Message = $"{identity.FirstName} {identity.LastName} has set a new high priority objective: buy food" 

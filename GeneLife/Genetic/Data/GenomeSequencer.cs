@@ -1,5 +1,6 @@
 ﻿using GeneLife.Genetic.Exceptions;
 using GeneLife.Genetic.GeneticTraits;
+using System.Text.RegularExpressions;
 
 namespace GeneLife.Genetic.Data;
 
@@ -35,21 +36,39 @@ public static class GenomeSequencer
         return sequence[2..^2];
     }
     
-    
+    private static bool matchGene(string sequence, string expected)
+    {
+        if(sequence.ToLower().StartsWith(expected)) return true;
+        return false;
+    }
+
+    private static bool matchAge(string sequence, out string age)
+    {
+        string pattern = @"#(\d\d)#";
+        RegexOptions options = RegexOptions.Multiline;
+
+        Match m = Regex.Match(sequence, pattern, options);
+        if (m.Success) { 
+            age = m.Groups[1].Value;
+            return true;
+        }
+        age = string.Empty;
+        return false;
+    }
 
     public static (string seq, IEnumerable<ChromosomePair> gen) SequenceTransformStep(string sequence, IEnumerable<ChromosomePair> gen) =>
         sequence switch
         {
-            ['a' or 'A', 'a' or 'A', ..] => (sequence[2..], gen.Append(new ChromosomePair(3, sequence[..2]))),
-            ['b' or 'B', 'b' or 'B', ..] => (sequence[2..], gen.Append(new ChromosomePair(1, sequence[..2]))),
-            ['e' or 'E', 'e' or 'E', ..] => (sequence[2..], gen.Append(new ChromosomePair(7, sequence[..2]))),
-            ['h' or 'H', 'h' or 'H', ..] => (sequence[2..], gen.Append(new ChromosomePair(2, sequence[..2]))),
-            ['j' or 'J', 'j' or 'J', ..] => (sequence[2..], gen.Append(new ChromosomePair(8, sequence[..2]))),
-            ['m' or 'M', 'm' or 'M', ..] => (sequence[2..], gen.Append(new ChromosomePair(4, sequence[..2]))),
-            ['u' or 'U', 'u' or 'U', ..] => (sequence[2..], gen.Append(new ChromosomePair(9, sequence[..2]))),
-            ['x' or 'X', 'y' or 'Y', ..] or 
-            ['x' or 'X', 'x' or 'X', ..] => (sequence[2..], gen.Append(new ChromosomePair(5, sequence[..2]))),
-            ['#', var a, var b, '#'] => (sequence[4..], gen.Append(new ChromosomePair(10, $"{a}{b}"))),
+            _ when matchGene(sequence, "aa") => (sequence[2..], gen.Append(new ChromosomePair(3, sequence[..2]))),
+            _ when matchGene(sequence, "bb") => (sequence[2..], gen.Append(new ChromosomePair(1, sequence[..2]))),
+            _ when matchGene(sequence, "ee") => (sequence[2..], gen.Append(new ChromosomePair(7, sequence[..2]))),
+            _ when matchGene(sequence, "hh") => (sequence[2..], gen.Append(new ChromosomePair(2, sequence[..2]))),
+            _ when matchGene(sequence, "jj") => (sequence[2..], gen.Append(new ChromosomePair(8, sequence[..2]))),
+            _ when matchGene(sequence, "mm") => (sequence[2..], gen.Append(new ChromosomePair(4, sequence[..2]))),
+            _ when matchGene(sequence, "uu") => (sequence[2..], gen.Append(new ChromosomePair(9, sequence[..2]))),
+            _ when matchGene(sequence, "xy") || matchGene(sequence, "xx") 
+                => (sequence[2..], gen.Append(new ChromosomePair(5, sequence[..2]))),
+            _ when matchAge(sequence, out var age) => (sequence[4..], gen.Append(new ChromosomePair(10, $"{age}"))),
             _ => (sequence[1..], gen)
         };
 
