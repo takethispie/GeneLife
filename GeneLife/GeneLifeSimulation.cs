@@ -93,8 +93,8 @@ public class GeneLifeSimulation : IDisposable
 
     public Entity AddNPC(Sex sex, int startAge = 0)
     {
-        if (DefaultArchetypesOverridden || DefaultSystemsOverridden) 
-            return "Can't use this method when baked in archetypes and systems are not loaded";
+        if (DefaultArchetypesOverridden || DefaultSystemsOverridden)
+            throw new DefaultArchetypesAndSystemNotAvailableException("Can't create NPC when default archetypes and systems are overridden");
         var entity = PersonGenerator.CreatePure(_overworld, sex, startAge);
         return entity;
     }
