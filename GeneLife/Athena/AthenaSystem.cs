@@ -9,6 +9,6 @@ public class AthenaSystem
 {
     public static void Register(World world, Group<float> group, ArchetypeFactory archetypeFactory)
     {
-        group.Add(new ShopPathSystem(world, archetypeFactory));
+        group.Add(new ShopFindingSystem(world, archetypeFactory));
     }
 }

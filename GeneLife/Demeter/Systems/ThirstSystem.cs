@@ -19,10 +19,7 @@ internal sealed class ThirstSystem : BaseSystem<World, float>
     
     public ThirstSystem(World world, ArchetypeFactory archetypeFactory) : base(world)
     {
-        livingEntities.All = archetypeFactory
-            .Build("person")
-            .Append(typeof(Objectives))
-            .ToArray();
+        livingEntities.All = archetypeFactory.Build("person");
         _tickAccumulator = 0;
     }
 

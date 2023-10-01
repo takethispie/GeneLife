@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GeneLife", "GeneLife\GeneLi
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GeneLife.Tests", "GeneLife.Tests\GeneLife.Tests.csproj", "{C4BB31C3-76BF-4345-8EBC-2853DA67DA7E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GeneLifeConsole", "GeneLifeConsole\GeneLifeConsole.csproj", "{758B9821-5A03-400D-A6EE-2B970D9215F0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GeneLifeConsole", "GeneLifeConsole\GeneLifeConsole.csproj", "{758B9821-5A03-400D-A6EE-2B970D9215F0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

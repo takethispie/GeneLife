@@ -6,10 +6,9 @@ using GeneLife.Core.Components.Buildings;
 
 namespace GeneLife.Demeter.Services;
 
-public static class ShopSearchService
+internal static class ShopSearchService
 {
-    public static Entity? NearestShopWithItem(World world,
-        IEnumerable<Entity> shops, int itemId, Position npcPosition)
+    public static Entity? NearestShopWithItem(World world, IEnumerable<Entity> shops, int itemId, Position npcPosition)
     {
         var shopArray = shops.ToArray();
         if(!shopArray.Any()) return null;
