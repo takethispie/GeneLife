@@ -12,6 +12,7 @@ using GeneLife.Core.Entities;
 using GeneLife.Core.Entities.Factories;
 using GeneLife.Core.Entities.Generators;
 using GeneLife.Core.Events;
+using GeneLife.Core.Exceptions;
 using GeneLife.Core.Extensions;
 using GeneLife.Core.Items;
 using GeneLife.Core.Systems;
@@ -74,11 +75,10 @@ public class GeneLifeSimulation : IDisposable
         EventBus.Send(new LogEvent { Message = "Simulation Initialized" });
     }
 
-    public string AddNPC(Sex sex, int startAge = 0)
+    public Entity AddNPC(Sex sex, int startAge = 0)
     {
         var entity = PersonGenerator.CreatePure(_overworld, sex, startAge);
-        var identity = entity.Get<Identity>();
-        return $"{identity.FullName()} was created";
+        return entity;
     }
 
     public List<Entity> GetAllLivingNPC()

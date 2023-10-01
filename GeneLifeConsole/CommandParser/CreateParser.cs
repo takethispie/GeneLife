@@ -1,5 +1,8 @@
-﻿using GeneLife;
+﻿using Arch.Core.Extensions;
+using GeneLife;
 using GeneLife.Core.Commands;
+using GeneLife.Core.Components.Characters;
+using GeneLife.Core.Extensions;
 using GeneLife.Genetic.GeneticTraits;
 
 namespace GeneLifeConsole.CommandParser;
@@ -19,8 +22,8 @@ internal class CreateParser
         };
     }
 
-    private static string CreateNPC(GeneLifeSimulation simulation, Sex sex) => simulation.AddNPC(sex);
+    private static string CreateNPC(GeneLifeSimulation simulation, Sex sex) => simulation.AddNPC(sex).Get<Identity>().FullName();
 
     private static string CreateNPCWithMinimumAge(GeneLifeSimulation simulation, Sex sex, string startAge) => 
-        int.TryParse(startAge, out var age) ? simulation.AddNPC(sex, age) : "Could not parse the age parameter";
+        int.TryParse(startAge, out var age) ? simulation.AddNPC(sex, age).Get<Identity>().FullName() : "Could not parse the age parameter";
 }
