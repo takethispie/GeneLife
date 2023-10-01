@@ -29,6 +29,7 @@ public class GeneLifeSimulation : IDisposable
     private Arch.System.Group<float> Systems;
     private ArchetypeFactory _archetypeFactory;
     private global::JobScheduler.JobScheduler _jobScheduler;
+    private bool DefaultSystemsOverridden, DefaultArchetypesOverridden;
     private World _overworld { get; }
     public LogSystem LogSystem { get; }
     public UIHookSystem UiHookSystem { get; }
@@ -45,14 +46,29 @@ public class GeneLifeSimulation : IDisposable
         UiHookSystem = new UIHookSystem(_overworld);
         Items = new BaseItemGenerator().GetItemList();
         ItemsWithPrices = new BaseItemWithWithPriceGenerator().GetItemsWithPrice(Items);
+        DefaultArchetypesOverridden = false;
+        DefaultSystemsOverridden = false;
     }
 
+    /// <summary>
+    /// add an Arch system 
+    /// </summary>
+    /// <param name="system">system to add to the simulation</param>
     public void AddSystem(BaseSystem<World, float> system) => Systems.Add(system);
 
+    /// <summary>
+    /// initialize the simulation systems
+    /// </summary>
+    /// <param name="overrideDefaultSystems">override loading default systems, 
+    /// this will remove any baked in system, might break the simulation</param>
+    /// <param name="overrideDefaultArchetypes">override loading default archetypes, 
+    /// this will remove any baked in archetypes, might break the simulation</param>
     public void Initialize(bool overrideDefaultSystems = false, bool overrideDefaultArchetypes = false)
     {
         Systems.Initialize();
-        
+        DefaultArchetypesOverridden = overrideDefaultArchetypes;
+        DefaultSystemsOverridden = overrideDefaultSystems;
+
         if (!overrideDefaultArchetypes)
         {
             _archetypeFactory.RegisterFactory(new NpcArchetypeFactory());
@@ -77,12 +93,15 @@ public class GeneLifeSimulation : IDisposable
 
     public Entity AddNPC(Sex sex, int startAge = 0)
     {
+        if (DefaultArchetypesOverridden || DefaultSystemsOverridden) 
+            return "Can't use this method when baked in archetypes and systems are not loaded";
         var entity = PersonGenerator.CreatePure(_overworld, sex, startAge);
         return entity;
     }
 
     public List<Entity> GetAllLivingNPC()
     {
+        if (DefaultArchetypesOverridden || DefaultSystemsOverridden) return new List<Entity>();
         var query = new QueryDescription().WithAll<Living, Identity>();
         var entities = new List<Entity>();
         _overworld.GetEntities(query, entities);
@@ -91,6 +110,7 @@ public class GeneLifeSimulation : IDisposable
 
     public void SetLivingEntityUpdateHook(int id)
     {
+        if (DefaultArchetypesOverridden || DefaultSystemsOverridden) return;
         var query = new QueryDescription().WithAll<Living, Identity>();
         _overworld.ParallelQuery(in query, (in Entity entity) =>
         {
@@ -101,6 +121,7 @@ public class GeneLifeSimulation : IDisposable
     
     public void removeLivingEntityUpdateHook(int id)
     {
+        if (DefaultArchetypesOverridden || DefaultSystemsOverridden) return;
         var query = new QueryDescription();
         _overworld.ParallelQuery(in query, (in Entity entity) =>
         {
@@ -110,6 +131,7 @@ public class GeneLifeSimulation : IDisposable
 
     public void SendCommand(GiveCommand command)
     {
+        if (DefaultArchetypesOverridden || DefaultSystemsOverridden) return;
         var livingEntities = new QueryDescription().WithAll<Living, Identity, Inventory>();
         _overworld.Query(in livingEntities, (ref Living living, ref Identity identity, ref Inventory inventory) =>
         {
@@ -159,6 +181,7 @@ public class GeneLifeSimulation : IDisposable
 
     public Entity[] GetLivingEntities()
     {
+        if (DefaultArchetypesOverridden || DefaultSystemsOverridden) return Array.Empty<Entity>();
         var entities = new List<Entity>();
         _overworld.GetEntities(in new QueryDescription().WithAll<Living, Position>(), entities);
         return entities.ToArray();

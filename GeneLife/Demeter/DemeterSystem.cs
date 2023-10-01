@@ -12,8 +12,7 @@ public class DemeterSystem
     {
         group.Add(
             new HungerSystem(world, archetypeFactory), 
-            new ThirstSystem(world, archetypeFactory),
-            new GroceriesInventorySystem(world, archetypeFactory, items)
+            new ThirstSystem(world, archetypeFactory)
         );
     }
 }

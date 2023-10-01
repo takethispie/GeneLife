@@ -22,9 +22,7 @@ internal sealed class HungerSystem : BaseSystem<World, float>
     public HungerSystem(World world, ArchetypeFactory archetypeFactory) : base(world)
     {
         _tickAccumulator = 0;
-        livingEntities.All = archetypeFactory.Build("person")
-            .Append(typeof(Objectives))
-            .ToArray();
+        livingEntities.All = archetypeFactory.Build("person");
     }
 
     public override void Update(in float delta)
