@@ -36,7 +36,7 @@ public class ShopFindingSystem : BaseSystem<World, float>
         {
             if (!objectives.CurrentObjectives.IsHighestPriority(typeof(BuyItem))) return;
             if (objectives.CurrentObjectives.OrderByDescending(x => x.Priority).First() is not BuyItem buyItem) return;
-            var closestShop = ShopSearchService.NearestShopWithItem(World, shops, buyItem.ItemId, position);
+            var closestShop = ShopSearchService.NearestShopWithItem(shops, buyItem.ItemId, position);
             if (!closestShop.HasValue) return;
             var shopPos = closestShop.Value.Get<Position>();
             if(Vector3.Distance(position.Coordinates, shopPos.Coordinates) <= 20) {

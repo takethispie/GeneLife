@@ -4,3 +4,4 @@ bin
 .vscode
 .idea
 *DotSettings.user
+/Genelife.Web/client-app/package-lock.json

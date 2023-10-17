@@ -8,7 +8,7 @@ namespace GeneLife.Demeter.Services;
 
 internal static class ShopSearchService
 {
-    public static Entity? NearestShopWithItem(World world, IEnumerable<Entity> shops, int itemId, Position npcPosition)
+    public static Entity? NearestShopWithItem(IEnumerable<Entity> shops, int itemId, Position npcPosition)
     {
         var shopArray = shops.ToArray();
         if(!shopArray.Any()) return null;
