@@ -119,7 +119,7 @@ public class GeneLifeSimulation : IDisposable
         });
     }
     
-    public void removeLivingEntityUpdateHook(int id)
+    public void RemoveLivingEntityUpdateHook(int id)
     {
         if (DefaultArchetypesOverridden || DefaultSystemsOverridden) return;
         var query = new QueryDescription();
