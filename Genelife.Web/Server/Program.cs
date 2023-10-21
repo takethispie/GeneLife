@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.ResponseCompression;
 using Genelife.Web.Server.Hubs;
+using GeneLife;
 
 namespace Genelife.Web;
 public class Program
@@ -7,19 +8,33 @@ public class Program
     public static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
-
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy("origins",
+                                  policy =>
+                                  {
+                                      policy.WithOrigins("http://localhost:7085")
+                                                  .AllowAnyHeader()
+                                                  .AllowAnyMethod();
+                                  });
+        });
         // Add services to the container.
 
         builder.Services.AddControllersWithViews();
         builder.Services.AddRazorPages();
-        builder.Services.AddSignalR();
+        builder.Services.AddSignalR(o =>
+        {
+            o.EnableDetailedErrors = true;
+        });
         builder.Services.AddResponseCompression(opts =>
         {
             opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
                new[] { "application/octet-stream" });
         });
-
+        builder.Services.AddSingleton((services) => new GeneLifeSimulation());
+        
         var app = builder.Build();
+        app.UseCors("origins");
         app.UseResponseCompression();
 
         // Configure the HTTP request pipeline.
@@ -46,7 +61,6 @@ public class Program
         app.MapControllers();
         app.MapHub<DataHub>("/datahub");
         app.MapFallbackToFile("index.html");
-
         app.Run();
     }
 }
