@@ -1,25 +1,76 @@
-import React, { useState } from 'react';
-import './App.css';
-import Container from '@mui/material/Container';
-import Typography from '@mui/material/Typography';
-import Box from '@mui/material/Box';
-import { Button } from '@mui/material';
-import { GetCurrentSimulationState } from './Services/SimulationService';
+import { Redirect, Route } from 'react-router-dom';
+import {
+  IonApp,
+  IonIcon,
+  IonLabel,
+  IonRouterOutlet,
+  IonTabBar,
+  IonTabButton,
+  IonTabs,
+  setupIonicReact
+} from '@ionic/react';
+import { IonReactRouter } from '@ionic/react-router';
+import { ellipse, square, triangle } from 'ionicons/icons';
+import Tab1 from './pages/Tab1';
+import Tab2 from './pages/Tab2';
+import Tab3 from './pages/Tab3';
 
-function App() {
-    const [state, setState] = useState({});
-    return (
-    <Container maxWidth="lg">
-        <Box sx={{ my: 4 }}>
-            <Typography variant="h4" component="h1" gutterBottom>
-                Genelife Web Interface
-                </Typography>
-                <Button onClick={() => {
-                    setState(await GetCurrentSimulationState())
-                }}>Refresh</Button>
-        </Box>
-    </Container>
-    );
-}
+/* Core CSS required for Ionic components to work properly */
+import '@ionic/react/css/core.css';
+
+/* Basic CSS for apps built with Ionic */
+import '@ionic/react/css/normalize.css';
+import '@ionic/react/css/structure.css';
+import '@ionic/react/css/typography.css';
+
+/* Optional CSS utils that can be commented out */
+import '@ionic/react/css/padding.css';
+import '@ionic/react/css/float-elements.css';
+import '@ionic/react/css/text-alignment.css';
+import '@ionic/react/css/text-transformation.css';
+import '@ionic/react/css/flex-utils.css';
+import '@ionic/react/css/display.css';
+
+/* Theme variables */
+import './theme/variables.css';
+
+setupIonicReact();
+
+const App: React.FC = () => (
+  <IonApp>
+    <IonReactRouter>
+      <IonTabs>
+        <IonRouterOutlet>
+          <Route exact path="/main">
+            <Tab1 />
+          </Route>
+          <Route exact path="/npc">
+            <Tab2 />
+          </Route>
+          <Route path="/structures">
+            <Tab3 />
+          </Route>
+          <Route exact path="/">
+            <Redirect to="/main" />
+          </Route>
+        </IonRouterOutlet>
+        <IonTabBar slot="bottom">
+          <IonTabButton tab="main" href="/main">
+            <IonIcon aria-hidden="true" icon={triangle} />
+            <IonLabel>Main</IonLabel>
+          </IonTabButton>
+          <IonTabButton tab="npc" href="/npc">
+            <IonIcon aria-hidden="true" icon={ellipse} />
+            <IonLabel>NPC</IonLabel>
+          </IonTabButton>
+          <IonTabButton tab="structures" href="/structures">
+            <IonIcon aria-hidden="true" icon={square} />
+            <IonLabel>Structures</IonLabel>
+          </IonTabButton>
+        </IonTabBar>
+      </IonTabs>
+    </IonReactRouter>
+  </IonApp>
+);
 
 export default App;

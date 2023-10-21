@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GeneLife", "GeneLife\GeneLi
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GeneLife.Tests", "GeneLife.Tests\GeneLife.Tests.csproj", "{C4BB31C3-76BF-4345-8EBC-2853DA67DA7E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Genelife.Web", "Genelife.Web\Genelife.Web.csproj", "{223553A1-D04A-4F0C-9961-927A3E99C119}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Genelife.Web", "Genelife.Web\Genelife.Web.csproj", "{D03ABC34-7199-4648-9CEF-6EF6484EAAE9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -23,10 +23,10 @@ Global
 		{C4BB31C3-76BF-4345-8EBC-2853DA67DA7E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C4BB31C3-76BF-4345-8EBC-2853DA67DA7E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C4BB31C3-76BF-4345-8EBC-2853DA67DA7E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{223553A1-D04A-4F0C-9961-927A3E99C119}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{223553A1-D04A-4F0C-9961-927A3E99C119}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{223553A1-D04A-4F0C-9961-927A3E99C119}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{223553A1-D04A-4F0C-9961-927A3E99C119}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D03ABC34-7199-4648-9CEF-6EF6484EAAE9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D03ABC34-7199-4648-9CEF-6EF6484EAAE9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D03ABC34-7199-4648-9CEF-6EF6484EAAE9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D03ABC34-7199-4648-9CEF-6EF6484EAAE9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -29,12 +29,17 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="client-app\src\app.slice.ts" />
     <None Remove="client-app\src\Services\SimulationService.ts" />
+    <None Remove="client-app\src\store\root.saga.ts" />
+    <None Remove="client-app\src\store\store.ts" />
     <None Remove="client-app\src\theme.ts" />
   </ItemGroup>
 
   <ItemGroup>
-    <TypeScriptCompile Include="client-app\src\theme.ts" />
+    <TypeScriptCompile Include="client-app\src\app.slice.ts" />
+    <TypeScriptCompile Include="client-app\src\store\root.saga.ts" />
+    <TypeScriptCompile Include="client-app\src\store\store.ts" />
   </ItemGroup>
 
   <Target Name="DebugEnsureNodeEnv" BeforeTargets="Build" Condition=" '$(Configuration)' == 'Debug' And !Exists('$(SpaRoot)node_modules') ">
