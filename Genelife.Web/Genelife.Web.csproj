@@ -2,23 +2,15 @@
 
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
-    <Nullable>enable</Nullable>
     <TypeScriptCompileBlocked>true</TypeScriptCompileBlocked>
     <TypeScriptToolsVersion>Latest</TypeScriptToolsVersion>
     <IsPackable>false</IsPackable>
-    <SpaRoot>client-app\</SpaRoot>
+    <SpaRoot>ClientApp\</SpaRoot>
     <DefaultItemExcludes>$(DefaultItemExcludes);$(SpaRoot)node_modules\**</DefaultItemExcludes>
-    <SpaProxyServerUrl>https://localhost:44420</SpaProxyServerUrl>
-    <SpaProxyLaunchCommand>npm start</SpaProxyLaunchCommand>
-    <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.SpaProxy" Version="7.0.12" />
-    <PackageReference Include="Microsoft.TypeScript.MSBuild" Version="5.2.2">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
+    <PackageReference Include="Microsoft.AspNetCore.SpaServices.Extensions" Version="7.0.12" />
   </ItemGroup>
 
   <ItemGroup>
@@ -26,20 +18,6 @@
     <Content Remove="$(SpaRoot)**" />
     <None Remove="$(SpaRoot)**" />
     <None Include="$(SpaRoot)**" Exclude="$(SpaRoot)node_modules\**" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Remove="client-app\src\app.slice.ts" />
-    <None Remove="client-app\src\Services\SimulationService.ts" />
-    <None Remove="client-app\src\store\root.saga.ts" />
-    <None Remove="client-app\src\store\store.ts" />
-    <None Remove="client-app\src\theme.ts" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <TypeScriptCompile Include="client-app\src\app.slice.ts" />
-    <TypeScriptCompile Include="client-app\src\store\root.saga.ts" />
-    <TypeScriptCompile Include="client-app\src\store\store.ts" />
   </ItemGroup>
 
   <Target Name="DebugEnsureNodeEnv" BeforeTargets="Build" Condition=" '$(Configuration)' == 'Debug' And !Exists('$(SpaRoot)node_modules') ">
@@ -59,12 +37,13 @@
 
     <!-- Include the newly-built files in the publish output -->
     <ItemGroup>
-      <DistFiles Include="$(SpaRoot)build\**" />
+      <DistFiles Include="$(SpaRoot)build\**; $(SpaRoot)build-ssr\**" />
       <ResolvedFileToPublish Include="@(DistFiles->'%(FullPath)')" Exclude="@(ResolvedFileToPublish)">
-        <RelativePath>wwwroot\%(RecursiveDir)%(FileName)%(Extension)</RelativePath>
+        <RelativePath>%(DistFiles.Identity)</RelativePath>
         <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
         <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
       </ResolvedFileToPublish>
     </ItemGroup>
   </Target>
+
 </Project>
