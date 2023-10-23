@@ -1,24 +1,27 @@
-import 'bootstrap/dist/css/bootstrap.css';
+import "bootstrap/dist/css/bootstrap.css";
 
-import * as React from 'react';
-import * as ReactDOM from 'react-dom';
-import { ConnectedRouter } from 'connected-react-router';
-import { createBrowserHistory } from 'history';
+import * as React from "react";
+import * as ReactDOM from "react-dom";
 import { store } from "./store/store";
 import { Provider } from "react-redux";
-import App from './App';
-import registerServiceWorker from './registerServiceWorker';
+import registerServiceWorker from "./registerServiceWorker";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import Home from "./components/Home";
+import Layout from "./components/Layout";
 
-// Create browser history to use in the Redux store
-const baseUrl = document.getElementsByTagName('base')[0].getAttribute('href') as string;
-const history = createBrowserHistory({ basename: baseUrl });
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <Layout><Home/></Layout>,
+  },
+]);
 
 ReactDOM.render(
     <Provider store={store}>
-        <ConnectedRouter history={history}>
-            <App />
-        </ConnectedRouter>
-    </Provider>,
-    document.getElementById('root'));
+        <React.StrictMode>
+            <RouterProvider router={router} />
+        </React.StrictMode>
+    </Provider>, 
+    document.getElementById("root"));
 
 registerServiceWorker();
