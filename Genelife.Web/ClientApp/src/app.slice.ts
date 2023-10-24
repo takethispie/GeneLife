@@ -6,7 +6,7 @@ interface genelifeState {
 }
 
 const initialState: genelifeState = {
-    simulationRunning: true,
+    simulationRunning: false,
     simulationState: {}
 };
 

@@ -1,27 +1,25 @@
-import "bootstrap/dist/css/bootstrap.css";
 
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 import { store } from "./store/store";
-import { Provider } from "react-redux";
 import registerServiceWorker from "./registerServiceWorker";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import Home from "./components/Home";
-import Layout from "./components/Layout";
+import { Provider } from "react-redux";
 
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <Layout><Home/></Layout>,
+    element: <Home/>,
   },
 ]);
 
 ReactDOM.render(
-    <Provider store={store}>
         <React.StrictMode>
-            <RouterProvider router={router} />
-        </React.StrictMode>
-    </Provider>, 
+            <Provider store={store}>
+                <RouterProvider router={router} />
+            </Provider>
+        </React.StrictMode>,
     document.getElementById("root"));
 
 registerServiceWorker();
