@@ -7,6 +7,8 @@ using GeneLife.Core.Components.Characters;
 using Genelife.Web.DTOs;
 using System;
 using System.Linq;
+using GeneLife.Core.Commands;
+using GeneLife.Core.Extensions;
 
 namespace Genelife.Web.Controllers;
 [Route("api/[controller]")]
@@ -33,19 +35,30 @@ public class SimulationController : ControllerBase
 
     [HttpGet("generate/smallcity")]
     public ActionResult GenerateSmallCity() {
-
-        return StatusCode(500);
+        try {
+            var res = simulation.SendCommand(new CreateCityCommand {  Size = TemplateCitySize.Small});
+            return Ok(res);
+        } catch (Exception ex) {
+            return StatusCode(500, ex.Message);
+        }
     }
 
     [HttpGet("state")]
     public ActionResult State()
     {
         var entities = simulation.GetAllLivingNPC();
-        return Ok(entities.Select(entity => {
-            var identity = entity.Get<Identity>();
+        var npcs = entities.Select(entity => {
+            var identity = entity.Get<Identity>().FullName();
             var living = entity.Get<Living>();
-            var wallet = entity.Get<Wallet>();
-            return new Human {  Wallet = wallet, Identity = identity, Living = living };
-        }));
+            var stats = new HumanStats {
+                Hunger = living.Hunger.ToString(),
+                Stamina = living.Stamina.ToString(),
+                Thirst = living.Thirst.ToString(),
+                Damage = living.Damage.ToString(),
+            };
+            var wallet = entity.Get<Wallet>().Money.ToString();
+            return new Human { Wallet = wallet, Identity = identity, Stats = stats };
+        });
+        return Ok(new SimulationData {  Npcs = npcs.ToArray() });
     }
 }

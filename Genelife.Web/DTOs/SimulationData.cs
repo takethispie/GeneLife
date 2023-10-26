@@ -2,4 +2,5 @@
 
 public class SimulationData
 {
+    public Human[] Npcs { get; set; }
 }

@@ -4,7 +4,7 @@ namespace Genelife.Web.DTOs;
 
 public class Human
 {
-    public Identity Identity { get; set; }
-    public Living Living { get; set; }
-    public Wallet Wallet { get; set; }
+    public string Identity { get; set; }
+    public HumanStats Stats { get; set; }
+    public string Wallet { get; set; }
 }
