@@ -1,3 +1,4 @@
+using Genelife.Web.Services;
 using GeneLife;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -24,6 +25,8 @@ namespace Genelife.Web
         {
             services.AddControllersWithViews();
             services.AddSingleton(services => new GeneLifeSimulation());
+            services.AddSingleton(services => new ClockService(2000, services.GetService<GeneLifeSimulation>().Update));
+
             // In production, the React files will be served from this directory
             services.AddSpaStaticFiles(configuration =>
             {

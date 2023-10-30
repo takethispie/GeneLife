@@ -8,6 +8,7 @@ using GeneLife.Core.Commands;
 using GeneLife.Core.Components;
 using GeneLife.Core.Components.Characters;
 using GeneLife.Core.Components.Utils;
+using GeneLife.Core.Data;
 using GeneLife.Core.Entities;
 using GeneLife.Core.Entities.Factories;
 using GeneLife.Core.Entities.Generators;
@@ -158,6 +159,12 @@ public class GeneLifeSimulation : IDisposable
             
             default: return "";
         } 
+    }
+
+    public string SendCommand(SetTicksPerDayCommand command)
+    {
+        Constants.TicksPerDay = command.Ticks;
+        return "";
     }
 
     /// <summary>

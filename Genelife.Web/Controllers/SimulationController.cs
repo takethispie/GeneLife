@@ -9,6 +9,7 @@ using System;
 using System.Linq;
 using GeneLife.Core.Commands;
 using GeneLife.Core.Extensions;
+using Genelife.Web.Services;
 
 namespace Genelife.Web.Controllers;
 [Route("api/[controller]")]
@@ -16,22 +17,27 @@ namespace Genelife.Web.Controllers;
 public class SimulationController : ControllerBase
 {
     private readonly GeneLifeSimulation simulation;
+    private readonly ClockService clockService;
 
-    public SimulationController(GeneLifeSimulation  simulation)
+    public SimulationController(GeneLifeSimulation  simulation, ClockService clockService)
     {
         this.simulation = simulation;
+        this.clockService = clockService;
     }
+
 
     [HttpGet("init")]
     public ActionResult Initialize()
     {
         try {
             simulation.Initialize();
+            clockService.Start();
             return Ok();
         } catch (Exception ex) {
             return StatusCode(500, ex.Message);
         }
     }
+
 
     [HttpGet("generate/smallcity")]
     public ActionResult GenerateSmallCity() {
@@ -42,6 +48,7 @@ public class SimulationController : ControllerBase
             return StatusCode(500, ex.Message);
         }
     }
+
 
     [HttpGet("state")]
     public ActionResult State()
@@ -61,4 +68,8 @@ public class SimulationController : ControllerBase
         });
         return Ok(new SimulationData {  Npcs = npcs.ToArray() });
     }
+
+
+    [HttpGet("set/ticks/day/{ticks}")]
+    public ActionResult SetTicksPerDay(int ticks) => Ok(simulation.SendCommand(new SetTicksPerDayCommand(ticks)));
 }
