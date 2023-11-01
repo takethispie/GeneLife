@@ -1,10 +1,11 @@
 import axios from 'axios';
 import { Human } from '../models/Human';
+import { SimulationData } from '../models/SimulationData';
 
 
-export async function simulationState(): Promise<Human[]> {
+export async function simulationState(): Promise<SimulationData> {
     var res = await axios.get('/api/simulation/state')
-    return res.data as Human[];
+    return res.data as SimulationData;
 }
 
 

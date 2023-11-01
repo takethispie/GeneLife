@@ -11,9 +11,13 @@ import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
 import CardHeader from "@mui/material/CardHeader";
 import { CREATE_SMALL_CITY } from "../slices/simulation.slice";
+import { useSelector } from "react-redux";
+import { RootState } from "../store/store";
 
 export default function Home() {
     const dispatch = useDispatch();
+    const state = useSelector((state: RootState) => state.appSlice);
+
     return (
         <React.Fragment>
             <NavMenu />
@@ -21,12 +25,14 @@ export default function Home() {
                 <Grid container spacing={1} style={{ margin: 5 }}>
                     <Grid item xs={8}>
                         <Card style={{ minHeight: 500 }}>
-                            <CardHeader title="Main logs"></CardHeader>
-                            <CardContent>
+                            <CardHeader title="Main logs" style={{ paddingTop: 0, paddingBottom: 0 }}></CardHeader>
+                            <CardContent style={{ paddingTop: 0, paddingBottom: 0 }}>
                                 <List>
-                                    <ListItem>
-                                        <ListItemText>test</ListItemText>
-                                    </ListItem>
+                                    {state.logs.map((log, id) => (
+                                        <ListItem key={id} style={{ paddingTop: 0, paddingBottom: 0 }}>
+                                            <ListItemText primary={log} style={{ marginTop: 0, marginBottom: 0 }}></ListItemText>
+                                        </ListItem>
+                                    ))}
                                 </List>
                             </CardContent>
                         </Card>
@@ -35,9 +41,13 @@ export default function Home() {
                         <Card style={{ minHeight: 500 }}>
                             <CardHeader title="Simulation Options"></CardHeader>
                             <CardContent>
-                                <Typography>Create</Typography>
+                                <Typography variant="h6">Info</Typography>
+                                <Typography variant="body2" style={{ paddingLeft: 10 }}>
+                                    {state.totalTicks} Ticks
+                                </Typography>
+                                <Typography variant="h6">Create</Typography>
                                 <Button onClick={() => dispatch(CREATE_SMALL_CITY())}>Create Small City</Button>
-                                <Typography>Ticks Per Day</Typography>
+                                <Typography variant="h6">Ticks Per Day</Typography>
                                 <Button>5 Ticks</Button>
                                 <Button>10 Ticks</Button>
                                 <Button>30 Ticks</Button>

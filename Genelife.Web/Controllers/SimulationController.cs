@@ -42,8 +42,8 @@ public class SimulationController : ControllerBase
     [HttpGet("generate/smallcity")]
     public ActionResult GenerateSmallCity() {
         try {
-            var res = simulation.SendCommand(new CreateCityCommand {  Size = TemplateCitySize.Small});
-            return Ok(res);
+            simulation.SendCommand(new CreateCityCommand {  Size = TemplateCitySize.Small});
+            return Ok();
         } catch (Exception ex) {
             return StatusCode(500, ex.Message);
         }

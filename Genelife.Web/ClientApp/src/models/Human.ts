@@ -1,12 +1,12 @@
 export class HumanStats {
-    public Stamina: string = ""
-    public Thirst: string = ""
-    public Hunger: string = ""
-    public Damage: string = ""
+    public stamina: string = ""
+    public thirst: string = ""
+    public hunger: string = ""
+    public damage: string = ""
 }
 
 export class Human {
-    Wallet: string = ""
-    Identity: string = ""
-    Stats?: HumanStats
+    wallet: string = ""
+    identity: string = ""
+    stats?: HumanStats
 }
