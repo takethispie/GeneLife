@@ -18,3 +18,8 @@ export async function createSmallCity(): Promise<any> {
     var res = await axios.get('/api/simulation/generate/smallcity')
     return res.status;
 }
+
+export async function setTicksPerDay(ticks: number): Promise<any> {
+    var res = await axios.get('/api/simulation/set/ticks/day/' + ticks);
+    return res.status;
+}

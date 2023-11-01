@@ -2,14 +2,15 @@
 import { call, delay, put, select, takeEvery } from "redux-saga/effects";
 
 import { RootState } from "../store/store";
-import { ADD_LOG, SET_INITIALIZED_FLAG, SIM_UPDATE, START_SIM, UPDATE_TOTAL_TICK } from "../app.slice";
-import { createSmallCity, initSimulation, simulationState } from "../services/simulation.service";
+import { ADD_LOG, SET_INITIALIZED_FLAG, SET_TICKS_PER_DAY, SIM_UPDATE, START_SIM, UPDATE_TOTAL_TICK } from "../app.slice";
+import { createSmallCity, initSimulation, setTicksPerDay, simulationState } from "../services/simulation.service";
 import { CREATE_SMALL_CITY, SET_SIM_STATE } from "../slices/simulation.slice";
 
 export default function* SimulationSaga() {
     yield takeEvery(SIM_UPDATE, UpdateSaga);
     yield takeEvery(START_SIM, StartSimSaga);
-    yield takeEvery(CREATE_SMALL_CITY, CreateSmallCitySaga)
+    yield takeEvery(CREATE_SMALL_CITY, CreateSmallCitySaga);
+    yield takeEvery(SET_TICKS_PER_DAY, SetTicksPerDaySaga);
 }
 
 function* UpdateSaga(): any {
@@ -41,4 +42,9 @@ function* StartSimSaga(): any {
 function* CreateSmallCitySaga(): any {
     var res = yield call(createSmallCity);
     if(res == 200) yield put(ADD_LOG("created small city"))
+}
+
+function* SetTicksPerDaySaga(action: PayloadAction<number>): any {
+    var res = yield call(setTicksPerDay, action.payload);
+    if(res == 200) yield put(ADD_LOG("set ticks per day to: " + action.payload));
 }

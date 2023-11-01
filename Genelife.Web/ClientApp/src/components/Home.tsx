@@ -14,6 +14,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
 import { match } from "ts-pattern";
 import { NpcList } from "./NpcList";
+import { SET_TICKS_PER_DAY } from "../app.slice";
 
 export default function Home() {
     const dispatch = useDispatch();
@@ -74,9 +75,9 @@ export default function Home() {
                                 <Typography variant="h6">Create</Typography>
                                 <Button onClick={() => dispatch(CREATE_SMALL_CITY())}>Create Small City</Button>
                                 <Typography variant="h6">Ticks Per Day</Typography>
-                                <Button>5 Ticks</Button>
-                                <Button>10 Ticks</Button>
-                                <Button>30 Ticks</Button>
+                                <Button onClick={() => dispatch(SET_TICKS_PER_DAY(5))}>5 Ticks</Button>
+                                <Button onClick={() => dispatch(SET_TICKS_PER_DAY(10))}>10 Ticks</Button>
+                                <Button onClick={() => dispatch(SET_TICKS_PER_DAY(30))}>30 Ticks</Button>
                             </CardContent>
                         </Card>
                     </Grid>
