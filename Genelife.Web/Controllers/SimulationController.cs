@@ -10,6 +10,9 @@ using System.Linq;
 using GeneLife.Core.Commands;
 using GeneLife.Core.Extensions;
 using Genelife.Web.Services;
+using GeneLife.Core.Components.Buildings;
+using GeneLife.Core.Components;
+using GeneLife.Sibyl.Components;
 
 namespace Genelife.Web.Controllers;
 [Route("api/[controller]")]
@@ -54,6 +57,7 @@ public class SimulationController : ControllerBase
     public ActionResult State()
     {
         var entities = simulation.GetAllLivingNPC();
+        var buildingEntities = simulation.GetAllBuildings();
         var npcs = entities.Select(entity => {
             var identity = entity.Get<Identity>().FullName();
             var living = entity.Get<Living>();
@@ -66,7 +70,20 @@ public class SimulationController : ControllerBase
             var wallet = entity.Get<Wallet>().Money.ToString();
             return new Human { Wallet = wallet, Identity = identity, Stats = stats };
         });
-        return Ok(new SimulationData {  Npcs = npcs.ToArray() });
+        var buildings = buildingEntities.Select(building =>
+        {
+            if (building.Has<HouseHold>())
+                return new Building(building.Id, building.Get<Adress>(), building.Get<Position>(), building.Get<HouseHold>());
+
+            else if(building.Has<School>())
+                return new Building(building.Id, building.Get<Adress>(), building.Get<Position>(), building.Get<School>());
+
+            else if(building.Has<Shop>())
+                return new Building(building.Id, building.Get<Adress>(), building.Get<Position>(), building.Get<Shop>());
+
+            else throw new Exception("could not find matching type");
+        });
+        return Ok(new SimulationData {  Npcs = npcs.ToArray(), Buildings = buildings.ToArray() });
     }
 
 

@@ -8,4 +8,6 @@ public struct Adress
     public string Street;
     public string City;
     public string ZipCode;
+
+    public readonly string Full() => $"{Number} {Street} {ZipCode} {City}";
 }

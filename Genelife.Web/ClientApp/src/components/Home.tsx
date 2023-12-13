@@ -15,6 +15,7 @@ import { RootState } from "../store/store";
 import { match } from "ts-pattern";
 import { NpcList } from "./NpcList";
 import { SET_TICKS_PER_DAY } from "../app.slice";
+import { StructureList } from "./StructureList";
 
 export default function Home() {
     const dispatch = useDispatch();
@@ -60,7 +61,11 @@ export default function Home() {
                                     </Card>
                                 ))
                                 .otherwise(() => (
-                                    <></>
+                                    <Card style={{ minHeight: 500 }}>
+                                        <CardContent style={{ paddingTop: 0, paddingBottom: 0 }}>
+                                            <StructureList buildings={state.simulationSlice.simulationState.buildings}/>
+                                        </CardContent>
+                                    </Card>
                                 ))}
                         </Box>
                     </Grid>
