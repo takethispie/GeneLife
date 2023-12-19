@@ -5,13 +5,15 @@ namespace GeneLife.Athena.Core.Objectives;
 public struct MoveTo : IObjective
 {
     public int Priority { get; set; }
-    public Vector3 target { get; init; }
+    public Vector3 Target { get; init; }
     public string Name { get; init; }
     
-    public MoveTo(int Priority, Vector3 target, string Name = "Move To")
+    public MoveTo(int priority, Vector3 target)
     {
-        this.Priority = Priority;
-        this.target = target;
-        this.Name = Name;
+        Priority = priority;
+        Target = target;
+        Name = GetName();
     }
+
+    public static string GetName() => "MoveTo";
 }

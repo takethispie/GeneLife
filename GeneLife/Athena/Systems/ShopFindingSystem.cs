@@ -39,7 +39,7 @@ public class ShopFindingSystem : BaseSystem<World, float>
             var closestShop = ShopSearchService.NearestShopWithItem(shops, buyItem.ItemId, position);
             if (!closestShop.HasValue) return;
             var shopPos = closestShop.Value.Get<Position>();
-            if(Vector3.Distance(position.Coordinates, shopPos.Coordinates) <= 20) {
+            if(Vector3.Distance(position.Coordinates, shopPos.Coordinates) <= 2) {
                 var shopComponent = closestShop.Value.Get<Shop>();
                 var itemWithPrice = shopComponent.AvailableItems.Where(x => x.Item.Id == buyItem.ItemId).First();
                 wallet.Money -= itemWithPrice.Price;

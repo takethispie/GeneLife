@@ -1,34 +1,44 @@
 ﻿using Arch.Core;
+using Arch.Core.Extensions;
 using Arch.System;
+using GeneLife.Athena.Components;
 using GeneLife.Core.Components;
-using System.Drawing;
-using System.Numerics;
+using GeneLife.Core.Entities.Factories;
+using GeneLife.Athena.Extensions;
+using GeneLife.Athena.Core.Objectives;
+using GeneLife.Core.Extensions;
 
 namespace GeneLife.Athena.Systems;
 internal class MoveSystem : BaseSystem<World, float>
 {
 
-    private readonly QueryDescription movingEntities = new QueryDescription().WithAll<Moving>();
+    private readonly QueryDescription movingEntities = new QueryDescription().WithAll<Moving, Position>();
+    private readonly QueryDescription needToMoveEntitie = new();
 
-    public MoveSystem(World world) : base(world)
+    public MoveSystem(World world, ArchetypeFactory archetypeFactory) : base(world)
     {
-
-    }
-
-    public Vector3 MovePointTowards(Vector3 a, Vector3 b, float distance)
-    {
-        var vector = b - a;
-        var length = Math.Sqrt(vector.X * vector.X + vector.Y * vector.Y + vector.Z * vector.Z); ;
-        var unitVector = new Vector3(
-            vector.X / Convert.ToSingle(length), 
-            vector.Y / Convert.ToSingle(length), 
-            vector.Z / Convert.ToSingle(length)
-        );
-        return a + unitVector * distance;
+        needToMoveEntitie.All = archetypeFactory.Build("person");
     }
 
     public override void Update(in float t)
     {
-
+        var movable = new List<Entity>();
+        World.GetEntities(in needToMoveEntitie, movable);
+        _ = movable
+            .Where(x => x.Has<Objectives>())
+            .Where(x =>
+            {
+                var objectives = x.Get<Objectives>();
+                if(objectives.CurrentObjectives.IsHighestPriority(typeof(MoveTo)) && !x.Has<Moving>())
+                {
+                    var moveTo = objectives.CurrentObjectives.Where(x => x.Name == MoveTo.GetName()).FirstOrDefault();
+                    if (moveTo == null) return false;
+                    x.Add(new Moving { Velocity = 1f, Target = ((MoveTo)moveTo).Target });
+                }
+                return false;
+            }).ToList();
+        World.Query(in movingEntities, (ref Moving moving, ref Position position) => {
+            position.Coordinates = position.Coordinates.MovePointTowards(moving.Target, moving.Velocity);
+        });
     }
 }
