@@ -15,21 +15,21 @@ namespace GeneLife.Tests.World;
 
 public class LearningPersonTests
 {
-    private Learning _learning;
-    private List<(KnowledgeCategory knowledgeCategory, KnowledgeLevel level)> _knowledgeList;
-    private Arch.Core.World _world;
-    private Entity _human;
-    private readonly Group<float> _systems;
+    private Learning learning;
+    private List<(KnowledgeCategory knowledgeCategory, KnowledgeLevel level)> knowledgeList;
+    private Arch.Core.World world;
+    private Entity human;
+    private readonly Group<float> systems;
 
     public LearningPersonTests()
     {
-        _world = Arch.Core.World.Create();
-        _knowledgeList = new List<(KnowledgeCategory knowledgeCategory, KnowledgeLevel level)>
+        world = Arch.Core.World.Create();
+        knowledgeList = new List<(KnowledgeCategory knowledgeCategory, KnowledgeLevel level)>
         {
             (KnowledgeCategory.Biology, KnowledgeLevel.Beginner),
         };
         
-        _learning = new Learning()
+        learning = new Learning()
         {
             CanLearn = false,
             Class = new Class
@@ -44,29 +44,29 @@ public class LearningPersonTests
             CurrentLearningLevel = 0,
             Finished = false
         };
-        _systems = new Group<float>();
-        SibylSystem.Register(_world, _systems);
-        _systems.Initialize();
+        systems = new Group<float>();
+        SibylSystem.Register(world, systems);
+        systems.Initialize();
     }
 
     public void RunSystemsOnce(float delta)
     {
-        _systems.BeforeUpdate(delta);    
-        _systems.Update(delta);          
-        _systems.AfterUpdate(delta);     
+        systems.BeforeUpdate(delta);    
+        systems.Update(delta);          
+        systems.AfterUpdate(delta);     
     }
 
     [Fact]
     public void HumanShouldLearnCooking()
     {
-        _human = PersonGenerator.CreatePure(_world, Sex.Male, 20);
-        _human.Add(_learning);
+        this.human = PersonGenerator.CreatePure(world, Sex.Male, 20);
+        this.human.Add(this.learning);
         var allTheLearningNPCQuery = new QueryDescription().WithAll<Learning, Living, KnowledgeList>();
         var entities = new List<Entity>();
-        _world.GetEntities(allTheLearningNPCQuery, entities);
+        world.GetEntities(allTheLearningNPCQuery, entities);
         entities.Count.Should().BeGreaterThan(0);
         RunSystemsOnce(1f);
-        _world.GetEntities(allTheLearningNPCQuery, entities);
+        world.GetEntities(allTheLearningNPCQuery, entities);
         entities.Count.Should().BeGreaterThan(0);
         var human = entities.First();
         var learning = human.Get<Learning>();
@@ -78,6 +78,6 @@ public class LearningPersonTests
         knowledgeList.KnownCategories.ToList()
             .All(x => x is { Category: KnowledgeCategory.Cooking, Level: KnowledgeLevel.Beginner })
             .Should().BeTrue();
-        _systems.Dispose();
+        systems.Dispose();
     }
 }

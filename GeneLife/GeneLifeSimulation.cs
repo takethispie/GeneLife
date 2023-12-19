@@ -6,8 +6,9 @@ using Arch.System;
 using GeneLife.Athena;
 using GeneLife.Core.Commands;
 using GeneLife.Core.Components;
+using GeneLife.Core.Components.Buildings;
 using GeneLife.Core.Components.Characters;
-using GeneLife.Core.Components.Utils;
+using GeneLife.Core.Data;
 using GeneLife.Core.Entities;
 using GeneLife.Core.Entities.Factories;
 using GeneLife.Core.Entities.Generators;
@@ -15,7 +16,6 @@ using GeneLife.Core.Events;
 using GeneLife.Core.Exceptions;
 using GeneLife.Core.Extensions;
 using GeneLife.Core.Items;
-using GeneLife.Core.Systems;
 using GeneLife.Demeter;
 using GeneLife.Genetic.GeneticTraits;
 using GeneLife.Oracle;
@@ -32,7 +32,6 @@ public class GeneLifeSimulation : IDisposable
     private bool DefaultSystemsOverridden, DefaultArchetypesOverridden;
     private World _overworld { get; }
     public LogSystem LogSystem { get; }
-    public UIHookSystem UiHookSystem { get; }
     public Item[] Items { get; }
     public ItemWithPrice[] ItemsWithPrices { get; }
 
@@ -43,7 +42,6 @@ public class GeneLifeSimulation : IDisposable
         _archetypeFactory = new ArchetypeFactory();
         LogSystem = new LogSystem(false);
         _jobScheduler = new global::JobScheduler.JobScheduler("glife");
-        UiHookSystem = new UIHookSystem(_overworld);
         Items = new BaseItemGenerator().GetItemList();
         ItemsWithPrices = new BaseItemWithWithPriceGenerator().GetItemsWithPrice(Items);
         DefaultArchetypesOverridden = false;
@@ -87,7 +85,6 @@ public class GeneLifeSimulation : IDisposable
             EventBus.Send(new LogEvent { Message = "All systems loaded" });
         }
 
-        Systems.Add(UiHookSystem);
         EventBus.Send(new LogEvent { Message = "Simulation Initialized" });
     }
 
@@ -108,25 +105,13 @@ public class GeneLifeSimulation : IDisposable
         return entities;
     }
 
-    public void SetLivingEntityUpdateHook(int id)
+    public List<Entity> GetAllBuildings()
     {
-        if (DefaultArchetypesOverridden || DefaultSystemsOverridden) return;
-        var query = new QueryDescription().WithAll<Living, Identity>();
-        _overworld.ParallelQuery(in query, (in Entity entity) =>
-        {
-            if (entity.Id != id) return;
-            entity.Add(new UIHook());
-        });
-    }
-    
-    public void removeLivingEntityUpdateHook(int id)
-    {
-        if (DefaultArchetypesOverridden || DefaultSystemsOverridden) return;
-        var query = new QueryDescription();
-        _overworld.ParallelQuery(in query, (in Entity entity) =>
-        {
-            if(entity.Id == id) entity.Remove<UIHook>();
-        });
+        if (DefaultArchetypesOverridden || DefaultSystemsOverridden) return new List<Entity>();
+        var query = new QueryDescription().WithAll<Adress, Position>();
+        var entities = new List<Entity>();
+        _overworld.GetEntities(query, entities);
+        return entities;
     }
 
     public void SendCommand(GiveCommand command)
@@ -158,6 +143,12 @@ public class GeneLifeSimulation : IDisposable
             
             default: return "";
         } 
+    }
+
+    public string SendCommand(SetTicksPerDayCommand command)
+    {
+        Constants.TicksPerDay = command.Ticks;
+        return "";
     }
 
     /// <summary>

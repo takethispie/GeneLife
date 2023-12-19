@@ -28,7 +28,6 @@ internal sealed class HungerSystem : BaseSystem<World, float>
     public override void Update(in float delta)
     {
         _tickAccumulator += delta;
-        //TODO move accumulator to accumulators component or living component
         if (_tickAccumulator >= Constants.TicksPerDay)
         {
             _tickAccumulator = 0;

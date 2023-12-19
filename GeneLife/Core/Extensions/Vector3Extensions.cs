@@ -34,4 +34,16 @@ public static class Vector3Extensions
 
     public static bool CloseEnoughForWalkingTo(this Vector3 origin, Vector3 target) 
         => Vector3.Distance(origin, target) < Constants.MaxWalkingDistance;
+
+    public static Vector3 MovePointTowards(this Vector3 a, Vector3 b, float distance)
+    {
+        var vector = b - a;
+        var length = Math.Sqrt(vector.X * vector.X + vector.Y * vector.Y + vector.Z * vector.Z); ;
+        var unitVector = new Vector3(
+            vector.X / Convert.ToSingle(length),
+            vector.Y / Convert.ToSingle(length),
+            vector.Z / Convert.ToSingle(length)
+        );
+        return a + unitVector * distance;
+    }
 }

@@ -76,7 +76,6 @@ public static class RelationService
     internal static void LoveLoop(List<Entity> entities)
     {
         var matchLists = new List<(Entity entity, IEnumerable<Entity> matches)>();
-        //Parallel.ForEach(entities, entity => { });
         Parallel.ForEach(entities, entity =>
         {
             if (entity.Has<Relation>()) return;

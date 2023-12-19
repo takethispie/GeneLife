@@ -9,6 +9,7 @@ using GeneLife.Core.Extensions;
 using GeneLife.Genetic;
 using GeneLife.Genetic.GeneticTraits;
 using GeneLife.Sibyl.Components;
+using System.Numerics;
 
 namespace GeneLife.Core.Entities.Generators;
 
@@ -38,6 +39,7 @@ public static class PersonGenerator
         entity.Set(new Wallet { Money = 100 });
         entity.Set(new Inventory());
         entity.Set(new Objectives());
+        entity.Set(new Position(Vector3.Zero));
         return entity;
     }
 }

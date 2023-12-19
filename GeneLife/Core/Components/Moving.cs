@@ -7,10 +7,12 @@ public struct Moving
     /// <summary>
     /// velocity in m/s (will be rounded to the meter) 
     /// </summary>
-    public Vector3 Velocity;
+    public float Velocity;
+    public Vector3 Target;
 
     public Moving()
     {
-        Velocity = Vector3.Zero;
+        Velocity = 1f;
+        Target = Vector3.Zero;
     }
 }

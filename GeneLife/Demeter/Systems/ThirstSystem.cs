@@ -26,7 +26,6 @@ internal sealed class ThirstSystem : BaseSystem<World, float>
     public override void Update(in float delta)
     {
         _tickAccumulator += delta;
-        //TODO move accumulator to accumulators component or living component
         if (_tickAccumulator < Constants.TicksPerDay) return;
         _tickAccumulator = 0;
         World.ParallelQuery(in livingEntities, (ref Living living, ref Identity identity, ref Psychology psychology, ref Objectives objectives, ref Inventory inventory) =>
