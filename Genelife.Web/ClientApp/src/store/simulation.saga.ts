@@ -31,7 +31,6 @@ function* StartSimSaga(): any {
     if(state.appSlice.initialized == false) {
         var res = yield call(initSimulation);
         if(res == 200) {
-            yield put(ADD_LOG("started simulation"))
             yield put(SET_INITIALIZED_FLAG());
         }
     }
@@ -40,11 +39,9 @@ function* StartSimSaga(): any {
 }
 
 function* CreateSmallCitySaga(): any {
-    var res = yield call(createSmallCity);
-    if(res == 200) yield put(ADD_LOG("created small city"))
+    yield call(createSmallCity);
 }
 
 function* SetTicksPerDaySaga(action: PayloadAction<number>): any {
-    var res = yield call(setTicksPerDay, action.payload);
-    if(res == 200) yield put(ADD_LOG("set ticks per day to: " + action.payload));
+    yield call(setTicksPerDay, action.payload);
 }

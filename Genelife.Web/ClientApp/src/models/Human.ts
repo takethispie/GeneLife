@@ -9,4 +9,5 @@ export class Human {
     wallet: string = ""
     identity: string = ""
     stats?: HumanStats
+    objectives: string[] = []
 }

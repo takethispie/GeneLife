@@ -13,6 +13,7 @@ using Genelife.Web.Services;
 using GeneLife.Core.Components.Buildings;
 using GeneLife.Core.Components;
 using GeneLife.Sibyl.Components;
+using GeneLife.Athena.Components;
 
 namespace Genelife.Web.Controllers;
 [Route("api/[controller]")]
@@ -61,6 +62,7 @@ public class SimulationController : ControllerBase
         var npcs = entities.Select(entity => {
             var identity = entity.Get<Identity>().FullName();
             var living = entity.Get<Living>();
+            var objectives = entity.Get<Objectives>();
             var stats = new HumanStats {
                 Hunger = living.Hunger.ToString(),
                 Stamina = living.Stamina.ToString(),
@@ -68,7 +70,12 @@ public class SimulationController : ControllerBase
                 Damage = living.Damage.ToString(),
             };
             var wallet = entity.Get<Wallet>().Money.ToString();
-            return new Human { Wallet = wallet, Identity = identity, Stats = stats };
+            return new Human { 
+                Wallet = wallet, 
+                Identity = identity, 
+                Stats = stats, 
+                Objectives = objectives.CurrentObjectives.Select(x => x.Priority + "* " + x.Name).ToArray() 
+            };
         });
         var buildings = buildingEntities.Select(building =>
         {
@@ -83,7 +90,7 @@ public class SimulationController : ControllerBase
 
             else throw new Exception("could not find matching type");
         });
-        return Ok(new SimulationData {  Npcs = npcs.ToArray(), Buildings = buildings.ToArray() });
+        return Ok(new SimulationData {  Npcs = npcs.ToArray(), Buildings = buildings.ToArray(), Logs = simulation.LogSystem.Logs.ToArray() });
     }
 
 

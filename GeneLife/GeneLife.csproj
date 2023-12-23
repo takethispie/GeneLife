@@ -1,15 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
-  <ItemGroup>
-    <Compile Remove="Athena\Services\**" />
-    <EmbeddedResource Remove="Athena\Services\**" />
-    <None Remove="Athena\Services\**" />
-  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Arch" Version="1.2.7" />
     <PackageReference Include="Arch.EventBus" Version="1.0.2" />

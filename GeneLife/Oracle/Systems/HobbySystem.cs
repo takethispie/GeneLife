@@ -33,7 +33,7 @@ internal sealed class HobbySystem : BaseSystem<World, float>
     {
         _currentTimeCount += delta;
         if (_currentTimeCount < _interval) return;
-        World.Query(in withHobby, (Entity entity) =>
+        World.Query(in withHobby, (ref Entity entity) =>
         {
             var hobby = entity.Get<Hobby>();
             var identity = entity.Get<Identity>();
@@ -81,7 +81,7 @@ internal sealed class HobbySystem : BaseSystem<World, float>
             }
         });
 
-        World.Query(in withoutHobby, (Entity entity) =>
+        World.Query(in withoutHobby, (ref Entity entity) =>
         {
             if (_random.Next() > Constants.GettingHobbyChances) return;
             var newHobby = Enum.GetValues<HobbyType>().Random(_random);

@@ -20,4 +20,20 @@ public static class ObjectiveExtensions
             return x;
         }).Prepend(objective);
     }
+
+    public static IEnumerable<IObjective> RemoveHighestPriority(this IEnumerable<IObjective> objectives)
+    {
+        var newPriorities = objectives.Where(x => x.Priority != 10);
+        var hasNewTop = false;
+        newPriorities = newPriorities.Select(x =>
+        {
+            if (x.Priority == 9 && !hasNewTop)
+            {
+                hasNewTop = true;
+                x.Priority = 10;
+            } 
+            return x;
+        });
+        return newPriorities;
+    }
 }

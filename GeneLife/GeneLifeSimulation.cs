@@ -16,7 +16,6 @@ using GeneLife.Core.Events;
 using GeneLife.Core.Exceptions;
 using GeneLife.Core.Extensions;
 using GeneLife.Core.Items;
-using GeneLife.Demeter;
 using GeneLife.Genetic.GeneticTraits;
 using GeneLife.Oracle;
 using GeneLife.Sibyl;
@@ -80,7 +79,6 @@ public class GeneLifeSimulation : IDisposable
         {
             SibylSystem.Register(_overworld, Systems);
             OracleSystem.Register(_overworld, Systems);
-            DemeterSystem.Register(_overworld, Systems, _archetypeFactory, ItemsWithPrices);
             AthenaSystem.Register(_overworld, Systems, _archetypeFactory);
             EventBus.Send(new LogEvent { Message = "All systems loaded" });
         }
@@ -122,9 +120,9 @@ public class GeneLifeSimulation : IDisposable
         {
             if (identity.FirstName.ToLower() != command.TargetFirstName ||
                 identity.LastName.ToLower() != command.TargetLastName) return;
-            var idx = inventory.items.ToList().FindIndex(x => x.Type == ItemType.None);
+            var idx = inventory.GetItems().ToList().FindIndex(x => x.Type == ItemType.None);
             if (idx == -1) return;
-            inventory.items[idx] = command.Item;
+            inventory.Store(command.Item);
             EventBus.Send(new LogEvent
             {
                 Message =

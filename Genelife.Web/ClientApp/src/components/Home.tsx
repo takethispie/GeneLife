@@ -41,7 +41,7 @@ export default function Home() {
                                     <Card style={{ minHeight: 500 }}>
                                         <CardContent style={{ paddingTop: 0, paddingBottom: 0 }}>
                                             <List>
-                                                {state.appSlice.logs.map((log, id) => (
+                                                {state.simulationSlice.simulationState.logs.map((log, id) => (
                                                     <ListItem key={id} style={{ paddingTop: 0, paddingBottom: 0 }}>
                                                         <ListItemText
                                                             primary={log}

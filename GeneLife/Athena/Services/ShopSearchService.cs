@@ -4,16 +4,16 @@ using Arch.Core.Extensions;
 using GeneLife.Core.Components;
 using GeneLife.Core.Components.Buildings;
 
-namespace GeneLife.Demeter.Services;
+namespace GeneLife.Athena.Services;
 
 internal static class ShopSearchService
 {
     public static Entity? NearestShopWithItem(IEnumerable<Entity> shops, int itemId, Position npcPosition)
     {
         var shopArray = shops.ToArray();
-        if(!shopArray.Any()) return null;
+        if (!shopArray.Any()) return null;
         float closestDistance = -1;
-        Entity? currentClosest = null; 
+        Entity? currentClosest = null;
         foreach (var entity in shopArray)
         {
             var position = entity.Get<Position>();
@@ -23,7 +23,6 @@ internal static class ShopSearchService
             closestDistance = distance;
             currentClosest = entity;
         }
-
         return currentClosest;
     }
 
