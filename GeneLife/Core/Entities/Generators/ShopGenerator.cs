@@ -3,7 +3,6 @@ using Arch.Core.Extensions;
 using GeneLife.Core.Components;
 using GeneLife.Core.Components.Buildings;
 using GeneLife.Core.Entities.Factories;
-using GeneLife.Core.Items;
 
 namespace GeneLife.Core.Entities.Generators;
 
@@ -20,27 +19,11 @@ public static class ShopGenerator
         return newShop;
     }
     
-    public static Entity SmallGeneralShop(World world, Position position, Adress adress, IEnumerable<ItemWithPrice> items)
+    public static Entity GroceryStore(World world, Position position, Adress adress)
     {
 
         var newShop = ShopBluePrint(world, position, adress);
-        newShop.Set(new Shop(items.Where(x => x.Price < 20).ToArray()));
-        return newShop;
-    }
-    
-    public static Entity MediumGeneralShop(World world, Position position, Adress adress, IEnumerable<ItemWithPrice> items)
-    {
-        
-        var newShop = ShopBluePrint(world, position, adress);
-        newShop.Set(new Shop(items.Where(x => x.Price < 100).ToArray()));
-        return newShop;
-    }
-    
-    public static Entity LargeGeneralShop(World world, Position position, Adress adress, IEnumerable<ItemWithPrice> items)
-    {
-        
-        var newShop = ShopBluePrint(world, position, adress);
-        newShop.Set(new Shop(items.Where(x => x.Price < 1000).ToArray()));
+        newShop.Set(new Shop(ShopType.Grocery));
         return newShop;
     }
 }

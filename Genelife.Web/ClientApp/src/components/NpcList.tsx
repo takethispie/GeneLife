@@ -19,6 +19,9 @@ export const NpcList = ({ npcs }: NpcListProps) => {
                             <Typography>{"Damage: " + npc.stats?.damage}</Typography>
                             <Typography>{"Stamina: " + npc.stats?.stamina}</Typography>
                             <Typography>{"Money: " + npc.wallet}</Typography>
+                            <List>
+                                {npc.objectives.filter(x => !x.startsWith("-1*")).map(x => <ListItem>{x}</ListItem>)}
+                            </List>
                        </CardContent>
                     </Card>
                 </Grid>

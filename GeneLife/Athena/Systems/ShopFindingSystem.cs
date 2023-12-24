@@ -11,9 +11,10 @@ using GeneLife.Core;
 using GeneLife.Core.Components.Buildings;
 using GeneLife.Core.Entities.Factories;
 using GeneLife.Core.Events;
-using GeneLife.Demeter.Services;
 using System.Numerics;
 using GeneLife.Core.Items;
+using GeneLife.Athena.Services;
+using GeneLife.Core.Entities.Generators;
 
 namespace GeneLife.Athena.Systems;
 
@@ -36,15 +37,23 @@ public class ShopFindingSystem : BaseSystem<World, float>
         {
             if (!objectives.CurrentObjectives.IsHighestPriority(typeof(BuyItem))) return;
             if (objectives.CurrentObjectives.OrderByDescending(x => x.Priority).First() is not BuyItem buyItem) return;
-            var closestShop = ShopSearchService.NearestShopWithItem(shops, buyItem.ItemId, position);
-            if (!closestShop.HasValue) return;
+            var shopType = ItemGenerator.GetItemList().First(x => x.Id == buyItem.ItemId).ShopType;
+            var closestShop = ShopSearchService.NearestShop(shops, position);
+            if (!closestShop.HasValue)
+            {
+                EventBus.Send(new LogEvent { Message = $"can't find a shop with {buyItem.Name}" });
+                return;
+            }
             var shopPos = closestShop.Value.Get<Position>();
             if(Vector3.Distance(position.Coordinates, shopPos.Coordinates) <= 2) {
                 var shopComponent = closestShop.Value.Get<Shop>();
-                var itemWithPrice = shopComponent.AvailableItems.Where(x => x.Item.Id == buyItem.ItemId).First();
+                var itemWithPrice = ItemGenerator.GetItemList().Where(x => x.Id == buyItem.ItemId).First();
                 wallet.Money -= itemWithPrice.Price;
                 //TODO handle inventory management (not enough space!)
-                inventory.items = inventory.items.Append(itemWithPrice.Item with {}).ToArray();
+                if(inventory.Store(itemWithPrice with { }))
+                {
+                    objectives.CurrentObjectives = objectives.CurrentObjectives.RemoveHighestPriority().ToArray();
+                }
             } else {
                 EventBus.Send(new LogEvent
                 {

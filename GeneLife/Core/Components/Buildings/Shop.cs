@@ -2,17 +2,19 @@
 
 namespace GeneLife.Core.Components.Buildings;
 
+public enum ShopType
+{
+    Grocery,
+    Furniture
+}
+
 public struct Shop
 {
-    public ItemWithPrice[] AvailableItems;
+    public ShopType Type { get; }
 
-    public Shop()
+    public Shop(ShopType type)
     {
-        AvailableItems = Array.Empty<ItemWithPrice>();
+        Type = type;
     }
 
-    public Shop(ItemWithPrice[] availableItems)
-    {
-        AvailableItems = availableItems;
-    }
 }

@@ -12,7 +12,7 @@ using GeneLife.Core.Events;
 using GeneLife.Core.Extensions;
 using GeneLife.Core.Items;
 
-namespace GeneLife.Demeter.Systems;
+namespace GeneLife.Athena.Systems;
 
 internal sealed class HungerSystem : BaseSystem<World, float>
 {
@@ -31,18 +31,16 @@ internal sealed class HungerSystem : BaseSystem<World, float>
         if (_tickAccumulator >= Constants.TicksPerDay)
         {
             _tickAccumulator = 0;
-            World.ParallelQuery(
+            World.Query(
                 in livingEntities,
                 (ref Living living, ref Identity identity, ref Psychology psychology, ref Objectives objectives, ref Inventory inventory) =>
             {
                 living.Hunger -= 1;
-
-                if (living.Hunger < Constants.HungryThreshold && inventory.items.Any(x => x.Type == ItemType.Food))
+                if (living.Hunger < Constants.HungryThreshold && inventory.GetItems().Any(x => x.Type == ItemType.Food))
                 {
-                    var idx = inventory.items.ToList().FindIndex(x => x.Type == ItemType.Food);
-                    if (idx > -1)
+                    var food = inventory.Take(ItemType.Food);
+                    if (food.HasValue)
                     {
-                        inventory.items[idx] = new Item { Type = ItemType.None, Id = -1 };
                         living.Hungry = false;
                         living.Hunger = Constants.MaxHunger;
                         objectives.CurrentObjectives = objectives.CurrentObjectives.Where(x => x is not Eat).ToArray();
@@ -68,8 +66,9 @@ internal sealed class HungerSystem : BaseSystem<World, float>
                         break;
 
                     case { Hungry: true, Stamina: <= 0 }:
-                        EventBus.Send(new LogEvent { 
-                            Message = $"{identity.FirstName} {identity.LastName} is slowly dying from starvation" 
+                        EventBus.Send(new LogEvent
+                        {
+                            Message = $"{identity.FirstName} {identity.LastName} is slowly dying from starvation"
                         });
                         living.Damage += 1;
                         psychology.EmotionalBalance -= 20;
@@ -77,12 +76,15 @@ internal sealed class HungerSystem : BaseSystem<World, float>
                         break;
                 }
 
-                if (living.Hunger < Constants.HungryThreshold 
-                        && !inventory.items.Any(x => x.Type == ItemType.Food)
-                        && !objectives.CurrentObjectives.IsHighestPriority(typeof(BuyItem))) {
-                    objectives.CurrentObjectives.SetNewHighestPriority(new BuyItem { Priority = 10, ItemId = 1 });
-                    EventBus.Send(new LogEvent { 
-                            Message = $"{identity.FirstName} {identity.LastName} has set a new high priority objective: buy food" 
+                if (living.Hunger < Constants.HungryThreshold
+                        && !inventory.HasItemType(ItemType.Food)
+                        && !objectives.CurrentObjectives.Any(x => x is BuyItem))
+                {
+                    objectives.CurrentObjectives = 
+                        objectives.CurrentObjectives.SetNewHighestPriority(new BuyItem { Priority = 10, ItemId = 1, Name = "buy some food" }).ToArray();
+                    EventBus.Send(new LogEvent
+                    {
+                        Message = $"{identity.FirstName} {identity.LastName} has set a new high priority objective: buy food"
                     });
                 }
             });
