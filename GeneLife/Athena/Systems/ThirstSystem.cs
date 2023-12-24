@@ -28,7 +28,7 @@ internal sealed class ThirstSystem : BaseSystem<World, float>
         _tickAccumulator += delta;
         if (_tickAccumulator < Constants.TicksPerDay) return;
         _tickAccumulator = 0;
-        World.ParallelQuery(in livingEntities, (ref Living living, ref Identity identity, ref Psychology psychology, ref Objectives objectives, ref Inventory inventory) =>
+        World.Query(in livingEntities, (ref Living living, ref Identity identity, ref Psychology psychology, ref Objectives objectives, ref Inventory inventory) =>
         {
             living.Thirst -= 1;
             var hasDrinkInInventory = inventory.HasItemType(ItemType.Drink);
@@ -71,7 +71,7 @@ internal sealed class ThirstSystem : BaseSystem<World, float>
             if (living.Thirst < Constants.ThirstyThreshold && !hasDrinkInInventory 
                 && !objectives.CurrentObjectives.Any(x => x is BuyItem)) {
                 objectives.CurrentObjectives = 
-                    objectives.CurrentObjectives.SetNewHighestPriority(new BuyItem { Priority = 10, ItemId = 2 }).ToArray();
+                    objectives.CurrentObjectives.SetNewHighestPriority(new BuyItem { Priority = 10, ItemId = 2, Name = "Buy a drink" }).ToArray();
                 EventBus.Send(new LogEvent { 
                         Message = $"{identity.FirstName} {identity.LastName} has set a new high priority objective: buy drink" 
                 });

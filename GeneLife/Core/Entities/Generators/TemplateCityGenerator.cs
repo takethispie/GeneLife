@@ -13,9 +13,7 @@ public static class TemplateCityGenerator
 {
     public static void CreateSmallCity(World world)
     {
-        var items = new BaseItemGenerator().GetItemList();
-        var itemsWithPrice = new BaseItemWithWithPriceGenerator().GetItemsWithPrice(items);
-        ShopGenerator.SmallGeneralShop(world, new Position(new Vector3(500, 500, 0)), new Adress(), itemsWithPrice);
+        ShopGenerator.GroceryStore(world, new Position(new Vector3(500, 500, 0)), new Adress());
         var man1 = PersonGenerator.CreatePure(world, Sex.Male, 20);
         var man2 = PersonGenerator.CreatePure(world, Sex.Male, 20);
         var woman1 = PersonGenerator.CreatePure(world, Sex.Female, 20);

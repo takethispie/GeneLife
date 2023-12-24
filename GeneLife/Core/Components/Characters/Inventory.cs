@@ -32,35 +32,30 @@ public struct Inventory
 
     public Item? Take(ItemType type)
     {
-        var id = -1;
         Item? item = null;
-        for (int i = 0; i < items.Length; i++)
+        items = items.Select(x =>
         {
-            if (items[i].Type == type)
-            {
-                item = items[i];
-                id = i;
-                break;
+            if(x.Type == type) {
+                item = x;
+                return new Item { Type = ItemType.None, Id = -1 };
             }
-        }
-        if(id > -1) items[id] = new Item { Type = ItemType.None, Id = -1 };
+            return x;
+        }).ToArray();
         return item;
     }
 
     public Item? Take(string name)
     {
-        var id = -1;
         Item? item = null;
-        for (int i = 0; i < items.Length; i++)
+        items = items.Select(x =>
         {
-            if (items[i].Name.ToLower() == name.ToLower())
+            if (x.Name.ToLower() == name.ToLower())
             {
-                item = items[i];
-                id = i;
-                break;
+                item = x;
+                return new Item { Type = ItemType.None, Id = -1 };
             }
-        }
-        if (id > -1) items[id] = new Item { Type = ItemType.None, Id = -1 };
+            return x;
+        }).ToArray();
         return item;
     }
 

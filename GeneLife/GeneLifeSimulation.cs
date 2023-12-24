@@ -31,8 +31,6 @@ public class GeneLifeSimulation : IDisposable
     private bool DefaultSystemsOverridden, DefaultArchetypesOverridden;
     private World _overworld { get; }
     public LogSystem LogSystem { get; }
-    public Item[] Items { get; }
-    public ItemWithPrice[] ItemsWithPrices { get; }
 
     public GeneLifeSimulation()
     {
@@ -41,8 +39,6 @@ public class GeneLifeSimulation : IDisposable
         _archetypeFactory = new ArchetypeFactory();
         LogSystem = new LogSystem(false);
         _jobScheduler = new global::JobScheduler.JobScheduler("glife");
-        Items = new BaseItemGenerator().GetItemList();
-        ItemsWithPrices = new BaseItemWithWithPriceGenerator().GetItemsWithPrice(Items);
         DefaultArchetypesOverridden = false;
         DefaultSystemsOverridden = false;
     }

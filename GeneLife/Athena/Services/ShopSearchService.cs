@@ -8,10 +8,10 @@ namespace GeneLife.Athena.Services;
 
 internal static class ShopSearchService
 {
-    public static Entity? NearestShopWithItem(IEnumerable<Entity> shops, int itemId, Position npcPosition)
+    public static Entity? NearestShop(IEnumerable<Entity> shops, Position npcPosition)
     {
         var shopArray = shops.ToArray();
-        if (!shopArray.Any()) return null;
+        if (shopArray.Length == 0) return null;
         float closestDistance = -1;
         Entity? currentClosest = null;
         foreach (var entity in shopArray)
@@ -19,16 +19,10 @@ internal static class ShopSearchService
             var position = entity.Get<Position>();
             var shopComponent = entity.Get<Shop>();
             var distance = Vector3.Distance(position.Coordinates, npcPosition.Coordinates);
-            if (!IsCurrentClosestShop(itemId, shopComponent, distance, closestDistance)) continue;
+            if (distance < closestDistance) continue;
             closestDistance = distance;
             currentClosest = entity;
         }
         return currentClosest;
-    }
-
-    private static bool IsCurrentClosestShop(int itemId, Shop shop, float distance, float closestDistance)
-    {
-        var hasItemNeeded = shop.AvailableItems.Any(itemWithPrice => itemWithPrice.Item.Id == itemId);
-        return distance < closestDistance && hasItemNeeded || hasItemNeeded && closestDistance < 0;
     }
 }
