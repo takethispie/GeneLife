@@ -3,7 +3,6 @@ using Arch.Core;
 using Arch.System;
 using GeneLife.Athena.Components;
 using GeneLife.Athena.Core.Objectives;
-using GeneLife.Athena.Extensions;
 using GeneLife.Core.Components.Characters;
 using GeneLife.Core.Data;
 using GeneLife.Core.Entities.Factories;
@@ -70,8 +69,8 @@ internal sealed class ThirstSystem : BaseSystem<World, float>
 
             if (living.Thirst < Constants.ThirstyThreshold && !hasDrinkInInventory 
                 && !objectives.CurrentObjectives.Any(x => x is BuyItem)) {
-                objectives.CurrentObjectives = 
-                    objectives.CurrentObjectives.SetNewHighestPriority(new BuyItem { Priority = 10, ItemId = 2, Name = "Buy a drink" }).ToArray();
+                
+                objectives.SetNewHighestPriority(new BuyItem { Priority = 10, ItemId = 2, Name = "Buy a drink" });
                 EventBus.Send(new LogEvent { 
                         Message = $"{identity.FirstName} {identity.LastName} has set a new high priority objective: buy drink" 
                 });

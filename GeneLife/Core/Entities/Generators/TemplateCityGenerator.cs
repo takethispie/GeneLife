@@ -22,15 +22,23 @@ public static class TemplateCityGenerator
         var house1 = HouseHoldGenerator.House(world, new Position(new Vector3(0, 0, 0)), new Adress());
         var house2 = HouseHoldGenerator.House(world, new Position(new Vector3(100, 250, 0)), new Adress());
         var house3 = HouseHoldGenerator.House(world, new Position(new Vector3(50, 150, 0)), new Adress());
+
         man2.Add(new Relation(woman2.Id));
         woman2.Add(new Relation(man2.Id));
+
         house2.Set(new HouseHold(new [] { man2.Id, woman2.Id }));
+        man2.Add(new Home { Position = new Vector3(100, 250, 0), Id = house2.Id });
+        woman2.Add(new Home { Position = new Vector3(100, 250, 0), Id = house2.Id });
         
         var familyId = Guid.NewGuid();
         man1.Add(new FamilyMember { FamilyId = familyId, Generation = 0, MemberType = FamilyMemberType.Father });
         childGirl1.Add(new FamilyMember { FamilyId = familyId, Generation = 1, MemberType = FamilyMemberType.Child });
+
         house1.Set(new HouseHold(new []{ man1.Id, childGirl1.Id }));
-        
+        man1.Add(new Home { Position = new Vector3(0, 0, 0), Id = house1.Id });
+        childGirl1.Add(new Home { Position = new Vector3(0, 0, 0), Id = house1.Id });
+
         house3.Set(new HouseHold(new []{ woman1.Id }));
+        woman1.Add(new Home { Position = new Vector3(50, 150, 0), Id = house3.Id });
     }
 }

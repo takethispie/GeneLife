@@ -17,7 +17,7 @@ public struct Living
     
     public int Stamina;
     
-    public bool Hungry, Thirsty, IsDead, IsStatic;
+    public bool Hungry, Thirsty, IsStatic;
     
 
     /// <summary>
@@ -29,7 +29,6 @@ public struct Living
         Hunger = 10;
         Thirst = 20;
         Stamina = 10;
-        IsDead = false;
         IsStatic = false;
         Thirsty = false;
         Hungry = false;
@@ -42,7 +41,6 @@ public struct Living
         Hunger = hunger;
         Thirst = thirst;
         Thirsty = false;
-        IsDead = false;
         IsStatic = false;
         Hungry= false;
     }

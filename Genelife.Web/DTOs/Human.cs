@@ -8,4 +8,5 @@ public class Human
     public HumanStats Stats { get; set; }
     public string Wallet { get; set; }
     public string[] Objectives { get; set; }
+    public string Position { get; set; }
 }

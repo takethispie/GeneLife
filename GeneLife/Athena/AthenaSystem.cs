@@ -11,7 +11,8 @@ public class AthenaSystem
     {
         group.Add(new HungerSystem(world, archetypeFactory));
         group.Add(new ThirstSystem(world, archetypeFactory));
-        group.Add(new ShopFindingSystem(world, archetypeFactory));
+        group.Add(new ShopSystem(world, archetypeFactory));
         group.Add(new MoveSystem(world, archetypeFactory));
+        group.Add(new ObjectivesSystem(world, archetypeFactory));
     }
 }

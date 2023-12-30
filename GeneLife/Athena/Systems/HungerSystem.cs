@@ -3,7 +3,6 @@ using Arch.Core;
 using Arch.System;
 using GeneLife.Athena.Components;
 using GeneLife.Athena.Core.Objectives;
-using GeneLife.Athena.Extensions;
 using GeneLife.Core.Components;
 using GeneLife.Core.Components.Characters;
 using GeneLife.Core.Data;
@@ -35,6 +34,7 @@ internal sealed class HungerSystem : BaseSystem<World, float>
                 in livingEntities,
                 (ref Living living, ref Identity identity, ref Psychology psychology, ref Objectives objectives, ref Inventory inventory) =>
             {
+                if (living.IsDead) return;
                 living.Hunger -= 1;
                 if (living.Hunger < Constants.HungryThreshold && inventory.GetItems().Any(x => x.Type == ItemType.Food))
                 {
@@ -80,8 +80,7 @@ internal sealed class HungerSystem : BaseSystem<World, float>
                         && !inventory.HasItemType(ItemType.Food)
                         && !objectives.CurrentObjectives.Any(x => x is BuyItem))
                 {
-                    objectives.CurrentObjectives = 
-                        objectives.CurrentObjectives.SetNewHighestPriority(new BuyItem { Priority = 10, ItemId = 1, Name = "buy some food" }).ToArray();
+                    objectives.SetNewHighestPriority(new BuyItem { Priority = 10, ItemId = 1, Name = "buy some food" });
                     EventBus.Send(new LogEvent
                     {
                         Message = $"{identity.FirstName} {identity.LastName} has set a new high priority objective: buy food"

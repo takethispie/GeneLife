@@ -10,4 +10,5 @@ export class Human {
     identity: string = ""
     stats?: HumanStats
     objectives: string[] = []
+    position: string = ""
 }

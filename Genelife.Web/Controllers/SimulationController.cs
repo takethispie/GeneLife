@@ -69,12 +69,14 @@ public class SimulationController : ControllerBase
                 Thirst = living.Thirst.ToString(),
                 Damage = living.Damage.ToString(),
             };
+            var position = entity.Get<Position>();
             var wallet = entity.Get<Wallet>().Money.ToString();
             return new Human { 
                 Wallet = wallet, 
                 Identity = identity, 
                 Stats = stats, 
-                Objectives = objectives.CurrentObjectives.Select(x => x.Priority + "* " + x.Name).ToArray() 
+                Objectives = objectives.CurrentObjectives.Select(x => x.Priority + "* " + x.Name).ToArray(),
+                Position = position.Coordinates.ToString(),
             };
         });
         var buildings = buildingEntities.Select(building =>
