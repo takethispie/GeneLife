@@ -1,13 +1,14 @@
-﻿namespace GeneLife.Core.Items;
-
-public struct ItemWithPrice
+﻿namespace GeneLife.Core.Items
 {
-    public Item Item;
-    public int Price;
-
-    public ItemWithPrice(Item item, int price)
+    public struct ItemWithPrice
     {
-        Item = item;
-        Price = price;
+        public Item Item;
+        public int Price;
+
+        public ItemWithPrice(Item item, int price)
+        {
+            Item = item;
+            Price = price;
+        }
     }
 }

@@ -1,14 +1,15 @@
-﻿namespace GeneLife.Core.Commands;
-
-public class CreateCityCommand : ICommand
+﻿namespace GeneLife.Core.Commands
 {
-    public TemplateCitySize Size;
-}
+    public class CreateCityCommand : ICommand
+    {
+        public TemplateCitySize Size;
+    }
 
-public enum TemplateCitySize
-{
-    Small,
-    Medium,
-    Big,
-    Capital
+    public enum TemplateCitySize
+    {
+        Small,
+        Medium,
+        Big,
+        Capital
+    }
 }

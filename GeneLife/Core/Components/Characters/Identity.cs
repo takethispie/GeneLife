@@ -1,8 +1,9 @@
-﻿namespace GeneLife.Core.Components.Characters;
-
-public struct Identity
+﻿namespace GeneLife.Core.Components.Characters
 {
-    public Guid Id;
-    public string FirstName;
-    public string LastName;
+    public struct Identity
+    {
+        public Guid Id;
+        public string FirstName;
+        public string LastName;
+    }
 }

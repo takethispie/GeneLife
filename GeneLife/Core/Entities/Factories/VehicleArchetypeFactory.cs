@@ -4,12 +4,12 @@ using GeneLife.Core.Components.Containers;
 using GeneLife.Core.Entities.Exceptions;
 using GeneLife.Core.Entities.Interfaces;
 
-namespace GeneLife.Core.Entities.Factories;
-
-internal class VehicleArchetypeFactory : IArchetypeBuilder
+namespace GeneLife.Core.Entities.Factories
 {
-    private static ComponentType[] CarArchetype() => new ComponentType[]
+    internal class VehicleArchetypeFactory : IArchetypeBuilder
     {
+        private static ComponentType[] CarArchetype() => new ComponentType[]
+        {
         typeof(Moving),
         typeof(Flammable),
         typeof(LivingBeingContainer),
@@ -17,13 +17,14 @@ internal class VehicleArchetypeFactory : IArchetypeBuilder
         typeof(LiquidContainer),
         typeof(Ownable),
         typeof(ItemContainer)
-    };
+        };
 
-    public ComponentType[] Build(string type) => type.ToLower() switch
-    {
-        "car" => CarArchetype(),
-        _ => throw new ArchetypeNotFoundException()
-    };
+        public ComponentType[] Build(string type) => type.ToLower() switch
+        {
+            "car" => CarArchetype(),
+            _ => throw new ArchetypeNotFoundException()
+        };
 
-    public string[] ArchetypesList() => new[] { "Car" };
+        public string[] ArchetypesList() => new[] { "Car" };
+    }
 }

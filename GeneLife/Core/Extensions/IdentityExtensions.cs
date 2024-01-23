@@ -1,11 +1,12 @@
 ﻿using GeneLife.Core.Components.Characters;
 
-namespace GeneLife.Core.Extensions;
-
-public static class IdentityExtensions
+namespace GeneLife.Core.Extensions
 {
-    public static string FullName(this Identity id)
+    public static class IdentityExtensions
     {
-        return $"{id.FirstName} {id.LastName}";
+        public static string FullName(this Identity id)
+        {
+            return $"{id.FirstName} {id.LastName}";
+        }
     }
 }

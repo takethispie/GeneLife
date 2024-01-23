@@ -1,6 +1,7 @@
-﻿namespace GeneLife.Core.Components;
-
-public struct Liquid
+﻿namespace GeneLife.Core.Components
 {
-    public string Name;
+    public struct Liquid
+    {
+        public string Name;
+    }
 }

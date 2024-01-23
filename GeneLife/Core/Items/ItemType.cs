@@ -1,12 +1,13 @@
-﻿namespace GeneLife.Core.Items;
-
-public enum ItemType
+﻿namespace GeneLife.Core.Items
 {
-    None,
-    Food,
-    Appliance,
-    Armor,
-    Weapon,
-    Tool,
-    Drink
+    public enum ItemType
+    {
+        None,
+        Food,
+        Appliance,
+        Armor,
+        Weapon,
+        Tool,
+        Drink
+    }
 }

@@ -1,8 +1,9 @@
-﻿namespace GeneLife.Core.Commands;
-
-public class SetTicksPerDayCommand : ICommand
+﻿namespace GeneLife.Core.Commands
 {
-    public int Ticks {  get; set; }
+    public class SetTicksPerDayCommand : ICommand
+    {
+        public int Ticks { get; set; }
 
-    public SetTicksPerDayCommand(int ticks) => Ticks = ticks;
+        public SetTicksPerDayCommand(int ticks) => Ticks = ticks;
+    }
 }

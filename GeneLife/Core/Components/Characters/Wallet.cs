@@ -1,6 +1,7 @@
-﻿namespace GeneLife.Core.Components.Characters;
-
-public struct Wallet
+﻿namespace GeneLife.Core.Components.Characters
 {
-    public float Money;
+    public struct Wallet
+    {
+        public float Money;
+    }
 }

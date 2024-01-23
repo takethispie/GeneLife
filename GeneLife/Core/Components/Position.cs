@@ -1,22 +1,23 @@
 ﻿using System.Numerics;
 
-namespace GeneLife.Core.Components;
-
-public struct Position
+namespace GeneLife.Core.Components
 {
-    /// <summary>
-    /// position in meters
-    /// </summary>
-    public Vector3 Coordinates;
-    
-    public Position()
+    public struct Position
     {
-        Coordinates = Vector3.Zero;
-    }
+        /// <summary>
+        /// position in meters
+        /// </summary>
+        public Vector3 Coordinates;
 
-    public Position(Vector3 pos)
-    {
-        Coordinates = pos;
-    }
+        public Position()
+        {
+            Coordinates = Vector3.Zero;
+        }
 
+        public Position(Vector3 pos)
+        {
+            Coordinates = pos;
+        }
+
+    }
 }

@@ -1,7 +1,9 @@
-namespace GeneLife.Genetic.GeneticTraits;
-public enum Handedness
+namespace GeneLife.Genetic.GeneticTraits
 {
-    RightHanded,
-    LeftHanded,
-    Ambidextrous
+    public enum Handedness
+    {
+        RightHanded,
+        LeftHanded,
+        Ambidextrous
+    }
 }

@@ -1,28 +1,29 @@
 ﻿using GeneLife.Core.Extensions;
 using GeneLife.Genetic.Data;
 
-namespace GeneLife.Genetic.Mutators;
-
-public static class GeneticMergingMutator
+namespace GeneLife.Genetic.Mutators
 {
-    public static Genome ProduceZygote(string fatherGamete, string motherGamete)
+    public static class GeneticMergingMutator
     {
-        fatherGamete = fatherGamete.Replace("X", "").Replace("x", "").Replace("Y", "").Replace("y", "");
-        motherGamete = motherGamete.Replace("X", "").Replace("x", "");
-        if (fatherGamete.Length != motherGamete.Length)
-            throw new ArgumentException($"incompatible length: {fatherGamete.Length} vs {motherGamete.Length}");
-        var sequence = "$$";
-        foreach (var gene in fatherGamete)
+        public static Genome ProduceZygote(string fatherGamete, string motherGamete)
         {
-            var value = motherGamete.ToLower().IndexOf(gene.ToString().ToLower(), StringComparison.InvariantCulture);
-            if(value < 0)
+            fatherGamete = fatherGamete.Replace("X", "").Replace("x", "").Replace("Y", "").Replace("y", "");
+            motherGamete = motherGamete.Replace("X", "").Replace("x", "");
+            if (fatherGamete.Length != motherGamete.Length)
+                throw new ArgumentException($"incompatible length: {fatherGamete.Length} vs {motherGamete.Length}");
+            var sequence = "$$";
+            foreach (var gene in fatherGamete)
             {
-                throw new ArgumentException();
+                var value = motherGamete.ToLower().IndexOf(gene.ToString().ToLower(), StringComparison.InvariantCulture);
+                if (value < 0)
+                {
+                    throw new ArgumentException();
+                }
+                sequence += $"{gene}{motherGamete[value]}";
             }
-            sequence += $"{gene}{motherGamete[value]}";
+            string sex = new List<string> { "XX", "XY" }.Random(new Random());
+            sequence += $"{sex}#00#$$";
+            return GenomeSequencer.ToGenome(sequence);
         }
-        string sex = new List<string> { "XX", "XY"}.Random(new Random());
-        sequence += $"{sex}#00#$$";
-        return GenomeSequencer.ToGenome(sequence);
     }
 }

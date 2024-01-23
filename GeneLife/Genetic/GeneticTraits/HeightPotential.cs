@@ -1,8 +1,9 @@
-namespace GeneLife.Genetic.GeneticTraits;
-
-public enum HeightPotential
+namespace GeneLife.Genetic.GeneticTraits
 {
-    Short,
-    Average,
-    Tall,
+    public enum HeightPotential
+    {
+        Short,
+        Average,
+        Tall,
+    }
 }

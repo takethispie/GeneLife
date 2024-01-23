@@ -1,8 +1,9 @@
-﻿namespace Genelife.Web.DTOs;
-
-public class SimulationData
+﻿namespace Genelife.Web.DTOs
 {
-    public Human[] Npcs { get; set; }
-    public Building[] Buildings { get; set; }
-    public string[] Logs { get; set; }
+    public class SimulationData
+    {
+        public Human[] Npcs { get; set; }
+        public Building[] Buildings { get; set; }
+        public string[] Logs { get; set; }
+    }
 }

@@ -1,6 +1,7 @@
-﻿namespace GeneLife.Core.Components;
-
-public struct AttachedTo
+﻿namespace GeneLife.Core.Components
 {
-    public int EntityId;
+    public struct AttachedTo
+    {
+        public int EntityId;
+    }
 }

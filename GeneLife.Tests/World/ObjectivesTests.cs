@@ -1,17 +1,18 @@
 ﻿using FluentAssertions;
 using GeneLife.Athena.Components;
-using GeneLife.Athena.Core.Objectives;
+using GeneLife.Core.Objectives;
 
-namespace GeneLife.Tests.World;
-
-public class ObjectivesTests
+namespace GeneLife.Tests.World
 {
-    [Fact]
-    public void Should_Be_Top_Priority()
+    public class ObjectivesTests
     {
-        var currentObjectives = new IObjective[] { new Eat(5), new Drink(8) };
-        var objectives = new Objectives { CurrentObjectives = currentObjectives };
-        objectives.IsHighestPriority(typeof(Eat)).Should().NotBe(true);
-        objectives.IsHighestPriority(typeof(Drink)).Should().BeTrue();
+        [Fact]
+        public void Should_Be_Top_Priority()
+        {
+            var currentObjectives = new IObjective[] { new Eat(5), new Drink(8) };
+            var objectives = new Objectives { CurrentObjectives = currentObjectives };
+            objectives.IsHighestPriority(typeof(Eat)).Should().NotBe(true);
+            objectives.IsHighestPriority(typeof(Drink)).Should().BeTrue();
+        }
     }
 }
