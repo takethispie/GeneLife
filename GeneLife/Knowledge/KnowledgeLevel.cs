@@ -1,4 +1,4 @@
-﻿namespace GeneLife.Learning
+﻿namespace GeneLife.Knowledge
 {
     public enum KnowledgeLevel
     {

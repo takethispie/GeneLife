@@ -1,8 +1,8 @@
 ﻿using GeneLife.Core.Data;
-using GeneLife.Learning;
-using GeneLife.Learning.Components;
+using GeneLife.Knowledge;
+using GeneLife.Knowledge.Components;
 
-namespace GeneLife.Learning.Services
+namespace GeneLife.Knowledge.Services
 {
     public static class KnowledgeService
     {

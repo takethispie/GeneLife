@@ -16,7 +16,7 @@ using GeneLife.Core.Objectives;
 using GeneLife.Services;
 using GeneLife.Survival.Components;
 
-namespace GeneLife.Systems
+namespace GeneLife.Core.Systems
 {
     public class ShopSystem : BaseSystem<World, float>
     {

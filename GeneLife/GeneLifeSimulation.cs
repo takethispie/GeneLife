@@ -9,7 +9,6 @@ using GeneLife.Core.Components;
 using GeneLife.Core.Components.Buildings;
 using GeneLife.Core.Components.Characters;
 using GeneLife.Core.Data;
-using GeneLife.Core.Entities;
 using GeneLife.Core.Entities.Factories;
 using GeneLife.Core.Entities.Generators;
 using GeneLife.Core.Events;
@@ -17,8 +16,8 @@ using GeneLife.Core.Exceptions;
 using GeneLife.Core.Extensions;
 using GeneLife.Core.Items;
 using GeneLife.Genetic.GeneticTraits;
-using GeneLife.Hobbies;
-using GeneLife.Sibyl;
+using GeneLife.Hobbies.Systems;
+using GeneLife.Knowledge.Systems;
 using GeneLife.Survival;
 using GeneLife.Survival.Components;
 using LogSystem = GeneLife.Core.LogSystem;
@@ -76,8 +75,8 @@ namespace GeneLife
             if (!overrideDefaultSystems)
             {
                 CoreSystem.Register(_overworld, Systems, _archetypeFactory);
-                SibylSystem.Register(_overworld, Systems);
-                HobbySystem.Register(_overworld, Systems);
+                Systems.Add(new LearningSystem(_overworld));
+                Systems.Add(new HobbySystem(_overworld));
                 SurvivalSystem.Register(_overworld, Systems, _archetypeFactory);
                 EventBus.Send(new LogEvent { Message = "All systems loaded" });
             }

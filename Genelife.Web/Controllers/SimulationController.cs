@@ -13,7 +13,7 @@ using Genelife.Web.Services;
 using GeneLife.Core.Components.Buildings;
 using GeneLife.Core.Components;
 using GeneLife.Survival.Components;
-using GeneLife.Learning.Components;
+using GeneLife.Knowledge.Components;
 
 namespace Genelife.Web.Controllers
 {

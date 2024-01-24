@@ -2,11 +2,11 @@
 using Arch.Core.Extensions;
 using Arch.System;
 using GeneLife.Core.Components;
-using GeneLife.Learning.Components;
-using GeneLife.Learning.Services;
+using GeneLife.Knowledge.Components;
+using GeneLife.Knowledge.Services;
 using GeneLife.Survival.Components;
 
-namespace GeneLife.Learning.Systems
+namespace GeneLife.Knowledge.Systems
 {
     internal sealed class LearningSystem : BaseSystem<World, float>
     {

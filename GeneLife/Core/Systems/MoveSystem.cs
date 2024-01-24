@@ -9,7 +9,7 @@ using Arch.Bus;
 using GeneLife.Core.Events;
 using System.Numerics;
 
-namespace GeneLife.Systems
+namespace GeneLife.Core.Systems
 {
     internal class MoveSystem : BaseSystem<World, float>
     {
@@ -50,9 +50,7 @@ namespace GeneLife.Systems
             World.Query(in movingEntities, (ref Moving moving, ref Position position, ref Objectives objectives) =>
             {
                 if (position.Coordinates == moving.Target)
-                {
                     objectives.RemoveHighestPriority();
-                }
                 else position.Coordinates = position.Coordinates.MovePointTowards(moving.Target, moving.Velocity);
             });
         }

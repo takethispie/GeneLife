@@ -3,7 +3,7 @@ using GeneLife.Core.Components;
 using GeneLife.Core.Components.Buildings;
 using GeneLife.Core.Entities.Exceptions;
 using GeneLife.Core.Entities.Interfaces;
-using GeneLife.Learning.Components;
+using GeneLife.Knowledge.Components;
 
 namespace GeneLife.Core.Entities.Factories
 {

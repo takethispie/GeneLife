@@ -1,4 +1,4 @@
-﻿namespace GeneLife.Learning.Components
+﻿namespace GeneLife.Knowledge.Components
 {
     public struct KnowledgeList
     {

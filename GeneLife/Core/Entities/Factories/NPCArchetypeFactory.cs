@@ -6,7 +6,7 @@ using GeneLife.Core.Components.Characters;
 using GeneLife.Core.Entities.Exceptions;
 using GeneLife.Core.Entities.Interfaces;
 using GeneLife.Genetic;
-using GeneLife.Learning.Components;
+using GeneLife.Knowledge.Components;
 using GeneLife.Survival.Components;
 
 namespace GeneLife.Core.Entities.Factories

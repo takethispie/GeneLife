@@ -3,10 +3,10 @@ using Arch.Core;
 using Arch.Core.Extensions;
 using Arch.Core.Utils;
 using Arch.System;
-using GeneLife.Athena.Core.Objectives;
 using GeneLife.Core.Components;
 using GeneLife.Core.Entities.Factories;
 using GeneLife.Core.Events;
+using GeneLife.Core.Objectives;
 using GeneLife.Survival.Components;
 
 namespace GeneLife.Systems
