@@ -2,7 +2,6 @@
 using Arch.System;
 using GeneLife.Core.Entities.Factories;
 using GeneLife.Core.Systems;
-using GeneLife.Systems;
 
 namespace GeneLife.Core
 {

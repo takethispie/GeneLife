@@ -1,4 +1,4 @@
-using GeneLife.Core.Objectives;
+using GeneLife.Core.ObjectiveActions;
 
 public struct EmptyObjective : IObjective {
     public int Priority { get; set; }

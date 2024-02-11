@@ -1,4 +1,4 @@
-﻿using GeneLife.Core.Objectives;
+﻿using GeneLife.Core.ObjectiveActions;
 
 namespace GeneLife.Core.Components
 {

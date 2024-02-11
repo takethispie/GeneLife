@@ -1,6 +1,6 @@
 ﻿using FluentAssertions;
 using GeneLife.Athena.Components;
-using GeneLife.Core.Objectives;
+using GeneLife.Core.ObjectiveActions;
 
 namespace GeneLife.Tests.World
 {

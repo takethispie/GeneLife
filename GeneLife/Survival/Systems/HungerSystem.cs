@@ -8,7 +8,7 @@ using GeneLife.Core.Entities.Factories;
 using GeneLife.Core.Events;
 using GeneLife.Core.Extensions;
 using GeneLife.Core.Items;
-using GeneLife.Core.Objectives;
+using GeneLife.Core.ObjectiveActions;
 using GeneLife.Survival.Components;
 
 namespace GeneLife.Survival.Systems
@@ -34,7 +34,6 @@ namespace GeneLife.Survival.Systems
                     in livingEntities,
                     (ref Living living, ref Identity identity, ref Psychology psychology, ref Objectives objectives, ref Inventory inventory) =>
                 {
-                    if (living.IsDead) return;
                     living.Hunger -= 1;
                     if (living.Hunger < Constants.HungryThreshold && inventory.GetItems().Any(x => x.Type == ItemType.Food))
                     {

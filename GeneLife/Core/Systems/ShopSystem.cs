@@ -15,6 +15,7 @@ using GeneLife.Core.Entities.Generators;
 using GeneLife.Core.Objectives;
 using GeneLife.Services;
 using GeneLife.Survival.Components;
+using GeneLife.Core.ObjectiveActions;
 
 namespace GeneLife.Core.Systems
 {

@@ -1,4 +1,4 @@
-﻿namespace GeneLife.Core.Objectives
+﻿namespace GeneLife.Core.ObjectiveActions
 {
     public struct Drink : IObjective
     {

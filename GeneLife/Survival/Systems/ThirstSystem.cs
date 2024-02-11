@@ -7,7 +7,7 @@ using GeneLife.Core.Data;
 using GeneLife.Core.Entities.Factories;
 using GeneLife.Core.Events;
 using GeneLife.Core.Items;
-using GeneLife.Core.Objectives;
+using GeneLife.Core.ObjectiveActions;
 using GeneLife.Survival.Components;
 
 namespace GeneLife.Survival.Systems

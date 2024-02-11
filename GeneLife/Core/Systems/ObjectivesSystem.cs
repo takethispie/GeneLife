@@ -6,10 +6,10 @@ using Arch.System;
 using GeneLife.Core.Components;
 using GeneLife.Core.Entities.Factories;
 using GeneLife.Core.Events;
-using GeneLife.Core.Objectives;
+using GeneLife.Core.ObjectiveActions;
 using GeneLife.Survival.Components;
 
-namespace GeneLife.Systems
+namespace GeneLife.Core.Systems
 {
     internal sealed class ObjectivesSystem : BaseSystem<World, float>
     {
@@ -17,7 +17,7 @@ namespace GeneLife.Systems
 
         public ObjectivesSystem(World world, ArchetypeFactory archetypeFactory) : base(world)
         {
-            entitiesWithObjectives.All = new ComponentType[] { typeof(Objectives), typeof(Living), typeof(Position), typeof(Home) };
+            entitiesWithObjectives.All = [typeof(Objectives), typeof(Living), typeof(Position), typeof(Home)];
         }
 
         public override void Update(in float delta)

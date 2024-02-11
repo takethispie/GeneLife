@@ -3,11 +3,10 @@ using Arch.Core.Extensions;
 using Arch.System;
 using GeneLife.Core.Components;
 using GeneLife.Core.Entities.Factories;
-using GeneLife.Athena.Core.Objectives;
 using GeneLife.Core.Extensions;
 using Arch.Bus;
 using GeneLife.Core.Events;
-using System.Numerics;
+using GeneLife.Core.ObjectiveActions;
 
 namespace GeneLife.Core.Systems
 {
