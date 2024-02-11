@@ -7,7 +7,6 @@ using GeneLife.Core.Components.Characters;
 using GeneLife.Genetic.GeneticTraits;
 using GeneLife.Core.Data;
 using GeneLife.Core.Entities.Generators;
-using Xunit.Abstractions;
 using GeneLife.Hobbies;
 using GeneLife.Relations.Components;
 using GeneLife.Hobbies.Components;
@@ -20,11 +19,11 @@ namespace GeneLife.Tests.World
         private readonly Group<float> _systems;
         private global::JobScheduler.JobScheduler _jobScheduler;
 
+
         public RelationsTests()
         {
             _systems = new Group<float>();
             _world = Arch.Core.World.Create();
-            HobbySystem.Register(_world, _systems);
             _systems.Initialize();
             _jobScheduler = new global::JobScheduler.JobScheduler("glife");
         }

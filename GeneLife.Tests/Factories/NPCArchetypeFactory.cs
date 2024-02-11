@@ -1,11 +1,10 @@
 ﻿using Arch.Core.Utils;
 using GeneLife.Core.Components;
-using GeneLife.Core.Components.Alcohol;
 using GeneLife.Core.Components.Characters;
 using GeneLife.Core.Entities.Exceptions;
 using GeneLife.Core.Entities.Interfaces;
 using GeneLife.Genetic;
-using GeneLife.Learning.Components;
+using GeneLife.Knowledge.Components;
 using GeneLife.Survival.Components;
 
 namespace GeneLife.Tests.Factories
@@ -20,7 +19,6 @@ namespace GeneLife.Tests.Factories
         typeof(Living),
         typeof(Lifespan),
         typeof(Flammable),
-        typeof(AlcoholAbsorber),
         typeof(KnowledgeList),
         typeof(Position),
         typeof(Wallet),

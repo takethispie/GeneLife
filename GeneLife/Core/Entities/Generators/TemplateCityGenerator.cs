@@ -4,8 +4,8 @@ using Arch.Core.Extensions;
 using GeneLife.Core.Components;
 using GeneLife.Core.Components.Buildings;
 using GeneLife.Genetic.GeneticTraits;
-using GeneLife.Oracle.Components;
 using GeneLife.Relations;
+using GeneLife.Relations.Components;
 
 namespace GeneLife.Core.Entities.Generators
 {

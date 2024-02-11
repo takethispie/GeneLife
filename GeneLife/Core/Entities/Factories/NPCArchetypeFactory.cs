@@ -1,7 +1,5 @@
 ﻿using Arch.Core.Utils;
-using GeneLife.Athena.Components;
 using GeneLife.Core.Components;
-using GeneLife.Core.Components.Alcohol;
 using GeneLife.Core.Components.Characters;
 using GeneLife.Core.Entities.Exceptions;
 using GeneLife.Core.Entities.Interfaces;
@@ -21,7 +19,6 @@ namespace GeneLife.Core.Entities.Factories
         typeof(Living),
         typeof(Lifespan),
         typeof(Flammable),
-        typeof(AlcoholAbsorber),
         typeof(KnowledgeList),
         typeof(Position),
         typeof(Wallet),

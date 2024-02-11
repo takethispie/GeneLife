@@ -1,14 +1,14 @@
 ﻿using Arch.Core;
 using Arch.Core.Extensions;
 using Bogus.DataSets;
-using GeneLife.Athena.Components;
 using GeneLife.Core.Components;
 using GeneLife.Core.Components.Characters;
 using GeneLife.Core.Entities.Factories;
 using GeneLife.Core.Extensions;
 using GeneLife.Genetic;
 using GeneLife.Genetic.GeneticTraits;
-using GeneLife.Sibyl.Components;
+using GeneLife.Knowledge.Components;
+using GeneLife.Survival.Components;
 using System.Numerics;
 
 namespace GeneLife.Core.Entities.Generators

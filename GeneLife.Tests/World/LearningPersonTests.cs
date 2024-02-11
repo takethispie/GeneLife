@@ -5,10 +5,8 @@ using FluentAssertions;
 using GeneLife.Core.Components;
 using GeneLife.Core.Entities.Generators;
 using GeneLife.Genetic.GeneticTraits;
-using GeneLife.Learning;
-using GeneLife.Learning.Components;
-using GeneLife.Sibyl;
-using GeneLife.Sibyl.Systems;
+using GeneLife.Knowledge;
+using GeneLife.Knowledge.Components;
 using GeneLife.Survival.Components;
 
 namespace GeneLife.Tests.World
@@ -45,7 +43,6 @@ namespace GeneLife.Tests.World
                 Finished = false
             };
             systems = new Group<float>();
-            SibylSystem.Register(world, systems);
             systems.Initialize();
         }
 

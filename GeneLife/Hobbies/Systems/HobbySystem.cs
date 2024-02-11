@@ -2,7 +2,6 @@
 using Arch.Core;
 using Arch.Core.Extensions;
 using Arch.System;
-using GeneLife.Core.Components;
 using GeneLife.Core.Components.Characters;
 using GeneLife.Core.Data;
 using GeneLife.Core.Events;
