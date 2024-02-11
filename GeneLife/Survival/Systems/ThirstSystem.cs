@@ -2,7 +2,6 @@
 using Arch.Core;
 using Arch.System;
 using GeneLife.Core.Components;
-using GeneLife.Core.Components.Characters;
 using GeneLife.Core.Data;
 using GeneLife.Core.Entities.Factories;
 using GeneLife.Core.Events;
@@ -28,7 +27,7 @@ namespace GeneLife.Survival.Systems
             _tickAccumulator += delta;
             if (_tickAccumulator < Constants.TicksPerDay) return;
             _tickAccumulator = 0;
-            World.Query(in livingEntities, (ref Living living, ref Identity identity, ref Psychology psychology, ref Objectives objectives, ref Inventory inventory) =>
+            World.Query(in livingEntities, (ref Living living, ref Human human, ref Objectives objectives, ref Inventory inventory) =>
             {
                 living.Thirst -= 1;
                 var hasDrinkInInventory = inventory.HasItemType(ItemType.Drink);
@@ -39,33 +38,31 @@ namespace GeneLife.Survival.Systems
                     {
                         living.Thirsty = false;
                         living.Thirst = Constants.MaxThirst;
-                        psychology.EmotionalBalance += 50;
-                        psychology.Stress = 0;
+                        human.EmotionalBalance += 50;
                         objectives.CurrentObjectives = objectives.CurrentObjectives.Where(x => x is not Drink).ToArray();
-                        EventBus.Send(new LogEvent { Message = $"{identity.FirstName} {identity.LastName} is totally hydrated" });
+                        EventBus.Send(new LogEvent { Message = $"{human.FirstName} {human.LastName} is totally hydrated" });
                     }
                 }
 
                 switch (living)
                 {
                     case { Thirsty: false } when living.Thirst <= Constants.ThirstyThreshold:
-                        EventBus.Send(new LogEvent { Message = $"{identity.FirstName} {identity.LastName} is starting to be very Thirsty" });
+                        EventBus.Send(new LogEvent { Message = $"{human.FirstName} {human.LastName} is starting to be very Thirsty" });
                         living.Thirsty = true;
                         break;
 
                     case { Thirst: <= 0, Thirsty: true, Stamina: > 0 }:
                         living.Stamina -= 5;
-                        EventBus.Send(new LogEvent { Message = $"{identity.FirstName} {identity.LastName} is Dehydrated" });
+                        EventBus.Send(new LogEvent { Message = $"{human.FirstName} {human.LastName} is Dehydrated" });
                         break;
 
                     case { Thirsty: true, Stamina: <= 0 }:
                         EventBus.Send(new LogEvent
                         {
-                            Message = $"{identity.FirstName} {identity.LastName} is slowly dying from Dehydration"
+                            Message = $"{human.FirstName} {human.LastName} is slowly dying from Dehydration"
                         });
                         living.Damage += 1;
-                        psychology.EmotionalBalance -= 20;
-                        psychology.Stress += 20;
+                        human.EmotionalBalance -= 10;
                         break;
                 }
 
@@ -76,7 +73,7 @@ namespace GeneLife.Survival.Systems
                     objectives.SetNewHighestPriority(new BuyItem { Priority = 10, ItemId = 2, Name = "Buy a drink" });
                     EventBus.Send(new LogEvent
                     {
-                        Message = $"{identity.FirstName} {identity.LastName} has set a new high priority objective: buy drink"
+                        Message = $"{human.FirstName} {human.LastName} has set a new high priority objective: buy drink"
                     });
                 }
             });

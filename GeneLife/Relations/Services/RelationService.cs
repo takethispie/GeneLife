@@ -3,7 +3,6 @@ using Arch.Bus;
 using Arch.Core;
 using Arch.Core.Extensions;
 using GeneLife.Core.Components;
-using GeneLife.Core.Components.Characters;
 using GeneLife.Core.Data;
 using GeneLife.Core.Events;
 using GeneLife.Core.Extensions;
@@ -97,8 +96,8 @@ namespace GeneLife.Relations.Services
                 {
                     var result = ComputeAttractivenessChances(matchList.entity.Get<Genome>(), match.Get<Genome>());
                     if (!EndsUpTogether(result)) continue;
-                    var first = matchList.entity.Get<Identity>();
-                    var second = match.Get<Identity>();
+                    var first = matchList.entity.Get<Human>();
+                    var second = match.Get<Human>();
                     EventBus.Send(new LogEvent { Message = $"{first.FirstName} {first.LastName} and {second.FirstName} {second.LastName} are now together !" });
                     matchList.entity.Add(new Relation(match.Id));
                     match.Add(new Relation(matchList.entity.Id));

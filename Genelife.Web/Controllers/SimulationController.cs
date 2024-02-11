@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Arch.Core;
 using Arch.Core.Extensions;
-using GeneLife.Core.Components.Characters;
 using Genelife.Web.DTOs;
 using System;
 using System.Linq;
@@ -69,7 +68,7 @@ namespace Genelife.Web.Controllers
             var buildingEntities = simulation.GetAllBuildings();
             var npcs = entities.Select(entity =>
             {
-                var identity = entity.Get<Identity>().FullName();
+                var identity = entity.Get<Human>().FullName();
                 var living = entity.Get<Living>();
                 var objectives = entity.Get<Objectives>();
                 var stats = new HumanStats
@@ -80,8 +79,8 @@ namespace Genelife.Web.Controllers
                     Damage = living.Damage.ToString(),
                 };
                 var position = entity.Get<Position>();
-                var wallet = entity.Get<Wallet>().Money.ToString();
-                return new Human
+                var wallet = entity.Get<Human>().Money.ToString();
+                return new HumanNPC
                 {
                     Wallet = wallet,
                     Identity = identity,

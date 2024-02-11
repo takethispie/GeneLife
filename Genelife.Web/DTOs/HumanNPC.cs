@@ -1,8 +1,7 @@
-﻿using GeneLife.Core.Components.Characters;
-
+﻿
 namespace Genelife.Web.DTOs
 {
-    public class Human
+    public class HumanNPC
     {
         public string Identity { get; set; }
         public HumanStats Stats { get; set; }

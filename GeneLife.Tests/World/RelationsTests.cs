@@ -3,7 +3,6 @@ using Arch.Core.Extensions;
 using Arch.System;
 using FluentAssertions;
 using GeneLife.Core.Components;
-using GeneLife.Core.Components.Characters;
 using GeneLife.Genetic.GeneticTraits;
 using GeneLife.Core.Data;
 using GeneLife.Core.Entities.Generators;
@@ -99,11 +98,10 @@ namespace GeneLife.Tests.World
         public void ShouldHaveEnoughMoneyForHobby()
         {
             Constants.HobbyChangeChances = 0;
-            var man = PersonGenerator.CreatePure(_world, Sex.Male, 20);
-            man.Add(new Wallet { Money = 1000f });
+            var man = PersonGenerator.CreatePure(_world, Sex.Male, 20, 80, 1000f);
             man.Add(new Hobby { Type = HobbyType.Biking, NeedsMoney = true, MoneyPerWeek = 100, Started = DateTime.Now });
             RunSystemsOnce(Constants.TicksPerDay * 10);
-            man.Get<Wallet>().Money.Should().BeLessThan(1000f);
+            man.Get<Human>().Money.Should().BeLessThan(1000f);
         }
 
         [Fact]
@@ -111,8 +109,7 @@ namespace GeneLife.Tests.World
         {
             Constants.HobbyChangeChances = 0;
             Constants.GettingHobbyChances = 0;
-            var man = PersonGenerator.CreatePure(_world, Sex.Male, 20);
-            man.Add(new Wallet { Money = 0 });
+            var man = PersonGenerator.CreatePure(_world, Sex.Male, 20, 80, 0);
             man.Add(new Hobby { Type = HobbyType.Biking, NeedsMoney = true, MoneyPerWeek = 100, Started = DateTime.Now });
             RunSystemsOnce(Constants.TicksPerDay * 10);
             man.Has<Hobby>().Should().BeFalse();

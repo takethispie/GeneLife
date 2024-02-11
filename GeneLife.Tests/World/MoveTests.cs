@@ -31,9 +31,7 @@ namespace GeneLife.Tests.World
             world = Arch.Core.World.Create();
             archetypeFactory = new ArchetypeFactory();
             archetypeFactory.RegisterFactory(new NpcArchetypeFactory());
-            archetypeFactory.RegisterFactory(new VehicleArchetypeFactory());
             archetypeFactory.RegisterFactory(new BuildingsArchetypeFactory());
-            archetypeFactory.RegisterFactory(new LiquidsArchetypeFactory());
             systems = new Group<float>();
             SurvivalSystem.Register(world, systems, archetypeFactory);
             systems.Initialize();

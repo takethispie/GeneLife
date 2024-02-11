@@ -2,7 +2,7 @@
 {
     public class SimulationData
     {
-        public Human[] Npcs { get; set; }
+        public HumanNPC[] Npcs { get; set; }
         public Building[] Buildings { get; set; }
         public string[] Logs { get; set; }
     }

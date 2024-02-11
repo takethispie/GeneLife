@@ -2,7 +2,6 @@
 using Arch.Core.Extensions;
 using Bogus.DataSets;
 using GeneLife.Core.Components;
-using GeneLife.Core.Components.Characters;
 using GeneLife.Core.Entities.Factories;
 using GeneLife.Core.Extensions;
 using GeneLife.Genetic;
@@ -15,12 +14,12 @@ namespace GeneLife.Core.Entities.Generators
 {
     public static class PersonGenerator
     {
-        public static Entity CreatePure(World world, Sex sex, int startAge = 0, int endAge = 80)
+        public static Entity CreatePure(World world, Sex sex, int startAge = 0, int endAge = 80, float money = 0)
         {
             var random = new Random();
             var nameGenerator = new Name();
             var gender = sex == Sex.Male ? Name.Gender.Male : Name.Gender.Female;
-            var identity = new Identity { Id = Guid.NewGuid(), FirstName = nameGenerator.FirstName(gender), LastName = nameGenerator.LastName(gender) };
+            var identity = new Human { Id = Guid.NewGuid(), FirstName = nameGenerator.FirstName(gender), LastName = nameGenerator.LastName(gender), Money = money };
             var age = random.Next(startAge, endAge);
             var behavior = Enum.GetValues<BehaviorPropension>().Random(random);
             var eyeColor = Enum.GetValues<EyeColor>().Random(random);
@@ -34,9 +33,7 @@ namespace GeneLife.Core.Entities.Generators
             entity.Set(identity);
             entity.Set(gen);
             entity.Set(new KnowledgeList());
-            entity.Set(new Psychology());
             entity.Set(new Living());
-            entity.Set(new Wallet { Money = 100 });
             entity.Set(new Inventory());
             entity.Set(new Objectives());
             entity.Set(new Position(Vector3.Zero));

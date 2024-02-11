@@ -14,7 +14,6 @@ namespace GeneLife.Core.Entities.Generators
             newShop.Set(position);
             newShop.Set(adress);
             newShop.Set(new Flammable(1));
-            newShop.Set(new Lifespan(TimeSpan.FromDays(365 * 100)));
             newShop.Set(new Ownable(-1));
             return newShop;
         }
