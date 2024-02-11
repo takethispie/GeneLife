@@ -62,6 +62,7 @@ namespace GeneLife
             Systems.Initialize();
             DefaultArchetypesOverridden = overrideDefaultArchetypes;
             DefaultSystemsOverridden = overrideDefaultSystems;
+            var globalEntity = _overworld.Create(new Clock());
 
             if (!overrideDefaultArchetypes)
             {

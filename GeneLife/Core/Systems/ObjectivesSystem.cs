@@ -22,7 +22,6 @@ namespace GeneLife.Core.Systems
 
         public override void Update(in float delta)
         {
-            var entities = new List<Objectives>();
             World.Query(in entitiesWithObjectives, (ref Objectives obj, ref Position position, ref Home home) =>
             {
                 if (obj.CurrentObjectives.All(x => x is EmptyObjective))
