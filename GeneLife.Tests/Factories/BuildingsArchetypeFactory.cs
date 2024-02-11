@@ -12,7 +12,6 @@ namespace GeneLife.Tests.Factories
         private static ComponentType[] House() => new ComponentType[]
         {
         typeof(Flammable),
-        typeof(Lifespan),
         typeof(Ownable),
         typeof(Position),
         typeof(Adress),
@@ -22,7 +21,6 @@ namespace GeneLife.Tests.Factories
         private static ComponentType[] SchoolBuilding() => new ComponentType[]
         {
         typeof(Flammable),
-        typeof(Lifespan),
         typeof(Ownable),
         typeof(Position),
         typeof(Adress),
@@ -32,7 +30,6 @@ namespace GeneLife.Tests.Factories
         private static ComponentType[] Shop() => new ComponentType[]
         {
         typeof(Flammable),
-        typeof(Lifespan),
         typeof(Ownable),
         typeof(Position),
         typeof(Adress),

@@ -3,7 +3,6 @@ using Arch.Core;
 using Arch.Core.Extensions;
 using Arch.System;
 using GeneLife.Core.Components;
-using GeneLife.Core.Components.Characters;
 using GeneLife.Core.Components.Buildings;
 using GeneLife.Core.Entities.Factories;
 using GeneLife.Core.Events;
@@ -30,7 +29,7 @@ namespace GeneLife.Core.Systems
             var shops = new List<Entity>();
             World.GetEntities(in shopQuery, shops);
             World.Query(in entitiesWithObjectives,
-                (ref Living living, ref Position position, ref Wallet wallet, ref Objectives objectives, ref Inventory inventory) =>
+                (ref Living living, ref Position position, ref Human human, ref Objectives objectives, ref Inventory inventory) =>
             {
                 if (!objectives.IsHighestPriority(typeof(BuyItem))) return;
                 if (objectives.CurrentObjectives.OrderByDescending(x => x.Priority).First() is not BuyItem buyItem) return;
@@ -49,7 +48,7 @@ namespace GeneLife.Core.Systems
                     //TODO handle inventory management (not enough space!)
                     if (inventory.Store(itemWithPrice with { }))
                     {
-                        wallet.Money -= itemWithPrice.Price;
+                        human.Money -= itemWithPrice.Price;
                         objectives.RemoveHighestPriority();
                     }
                 }

@@ -7,13 +7,11 @@ using GeneLife.Core;
 using GeneLife.Core.Commands;
 using GeneLife.Core.Components;
 using GeneLife.Core.Components.Buildings;
-using GeneLife.Core.Components.Characters;
 using GeneLife.Core.Data;
 using GeneLife.Core.Entities.Factories;
 using GeneLife.Core.Entities.Generators;
 using GeneLife.Core.Events;
 using GeneLife.Core.Exceptions;
-using GeneLife.Core.Extensions;
 using GeneLife.Core.Items;
 using GeneLife.Genetic.GeneticTraits;
 using GeneLife.Hobbies.Systems;
@@ -67,9 +65,7 @@ namespace GeneLife
             if (!overrideDefaultArchetypes)
             {
                 _archetypeFactory.RegisterFactory(new NpcArchetypeFactory());
-                _archetypeFactory.RegisterFactory(new VehicleArchetypeFactory());
                 _archetypeFactory.RegisterFactory(new BuildingsArchetypeFactory());
-                _archetypeFactory.RegisterFactory(new LiquidsArchetypeFactory());
                 EventBus.Send(new LogEvent { Message = "All archetypes factories loaded" });
             }
 
@@ -96,7 +92,7 @@ namespace GeneLife
         public List<Entity> GetAllLivingNPC()
         {
             if (DefaultArchetypesOverridden || DefaultSystemsOverridden) return new List<Entity>();
-            var query = new QueryDescription().WithAll<Living, Identity>();
+            var query = new QueryDescription().WithAll<Living, Human>();
             var entities = new List<Entity>();
             _overworld.GetEntities(query, entities);
             return entities;
@@ -114,18 +110,18 @@ namespace GeneLife
         public void SendCommand(GiveCommand command)
         {
             if (DefaultArchetypesOverridden || DefaultSystemsOverridden) return;
-            var livingEntities = new QueryDescription().WithAll<Living, Identity, Inventory>();
-            _overworld.Query(in livingEntities, (ref Living living, ref Identity identity, ref Inventory inventory) =>
+            var livingEntities = new QueryDescription().WithAll<Living, Human, Inventory>();
+            _overworld.Query(in livingEntities, (ref Living living, ref Human human, ref Inventory inventory) =>
             {
-                if (identity.FirstName.ToLower() != command.TargetFirstName ||
-                    identity.LastName.ToLower() != command.TargetLastName) return;
+                if (human.FirstName.ToLower() != command.TargetFirstName ||
+                    human.LastName.ToLower() != command.TargetLastName) return;
                 var idx = inventory.GetItems().ToList().FindIndex(x => x.Type == ItemType.None);
                 if (idx == -1) return;
                 inventory.Store(command.Item);
                 EventBus.Send(new LogEvent
                 {
                     Message =
-                        $"item with id {command.Item.Id} of type {command.Item.Type} was given to {identity.FullName()}"
+                        $"item with id {command.Item.Id} of type {command.Item.Type} was given to {human.FullName()}"
                 });
             });
         }

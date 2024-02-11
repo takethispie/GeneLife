@@ -1,6 +1,6 @@
 ﻿using GeneLife.Core.Items;
 
-namespace GeneLife.Core.Components.Characters
+namespace GeneLife.Core.Components
 {
     public struct Inventory
     {

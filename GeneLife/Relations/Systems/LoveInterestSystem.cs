@@ -2,7 +2,6 @@
 using Arch.Core.Extensions;
 using Arch.System;
 using GeneLife.Core.Components;
-using GeneLife.Core.Components.Characters;
 using GeneLife.Genetic;
 using GeneLife.Relations.Components;
 using GeneLife.Relations.Services;
@@ -14,7 +13,7 @@ namespace GeneLife.Relations.Systems
     {
         private readonly float _interval;
         private float currentTimeCount;
-        private readonly QueryDescription potentiallySingleNPCs = new QueryDescription().WithAll<Living, Position, Moving, Identity, Genome>().WithNone<Relation>();
+        private readonly QueryDescription potentiallySingleNPCs = new QueryDescription().WithAll<Living, Position, Moving, Human, Genome>().WithNone<Relation>();
 
         public LoveInterestSystem(World world, float interval = 600) : base(world)
         {
