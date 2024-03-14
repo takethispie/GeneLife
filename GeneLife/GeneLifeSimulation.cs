@@ -25,19 +25,19 @@ namespace GeneLife
     public class GeneLifeSimulation : IDisposable
     {
         private Arch.System.Group<float> Systems;
-        private ArchetypeFactory _archetypeFactory;
-        private global::JobScheduler.JobScheduler _jobScheduler;
+        private ArchetypeFactory archetypeFactory;
+        private global::JobScheduler.JobScheduler jobScheduler;
         private bool DefaultSystemsOverridden, DefaultArchetypesOverridden;
-        private World _overworld { get; }
+        private World overworld;
         public LogSystem LogSystem { get; }
 
         public GeneLifeSimulation()
         {
-            _overworld = World.Create();
+            overworld = World.Create();
             Systems = new Arch.System.Group<float>();
-            _archetypeFactory = new ArchetypeFactory();
+            archetypeFactory = new ArchetypeFactory();
             LogSystem = new LogSystem(false);
-            _jobScheduler = new global::JobScheduler.JobScheduler("glife");
+            jobScheduler = new global::JobScheduler.JobScheduler("glife");
             DefaultArchetypesOverridden = false;
             DefaultSystemsOverridden = false;
         }
@@ -60,21 +60,21 @@ namespace GeneLife
             Systems.Initialize();
             DefaultArchetypesOverridden = overrideDefaultArchetypes;
             DefaultSystemsOverridden = overrideDefaultSystems;
-            var globalEntity = _overworld.Create(new Clock());
+            var _ = overworld.Create(new Clock());
 
             if (!overrideDefaultArchetypes)
             {
-                _archetypeFactory.RegisterFactory(new NpcArchetypeFactory());
-                _archetypeFactory.RegisterFactory(new BuildingsArchetypeFactory());
+                archetypeFactory.RegisterFactory(new NpcArchetypeFactory());
+                archetypeFactory.RegisterFactory(new BuildingsArchetypeFactory());
                 EventBus.Send(new LogEvent { Message = "All archetypes factories loaded" });
             }
 
             if (!overrideDefaultSystems)
             {
-                CoreSystem.Register(_overworld, Systems, _archetypeFactory);
-                Systems.Add(new LearningSystem(_overworld));
-                Systems.Add(new HobbySystem(_overworld));
-                SurvivalSystem.Register(_overworld, Systems, _archetypeFactory);
+                CoreSystem.Register(overworld, Systems, archetypeFactory);
+                Systems.Add(new LearningSystem(overworld));
+                Systems.Add(new HobbySystem(overworld));
+                SurvivalSystem.Register(overworld, Systems, archetypeFactory);
                 EventBus.Send(new LogEvent { Message = "All systems loaded" });
             }
 
@@ -85,25 +85,25 @@ namespace GeneLife
         {
             if (DefaultArchetypesOverridden || DefaultSystemsOverridden)
                 throw new DefaultArchetypesAndSystemNotAvailableException("Can't create NPC when default archetypes and systems are overridden");
-            var entity = PersonGenerator.CreatePure(_overworld, sex, startAge);
+            var entity = PersonGenerator.CreatePure(overworld, sex, startAge);
             return entity;
         }
 
         public List<Entity> GetAllLivingNPC()
         {
-            if (DefaultArchetypesOverridden || DefaultSystemsOverridden) return new List<Entity>();
+            if (DefaultArchetypesOverridden || DefaultSystemsOverridden) return [];
             var query = new QueryDescription().WithAll<Living, Human>();
             var entities = new List<Entity>();
-            _overworld.GetEntities(query, entities);
+            overworld.GetEntities(query, entities);
             return entities;
         }
 
         public List<Entity> GetAllBuildings()
         {
-            if (DefaultArchetypesOverridden || DefaultSystemsOverridden) return new List<Entity>();
+            if (DefaultArchetypesOverridden || DefaultSystemsOverridden) return [];
             var query = new QueryDescription().WithAll<Adress, Position>();
             var entities = new List<Entity>();
-            _overworld.GetEntities(query, entities);
+            overworld.GetEntities(query, entities);
             return entities;
         }
 
@@ -111,10 +111,10 @@ namespace GeneLife
         {
             if (DefaultArchetypesOverridden || DefaultSystemsOverridden) return;
             var livingEntities = new QueryDescription().WithAll<Living, Human, Inventory>();
-            _overworld.Query(in livingEntities, (ref Living living, ref Human human, ref Inventory inventory) =>
+            overworld.Query(in livingEntities, (ref Living living, ref Human human, ref Inventory inventory) =>
             {
-                if (human.FirstName.ToLower() != command.TargetFirstName ||
-                    human.LastName.ToLower() != command.TargetLastName) return;
+                if (!human.FirstName.Equals(command.TargetFirstName, StringComparison.CurrentCultureIgnoreCase) ||
+                    !human.LastName.Equals(command.TargetLastName, StringComparison.CurrentCultureIgnoreCase)) return;
                 var idx = inventory.GetItems().ToList().FindIndex(x => x.Type == ItemType.None);
                 if (idx == -1) return;
                 inventory.Store(command.Item);
@@ -131,7 +131,7 @@ namespace GeneLife
             switch (command.Size)
             {
                 case TemplateCitySize.Small:
-                    TemplateCityGenerator.CreateSmallCity(_overworld);
+                    TemplateCityGenerator.CreateSmallCity(overworld);
                     return "Created Small City";
 
                 default: return "";
@@ -155,11 +155,11 @@ namespace GeneLife
             Systems.AfterUpdate(delta);
         }
 
-        public ComponentType[] GetArchetype(string name) => _archetypeFactory.Build(name);
+        public ComponentType[] GetArchetype(string name) => archetypeFactory.Build(name);
 
         public void Dispose()
         {
-            _overworld.Dispose();
+            overworld.Dispose();
             Systems.Dispose();
         }
 
@@ -167,7 +167,7 @@ namespace GeneLife
         {
             if (DefaultArchetypesOverridden || DefaultSystemsOverridden) return Array.Empty<Entity>();
             var entities = new List<Entity>();
-            _overworld.GetEntities(in new QueryDescription().WithAll<Living, Position>(), entities);
+            overworld.GetEntities(in new QueryDescription().WithAll<Living, Position>(), entities);
             return entities.ToArray();
         }
     }

@@ -6,7 +6,7 @@ using GeneLife.Core.Entities.Factories;
 using GeneLife.Core.Extensions;
 using Arch.Bus;
 using GeneLife.Core.Events;
-using GeneLife.Core.ObjectiveActions;
+using GeneLife.Core.Objective;
 
 namespace GeneLife.Core.Systems
 {

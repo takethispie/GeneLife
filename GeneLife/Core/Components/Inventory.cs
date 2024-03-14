@@ -8,7 +8,7 @@ namespace GeneLife.Core.Components
 
         public Inventory()
         {
-            items = new Item[16];
+            items = new Item[256];
         }
 
         public bool Store(Item item)
@@ -28,9 +28,9 @@ namespace GeneLife.Core.Components
 
         public readonly bool HasItemType(ItemType type) => items.Any(x => x.Type == type);
 
-        public readonly bool HasItem(string name) => items.Any(item => item.Name.ToLower() == name.ToLower());
+        public readonly bool HasItem(string name) => items.Any(item => item.Name.Equals(name, StringComparison.CurrentCultureIgnoreCase));
 
-        public Item[] GetItems() => items;
+        public readonly Item[] GetItems() => items;
 
         public Item? Take(ItemType type)
         {
@@ -52,7 +52,7 @@ namespace GeneLife.Core.Components
             Item? item = null;
             items = items.Select(x =>
             {
-                if (x.Name.ToLower() == name.ToLower())
+                if (x.Name.Equals(name, StringComparison.CurrentCultureIgnoreCase))
                 {
                     item = x;
                     return new Item { Type = ItemType.None, Id = -1 };

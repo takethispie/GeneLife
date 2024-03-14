@@ -2,6 +2,7 @@
 using GeneLife.Core.Components;
 using GeneLife.Core.Entities.Exceptions;
 using GeneLife.Core.Entities.Interfaces;
+using GeneLife.Core.Planning;
 using GeneLife.Genetic;
 using GeneLife.Knowledge.Components;
 using GeneLife.Survival.Components;
@@ -17,7 +18,7 @@ namespace GeneLife.Core.Entities.Factories
             typeof(Flammable),
             typeof(KnowledgeList),
             typeof(Position),
-            typeof(Objectives)
+            typeof(Planner)
         };
 
         public ComponentType[] Build(string type) => type.ToLower() switch

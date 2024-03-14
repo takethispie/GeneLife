@@ -1,5 +1,4 @@
 ﻿using GeneLife;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Arch.Core;
 using Arch.Core.Extensions;
@@ -7,7 +6,6 @@ using Genelife.Web.DTOs;
 using System;
 using System.Linq;
 using GeneLife.Core.Commands;
-using GeneLife.Core.Extensions;
 using Genelife.Web.Services;
 using GeneLife.Core.Components.Buildings;
 using GeneLife.Core.Components;
@@ -70,7 +68,6 @@ namespace Genelife.Web.Controllers
             {
                 var identity = entity.Get<Human>().FullName();
                 var living = entity.Get<Living>();
-                var objectives = entity.Get<Objectives>();
                 var stats = new HumanStats
                 {
                     Hunger = living.Hunger.ToString(),
@@ -85,7 +82,6 @@ namespace Genelife.Web.Controllers
                     Wallet = wallet,
                     Identity = identity,
                     Stats = stats,
-                    Objectives = objectives.CurrentObjectives.Select(x => x.Priority + "* " + x.Name).ToArray(),
                     Position = position.Coordinates.ToString(),
                 };
             });

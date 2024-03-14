@@ -1,33 +1,36 @@
 ﻿using Arch.Bus;
 using Arch.Core;
 using Arch.Core.Extensions;
-using Arch.Core.Utils;
 using Arch.System;
 using GeneLife.Core.Components;
-using GeneLife.Core.Entities.Factories;
-using GeneLife.Core.Events;
-using GeneLife.Core.ObjectiveActions;
-using GeneLife.Survival.Components;
+using GeneLife.Core.Data;
 
 namespace GeneLife.Core.Systems
 {
     internal sealed class GlobalSystem : BaseSystem<World, float>
     {
-        private readonly QueryDescription globalEntities = new();
-        private int tickPerDay = 10;
 
         public GlobalSystem(World world) : base(world)
         {
-            globalEntities.All = [typeof(Clock)];
         }
 
         public override void Update(in float delta)
         {
-            var globals = new List<Entity>();
-            World.GetEntities(globalEntities, globals);
-            if (globals.Count == 0) return;
-            var cl = globals.FirstOrDefault().Get<Clock>();
-            cl.ticks += delta;
+            Clock.Tick = Constants.TicksPerDay switch
+            {
+                24 when Clock.Tick is 1 => AddHour(),
+                48 when Clock.Tick is 2 => AddHour(),
+                192 when Clock.Tick is 8 => AddHour(),
+                240 when Clock.Tick is 10 => AddHour(),
+                _ => Clock.Tick + 1
+            };
+
+        }
+
+        public static int AddHour()
+        {
+            Clock.Time = Clock.Time.AddHours(1);
+            return 0;
         }
     }
 }

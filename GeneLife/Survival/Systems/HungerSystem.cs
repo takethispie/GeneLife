@@ -6,7 +6,7 @@ using GeneLife.Core.Data;
 using GeneLife.Core.Entities.Factories;
 using GeneLife.Core.Events;
 using GeneLife.Core.Items;
-using GeneLife.Core.ObjectiveActions;
+using GeneLife.Core.Objective;
 using GeneLife.Survival.Components;
 
 namespace GeneLife.Survival.Systems
@@ -30,7 +30,7 @@ namespace GeneLife.Survival.Systems
                 _tickAccumulator = 0;
                 World.Query(
                     in livingEntities,
-                    (ref Living living, ref Human human, ref Objectives objectives, ref Inventory inventory) =>
+                    (ref Living living, ref Human human, ref Inventory inventory) =>
                 {
                     living.Hunger -= 1;
                     if (living.Hunger < Constants.HungryThreshold && inventory.GetItems().Any(x => x.Type == ItemType.Food))
@@ -40,7 +40,6 @@ namespace GeneLife.Survival.Systems
                         {
                             living.Hungry = false;
                             living.Hunger = Constants.MaxHunger;
-                            objectives.CurrentObjectives = objectives.CurrentObjectives.Where(x => x is not Eat).ToArray();
                             human.EmotionalBalance += 10;
                             EventBus.Send(new LogEvent
                             {
@@ -72,10 +71,10 @@ namespace GeneLife.Survival.Systems
                     }
 
                     if (living.Hunger < Constants.HungryThreshold
-                            && !inventory.HasItemType(ItemType.Food)
-                            && !objectives.CurrentObjectives.Any(x => x is BuyItem))
+                            && !inventory.HasItemType(ItemType.Food))
+                            //TODO check for getting food task
                     {
-                        objectives.SetNewHighestPriority(new BuyItem { Priority = 10, ItemId = 1, Name = "buy some food" });
+                        //add getting food task
                         EventBus.Send(new LogEvent
                         {
                             Message = $"{human.FirstName} {human.LastName} has set a new high priority objective: buy food"

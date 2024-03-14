@@ -6,7 +6,7 @@ using GeneLife.Core.Data;
 using GeneLife.Core.Entities.Factories;
 using GeneLife.Core.Events;
 using GeneLife.Core.Items;
-using GeneLife.Core.ObjectiveActions;
+using GeneLife.Core.Objective;
 using GeneLife.Survival.Components;
 
 namespace GeneLife.Survival.Systems
@@ -27,7 +27,7 @@ namespace GeneLife.Survival.Systems
             _tickAccumulator += delta;
             if (_tickAccumulator < Constants.TicksPerDay) return;
             _tickAccumulator = 0;
-            World.Query(in livingEntities, (ref Living living, ref Human human, ref Objectives objectives, ref Inventory inventory) =>
+            World.Query(in livingEntities, (ref Living living, ref Human human, ref Inventory inventory) =>
             {
                 living.Thirst -= 1;
                 var hasDrinkInInventory = inventory.HasItemType(ItemType.Drink);
@@ -39,7 +39,6 @@ namespace GeneLife.Survival.Systems
                         living.Thirsty = false;
                         living.Thirst = Constants.MaxThirst;
                         human.EmotionalBalance += 50;
-                        objectives.CurrentObjectives = objectives.CurrentObjectives.Where(x => x is not Drink).ToArray();
                         EventBus.Send(new LogEvent { Message = $"{human.FirstName} {human.LastName} is totally hydrated" });
                     }
                 }
@@ -66,11 +65,11 @@ namespace GeneLife.Survival.Systems
                         break;
                 }
 
-                if (living.Thirst < Constants.ThirstyThreshold && !hasDrinkInInventory
-                    && !objectives.CurrentObjectives.Any(x => x is BuyItem))
+                if (living.Thirst < Constants.ThirstyThreshold && !hasDrinkInInventory)
+                    //&& !objectives.CurrentObjectives.Any(x => x is BuyItem))
                 {
 
-                    objectives.SetNewHighestPriority(new BuyItem { Priority = 10, ItemId = 2, Name = "Buy a drink" });
+                    //objectives.SetNewHighestPriority(new BuyItem { Priority = 10, ItemId = 2, Name = "Buy a drink" });
                     EventBus.Send(new LogEvent
                     {
                         Message = $"{human.FirstName} {human.LastName} has set a new high priority objective: buy drink"

@@ -4,6 +4,7 @@ using Bogus.DataSets;
 using GeneLife.Core.Components;
 using GeneLife.Core.Entities.Factories;
 using GeneLife.Core.Extensions;
+using GeneLife.Core.Planning;
 using GeneLife.Genetic;
 using GeneLife.Genetic.GeneticTraits;
 using GeneLife.Knowledge.Components;
@@ -35,8 +36,8 @@ namespace GeneLife.Core.Entities.Generators
             entity.Set(new KnowledgeList());
             entity.Set(new Living());
             entity.Set(new Inventory());
-            entity.Set(new Objectives());
             entity.Set(new Position(Vector3.Zero));
+            entity.Set(new Planner(PlannerBuilder.BasicDay()));
             return entity;
         }
     }

@@ -11,7 +11,6 @@ namespace GeneLife.Core
         {
             group.Add(new ShopSystem(world, archetypeFactory));
             group.Add(new MoveSystem(world, archetypeFactory));
-            group.Add(new ObjectivesSystem(world, archetypeFactory));
         }
     }
 }

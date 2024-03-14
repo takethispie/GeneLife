@@ -10,7 +10,9 @@ using System.Numerics;
 using GeneLife.Core.Entities.Generators;
 using GeneLife.Services;
 using GeneLife.Survival.Components;
-using GeneLife.Core.ObjectiveActions;
+using GeneLife.Core.Objective;
+using GeneLife.Core.Planning;
+using GeneLife.Core.Data;
 
 namespace GeneLife.Core.Systems
 {
@@ -29,27 +31,33 @@ namespace GeneLife.Core.Systems
             var shops = new List<Entity>();
             World.GetEntities(in shopQuery, shops);
             World.Query(in entitiesWithObjectives,
-                (ref Living living, ref Position position, ref Human human, ref Objectives objectives, ref Inventory inventory) =>
+                (ref Living living, ref Position position, ref Human human, ref Inventory inventory, ref Planner planner) =>
             {
-                if (!objectives.IsHighestPriority(typeof(BuyItem))) return;
-                if (objectives.CurrentObjectives.OrderByDescending(x => x.Priority).First() is not BuyItem buyItem) return;
-                var shopType = ItemGenerator.GetItemList().First(x => x.Id == buyItem.ItemId).ShopType;
+
+                //if (objectives.CurrentObjectives.OrderByDescending(x => x.Priority).First() is not BuyItem buyItem) return;
+                var slot = planner.GetSlot(Clock.Time);
+                BuyItem? item = slot switch { 
+                    ObjectivePlannerSlot objSlot when objSlot.Objective is BuyItem buyItem => buyItem,
+                    _ => null
+                };
+                if (!item.HasValue) return;
+                var itemId = item.Value.ItemId;
+                var shopType = ItemGenerator.GetItemList().First(x => x.Id == itemId).ShopType;
                 var closestShop = ShopSearchService.NearestShop(shops, position);
                 if (!closestShop.HasValue)
                 {
-                    EventBus.Send(new LogEvent { Message = $"can't find a shop with {buyItem.Name}" });
+                    EventBus.Send(new LogEvent { Message = $"can't find a shop with {item.Value.Name}" });
                     return;
                 }
                 var shopPos = closestShop.Value.Get<Position>();
                 if (Vector3.Distance(position.Coordinates, shopPos.Coordinates) <= 2)
                 {
                     var shopComponent = closestShop.Value.Get<Shop>();
-                    var itemWithPrice = ItemGenerator.GetItemList().Where(x => x.Id == buyItem.ItemId).First();
+                    var itemWithPrice = ItemGenerator.GetItemList().Where(x => x.Id == itemId).First();
                     //TODO handle inventory management (not enough space!)
                     if (inventory.Store(itemWithPrice with { }))
                     {
                         human.Money -= itemWithPrice.Price;
-                        objectives.RemoveHighestPriority();
                     }
                 }
                 else
@@ -58,7 +66,6 @@ namespace GeneLife.Core.Systems
                     {
                         Message = $"new objective set: going to a shop at {shopPos.Coordinates.X}:{shopPos.Coordinates.Y}:{shopPos.Coordinates.Z}"
                     });
-                    objectives.SetNewHighestPriority(new MoveTo(10, shopPos.Coordinates));
                 }
             });
         }

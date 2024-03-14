@@ -80,9 +80,10 @@ export default function Home() {
                                 <Typography variant="h6">Create</Typography>
                                 <Button onClick={() => dispatch(CREATE_SMALL_CITY())}>Create Small City</Button>
                                 <Typography variant="h6">Ticks Per Day</Typography>
-                                <Button onClick={() => dispatch(SET_TICKS_PER_DAY(5))}>5 Ticks</Button>
-                                <Button onClick={() => dispatch(SET_TICKS_PER_DAY(10))}>10 Ticks</Button>
-                                <Button onClick={() => dispatch(SET_TICKS_PER_DAY(30))}>30 Ticks</Button>
+                                <Button onClick={() => dispatch(SET_TICKS_PER_DAY(24))}>24 Ticks</Button>
+                                <Button onClick={() => dispatch(SET_TICKS_PER_DAY(48))}>48 Ticks</Button>
+                                <Button onClick={() => dispatch(SET_TICKS_PER_DAY(192))}>192 Ticks</Button>
+                                <Button onClick={() => dispatch(SET_TICKS_PER_DAY(240))}>240 Ticks</Button>
                             </CardContent>
                         </Card>
                     </Grid>

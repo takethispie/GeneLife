@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace GeneLife.Core.ObjectiveActions
+namespace GeneLife.Core.Objective
 {
     public struct MoveTo : IObjective
     {
