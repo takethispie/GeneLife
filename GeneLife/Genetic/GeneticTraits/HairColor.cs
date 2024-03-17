@@ -1,9 +1,8 @@
-namespace GeneLife.Genetic.GeneticTraits
+namespace GeneLife.Genetic.GeneticTraits;
+
+public enum HairColor
 {
-    public enum HairColor
-    {
-        Blonde,
-        Brown,
-        Ginger,
-    }
+    Blonde,
+    Brown,
+    Ginger,
 }

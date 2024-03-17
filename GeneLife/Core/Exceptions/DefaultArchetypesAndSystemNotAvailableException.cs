@@ -1,7 +1,6 @@
-﻿namespace GeneLife.Core.Exceptions
+﻿namespace GeneLife.Core.Exceptions;
+
+public class DefaultArchetypesAndSystemNotAvailableException : Exception
 {
-    public class DefaultArchetypesAndSystemNotAvailableException : Exception
-    {
-        public DefaultArchetypesAndSystemNotAvailableException(string message) : base(message) { }
-    }
+    public DefaultArchetypesAndSystemNotAvailableException(string message) : base(message) { }
 }

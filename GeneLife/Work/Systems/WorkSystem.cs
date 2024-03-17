@@ -2,18 +2,17 @@
 using Arch.System;
 using System.Numerics;
 
-namespace GeneLife.Work.Systems
+namespace GeneLife.Work.Systems;
+
+internal class WorkSystem : BaseSystem<World, float>
 {
-    internal class WorkSystem : BaseSystem<World, float>
+    public Dictionary<string, Vector3> WorkPlaces = [];
+
+    public WorkSystem(World world) : base(world)
     {
-        public Dictionary<string, Vector3> WorkPlaces = new Dictionary<string, Vector3>();
+    }
 
-        public WorkSystem(World world) : base(world)
-        {
-        }
-
-        public override void Update(in float t)
-        {
-        }
+    public override void Update(in float t)
+    {
     }
 }

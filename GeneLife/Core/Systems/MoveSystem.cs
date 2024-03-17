@@ -6,52 +6,53 @@ using GeneLife.Core.Entities.Factories;
 using GeneLife.Core.Extensions;
 using Arch.Bus;
 using GeneLife.Core.Events;
+using GeneLife.Core.Planning;
+using GeneLife.Core.Data;
 using GeneLife.Core.Objective;
 
-namespace GeneLife.Core.Systems
+namespace GeneLife.Core.Systems;
+
+internal class MoveSystem : BaseSystem<World, float>
 {
-    internal class MoveSystem : BaseSystem<World, float>
+
+    private readonly QueryDescription movingEntities = new QueryDescription().WithAll<Moving, Position, Planner>();
+    private readonly QueryDescription needToMoveEntitie = new();
+
+    public MoveSystem(World world, ArchetypeFactory archetypeFactory) : base(world)
     {
+        needToMoveEntitie.All = archetypeFactory.Build("person");
+    }
 
-        private readonly QueryDescription movingEntities = new QueryDescription().WithAll<Moving, Position, Objectives>();
-        private readonly QueryDescription needToMoveEntitie = new();
-
-        public MoveSystem(World world, ArchetypeFactory archetypeFactory) : base(world)
+    public static bool SetMoving(Entity entity, MoveTo moveTo)
+    {
+        entity.Add(new Moving { Velocity = 100f, Target = moveTo.Target });
+        EventBus.Send(new LogEvent
         {
-            needToMoveEntitie.All = archetypeFactory.Build("person");
-        }
+            Message = $"entity {entity.Id} started to move toward {moveTo.Target}"
+        });
+        return false;
+    }
 
-        public override void Update(in float t)
-        {
-            var movable = new List<Entity>();
-            World.GetEntities(in needToMoveEntitie, movable);
-            _ = movable
-                .Where(x => x.Has<Objectives>())
-                .Where(x =>
-                {
-                    var objectives = x.Get<Objectives>();
-                    var isMoving = x.Has<Moving>();
-                    if (objectives.IsHighestPriority(typeof(MoveTo)) && !isMoving)
-                    {
-                        var moveTo = objectives.CurrentObjectives.Where(x => x is MoveTo).FirstOrDefault();
-                        if (moveTo == null) return false;
-                        x.Add(new Moving { Velocity = 100f, Target = ((MoveTo)moveTo).Target });
-                        EventBus.Send(new LogEvent
-                        {
-                            Message = $"entity {x.Id} started to move toward {((MoveTo)moveTo).Target}"
-                        });
-                    }
-                    else if (!objectives.IsHighestPriority(typeof(MoveTo)) && isMoving)
-                        //TODO might need to do position checks 
-                        x.Remove<Moving>();
-                    return false;
-                }).ToList();
-            World.Query(in movingEntities, (ref Moving moving, ref Position position, ref Objectives objectives) =>
+    public override void Update(in float t)
+    {
+        var movable = new List<Entity>();
+        World.GetEntities(in needToMoveEntitie, movable);
+        _ = movable
+            .Where(x => x.Has<Planner>())
+            .Where(x =>
             {
-                if (position.Coordinates == moving.Target)
-                    objectives.RemoveHighestPriority();
-                else position.Coordinates = position.Coordinates.MovePointTowards(moving.Target, moving.Velocity);
-            });
-        }
+                var planning = x.Get<Planner>();
+                var currentSlot = planning.GetSlot(TimeOnly.FromDateTime(Clock.Time));
+                return currentSlot switch
+                {
+                    ObjectivePlannerSlot slot when slot.Objective is MoveTo move && !x.Has<Moving>() => SetMoving(x, move),
+                    _ => false
+                };
+            }).ToList();
+        World.Query(in movingEntities, (ref Moving moving, ref Position position, ref Planner objectives) =>
+        {
+            if (position.Coordinates != moving.Target)
+                position.Coordinates = position.Coordinates.MovePointTowards(moving.Target, moving.Velocity);
+        });
     }
 }

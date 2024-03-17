@@ -6,28 +6,27 @@ using GeneLife.Genetic;
 using GeneLife.Knowledge.Components;
 using GeneLife.Survival.Components;
 
-namespace GeneLife.Tests.Factories
+namespace GeneLife.Tests.Factories;
+
+internal class NpcArchetypeFactory : IArchetypeBuilder
 {
-    internal class NpcArchetypeFactory : IArchetypeBuilder
+    private static ComponentType[] PersonArchetype() => new ComponentType[]
     {
-        private static ComponentType[] PersonArchetype() => new ComponentType[]
-        {
-            typeof(Human),
-            typeof(Genome),
-            typeof(Living),
-            typeof(Flammable),
-            typeof(KnowledgeList),
-            typeof(Position),
-            typeof(Inventory),
-            typeof(Objectives)
-        };
+        typeof(Human),
+        typeof(Genome),
+        typeof(Living),
+        typeof(Flammable),
+        typeof(KnowledgeList),
+        typeof(Position),
+        typeof(Inventory),
+        typeof(Objectives)
+    };
 
-        public ComponentType[] Build(string type) => type.ToLower() switch
-        {
-            "person" => PersonArchetype(),
-            _ => throw new ArchetypeNotFoundException()
-        };
+    public ComponentType[] Build(string type) => type.ToLower() switch
+    {
+        "person" => PersonArchetype(),
+        _ => throw new ArchetypeNotFoundException()
+    };
 
-        public string[] ArchetypesList() => new[] { "Person" };
-    }
+    public string[] ArchetypesList() => new[] { "Person" };
 }

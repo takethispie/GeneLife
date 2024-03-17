@@ -1,8 +1,7 @@
-﻿namespace GeneLife.Genetic.GeneticTraits
+﻿namespace GeneLife.Genetic.GeneticTraits;
+
+public enum Intelligence
 {
-    public enum Intelligence
-    {
-        Science,
-        Art
-    }
+    Science,
+    Art
 }

@@ -1,23 +1,22 @@
-﻿namespace GeneLife.Knowledge
+﻿namespace GeneLife.Knowledge;
+
+public enum KnowledgeCategory
 {
-    public enum KnowledgeCategory
-    {
-        Physics,
-        AstroPhysics,
-        Biology,
-        MechanicalEngineering,
-        SoftwareEngineering,
-        Sport,
-        Military,
-        Psychology,
-        Medical,
-        Communication,
-        Cooking,
-        Mechanic,
-        Transport,
-        Management,
-        Politics,
-        Mathematics,
-        Languages
-    }
+    Physics,
+    AstroPhysics,
+    Biology,
+    MechanicalEngineering,
+    SoftwareEngineering,
+    Sport,
+    Military,
+    Psychology,
+    Medical,
+    Communication,
+    Cooking,
+    Mechanic,
+    Transport,
+    Management,
+    Politics,
+    Mathematics,
+    Languages
 }

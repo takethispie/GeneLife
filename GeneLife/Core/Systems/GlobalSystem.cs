@@ -1,36 +1,32 @@
-﻿using Arch.Bus;
-using Arch.Core;
-using Arch.Core.Extensions;
+﻿using Arch.Core;
 using Arch.System;
-using GeneLife.Core.Components;
 using GeneLife.Core.Data;
 
-namespace GeneLife.Core.Systems
+namespace GeneLife.Core.Systems;
+
+internal sealed class GlobalSystem : BaseSystem<World, float>
 {
-    internal sealed class GlobalSystem : BaseSystem<World, float>
+
+    public GlobalSystem(World world) : base(world)
     {
+    }
 
-        public GlobalSystem(World world) : base(world)
+    public override void Update(in float delta)
+    {
+        Clock.Tick = Constants.TicksPerDay switch
         {
-        }
+            24 when Clock.Tick is 1 => AddHour(),
+            48 when Clock.Tick is 2 => AddHour(),
+            192 when Clock.Tick is 8 => AddHour(),
+            240 when Clock.Tick is 10 => AddHour(),
+            _ => Clock.Tick + 1
+        };
 
-        public override void Update(in float delta)
-        {
-            Clock.Tick = Constants.TicksPerDay switch
-            {
-                24 when Clock.Tick is 1 => AddHour(),
-                48 when Clock.Tick is 2 => AddHour(),
-                192 when Clock.Tick is 8 => AddHour(),
-                240 when Clock.Tick is 10 => AddHour(),
-                _ => Clock.Tick + 1
-            };
+    }
 
-        }
-
-        public static int AddHour()
-        {
-            Clock.Time = Clock.Time.AddHours(1);
-            return 0;
-        }
+    public static int AddHour()
+    {
+        Clock.Time = Clock.Time.AddHours(1);
+        return 0;
     }
 }

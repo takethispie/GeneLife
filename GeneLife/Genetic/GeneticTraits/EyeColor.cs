@@ -1,9 +1,8 @@
-namespace GeneLife.Genetic.GeneticTraits
+namespace GeneLife.Genetic.GeneticTraits;
+
+public enum EyeColor
 {
-    public enum EyeColor
-    {
-        Blue,
-        Brown,
-        Green,
-    }
+    Blue,
+    Brown,
+    Green,
 }

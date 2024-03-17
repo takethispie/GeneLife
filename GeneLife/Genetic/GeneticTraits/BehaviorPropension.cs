@@ -1,9 +1,8 @@
-﻿namespace GeneLife.Genetic.GeneticTraits
+﻿namespace GeneLife.Genetic.GeneticTraits;
+
+public enum BehaviorPropension
 {
-    public enum BehaviorPropension
-    {
-        Peaceful,
-        Emotional,
-        Violent,
-    }
+    Peaceful,
+    Emotional,
+    Violent,
 }

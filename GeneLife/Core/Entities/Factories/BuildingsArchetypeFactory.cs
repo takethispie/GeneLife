@@ -5,48 +5,47 @@ using GeneLife.Core.Entities.Exceptions;
 using GeneLife.Core.Entities.Interfaces;
 using GeneLife.Knowledge.Components;
 
-namespace GeneLife.Core.Entities.Factories
+namespace GeneLife.Core.Entities.Factories;
+
+internal class BuildingsArchetypeFactory : IArchetypeBuilder
 {
-    internal class BuildingsArchetypeFactory : IArchetypeBuilder
+    private static ComponentType[] House() => new ComponentType[]
     {
-        private static ComponentType[] House() => new ComponentType[]
+    typeof(Flammable),
+    typeof(Ownable),
+    typeof(Position),
+    typeof(Adress),
+    typeof(HouseHold)
+    };
+
+    private static ComponentType[] SchoolBuilding() => new ComponentType[]
+    {
+    typeof(Flammable),
+    typeof(Ownable),
+    typeof(Position),
+    typeof(Adress),
+    typeof(School)
+    };
+
+    private static ComponentType[] Shop() => new ComponentType[]
+    {
+    typeof(Flammable),
+    typeof(Ownable),
+    typeof(Position),
+    typeof(Adress),
+    typeof(Shop)
+    };
+
+    public ComponentType[] Build(string type)
+    {
+        return type.ToLower() switch
         {
-        typeof(Flammable),
-        typeof(Ownable),
-        typeof(Position),
-        typeof(Adress),
-        typeof(HouseHold)
+            "house" => House(),
+            "schoolbuilding" => SchoolBuilding(),
+            "shop" => Shop(),
+            _ => throw new ArchetypeNotFoundException()
         };
-
-        private static ComponentType[] SchoolBuilding() => new ComponentType[]
-        {
-        typeof(Flammable),
-        typeof(Ownable),
-        typeof(Position),
-        typeof(Adress),
-        typeof(School)
-        };
-
-        private static ComponentType[] Shop() => new ComponentType[]
-        {
-        typeof(Flammable),
-        typeof(Ownable),
-        typeof(Position),
-        typeof(Adress),
-        typeof(Shop)
-        };
-
-        public ComponentType[] Build(string type)
-        {
-            return type.ToLower() switch
-            {
-                "house" => House(),
-                "schoolbuilding" => SchoolBuilding(),
-                "shop" => Shop(),
-                _ => throw new ArchetypeNotFoundException()
-            };
-        }
-
-        public string[] ArchetypesList() => new[] { "House", "SchoolBuilding", "shop" };
     }
+
+    public string[] ArchetypesList() => new[] { "House", "SchoolBuilding", "shop" };
 }

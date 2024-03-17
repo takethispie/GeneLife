@@ -1,25 +1,24 @@
-﻿namespace GeneLife.Hobbies
+﻿namespace GeneLife.Hobbies;
+
+public enum HobbyType
 {
-    public enum HobbyType
-    {
-        VideoGames,
-        Painting,
-        Drawing,
-        Music,
-        Gym,
-        Fishing,
-        Biking,
-        Swimming,
-        Cars,
-        Motorcycles,
-        TabletopGames,
-        CardGames,
-        Golf,
-        Cosplay,
-        Cooking,
-        Hiking,
-        Sailing,
-        Streaming,
-        Cinema
-    }
+    VideoGames,
+    Painting,
+    Drawing,
+    Music,
+    Gym,
+    Fishing,
+    Biking,
+    Swimming,
+    Cars,
+    Motorcycles,
+    TabletopGames,
+    CardGames,
+    Golf,
+    Cosplay,
+    Cooking,
+    Hiking,
+    Sailing,
+    Streaming,
+    Cinema
 }

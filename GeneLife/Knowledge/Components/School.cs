@@ -1,7 +1,6 @@
-﻿namespace GeneLife.Knowledge.Components
+﻿namespace GeneLife.Knowledge.Components;
+
+public struct School
 {
-    public struct School
-    {
-        public Class[] Classes;
-    }
+    public Class[] Classes;
 }

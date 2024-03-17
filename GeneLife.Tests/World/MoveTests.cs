@@ -10,43 +10,42 @@ using System.Numerics;
 using FluentAssertions;
 using GeneLife.Survival;
 
-namespace GeneLife.Tests.World
+namespace GeneLife.Tests.World;
+
+public class MoveTests
 {
-    public class MoveTests
+    private Arch.Core.World world;
+    private Entity human;
+    private readonly Group<float> systems;
+    private ArchetypeFactory archetypeFactory;
+
+    public void RunSystemsOnce(float delta)
     {
-        private Arch.Core.World world;
-        private Entity human;
-        private readonly Group<float> systems;
-        private ArchetypeFactory archetypeFactory;
+        systems.BeforeUpdate(delta);
+        systems.Update(delta);
+        systems.AfterUpdate(delta);
+    }
 
-        public void RunSystemsOnce(float delta)
-        {
-            systems.BeforeUpdate(delta);
-            systems.Update(delta);
-            systems.AfterUpdate(delta);
-        }
+    public MoveTests()
+    {
+        world = Arch.Core.World.Create();
+        archetypeFactory = new ArchetypeFactory();
+        archetypeFactory.RegisterFactory(new NpcArchetypeFactory());
+        archetypeFactory.RegisterFactory(new BuildingsArchetypeFactory());
+        systems = new Group<float>();
+        SurvivalSystem.Register(world, systems, archetypeFactory);
+        systems.Initialize();
+    }
 
-        public MoveTests()
-        {
-            world = Arch.Core.World.Create();
-            archetypeFactory = new ArchetypeFactory();
-            archetypeFactory.RegisterFactory(new NpcArchetypeFactory());
-            archetypeFactory.RegisterFactory(new BuildingsArchetypeFactory());
-            systems = new Group<float>();
-            SurvivalSystem.Register(world, systems, archetypeFactory);
-            systems.Initialize();
-        }
-
-        [Fact]
-        public void ShouldMove()
-        {
-            human = PersonGenerator.CreatePure(world, Sex.Male, 20);
-            human.Add(new Moving { Target = new Vector3(20, 20, 20), Velocity = 1 });
-            RunSystemsOnce(20);
-            human.Should().NotBeNull();
-            var position = human.Get<Position>();
-            position.Should().NotBeNull();
-            position.Coordinates.X.Should().BeGreaterThan(0);
-        }
+    [Fact]
+    public void ShouldMove()
+    {
+        human = PersonGenerator.CreatePure(world, Sex.Male, 20);
+        human.Add(new Moving { Target = new Vector3(20, 20, 20), Velocity = 1 });
+        RunSystemsOnce(20);
+        human.Should().NotBeNull();
+        var position = human.Get<Position>();
+        position.Should().NotBeNull();
+        position.Coordinates.X.Should().BeGreaterThan(0);
     }
 }

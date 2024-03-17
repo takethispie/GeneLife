@@ -1,11 +1,10 @@
-﻿namespace GeneLife.Core
+﻿namespace GeneLife.Core;
+
+public enum AgeState
 {
-    public enum AgeState
-    {
-        Unknown,
-        Child,
-        Teenager,
-        Adult,
-        Elder
-    }
+    Unknown,
+    Child,
+    Teenager,
+    Adult,
+    Elder
 }

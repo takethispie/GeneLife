@@ -1,11 +1,10 @@
-﻿namespace GeneLife.Relations
+﻿namespace GeneLife.Relations;
+
+public enum FamilyMemberType
 {
-    public enum FamilyMemberType
-    {
-        Mother,
-        Father,
-        Brother,
-        Sister,
-        Child,
-    }
+    Mother,
+    Father,
+    Brother,
+    Sister,
+    Child,
 }

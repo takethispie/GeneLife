@@ -1,7 +1,6 @@
-﻿namespace GeneLife.Core.Commands
-{
-    public class ICommand
-    {
+﻿namespace GeneLife.Core.Commands;
 
-    }
+public class ICommand
+{
+
 }

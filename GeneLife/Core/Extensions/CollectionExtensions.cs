@@ -1,11 +1,10 @@
-﻿namespace GeneLife.Core.Extensions
+﻿namespace GeneLife.Core.Extensions;
+
+public static class CollectionExtensions
 {
-    public static class CollectionExtensions
+    public static T Random<T>(this IEnumerable<T> collection, Random random)
     {
-        public static T Random<T>(this IEnumerable<T> collection, Random random)
-        {
-            var enumerable = collection.ToList();
-            return enumerable.ElementAt(random.Next(0, enumerable.Count));
-        }
+        var list = collection.ToList();
+        return list.ElementAt(random.Next(0, list.Count));
     }
 }

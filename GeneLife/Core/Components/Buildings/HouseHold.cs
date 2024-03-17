@@ -1,17 +1,16 @@
-﻿namespace GeneLife.Core.Components.Buildings
+﻿namespace GeneLife.Core.Components.Buildings;
+
+public struct HouseHold
 {
-    public struct HouseHold
+    public int[] Members;
+
+    public HouseHold()
     {
-        public int[] Members;
+        Members = Array.Empty<int>();
+    }
 
-        public HouseHold()
-        {
-            Members = Array.Empty<int>();
-        }
-
-        public HouseHold(int[] members)
-        {
-            Members = members;
-        }
+    public HouseHold(int[] members)
+    {
+        Members = members;
     }
 }

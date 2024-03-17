@@ -1,13 +1,12 @@
-﻿namespace GeneLife.Knowledge
+﻿namespace GeneLife.Knowledge;
+
+public enum KnowledgeLevel
 {
-    public enum KnowledgeLevel
-    {
-        None,
-        Beginner,
-        Elementary,
-        Medium,
-        Advanced,
-        Master,
-        Doctor
-    }
+    None,
+    Beginner,
+    Elementary,
+    Medium,
+    Advanced,
+    Master,
+    Doctor
 }

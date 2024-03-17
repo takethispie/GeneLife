@@ -7,10 +7,5 @@ public struct Human
     public int EmotionalBalance { get; set; }
     public float Money { get; set; }
 
-    public Human()
-    {
-        EmotionalBalance = 0;
-    }
-
-    public string FullName() => $"{FirstName} {LastName}";
+    public readonly string FullName() => $"{FirstName} {LastName}";
 }

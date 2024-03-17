@@ -1,8 +1,7 @@
-﻿namespace GeneLife.Genetic.GeneticTraits
+﻿namespace GeneLife.Genetic.GeneticTraits;
+
+public enum Sex
 {
-    public enum Sex
-    {
-        Male,
-        Female
-    }
+    Male,
+    Female
 }

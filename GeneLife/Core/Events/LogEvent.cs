@@ -1,7 +1,6 @@
-﻿namespace GeneLife.Core.Events
+﻿namespace GeneLife.Core.Events;
+
+public struct LogEvent
 {
-    public struct LogEvent
-    {
-        public string Message;
-    }
+    public string Message;
 }

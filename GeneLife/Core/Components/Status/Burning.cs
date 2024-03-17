@@ -1,7 +1,6 @@
-﻿namespace GeneLife.Core.Components.Status
-{
-    public struct Burning
-    {
+﻿namespace GeneLife.Core.Components.Status;
 
-    }
+public struct Burning
+{
+
 }

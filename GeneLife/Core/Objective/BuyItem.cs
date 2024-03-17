@@ -1,16 +1,15 @@
-﻿namespace GeneLife.Core.Objective
-{
-    public struct BuyItem : IObjective
-    {
-        public int Priority { get; set; }
-        public int ItemId { get; init; }
-        public string Name { get; init; }
+﻿namespace GeneLife.Core.Objective;
 
-        public BuyItem(int Priority, int ItemId, string Name = "BuyItem")
-        {
-            this.Priority = Priority;
-            this.ItemId = ItemId;
-            this.Name = Name;
-        }
+public struct BuyItem : IObjective
+{
+    public int Priority { get; set; }
+    public int ItemId { get; init; }
+    public string Name { get; init; }
+
+    public BuyItem(int Priority, int ItemId, string Name = "BuyItem")
+    {
+        this.Priority = Priority;
+        this.ItemId = ItemId;
+        this.Name = Name;
     }
 }

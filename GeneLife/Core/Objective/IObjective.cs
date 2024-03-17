@@ -1,10 +1,9 @@
-﻿namespace GeneLife.Core.Objective
-{
-    public interface IObjective
-    {
-        public int Priority { get; set; }
-        public string Name { get; }
+﻿namespace GeneLife.Core.Objective;
 
-        public static string GetName() => "IObjective";
-    }
+public interface IObjective
+{
+    public int Priority { get; set; }
+    public string Name { get; }
+
+    public static string GetName() => "IObjective";
 }

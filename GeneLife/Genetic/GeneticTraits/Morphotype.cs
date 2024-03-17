@@ -1,12 +1,11 @@
-﻿namespace GeneLife.Genetic.GeneticTraits
+﻿namespace GeneLife.Genetic.GeneticTraits;
+
+public enum Morphotype
 {
-    public enum Morphotype
-    {
-        //skinny
-        Ectomorph,
-        //in between, good muscular potential
-        Mesomorph,
-        //stores fat easily
-        Endomorph
-    }
+    //skinny
+    Ectomorph,
+    //in between, good muscular potential
+    Mesomorph,
+    //stores fat easily
+    Endomorph
 }

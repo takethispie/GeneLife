@@ -1,14 +1,13 @@
-﻿namespace GeneLife.Core.Objective
-{
-    public class Sleep : IObjective
-    {
-        public int Priority { get; set; }
-        public string Name { get; init; }
+﻿namespace GeneLife.Core.Objective;
 
-        public Sleep(int Priority, string Name = "Sleep")
-        {
-            this.Priority = Priority;
-            this.Name = Name;
-        }
+public class Sleep : IObjective
+{
+    public int Priority { get; set; }
+    public string Name { get; init; }
+
+    public Sleep(int Priority, string Name = "Sleep")
+    {
+        this.Priority = Priority;
+        this.Name = Name;
     }
 }

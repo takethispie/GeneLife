@@ -1,4 +1,3 @@
-﻿namespace GeneLife.Knowledge
-{
-    public record Knowledge(KnowledgeCategory Category, KnowledgeLevel Level);
-}
+﻿namespace GeneLife.Knowledge;
+
+public record Knowledge(KnowledgeCategory Category, KnowledgeLevel Level);

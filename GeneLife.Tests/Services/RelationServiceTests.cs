@@ -5,18 +5,17 @@ using GeneLife.Genetic;
 using GeneLife.Genetic.GeneticTraits;
 using GeneLife.Relations.Services;
 
-namespace GeneLife.Tests.Services
+namespace GeneLife.Tests.Services;
+
+public class RelationServiceTests
 {
-    public class RelationServiceTests
+    [Fact]
+    public void ShouldComputeAttractiveness()
     {
-        [Fact]
-        public void ShouldComputeAttractiveness()
-        {
-            var world = Arch.Core.World.Create();
-            var male = PersonGenerator.CreatePure(world, Sex.Male, 20);
-            var female = PersonGenerator.CreatePure(world, Sex.Female, 20);
-            var result = RelationService.ComputeAttractivenessChances(male.Get<Genome>(), female.Get<Genome>());
-            result.Should().NotBe(null);
-        }
+        var world = Arch.Core.World.Create();
+        var male = PersonGenerator.CreatePure(world, Sex.Male, 20);
+        var female = PersonGenerator.CreatePure(world, Sex.Female, 20);
+        var result = RelationService.ComputeAttractivenessChances(male.Get<Genome>(), female.Get<Genome>());
+        result.Should().NotBe(null);
     }
 }

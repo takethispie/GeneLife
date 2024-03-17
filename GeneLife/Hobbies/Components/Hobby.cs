@@ -1,10 +1,9 @@
-﻿namespace GeneLife.Hobbies.Components
+﻿namespace GeneLife.Hobbies.Components;
+
+public struct Hobby
 {
-    public struct Hobby
-    {
-        public HobbyType Type;
-        public DateTime Started;
-        public bool NeedsMoney;
-        public float MoneyPerWeek;
-    }
+    public HobbyType Type;
+    public DateTime Started;
+    public bool NeedsMoney;
+    public float MoneyPerWeek;
 }

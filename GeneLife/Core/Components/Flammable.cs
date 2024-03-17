@@ -1,12 +1,11 @@
-﻿namespace GeneLife.Core.Components
-{
-    public struct Flammable
-    {
-        public int DamagePerTick;
+﻿namespace GeneLife.Core.Components;
 
-        public Flammable(int damagePerTick)
-        {
-            DamagePerTick = damagePerTick;
-        }
+public struct Flammable
+{
+    public int DamagePerTick;
+
+    public Flammable(int damagePerTick)
+    {
+        DamagePerTick = damagePerTick;
     }
 }

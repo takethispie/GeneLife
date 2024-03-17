@@ -1,7 +1,6 @@
-﻿namespace GeneLife.Core.Components.Status
-{
-    public struct Wet
-    {
+﻿namespace GeneLife.Core.Components.Status;
 
-    }
+public struct Wet
+{
+
 }

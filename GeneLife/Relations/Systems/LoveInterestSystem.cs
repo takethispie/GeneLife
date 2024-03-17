@@ -7,28 +7,27 @@ using GeneLife.Relations.Components;
 using GeneLife.Relations.Services;
 using GeneLife.Survival.Components;
 
-namespace GeneLife.Relations.Systems
+namespace GeneLife.Relations.Systems;
+
+internal sealed class LoveInterestSystem : BaseSystem<World, float>
 {
-    internal sealed class LoveInterestSystem : BaseSystem<World, float>
+    private readonly float _interval;
+    private float currentTimeCount;
+    private readonly QueryDescription potentiallySingleNPCs = new QueryDescription().WithAll<Living, Position, Moving, Human, Genome>().WithNone<Relation>();
+
+    public LoveInterestSystem(World world, float interval = 600) : base(world)
     {
-        private readonly float _interval;
-        private float currentTimeCount;
-        private readonly QueryDescription potentiallySingleNPCs = new QueryDescription().WithAll<Living, Position, Moving, Human, Genome>().WithNone<Relation>();
+        _interval = interval;
+        currentTimeCount = 0;
+    }
 
-        public LoveInterestSystem(World world, float interval = 600) : base(world)
-        {
-            _interval = interval;
-            currentTimeCount = 0;
-        }
-
-        public override void Update(in float t)
-        {
-            var delta = t;
-            currentTimeCount += delta;
-            if (currentTimeCount < _interval) return;
-            var entities = new List<Entity>();
-            World.GetEntities(potentiallySingleNPCs, entities);
-            RelationService.LoveLoop(entities);
-        }
+    public override void Update(in float t)
+    {
+        var delta = t;
+        currentTimeCount += delta;
+        if (currentTimeCount < _interval) return;
+        var entities = new List<Entity>();
+        World.GetEntities(potentiallySingleNPCs, entities);
+        RelationService.LoveLoop(entities);
     }
 }

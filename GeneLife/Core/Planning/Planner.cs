@@ -11,14 +11,34 @@ public class Planner(IList<IPlannerSlot> slots)
 
     public IList<IObjective> GetWaitingObjectivesList() => awaitingObjectives;
 
-    public IPlannerSlot GetSlot(DateTime time)
+    public IPlannerSlot GetSlot(TimeOnly time)
     {
-        return Slots.FirstOrDefault(x => x.Equals(time)) ?? new UnplannedTimeSlot(time.Hour, 1);
+        return Slots.FirstOrDefault(x => x.Start.Equals(time)) ?? new UnplannedTimeSlot(time.Hour, 1);
     }
 
-    public void SetSlot(DateTime startHour, IPlannerSlot slot) => Slots = Slots.Select(x =>
+    public IPlannerSlot GetNextSlot(TimeOnly time)
     {
-        if (x.Start.Equals(startHour)) return slot;
+        return Slots
+            .OrderBy(x => x.Start)
+            .FirstOrDefault(x => x.Start.CompareTo(time) >= 0) ?? new UnplannedTimeSlot(time.Hour, 1);
+    }
+
+    public void SetSlot(IPlannerSlot slot) => Slots = Slots.Select(x =>
+    {
+        if (x.Start.Equals(slot.Start)) return slot;
         return x;
     }).ToList();
+
+    public IPlannerSlot? GetFirstFreeSlot(TimeOnly time)
+    {
+        return Slots
+            .Where(x => x.Start.CompareTo(time) >= 0)
+            .FirstOrDefault(x => x is EmptyPlannerSlot);
+    }
+
+    public IPlannerSlot? GetFirstFreeSlot()
+    {
+        return Slots
+            .FirstOrDefault(x => x is EmptyPlannerSlot);
+    }
 }

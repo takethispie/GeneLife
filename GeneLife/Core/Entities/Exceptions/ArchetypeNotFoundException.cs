@@ -1,7 +1,6 @@
-﻿namespace GeneLife.Core.Entities.Exceptions
-{
-    public class ArchetypeNotFoundException : Exception
-    {
+﻿namespace GeneLife.Core.Entities.Exceptions;
 
-    }
+public class ArchetypeNotFoundException : Exception
+{
+
 }

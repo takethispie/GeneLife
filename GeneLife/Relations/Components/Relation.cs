@@ -1,17 +1,16 @@
-﻿namespace GeneLife.Relations.Components
+﻿namespace GeneLife.Relations.Components;
+
+public struct Relation
 {
-    public struct Relation
+    public int PartnerId;
+
+    public Relation()
     {
-        public int PartnerId;
+        PartnerId = -1;
+    }
 
-        public Relation()
-        {
-            PartnerId = -1;
-        }
-
-        public Relation(int id)
-        {
-            PartnerId = id;
-        }
+    public Relation(int id)
+    {
+        PartnerId = id;
     }
 }

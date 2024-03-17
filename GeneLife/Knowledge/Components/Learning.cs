@@ -1,10 +1,9 @@
-﻿namespace GeneLife.Knowledge.Components
+﻿namespace GeneLife.Knowledge.Components;
+
+public struct Learning
 {
-    public struct Learning
-    {
-        public Class Class;
-        public float CurrentLearningLevel;
-        public bool CanLearn;
-        public bool Finished;
-    }
+    public Class Class;
+    public float CurrentLearningLevel;
+    public bool CanLearn;
+    public bool Finished;
 }

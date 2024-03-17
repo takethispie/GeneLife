@@ -1,12 +1,11 @@
-﻿namespace GeneLife.Core.Components
-{
-    public struct Ownable
-    {
-        public int OwnerId;
+﻿namespace GeneLife.Core.Components;
 
-        public Ownable(int ownerId)
-        {
-            OwnerId = ownerId;
-        }
+public struct Ownable
+{
+    public int OwnerId;
+
+    public Ownable(int ownerId)
+    {
+        OwnerId = ownerId;
     }
 }
