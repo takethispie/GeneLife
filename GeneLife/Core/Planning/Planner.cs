@@ -2,7 +2,7 @@
 
 namespace GeneLife.Core.Planning;
 
-public class Planner(List<IPlannerSlot> slots)
+public class Planner(IPlannerSlot[] slots)
 {
     public IPlannerSlot[] Slots { get; private set; } = [.. slots];
     private IObjective[] awaitingObjectives = [];

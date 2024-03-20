@@ -17,8 +17,10 @@ internal class NpcArchetypeFactory : IArchetypeBuilder
         typeof(Living),
         typeof(Flammable),
         typeof(KnowledgeList),
+        typeof(Inventory),
         typeof(Position),
-        typeof(Planner)
+        typeof(Planner),
+        typeof(Human)
     };
 
     public ComponentType[] Build(string type) => type.ToLower() switch
