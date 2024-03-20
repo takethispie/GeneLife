@@ -8,7 +8,7 @@ public struct Inventory
 
     public Inventory()
     {
-        items = new Item[256];
+        items = new Item[32];
     }
 
     public bool Store(Item item)

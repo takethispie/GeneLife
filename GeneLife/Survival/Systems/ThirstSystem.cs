@@ -7,6 +7,7 @@ using GeneLife.Core.Entities.Factories;
 using GeneLife.Core.Events;
 using GeneLife.Core.Items;
 using GeneLife.Core.Objective;
+using GeneLife.Core.Planning;
 using GeneLife.Survival.Components;
 
 namespace GeneLife.Survival.Systems;
@@ -27,7 +28,7 @@ internal sealed class ThirstSystem : BaseSystem<World, float>
         _tickAccumulator += delta;
         if (_tickAccumulator < Constants.TicksPerDay) return;
         _tickAccumulator = 0;
-        World.Query(in livingEntities, (ref Living living, ref Human human, ref Inventory inventory) =>
+        World.Query(in livingEntities, (ref Living living, ref Human human, ref Inventory inventory, ref Planner planner) =>
         {
             living.Thirst -= 1;
             var hasDrinkInInventory = inventory.HasItemType(ItemType.Drink);
@@ -65,11 +66,14 @@ internal sealed class ThirstSystem : BaseSystem<World, float>
                     break;
             }
 
-            if (living.Thirst < Constants.ThirstyThreshold && !hasDrinkInInventory)
-                //&& !objectives.CurrentObjectives.Any(x => x is BuyItem))
+            if (living.Thirst < Constants.ThirstyThreshold 
+                && !hasDrinkInInventory 
+                && planner.GetAllObjectivePlannerSlots().All(x => x.Objective is not BuyItem))
             {
 
-                //objectives.SetNewHighestPriority(new BuyItem { Priority = 10, ItemId = 2, Name = "Buy a drink" });
+                var slot = planner.GetFirstFreeSlot();
+                if (slot == null) planner.AddObjectivesToWaitingList(new BuyItem(10, 1));
+                else planner.SetSlot(new ObjectiveSlot(slot.Start.Hour, 1, new BuyItem(10, 1)));
                 EventBus.Send(new LogEvent
                 {
                     Message = $"{human.FirstName} {human.LastName} has set a new high priority objective: buy drink"

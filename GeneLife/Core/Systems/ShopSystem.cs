@@ -37,7 +37,7 @@ public class ShopSystem : BaseSystem<World, float>
             //if (objectives.CurrentObjectives.OrderByDescending(x => x.Priority).First() is not BuyItem buyItem) return;
             var slot = planner.GetSlot(TimeOnly.FromDateTime(Clock.Time));
             BuyItem? item = slot switch { 
-                ObjectivePlannerSlot objSlot when objSlot.Objective is BuyItem buyItem => buyItem,
+                ObjectiveSlot objSlot when objSlot.Objective is BuyItem buyItem => buyItem,
                 _ => null
             };
             if (!item.HasValue) return;
@@ -56,9 +56,7 @@ public class ShopSystem : BaseSystem<World, float>
                 var itemWithPrice = ItemGenerator.GetItemList().Where(x => x.Id == itemId).First();
                 //TODO handle inventory management (not enough space!)
                 if (inventory.Store(itemWithPrice with { }))
-                {
                     human.Money -= itemWithPrice.Price;
-                }
             }
             else
             {

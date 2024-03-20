@@ -45,7 +45,7 @@ internal class MoveSystem : BaseSystem<World, float>
                 var currentSlot = planning.GetSlot(TimeOnly.FromDateTime(Clock.Time));
                 return currentSlot switch
                 {
-                    ObjectivePlannerSlot slot when slot.Objective is MoveTo move && !x.Has<Moving>() => SetMoving(x, move),
+                    ObjectiveSlot slot when slot.Objective is MoveTo move && !x.Has<Moving>() => SetMoving(x, move),
                     _ => false
                 };
             }).ToList();

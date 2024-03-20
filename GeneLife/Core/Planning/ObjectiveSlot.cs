@@ -1,7 +1,7 @@
 ﻿using GeneLife.Core.Objective;
 
 namespace GeneLife.Core.Planning;
-internal class ObjectivePlannerSlot(int startHour, int duration, IObjective objective) : IPlannerSlot
+public class ObjectiveSlot(int startHour, int duration, IObjective objective) : IPlannerSlot
 {
     public TimeOnly Start { get; init; } = new TimeOnly(startHour, 0);
 
