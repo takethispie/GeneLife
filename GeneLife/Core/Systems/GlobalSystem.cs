@@ -4,7 +4,7 @@ using GeneLife.Core.Data;
 
 namespace GeneLife.Core.Systems;
 
-internal sealed class GlobalSystem : BaseSystem<World, float>
+public sealed class GlobalSystem : BaseSystem<World, float>
 {
 
     public GlobalSystem(World world) : base(world)

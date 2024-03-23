@@ -75,7 +75,7 @@ internal sealed class HungerSystem : BaseSystem<World, float>
                         && !inventory.HasItemType(ItemType.Food)
                         && planner.GetAllObjectivePlannerSlots().All(x => x.Objective is not BuyItem))
                 {
-                    var slot = planner.GetFirstFreeSlot();
+                    var slot = planner.GetFirstFreeSlot(TimeOnly.FromDateTime(Clock.Time));
                     if (slot == null) planner.AddObjectivesToWaitingList(new BuyItem(10, 1));
                     else planner.SetSlot(new ObjectiveSlot(slot.Start.Hour, 1, new BuyItem(10, 1)));
                     EventBus.Send(new LogEvent
