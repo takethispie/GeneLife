@@ -1,7 +1,6 @@
 ﻿using Arch.Core;
 using Arch.Core.Extensions;
 using Arch.System;
-using GeneLife.Core.Components;
 using GeneLife.Knowledge.Components;
 using GeneLife.Knowledge.Services;
 using GeneLife.Survival.Components;

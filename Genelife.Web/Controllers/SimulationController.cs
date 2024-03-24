@@ -1,6 +1,5 @@
 ﻿using GeneLife;
 using Microsoft.AspNetCore.Mvc;
-using Arch.Core;
 using Arch.Core.Extensions;
 using Genelife.Web.DTOs;
 using System;

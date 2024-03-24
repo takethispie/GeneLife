@@ -1,7 +1,10 @@
-﻿namespace GeneLife.Core.Objective;
+﻿namespace GeneLife.Core.Planning.Objective;
 
-public struct BuyItem : IObjective
+public struct BuyItem : IObjective, IPlannerSlot
 {
+    public TimeOnly Start { get; init; }
+    public TimeSpan Duration { get; init; }
+
     public int Priority { get; set; }
     public int ItemId { get; init; }
     public string Name { get; init; }

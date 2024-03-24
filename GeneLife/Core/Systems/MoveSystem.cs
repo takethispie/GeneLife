@@ -8,7 +8,7 @@ using Arch.Bus;
 using GeneLife.Core.Events;
 using GeneLife.Core.Planning;
 using GeneLife.Core.Data;
-using GeneLife.Core.Objective;
+using GeneLife.Core.Planning.Objective;
 
 namespace GeneLife.Core.Systems;
 
@@ -42,10 +42,9 @@ internal class MoveSystem : BaseSystem<World, float>
             .Where(x =>
             {
                 var planning = x.Get<Planner>();
-                var currentSlot = planning.GetSlot(TimeOnly.FromDateTime(Clock.Time));
-                return currentSlot switch
+                return planning.GetSlot(Clock.Time) switch
                 {
-                    ObjectiveSlot slot when slot.Objective is MoveTo move && !x.Has<Moving>() => SetMoving(x, move),
+                    MoveTo slot when !x.Has<Moving>() => SetMoving(x, slot),
                     _ => false
                 };
             }).ToList();

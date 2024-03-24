@@ -1,5 +1,4 @@
-﻿using System.Collections.Concurrent;
-using Arch.Bus;
+﻿using Arch.Bus;
 using Arch.Core;
 using Arch.Core.Extensions;
 using GeneLife.Core.Components;

@@ -1,6 +1,5 @@
 ﻿using FluentAssertions;
-using GeneLife.Core.Components;
-using GeneLife.Core.Objective;
+using GeneLife.Core.Planning.Objective;
 
 namespace GeneLife.Tests.World;
 

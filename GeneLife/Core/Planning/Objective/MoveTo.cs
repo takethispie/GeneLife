@@ -1,9 +1,11 @@
 ﻿using System.Numerics;
 
-namespace GeneLife.Core.Objective;
+namespace GeneLife.Core.Planning.Objective;
 
-public struct MoveTo : IObjective
+public struct MoveTo : IObjective, IPlannerSlot
 {
+    public TimeOnly Start { get; init; }
+    public TimeSpan Duration { get; init; }
     public int Priority { get; set; }
     public Vector3 Target { get; init; }
     public string Name { get; init; }

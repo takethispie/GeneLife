@@ -1,5 +1,4 @@
 ﻿using GeneLife.Core.Data;
-using GeneLife.Knowledge;
 using GeneLife.Knowledge.Components;
 
 namespace GeneLife.Knowledge.Services;

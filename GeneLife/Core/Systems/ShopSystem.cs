@@ -10,9 +10,9 @@ using System.Numerics;
 using GeneLife.Core.Entities.Generators;
 using GeneLife.Services;
 using GeneLife.Survival.Components;
-using GeneLife.Core.Objective;
 using GeneLife.Core.Planning;
 using GeneLife.Core.Data;
+using GeneLife.Core.Planning.Objective;
 
 namespace GeneLife.Core.Systems;
 
@@ -34,32 +34,27 @@ public class ShopSystem : BaseSystem<World, float>
             (ref Living living, ref Position position, ref Human human, ref Inventory inventory, ref Planner planner) =>
         {
 
-            //if (objectives.CurrentObjectives.OrderByDescending(x => x.Priority).First() is not BuyItem buyItem) return;
-            var slot = planner.GetSlot(TimeOnly.FromDateTime(Clock.Time));
-            BuyItem? item = slot switch { 
-                ObjectiveSlot objSlot when objSlot.Objective is BuyItem buyItem => buyItem,
-                _ => null
-            };
-            if (!item.HasValue) return;
-            var itemId = item.Value.ItemId;
+            if (planner.GetSlot(Clock.Time) is not BuyItem item) return;
+            var itemId = item.ItemId;
             var shopType = ItemGenerator.GetItemList().First(x => x.Id == itemId).ShopType;
-            var closestShop = ShopSearchService.NearestShop(shops, position);
-            if (!closestShop.HasValue)
+            if (ShopSearchService.NearestShop(shops, position) is not Entity closestShop)
             {
-                EventBus.Send(new LogEvent { Message = $"can't find a shop with {item.Value.Name}" });
+                EventBus.Send(new LogEvent { Message = $"can't find a shop with {item.Name}" });
                 return;
             }
-            var shopPos = closestShop.Value.Get<Position>();
+            var shopPos = closestShop.Get<Position>();
             if (Vector3.Distance(position.Coordinates, shopPos.Coordinates) <= 2)
             {
-                var shopComponent = closestShop.Value.Get<Shop>();
+                var shopComponent = closestShop.Get<Shop>();
                 var itemWithPrice = ItemGenerator.GetItemList().Where(x => x.Id == itemId).First();
-                //TODO handle inventory management (not enough space!)
                 if (inventory.Store(itemWithPrice with { }))
                     human.Money -= itemWithPrice.Price;
             }
             else
             {
+                if (planner.GetFirstFreeSlot(Clock.Time) is IPlannerSlot moveToSlot) 
+                    planner.SetSlot(new MoveTo(10, shopPos.Coordinates) {  Start = moveToSlot.Start, Duration = TimeSpan.FromHours(1)});
+                else planner.AddObjectivesToWaitingList(new MoveTo(10, shopPos.Coordinates));
                 EventBus.Send(new LogEvent
                 {
                     Message = $"new objective set: going to a shop at {shopPos.Coordinates.X}:{shopPos.Coordinates.Y}:{shopPos.Coordinates.Z}"

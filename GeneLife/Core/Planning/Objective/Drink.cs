@@ -1,7 +1,9 @@
-﻿namespace GeneLife.Core.Objective;
+﻿namespace GeneLife.Core.Planning.Objective;
 
-public struct Drink : IObjective
+public struct Drink : IObjective, IPlannerSlot
 {
+    public TimeOnly Start { get; init; }
+    public TimeSpan Duration { get; init; }
     public int Priority { get; set; }
     public string Name { get; init; }
 

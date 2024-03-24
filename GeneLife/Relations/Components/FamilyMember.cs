@@ -1,6 +1,4 @@
-﻿using GeneLife.Relations;
-
-namespace GeneLife.Relations.Components;
+﻿namespace GeneLife.Relations.Components;
 
 /// <summary>
 /// member of a local family

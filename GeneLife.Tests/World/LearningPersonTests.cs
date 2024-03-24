@@ -2,7 +2,6 @@
 using Arch.Core.Extensions;
 using Arch.System;
 using FluentAssertions;
-using GeneLife.Core.Components;
 using GeneLife.Core.Entities.Generators;
 using GeneLife.Genetic.GeneticTraits;
 using GeneLife.Knowledge;

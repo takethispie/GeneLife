@@ -1,4 +1,4 @@
-﻿using GeneLife.Core.Objective;
+﻿using GeneLife.Core.Planning.Objective;
 
 namespace GeneLife.Core.Planning;
 
@@ -11,16 +11,18 @@ public class Planner(IPlannerSlot[] slots)
 
     public IList<IObjective> GetWaitingObjectivesList() => awaitingObjectives;
 
-    public IPlannerSlot GetSlot(TimeOnly time)
+    public IPlannerSlot? GetSlot(TimeOnly time)
     {
-        return Slots.FirstOrDefault(x => x.Start.Equals(time)) ?? new UnplannedTimeSlot(time.Hour, 1);
+        return Slots.FirstOrDefault(x => x.Start.Equals(time));
     }
 
-    public IPlannerSlot GetNextSlot(TimeOnly time)
+    public IPlannerSlot? GetSlot(DateTime time) => GetSlot(TimeOnly.FromDateTime(time));
+
+    public IPlannerSlot? GetNextSlot(TimeOnly time)
     {
         return Slots
             .OrderBy(x => x.Start)
-            .FirstOrDefault(x => x.Start.CompareTo(time) >= 0) ?? new UnplannedTimeSlot(time.Hour, 1);
+            .FirstOrDefault(x => x.Start.CompareTo(time) >= 0);
     }
 
     public void SetSlot(IPlannerSlot slot) => Slots = Slots.ToList().Select(x =>
@@ -36,11 +38,15 @@ public class Planner(IPlannerSlot[] slots)
             .FirstOrDefault(x => x is EmptyPlannerSlot);
     }
 
+    public IPlannerSlot? GetFirstFreeSlot(DateTime time) => GetFirstFreeSlot(TimeOnly.FromDateTime(time));
+
     public IPlannerSlot? GetFirstFreeSlot()
     {
         return Slots
             .FirstOrDefault(x => x is EmptyPlannerSlot);
     }
 
-    public List<ObjectiveSlot> GetAllObjectivePlannerSlots() => Slots.Where(x => x is ObjectiveSlot).Cast<ObjectiveSlot>().ToList();
+    public List<IPlannerSlot> GetAllObjectivePlannerSlots() => Slots.Where(x => x is not EmptyPlannerSlot).ToList();
+
+    public bool SetFirstFreeSlot(DateTime time, TimeSpan duration, IPlannerSlot? slot) => false;
 }
