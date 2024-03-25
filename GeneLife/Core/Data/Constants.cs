@@ -4,7 +4,6 @@ public static class Constants
 {
     public static int MillisecondsPerTick = 1000;
 
-    // a day is 5 minutes
     public static int TicksPerDay = 300;
 
     public static int TicksForAYear = 365 * TicksPerDay;
@@ -38,4 +37,5 @@ public static class Constants
     public static int HungryThreshold = 3, ThirstyThreshold = 3;
 
     public static float MaxWalkingDistance = 2000f;
+    public static float WalkingSpeed = 100f;
 }

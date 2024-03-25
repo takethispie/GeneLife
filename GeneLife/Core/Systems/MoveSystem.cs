@@ -25,7 +25,7 @@ internal class MoveSystem : BaseSystem<World, float>
 
     public static bool SetMoving(Entity entity, MoveTo moveTo)
     {
-        entity.Add(new Moving { Velocity = 100f, Target = moveTo.Target });
+        entity.Add(new Moving { Velocity = Constants.WalkingSpeed, Target = moveTo.Target });
         EventBus.Send(new LogEvent
         {
             Message = $"entity {entity.Id} started to move toward {moveTo.Target}"
@@ -41,8 +41,7 @@ internal class MoveSystem : BaseSystem<World, float>
             .Where(x => x.Has<Planner>())
             .Where(x =>
             {
-                var planning = x.Get<Planner>();
-                return planning.GetSlot(Clock.Time) switch
+                return x.Get<Planner>().GetSlot(Clock.Time) switch
                 {
                     MoveTo slot when !x.Has<Moving>() => SetMoving(x, slot),
                     _ => false

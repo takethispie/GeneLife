@@ -48,5 +48,5 @@ public class Planner(IPlannerSlot[] slots)
 
     public List<IPlannerSlot> GetAllObjectivePlannerSlots() => Slots.Where(x => x is not EmptyPlannerSlot).ToList();
 
-    public bool SetFirstFreeSlot(DateTime time, TimeSpan duration, IPlannerSlot? slot) => false;
+    public bool SetFirstFreeSlot(IPlannerSlot slot) => false;
 }

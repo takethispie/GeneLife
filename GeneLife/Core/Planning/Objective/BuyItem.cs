@@ -1,18 +1,13 @@
 ﻿namespace GeneLife.Core.Planning.Objective;
 
-public struct BuyItem : IObjective, IPlannerSlot
+public struct BuyItem(int priority, int itemId, TimeOnly Start, int duration) : IObjective, IPlannerSlot
 {
-    public TimeOnly Start { get; init; }
-    public TimeSpan Duration { get; init; }
+    public TimeOnly Start { get; init; } = Start;
+    public TimeSpan Duration { get; init; } = TimeSpan.FromHours(duration);
 
-    public int Priority { get; set; }
-    public int ItemId { get; init; }
-    public string Name { get; init; }
+    public int Priority { get; set; } = priority;
+    public int ItemId { get; init; } = itemId;
+    public string Name { get; init; } = GetName();
 
-    public BuyItem(int Priority, int ItemId, string Name = "BuyItem")
-    {
-        this.Priority = Priority;
-        this.ItemId = ItemId;
-        this.Name = Name;
-    }
+    public static string GetName() => "BuyItem";
 }

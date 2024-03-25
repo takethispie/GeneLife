@@ -52,13 +52,15 @@ public class ShopSystem : BaseSystem<World, float>
             }
             else
             {
-                if (planner.GetFirstFreeSlot(Clock.Time) is IPlannerSlot moveToSlot) 
-                    planner.SetSlot(new MoveTo(10, shopPos.Coordinates) {  Start = moveToSlot.Start, Duration = TimeSpan.FromHours(1)});
-                else planner.AddObjectivesToWaitingList(new MoveTo(10, shopPos.Coordinates));
-                EventBus.Send(new LogEvent
+                var duration = MoveService.TimeToReach(position.Coordinates, shopPos.Coordinates, Constants.WalkingSpeed);
+                if (planner.SetFirstFreeSlot(new MoveTo(10, shopPos.Coordinates, TimeOnly.FromDateTime(Clock.Time), duration)))
                 {
-                    Message = $"new objective set: going to a shop at {shopPos.Coordinates.X}:{shopPos.Coordinates.Y}:{shopPos.Coordinates.Z}"
-                });
+                    EventBus.Send(new LogEvent
+                    {
+                        Message = $"new objective set: going to a shop at {shopPos.Coordinates.X}:{shopPos.Coordinates.Y}:{shopPos.Coordinates.Z}"
+                    });
+                }
+                else planner.AddObjectivesToWaitingList(new MoveTo(10, shopPos.Coordinates, TimeOnly.FromDateTime(Clock.Time), duration));
             }
         });
     }

@@ -7,9 +7,11 @@ public struct Drink : IObjective, IPlannerSlot
     public int Priority { get; set; }
     public string Name { get; init; }
 
-    public Drink(int Priority, string Name = "Drink")
+    public Drink(int Priority)
     {
         this.Priority = Priority;
-        this.Name = Name;
+        this.Name = GetName();
     }
+
+    public static string GetName() => "Drink";
 }

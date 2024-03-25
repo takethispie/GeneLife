@@ -72,15 +72,15 @@ internal sealed class HungerSystem : BaseSystem<World, float>
 
             if (living.Hunger < Constants.HungryThreshold
                     && !inventory.HasItemType(ItemType.Food)
-                    && planner.GetAllObjectivePlannerSlots().All(x => x is not BuyItem))
+                    && planner.GetAllObjectivePlannerSlots().All(x => x is not BuyItem { ItemId: 1 }))
             {
-                var slot = planner.GetFirstFreeSlot(TimeOnly.FromDateTime(Clock.Time));
-                if (slot == null) planner.AddObjectivesToWaitingList(new BuyItem(10, 1));
-                else planner.SetSlot(new BuyItem(10, 1) { Start = slot.Start, Duration = TimeSpan.FromHours(1)});
-                EventBus.Send(new LogEvent
-                {
-                    Message = $"{human.FirstName} {human.LastName} has set a new high priority objective: buy food"
-                });
+                var buyItem = new BuyItem(10, 1, TimeOnly.FromDateTime(Clock.Time), 1);
+                if (!planner.SetFirstFreeSlot(buyItem)) planner.AddObjectivesToWaitingList(buyItem);
+                else 
+                    EventBus.Send(new LogEvent
+                    {
+                        Message = $"{human.FirstName} {human.LastName} has set a new high priority objective: buy food"
+                    });
             }
         });
     }

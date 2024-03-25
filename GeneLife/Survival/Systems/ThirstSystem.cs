@@ -70,16 +70,15 @@ internal sealed class ThirstSystem : BaseSystem<World, float>
 
             if (living.Thirst < Constants.ThirstyThreshold 
                 && !hasDrinkInInventory 
-                && planner.GetAllObjectivePlannerSlots().All(x => x is not BuyItem))
+                && planner.GetAllObjectivePlannerSlots().All(x => x is not BuyItem { ItemId: 2}))
             {
-
-                var slot = planner.GetFirstFreeSlot();
-                if (slot == null) planner.AddObjectivesToWaitingList(new BuyItem(10, 1));
-                else planner.SetSlot(new BuyItem(10, 2) { Start = slot.Start, Duration = TimeSpan.FromHours(1) });
-                EventBus.Send(new LogEvent
-                {
-                    Message = $"{human.FirstName} {human.LastName} has set a new high priority objective: buy drink"
-                });
+                var buyItem = new BuyItem(10, 2, TimeOnly.FromDateTime(Clock.Time), 1);
+                if (!planner.SetFirstFreeSlot(buyItem)) planner.AddObjectivesToWaitingList(buyItem);
+                else
+                    EventBus.Send(new LogEvent
+                    {
+                        Message = $"{human.FirstName} {human.LastName} has set a new high priority objective: buy drink"
+                    });
             }
         });
     }

@@ -1,17 +1,11 @@
 ﻿namespace GeneLife.Core.Planning.Objective;
 
-public class Sleep : IObjective, IPlannerSlot
+public class Sleep(int Priority, TimeOnly start, int duration) : IObjective, IPlannerSlot
 {
-    public TimeOnly Start { get; init; }
-    public TimeSpan Duration { get; init; }
-    public int Priority { get; set; }
-    public string Name { get; init; }
+    public TimeOnly Start { get; init; } = start;
+    public TimeSpan Duration { get; init; } = TimeSpan.FromHours(duration);
+    public int Priority { get; set; } = Priority;
+    public string Name { get; init; } = GetName();
 
-    public Sleep(int Priority, TimeOnly start, int duration, string Name = "Sleep")
-    {
-        Start = start;
-        Duration = TimeSpan.FromHours(duration);
-        this.Priority = Priority;
-        this.Name = Name;
-    }
+    public static string GetName() => "Sleep";
 }
