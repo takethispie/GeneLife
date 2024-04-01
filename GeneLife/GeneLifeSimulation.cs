@@ -71,8 +71,8 @@ public class GeneLifeSimulation : IDisposable
         if (!overrideDefaultSystems)
         {
             CoreSystem.Register(overworld, Systems, archetypeFactory);
-            Systems.Add(new LearningSystem(overworld));
-            Systems.Add(new HobbySystem(overworld));
+            //Systems.Add(new LearningSystem(overworld));
+            //Systems.Add(new HobbySystem(overworld));
             SurvivalSystem.Register(overworld, Systems, archetypeFactory);
             EventBus.Send(new LogEvent { Message = "All systems loaded" });
         }

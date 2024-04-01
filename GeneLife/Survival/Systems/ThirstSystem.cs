@@ -26,33 +26,30 @@ internal sealed class ThirstSystem : BaseSystem<World, float>
     public override void Update(in float delta)
     {
         _tickAccumulator += delta;
+        var modifier = _tickAccumulator >= Constants.TicksPerDay ? 1 : 0;
         World.Query(in livingEntities, (ref Living living, ref Human human, ref Inventory inventory, ref Planner planner) =>
         {
-            if (_tickAccumulator >= Constants.TicksPerDay)
+            living.Thirst -= modifier;
+            switch (living)
             {
-                _tickAccumulator = 0;
-                living.Thirst -= 1;
-                switch (living)
-                {
-                    case { Thirsty: false } when living.Thirst <= Constants.ThirstyThreshold:
-                        EventBus.Send(new LogEvent { Message = $"{human.FirstName} {human.LastName} is starting to be very Thirsty" });
-                        living.Thirsty = true;
-                        break;
+                case { Thirsty: false } when living.Thirst <= Constants.ThirstyThreshold:
+                    EventBus.Send(new LogEvent { Message = $"{human.FirstName} {human.LastName} is starting to be very Thirsty" });
+                    living.Thirsty = true;
+                    break;
 
-                    case { Thirst: <= 0, Thirsty: true, Stamina: > 0 }:
-                        living.Stamina -= 5;
-                        EventBus.Send(new LogEvent { Message = $"{human.FirstName} {human.LastName} is Dehydrated" });
-                        break;
+                case { Thirst: <= 0, Thirsty: true, Stamina: > 0 }:
+                    living.Stamina -= 5;
+                    EventBus.Send(new LogEvent { Message = $"{human.FirstName} {human.LastName} is Dehydrated" });
+                    break;
 
-                    case { Thirsty: true, Stamina: <= 0 }:
-                        EventBus.Send(new LogEvent
-                        {
-                            Message = $"{human.FirstName} {human.LastName} is slowly dying from Dehydration"
-                        });
-                        living.Damage += 1;
-                        human.EmotionalBalance -= 10;
-                        break;
-                }
+                case { Thirsty: true, Stamina: <= 0 }:
+                    EventBus.Send(new LogEvent
+                    {
+                        Message = $"{human.FirstName} {human.LastName} is slowly dying from Dehydration"
+                    });
+                    living.Damage += 1;
+                    human.EmotionalBalance -= 10;
+                    break;
             }
 
             var hasDrinkInInventory = inventory.HasItemType(ItemType.Drink);
@@ -68,9 +65,9 @@ internal sealed class ThirstSystem : BaseSystem<World, float>
                 }
             }
 
-            if (living.Thirst < Constants.ThirstyThreshold 
+            if (living.Thirst <= Constants.ThirstyThreshold 
                 && !hasDrinkInInventory 
-                && planner.GetAllObjectivePlannerSlots().All(x => x is not BuyItem { ItemId: 2}))
+                && planner.GetAllFilledPlannerSlots().All(x => x is not BuyItem { ItemId: 2}))
             {
                 var buyItem = new BuyItem(10, 2, TimeOnly.FromDateTime(Clock.Time), 1);
                 if (!planner.SetFirstFreeSlot(buyItem)) planner.AddObjectivesToWaitingList(buyItem);
@@ -81,5 +78,6 @@ internal sealed class ThirstSystem : BaseSystem<World, float>
                     });
             }
         });
+        if (modifier == 1) _tickAccumulator = 0;
     }
 }

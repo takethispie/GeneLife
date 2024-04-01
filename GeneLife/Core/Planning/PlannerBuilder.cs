@@ -4,8 +4,6 @@ namespace GeneLife.Core.Planning;
 
 public static class PlannerBuilder
 {
-    public static Planner BasicHumanPlanning() => new(BasicDay());
-
     public static IPlannerSlot[] BasicDay() => [
         new EmptyPlannerSlot(9, 1),
         new EmptyPlannerSlot(10, 1),

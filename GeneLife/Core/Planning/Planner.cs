@@ -2,9 +2,9 @@
 
 namespace GeneLife.Core.Planning;
 
-public class Planner(IPlannerSlot[] slots)
+public class Planner()
 {
-    public IPlannerSlot[] Slots { get; private set; } = [.. slots];
+    public IPlannerSlot[] Slots { get; private set; } = PlannerBuilder.BasicDay();
     private IObjective[] awaitingObjectives = [];
 
     public void AddObjectivesToWaitingList(IObjective objective) => awaitingObjectives = [.. awaitingObjectives, objective];
@@ -46,7 +46,19 @@ public class Planner(IPlannerSlot[] slots)
             .FirstOrDefault(x => x is EmptyPlannerSlot);
     }
 
-    public List<IPlannerSlot> GetAllObjectivePlannerSlots() => Slots.Where(x => x is not EmptyPlannerSlot).ToList();
+    public List<IPlannerSlot> GetAllFilledPlannerSlots() => Slots.Where(x => x is not EmptyPlannerSlot).ToList();
 
-    public bool SetFirstFreeSlot(IPlannerSlot slot) => false;
+    public bool SetFirstFreeSlot(IPlannerSlot slot)
+    {
+        var res = false;
+        Slots = Slots.Select(x => {
+            if (x.Start.CompareTo(slot.Start) == 0 && x.Duration == slot.Duration)
+            {
+                res = true;
+                return slot;
+            }
+            return x;
+        }).ToArray();
+        return res;
+    }
 }

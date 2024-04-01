@@ -2,7 +2,7 @@
 import { call, delay, put, select, takeEvery } from "redux-saga/effects";
 
 import { RootState } from "../store/store";
-import { ADD_LOG, SET_INITIALIZED_FLAG, SET_TICKS_PER_DAY, SIM_UPDATE, START_SIM, UPDATE_TOTAL_TICK } from "../app.slice";
+import { SET_INITIALIZED_FLAG, SET_TICKS_PER_DAY, SIM_UPDATE, START_SIM, UPDATE_TOTAL_TICK } from "../app.slice";
 import { createSmallCity, initSimulation, setTicksPerDay, simulationState } from "../services/simulation.service";
 import { CREATE_SMALL_CITY, SET_SIM_STATE } from "../slices/simulation.slice";
 
@@ -19,7 +19,7 @@ function* UpdateSaga(): any {
         let simData: any = yield call(simulationState);
         yield put(SET_SIM_STATE(simData));
         yield put(UPDATE_TOTAL_TICK());
-        yield delay(2000);
+        yield delay(state.appSlice.millisecondsPerTick);
         const newState: RootState = yield select();
         if(newState.appSlice.simulationRunning == false) break;
     }

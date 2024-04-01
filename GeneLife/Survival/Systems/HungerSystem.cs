@@ -26,33 +26,30 @@ internal sealed class HungerSystem : BaseSystem<World, float>
     public override void Update(in float delta)
     {
         _tickAccumulator += delta;
+        var modifier = _tickAccumulator >= Constants.TicksPerDay ? 1 : 0;
         World.Query(in livingEntities, (ref Living living, ref Human human, ref Inventory inventory, ref Planner planner) =>
         {
-            if (_tickAccumulator >= Constants.TicksPerDay)
+            living.Hunger -= modifier;
+            switch (living)
             {
-                _tickAccumulator = 0;
-                living.Hunger -= 1;
-                switch (living)
-                {
-                    case { Hungry: false } when living.Hunger <= Constants.HungryThreshold:
-                        EventBus.Send(new LogEvent { Message = $"{human.FirstName} {human.LastName} is starting to be very hungry" });
-                        living.Hungry = true;
-                        break;
+                case { Hungry: false } when living.Hunger <= Constants.HungryThreshold:
+                    EventBus.Send(new LogEvent { Message = $"{human.FirstName} {human.LastName} is starting to be very hungry" });
+                    living.Hungry = true;
+                    break;
 
-                    case { Hunger: <= 0, Hungry: true, Stamina: > 0 }:
-                        living.Stamina -= 5;
-                        EventBus.Send(new LogEvent { Message = $"{human.FirstName} {human.LastName} is starving" });
-                        break;
+                case { Hunger: <= 0, Hungry: true, Stamina: > 0 }:
+                    living.Stamina -= 5;
+                    EventBus.Send(new LogEvent { Message = $"{human.FirstName} {human.LastName} is starving" });
+                    break;
 
-                    case { Hungry: true, Stamina: <= 0 }:
-                        EventBus.Send(new LogEvent
-                        {
-                            Message = $"{human.FirstName} {human.LastName} is slowly dying from starvation"
-                        });
-                        living.Damage += 1;
-                        human.EmotionalBalance -= 10;
-                        break;
-                }
+                case { Hungry: true, Stamina: <= 0 }:
+                    EventBus.Send(new LogEvent
+                    {
+                        Message = $"{human.FirstName} {human.LastName} is slowly dying from starvation"
+                    });
+                    living.Damage += 1;
+                    human.EmotionalBalance -= 10;
+                    break;
             }
 
             if (living.Hunger < Constants.HungryThreshold && inventory.GetItems().Any(x => x.Type == ItemType.Food))
@@ -70,9 +67,9 @@ internal sealed class HungerSystem : BaseSystem<World, float>
                 }
             }            
 
-            if (living.Hunger < Constants.HungryThreshold
+            if (living.Hunger <= Constants.HungryThreshold
                     && !inventory.HasItemType(ItemType.Food)
-                    && planner.GetAllObjectivePlannerSlots().All(x => x is not BuyItem { ItemId: 1 }))
+                    && planner.GetAllFilledPlannerSlots().All(x => x is not BuyItem { ItemId: 1 }))
             {
                 var buyItem = new BuyItem(10, 1, TimeOnly.FromDateTime(Clock.Time), 1);
                 if (!planner.SetFirstFreeSlot(buyItem)) planner.AddObjectivesToWaitingList(buyItem);
@@ -83,5 +80,6 @@ internal sealed class HungerSystem : BaseSystem<World, float>
                     });
             }
         });
+        if (modifier == 1) _tickAccumulator = 0;
     }
 }

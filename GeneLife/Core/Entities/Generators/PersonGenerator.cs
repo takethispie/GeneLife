@@ -37,7 +37,7 @@ public static class PersonGenerator
         entity.Set(new Living());
         entity.Set(new Inventory());
         entity.Set(new Position(Vector3.Zero));
-        entity.Set(new Planner(PlannerBuilder.BasicDay()));
+        entity.Set(new Planner());
         return entity;
     }
 }
