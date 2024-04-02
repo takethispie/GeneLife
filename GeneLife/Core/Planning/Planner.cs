@@ -35,7 +35,7 @@ public class Planner()
     {
         return Slots
             .Where(x => x.Start.CompareTo(time) >= 0)
-            .FirstOrDefault(x => x is EmptyPlannerSlot);
+            .FirstOrDefault(x => x is EmptySlot);
     }
 
     public IPlannerSlot? GetFirstFreeSlot(DateTime time) => GetFirstFreeSlot(TimeOnly.FromDateTime(time));
@@ -43,16 +43,16 @@ public class Planner()
     public IPlannerSlot? GetFirstFreeSlot()
     {
         return Slots
-            .FirstOrDefault(x => x is EmptyPlannerSlot);
+            .FirstOrDefault(x => x is EmptySlot);
     }
 
-    public List<IPlannerSlot> GetAllFilledPlannerSlots() => Slots.Where(x => x is not EmptyPlannerSlot).ToList();
+    public List<IPlannerSlot> GetAllFilledPlannerSlots() => Slots.Where(x => x is not EmptySlot).ToList();
 
     public bool SetFirstFreeSlot(IPlannerSlot slot)
     {
         var res = false;
         Slots = Slots.Select(x => {
-            if (x.Start.CompareTo(slot.Start) == 0 && x.Duration == slot.Duration)
+            if (x.Start.CompareTo(slot.Start) == 0 && x.Duration == slot.Duration && x is EmptySlot)
             {
                 res = true;
                 return slot;
@@ -61,4 +61,12 @@ public class Planner()
         }).ToArray();
         return res;
     }
+
+    public string[] ToStrings() => 
+        Slots.Select(sl => sl.Start.Hour.ToString().PadLeft(2, '0') 
+            + ":00 " 
+            + sl.Duration.Hours.ToString()
+            + "h - " 
+            + sl.Name
+        ).ToArray();
 }

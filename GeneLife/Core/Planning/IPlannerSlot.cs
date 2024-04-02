@@ -4,4 +4,6 @@ public interface IPlannerSlot
 {
     public TimeOnly Start { get; }
     public TimeSpan Duration { get; }
+
+    public string Name { get; }
 }

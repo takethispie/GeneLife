@@ -10,6 +10,7 @@ using GeneLife.Core.Components.Buildings;
 using GeneLife.Core.Components;
 using GeneLife.Survival.Components;
 using GeneLife.Knowledge.Components;
+using GeneLife.Core.Planning;
 
 namespace Genelife.Web.Controllers;
 
@@ -76,12 +77,14 @@ public class SimulationController : ControllerBase
             };
             var position = entity.Get<Position>();
             var wallet = entity.Get<Human>().Money.ToString();
+            var planner = entity.Get<Planner>();
             return new HumanNPC
             {
                 Wallet = wallet,
                 Identity = identity,
                 Stats = stats,
                 Position = position.Coordinates.ToString(),
+                Objectives = planner.ToStrings()
             };
         });
         var buildings = buildingEntities.Select(building =>
