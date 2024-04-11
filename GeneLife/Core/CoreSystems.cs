@@ -11,6 +11,5 @@ public class CoreSystem
     {
         group.Add(new ShopSystem(world, archetypeFactory));
         group.Add(new MoveSystem(world, archetypeFactory));
-        group.Add(new GlobalSystem(world));
     }
 }

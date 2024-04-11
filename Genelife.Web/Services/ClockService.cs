@@ -5,8 +5,8 @@ namespace Genelife.Web.Services;
 
 public class ClockService
 {
-    private Timer timer;
-    private Action<float> onClock;
+    private readonly Timer timer;
+    private readonly Action<float> onClock;
 
     public ClockService(int interval, Action<float> onUpdate)
     {
@@ -20,4 +20,6 @@ public class ClockService
     private void OnTimedEvent(Object source, ElapsedEventArgs e) => onClock(1);
 
     public void Start() => timer.Enabled = true;
+
+    public void SetInterval(int interval) => timer.Interval = interval;
 }

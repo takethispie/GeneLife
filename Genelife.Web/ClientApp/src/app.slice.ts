@@ -3,7 +3,6 @@
 interface genelifeState {
     simulationRunning: boolean
     logs: string[]
-    totalTicks: number,
     initialized: boolean,
     millisecondsPerTick: number
 }
@@ -11,7 +10,6 @@ interface genelifeState {
 const initialState: genelifeState = {
     simulationRunning: false,
     logs: [],
-    totalTicks: 0,
     initialized: false,
     millisecondsPerTick: 1000
 };
@@ -21,9 +19,6 @@ const appSlice = createSlice({
   initialState,
   reducers: {
     SIM_UPDATE: (state) => {},
-    UPDATE_TOTAL_TICK: (state) => {
-        state.totalTicks++;
-    },
     START_SIM: (state) => {
         state.simulationRunning = true;
         if(!state.initialized) state.logs = [];
@@ -41,5 +36,5 @@ const appSlice = createSlice({
   },
 });
 
-export const { SIM_UPDATE, START_SIM, STOP_SIM, UPDATE_TOTAL_TICK, SET_INITIALIZED_FLAG, SET_TICKS_PER_DAY, SET_MILLISECONDS_PER_TICK } = appSlice.actions;
+export const { SIM_UPDATE, START_SIM, STOP_SIM, SET_INITIALIZED_FLAG, SET_TICKS_PER_DAY, SET_MILLISECONDS_PER_TICK } = appSlice.actions;
 export default appSlice.reducer;

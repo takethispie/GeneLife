@@ -13,6 +13,7 @@ using GeneLife.Core.Entities.Generators;
 using GeneLife.Core.Events;
 using GeneLife.Core.Exceptions;
 using GeneLife.Core.Items;
+using GeneLife.Core.Systems;
 using GeneLife.Genetic.GeneticTraits;
 using GeneLife.Hobbies.Systems;
 using GeneLife.Knowledge.Systems;
@@ -149,6 +150,7 @@ public class GeneLifeSimulation : IDisposable
     /// <param name="delta">elapsed time in seconds</param>
     public void Update(float delta)
     {
+        Clock.RunClock();
         Systems.BeforeUpdate(delta);
         Systems.Update(delta);
         Systems.AfterUpdate(delta);
@@ -169,4 +171,6 @@ public class GeneLifeSimulation : IDisposable
         overworld.GetEntities(in new QueryDescription().WithAll<Living, Position>(), entities);
         return [..entities];
     }
+
+    public static string GetTime() => Clock.Time.ToString();
 }

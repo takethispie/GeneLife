@@ -5,4 +5,5 @@ public class SimulationData
     public HumanNPC[] Npcs { get; set; }
     public Building[] Buildings { get; set; }
     public string[] Logs { get; set; }
+    public string Time { get; set; }
 }

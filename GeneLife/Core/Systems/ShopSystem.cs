@@ -53,7 +53,11 @@ public class ShopSystem : BaseSystem<World, float>
             else
             {
                 var duration = MoveService.TimeToReach(position.Coordinates, shopPos.Coordinates, Constants.WalkingSpeed);
-                if (planner.SetFirstFreeSlot(new MoveTo(10, shopPos.Coordinates, TimeOnly.FromDateTime(Clock.Time), duration)))
+                //debug tests
+                var scaledDuration = Clock.ScaleDuration(duration);
+                //var distance = Vector3.Distance(position.Coordinates, shopPos.Coordinates);
+                //Constants.WalkingSpeed = distance;
+                if (planner.SetFirstFreeSlot(new MoveTo(10, shopPos.Coordinates, TimeOnly.FromDateTime(Clock.Time), scaledDuration)))
                 {
                     EventBus.Send(new LogEvent
                     {

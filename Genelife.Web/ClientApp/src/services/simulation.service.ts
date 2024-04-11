@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { Human } from '../models/Human';
 import { SimulationData } from '../models/SimulationData';
 
 
@@ -21,5 +20,10 @@ export async function createSmallCity(): Promise<any> {
 
 export async function setTicksPerDay(ticks: number): Promise<any> {
     var res = await axios.get('/api/simulation/set/ticks/day/' + ticks);
+    return res.status;
+}
+
+export async function setTickInterval(ticks: number): Promise<any> {
+    var res = await axios.get('/api/simulation/set/ticks/interval/' + ticks);
     return res.status;
 }

@@ -23,7 +23,7 @@ internal class MoveSystem : BaseSystem<World, float>
         needToMoveEntitie.All = archetypeFactory.Build("person");
     }
 
-    public static bool SetMoving(Entity entity, MoveTo moveTo)
+    private static bool SetMoving(Entity entity, MoveTo moveTo)
     {
         entity.Add(new Moving { Velocity = Constants.WalkingSpeed, Target = moveTo.Target });
         EventBus.Send(new LogEvent

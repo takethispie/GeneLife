@@ -100,10 +100,23 @@ public class SimulationController : ControllerBase
 
             else throw new Exception("could not find matching type");
         });
-        return Ok(new SimulationData { Npcs = npcs.ToArray(), Buildings = buildings.ToArray(), Logs = simulation.LogSystem.Logs.ToArray() });
+        return Ok(new SimulationData { 
+            Npcs = npcs.ToArray(), 
+            Buildings = buildings.ToArray(),
+            Logs = [..simulation.LogSystem.Logs],
+            Time = GeneLifeSimulation.GetTime()
+        });
     }
 
 
     [HttpGet("set/ticks/day/{ticks}")]
     public ActionResult SetTicksPerDay(int ticks) => Ok(simulation.SendCommand(new SetTicksPerDayCommand(ticks)));
+
+
+    [HttpGet("set/ticks/interval/{milliseconds}")]
+    public ActionResult SetTicksInterval(int milliseconds)
+    {
+        clockService.SetInterval(milliseconds);
+        return Ok();
+    }
 }

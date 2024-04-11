@@ -74,9 +74,7 @@ export default function Home() {
                             <CardHeader title="Simulation Options"></CardHeader>
                             <CardContent>
                                 <Typography variant="h6">Info</Typography>
-                                <Typography variant="body2" style={{ paddingLeft: 10 }}>
-                                    {state.appSlice.totalTicks} Ticks
-                                </Typography>
+                                <Typography>Time {state.simulationSlice.simulationState.time}</Typography>
                                 <Typography variant="h6">Create</Typography>
                                 <Button onClick={() => dispatch(CREATE_SMALL_CITY())}>Create Small City</Button>
                                 <Typography variant="h6">Ticks Per Day</Typography>

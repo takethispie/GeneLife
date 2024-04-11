@@ -23,7 +23,7 @@ public class Startup
     {
         services.AddControllersWithViews();
         services.AddSingleton(services => new GeneLifeSimulation());
-        services.AddSingleton(services => new ClockService(2000, services.GetService<GeneLifeSimulation>().Update));
+        services.AddSingleton(services => new ClockService(1000, services.GetService<GeneLifeSimulation>().Update));
 
         // In production, the React files will be served from this directory
         services.AddSpaStaticFiles(configuration =>
