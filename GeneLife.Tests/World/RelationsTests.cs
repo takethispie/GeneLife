@@ -3,13 +3,12 @@ using Arch.Core.Extensions;
 using Arch.System;
 using FluentAssertions;
 using GeneLife.Core.Components;
-using GeneLife.Core.Components.Characters;
 using GeneLife.Genetic.GeneticTraits;
-using GeneLife.Oracle.Components;
-using GeneLife.Oracle.Core;
 using GeneLife.Core.Data;
 using GeneLife.Core.Entities.Generators;
-using Xunit.Abstractions;
+using GeneLife.Hobbies;
+using GeneLife.Relations.Components;
+using GeneLife.Hobbies.Components;
 
 namespace GeneLife.Tests.World;
 
@@ -19,11 +18,11 @@ public class RelationsTests
     private readonly Group<float> _systems;
     private global::JobScheduler.JobScheduler _jobScheduler;
 
+
     public RelationsTests()
     {
         _systems = new Group<float>();
         _world = Arch.Core.World.Create();
-        Oracle.OracleSystem.Register(_world, _systems);
         _systems.Initialize();
         _jobScheduler = new global::JobScheduler.JobScheduler("glife");
     }
@@ -99,20 +98,18 @@ public class RelationsTests
     public void ShouldHaveEnoughMoneyForHobby()
     {
         Constants.HobbyChangeChances = 0;
-        var man = PersonGenerator.CreatePure(_world, Sex.Male, 20);
-        man.Add(new Wallet { Money = 1000f });
+        var man = PersonGenerator.CreatePure(_world, Sex.Male, 20, 80, 1000f);
         man.Add(new Hobby { Type = HobbyType.Biking, NeedsMoney = true, MoneyPerWeek = 100, Started = DateTime.Now });
         RunSystemsOnce(Constants.TicksPerDay * 10);
-        man.Get<Wallet>().Money.Should().BeLessThan(1000f);
+        man.Get<Human>().Money.Should().BeLessThan(1000f);
     }
-    
+
     [Fact]
     public void ShouldNotHaveEnoughMoneyForHobby()
     {
         Constants.HobbyChangeChances = 0;
         Constants.GettingHobbyChances = 0;
-        var man = PersonGenerator.CreatePure(_world, Sex.Male, 20);
-        man.Add(new Wallet { Money = 0 });
+        var man = PersonGenerator.CreatePure(_world, Sex.Male, 20, 80, 0);
         man.Add(new Hobby { Type = HobbyType.Biking, NeedsMoney = true, MoneyPerWeek = 100, Started = DateTime.Now });
         RunSystemsOnce(Constants.TicksPerDay * 10);
         man.Has<Hobby>().Should().BeFalse();

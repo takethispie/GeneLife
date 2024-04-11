@@ -19,22 +19,22 @@ public partial class LogSystem
         Logs = new List<string>();
         Hook();
     }
-    
+
     [Event]
     public void Log(LogEvent log)
     {
-        if(_logToConsole) Console.WriteLine(log.Message);
+        if (_logToConsole) Console.WriteLine(log.Message);
         else
         {
             if (string.IsNullOrEmpty(log.Message)) return;
             Logs.Add(log.Message);
-            if(Logs.Count > _maxLogLines) Logs.RemoveAt(0);
+            if (Logs.Count > _maxLogLines) Logs.RemoveAt(0);
             OnLogNotification();
         }
     }
-    
+
     protected virtual void OnLogNotification()
     {
-        LogAdded?.Invoke(); 
+        LogAdded?.Invoke();
     }
 }

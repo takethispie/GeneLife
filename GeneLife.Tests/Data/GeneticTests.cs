@@ -15,7 +15,7 @@ public class GeneticTests
         sequence[2..].Should().Be("bb");
         sequence[..2].Should().Be("aa");
     }
-    
+
 
     [Fact]
     public void GenomeSequencingShouldWork()
@@ -27,7 +27,7 @@ public class GeneticTests
         sequence.Should().NotBeEmpty();
         sequence.Should().Be("$$bBHhaaMMXYeeJjUu#10#$$");
     }
-    
+
 
     [Fact]
     public void SequenceToGenomeShouldWork()

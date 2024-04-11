@@ -15,7 +15,7 @@
     <PackageReference Include="Microsoft.ML.FastTree" Version="3.0.0" />
   </ItemGroup>
   <ItemGroup>
-    <None Update="Oracle\Core\Attractiveness.mlnet">
+    <None Update="Relations\Attractiveness.mlnet">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>

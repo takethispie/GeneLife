@@ -3,8 +3,7 @@ using FluentAssertions;
 using GeneLife.Core.Entities.Generators;
 using GeneLife.Genetic;
 using GeneLife.Genetic.GeneticTraits;
-using GeneLife.Oracle.Services;
-
+using GeneLife.Relations.Services;
 
 namespace GeneLife.Tests.Services;
 

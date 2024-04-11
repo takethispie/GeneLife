@@ -6,7 +6,7 @@ interface simulationState {
 }
 
 const initialState: simulationState = {
-    simulationState: { npcs: [], buildings: [], logs: [] }
+    simulationState: { npcs: [], buildings: [], logs: [], time: "" }
 };
 
 const simulationSlice = createSlice({

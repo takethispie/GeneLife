@@ -3,22 +3,22 @@ using Arch.Core;
 using Arch.Core.Extensions;
 using Arch.Core.Utils;
 using Arch.System;
-using GeneLife.Athena;
+using GeneLife.Core;
 using GeneLife.Core.Commands;
 using GeneLife.Core.Components;
 using GeneLife.Core.Components.Buildings;
-using GeneLife.Core.Components.Characters;
 using GeneLife.Core.Data;
-using GeneLife.Core.Entities;
 using GeneLife.Core.Entities.Factories;
 using GeneLife.Core.Entities.Generators;
 using GeneLife.Core.Events;
 using GeneLife.Core.Exceptions;
-using GeneLife.Core.Extensions;
 using GeneLife.Core.Items;
+using GeneLife.Core.Systems;
 using GeneLife.Genetic.GeneticTraits;
-using GeneLife.Oracle;
-using GeneLife.Sibyl;
+using GeneLife.Hobbies.Systems;
+using GeneLife.Knowledge.Systems;
+using GeneLife.Survival;
+using GeneLife.Survival.Components;
 using LogSystem = GeneLife.Core.LogSystem;
 
 namespace GeneLife;
@@ -26,19 +26,19 @@ namespace GeneLife;
 public class GeneLifeSimulation : IDisposable
 {
     private Arch.System.Group<float> Systems;
-    private ArchetypeFactory _archetypeFactory;
-    private global::JobScheduler.JobScheduler _jobScheduler;
+    private readonly ArchetypeFactory archetypeFactory;
+    private global::JobScheduler.JobScheduler jobScheduler;
     private bool DefaultSystemsOverridden, DefaultArchetypesOverridden;
-    private World _overworld { get; }
+    private World overworld;
     public LogSystem LogSystem { get; }
 
     public GeneLifeSimulation()
     {
-        _overworld = World.Create();
+        overworld = World.Create();
         Systems = new Arch.System.Group<float>();
-        _archetypeFactory = new ArchetypeFactory();
+        archetypeFactory = new ArchetypeFactory();
         LogSystem = new LogSystem(false);
-        _jobScheduler = new global::JobScheduler.JobScheduler("glife");
+        jobScheduler = new global::JobScheduler.JobScheduler("glife");
         DefaultArchetypesOverridden = false;
         DefaultSystemsOverridden = false;
     }
@@ -64,18 +64,17 @@ public class GeneLifeSimulation : IDisposable
 
         if (!overrideDefaultArchetypes)
         {
-            _archetypeFactory.RegisterFactory(new NpcArchetypeFactory());
-            _archetypeFactory.RegisterFactory(new VehicleArchetypeFactory());
-            _archetypeFactory.RegisterFactory(new BuildingsArchetypeFactory());
-            _archetypeFactory.RegisterFactory(new LiquidsArchetypeFactory());
+            archetypeFactory.RegisterFactory(new NpcArchetypeFactory());
+            archetypeFactory.RegisterFactory(new BuildingsArchetypeFactory());
             EventBus.Send(new LogEvent { Message = "All archetypes factories loaded" });
         }
-        
+
         if (!overrideDefaultSystems)
         {
-            SibylSystem.Register(_overworld, Systems);
-            OracleSystem.Register(_overworld, Systems);
-            AthenaSystem.Register(_overworld, Systems, _archetypeFactory);
+            CoreSystem.Register(overworld, Systems, archetypeFactory);
+            //Systems.Add(new LearningSystem(overworld));
+            //Systems.Add(new HobbySystem(overworld));
+            SurvivalSystem.Register(overworld, Systems, archetypeFactory);
             EventBus.Send(new LogEvent { Message = "All systems loaded" });
         }
 
@@ -86,43 +85,43 @@ public class GeneLifeSimulation : IDisposable
     {
         if (DefaultArchetypesOverridden || DefaultSystemsOverridden)
             throw new DefaultArchetypesAndSystemNotAvailableException("Can't create NPC when default archetypes and systems are overridden");
-        var entity = PersonGenerator.CreatePure(_overworld, sex, startAge);
+        var entity = PersonGenerator.CreatePure(overworld, sex, startAge);
         return entity;
     }
 
     public List<Entity> GetAllLivingNPC()
     {
-        if (DefaultArchetypesOverridden || DefaultSystemsOverridden) return new List<Entity>();
-        var query = new QueryDescription().WithAll<Living, Identity>();
+        if (DefaultArchetypesOverridden || DefaultSystemsOverridden) return [];
+        var query = new QueryDescription().WithAll<Living, Human>();
         var entities = new List<Entity>();
-        _overworld.GetEntities(query, entities);
+        overworld.GetEntities(query, entities);
         return entities;
     }
 
     public List<Entity> GetAllBuildings()
     {
-        if (DefaultArchetypesOverridden || DefaultSystemsOverridden) return new List<Entity>();
+        if (DefaultArchetypesOverridden || DefaultSystemsOverridden) return [];
         var query = new QueryDescription().WithAll<Adress, Position>();
         var entities = new List<Entity>();
-        _overworld.GetEntities(query, entities);
+        overworld.GetEntities(query, entities);
         return entities;
     }
 
     public void SendCommand(GiveCommand command)
     {
         if (DefaultArchetypesOverridden || DefaultSystemsOverridden) return;
-        var livingEntities = new QueryDescription().WithAll<Living, Identity, Inventory>();
-        _overworld.Query(in livingEntities, (ref Living living, ref Identity identity, ref Inventory inventory) =>
+        var livingEntities = new QueryDescription().WithAll<Living, Human, Inventory>();
+        overworld.Query(in livingEntities, (ref Living living, ref Human human, ref Inventory inventory) =>
         {
-            if (identity.FirstName.ToLower() != command.TargetFirstName ||
-                identity.LastName.ToLower() != command.TargetLastName) return;
+            if (!human.FirstName.Equals(command.TargetFirstName, StringComparison.CurrentCultureIgnoreCase) ||
+                !human.LastName.Equals(command.TargetLastName, StringComparison.CurrentCultureIgnoreCase)) return;
             var idx = inventory.GetItems().ToList().FindIndex(x => x.Type == ItemType.None);
             if (idx == -1) return;
             inventory.Store(command.Item);
             EventBus.Send(new LogEvent
             {
                 Message =
-                    $"item with id {command.Item.Id} of type {command.Item.Type} was given to {identity.FullName()}"
+                    $"item with id {command.Item.Id} of type {command.Item.Type} was given to {human.FullName()}"
             });
         });
     }
@@ -132,11 +131,11 @@ public class GeneLifeSimulation : IDisposable
         switch (command.Size)
         {
             case TemplateCitySize.Small:
-                TemplateCityGenerator.CreateSmallCity(_overworld);
+                TemplateCityGenerator.CreateSmallCity(overworld);
                 return "Created Small City";
-            
+
             default: return "";
-        } 
+        }
     }
 
     public string SendCommand(SetTicksPerDayCommand command)
@@ -151,24 +150,27 @@ public class GeneLifeSimulation : IDisposable
     /// <param name="delta">elapsed time in seconds</param>
     public void Update(float delta)
     {
-        Systems.BeforeUpdate(delta);    
-        Systems.Update(delta);          
-        Systems.AfterUpdate(delta);     
+        Clock.RunClock();
+        Systems.BeforeUpdate(delta);
+        Systems.Update(delta);
+        Systems.AfterUpdate(delta);
     }
 
-    public ComponentType[] GetArchetype(string name) => _archetypeFactory.Build(name);
+    public ComponentType[] GetArchetype(string name) => archetypeFactory.Build(name);
 
     public void Dispose()
     {
-        _overworld.Dispose();
+        overworld.Dispose();
         Systems.Dispose();
     }
 
     public Entity[] GetLivingEntities()
     {
-        if (DefaultArchetypesOverridden || DefaultSystemsOverridden) return Array.Empty<Entity>();
+        if (DefaultArchetypesOverridden || DefaultSystemsOverridden) return [];
         var entities = new List<Entity>();
-        _overworld.GetEntities(in new QueryDescription().WithAll<Living, Position>(), entities);
-        return entities.ToArray();
+        overworld.GetEntities(in new QueryDescription().WithAll<Living, Position>(), entities);
+        return [..entities];
     }
+
+    public static string GetTime() => Clock.Time.ToString();
 }

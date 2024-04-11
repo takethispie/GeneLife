@@ -15,13 +15,13 @@ public static class GeneticMergingMutator
         foreach (var gene in fatherGamete)
         {
             var value = motherGamete.ToLower().IndexOf(gene.ToString().ToLower(), StringComparison.InvariantCulture);
-            if(value < 0)
+            if (value < 0)
             {
                 throw new ArgumentException();
             }
             sequence += $"{gene}{motherGamete[value]}";
         }
-        string sex = new List<string> { "XX", "XY"}.Random(new Random());
+        string sex = new List<string> { "XX", "XY" }.Random(new Random());
         sequence += $"{sex}#00#$$";
         return GenomeSequencer.ToGenome(sequence);
     }

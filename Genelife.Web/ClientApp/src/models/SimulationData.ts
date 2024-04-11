@@ -5,4 +5,5 @@ export interface SimulationData {
     npcs: Human[]
     buildings: Building[]
     logs: string[]
+    time: string
 }

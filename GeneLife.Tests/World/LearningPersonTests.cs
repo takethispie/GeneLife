@@ -2,14 +2,11 @@
 using Arch.Core.Extensions;
 using Arch.System;
 using FluentAssertions;
-using GeneLife.Core.Components;
-using GeneLife.Core.Components.Characters;
 using GeneLife.Core.Entities.Generators;
 using GeneLife.Genetic.GeneticTraits;
-using GeneLife.Sibyl;
-using GeneLife.Sibyl.Components;
-using GeneLife.Sibyl.Core;
-using GeneLife.Sibyl.Systems;
+using GeneLife.Knowledge;
+using GeneLife.Knowledge.Components;
+using GeneLife.Survival.Components;
 
 namespace GeneLife.Tests.World;
 
@@ -25,10 +22,10 @@ public class LearningPersonTests
     {
         world = Arch.Core.World.Create();
         knowledgeList = new List<(KnowledgeCategory knowledgeCategory, KnowledgeLevel level)>
-        {
-            (KnowledgeCategory.Biology, KnowledgeLevel.Beginner),
-        };
-        
+    {
+        (KnowledgeCategory.Biology, KnowledgeLevel.Beginner),
+    };
+
         learning = new Learning()
         {
             CanLearn = false,
@@ -45,15 +42,14 @@ public class LearningPersonTests
             Finished = false
         };
         systems = new Group<float>();
-        SibylSystem.Register(world, systems);
         systems.Initialize();
     }
 
     public void RunSystemsOnce(float delta)
     {
-        systems.BeforeUpdate(delta);    
-        systems.Update(delta);          
-        systems.AfterUpdate(delta);     
+        systems.BeforeUpdate(delta);
+        systems.Update(delta);
+        systems.AfterUpdate(delta);
     }
 
     [Fact]

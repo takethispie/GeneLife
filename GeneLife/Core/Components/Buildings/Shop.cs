@@ -1,5 +1,4 @@
-﻿using GeneLife.Core.Items;
-
+﻿
 namespace GeneLife.Core.Components.Buildings;
 
 public enum ShopType
@@ -8,13 +7,7 @@ public enum ShopType
     Furniture
 }
 
-public struct Shop
+public readonly struct Shop(ShopType type)
 {
-    public ShopType Type { get; }
-
-    public Shop(ShopType type)
-    {
-        Type = type;
-    }
-
+    public ShopType Type { get; } = type;
 }

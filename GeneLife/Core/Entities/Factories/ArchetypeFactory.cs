@@ -20,13 +20,12 @@ public class ArchetypeFactory
         factories.Add(factory);
     }
 
-    private bool IsBuildableArchetype(string name) => 
+    private bool IsBuildableArchetype(string name) =>
         factories.Any(x => x.ArchetypesList().Any(archetype => archetype == name));
 
     public ComponentType[] Build(string name)
     {
-        var factory = factories.FirstOrDefault(x => x.ArchetypesList().Any(arch => arch.ToLower() == name.ToLower()));
-        if (factory == null) throw new ArchetypeNotFoundException();
-        return factory.Build(name);
+        var factory = factories.FirstOrDefault(x => x.ArchetypesList().Any(arch => arch.Equals(name, StringComparison.CurrentCultureIgnoreCase)));
+        return factory == null ? throw new ArchetypeNotFoundException() : factory.Build(name);
     }
 }

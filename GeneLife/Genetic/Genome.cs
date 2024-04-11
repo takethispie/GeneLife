@@ -2,7 +2,7 @@ using GeneLife.Genetic.GeneticTraits;
 
 namespace GeneLife.Genetic;
 
-public record Genome (
+public record Genome(
     int Age,
     Sex Sex,
     EyeColor EyeColor,

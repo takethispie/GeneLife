@@ -14,11 +14,10 @@ public static class ShopGenerator
         newShop.Set(position);
         newShop.Set(adress);
         newShop.Set(new Flammable(1));
-        newShop.Set(new Lifespan(TimeSpan.FromDays(365*100)));
         newShop.Set(new Ownable(-1));
         return newShop;
     }
-    
+
     public static Entity GroceryStore(World world, Position position, Adress adress)
     {
 

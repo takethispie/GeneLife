@@ -4,8 +4,8 @@ using Arch.Core.Extensions;
 using GeneLife.Core.Components;
 using GeneLife.Core.Components.Buildings;
 using GeneLife.Genetic.GeneticTraits;
-using GeneLife.Oracle.Components;
-using GeneLife.Oracle.Core;
+using GeneLife.Relations;
+using GeneLife.Relations.Components;
 
 namespace GeneLife.Core.Entities.Generators;
 
@@ -26,19 +26,19 @@ public static class TemplateCityGenerator
         man2.Add(new Relation(woman2.Id));
         woman2.Add(new Relation(man2.Id));
 
-        house2.Set(new HouseHold(new [] { man2.Id, woman2.Id }));
+        house2.Set(new HouseHold(new[] { man2.Id, woman2.Id }));
         man2.Add(new Home { Position = new Vector3(100, 250, 0), Id = house2.Id });
         woman2.Add(new Home { Position = new Vector3(100, 250, 0), Id = house2.Id });
-        
+
         var familyId = Guid.NewGuid();
         man1.Add(new FamilyMember { FamilyId = familyId, Generation = 0, MemberType = FamilyMemberType.Father });
         childGirl1.Add(new FamilyMember { FamilyId = familyId, Generation = 1, MemberType = FamilyMemberType.Child });
 
-        house1.Set(new HouseHold(new []{ man1.Id, childGirl1.Id }));
+        house1.Set(new HouseHold(new[] { man1.Id, childGirl1.Id }));
         man1.Add(new Home { Position = new Vector3(0, 0, 0), Id = house1.Id });
         childGirl1.Add(new Home { Position = new Vector3(0, 0, 0), Id = house1.Id });
 
-        house3.Set(new HouseHold(new []{ woman1.Id }));
+        house3.Set(new HouseHold(new[] { woman1.Id }));
         woman1.Add(new Home { Position = new Vector3(50, 150, 0), Id = house3.Id });
     }
 }

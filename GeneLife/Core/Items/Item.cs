@@ -2,20 +2,13 @@
 
 namespace GeneLife.Core.Items;
 
-public struct Item
+public struct Item(int id, ItemType itemType, string name, int price, ShopType shopType)
 {
-    public ItemType Type;
-    public int Id;
-    public string Name;
-    public int Price;
-    public ShopType ShopType;
+    public ItemType Type = itemType;
+    public int Id = id;
+    public string Name = name;
+    public int Price = price;
+    public ShopType ShopType = shopType;
 
-    public Item(int id, ItemType itemType, string name, int price, ShopType shopType)
-    {
-        Id = id;
-        Type = itemType;
-        Name = name;
-        Price = price;
-        ShopType = shopType;
-    }
+    public readonly string Description() => $"Id: {Id} Type: {Type}";
 }

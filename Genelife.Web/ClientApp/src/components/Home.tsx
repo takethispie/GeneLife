@@ -14,7 +14,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
 import { match } from "ts-pattern";
 import { NpcList } from "./NpcList";
-import { SET_TICKS_PER_DAY } from "../app.slice";
+import { SET_MILLISECONDS_PER_TICK, SET_TICKS_PER_DAY } from "../app.slice";
 import { StructureList } from "./StructureList";
 
 export default function Home() {
@@ -74,15 +74,18 @@ export default function Home() {
                             <CardHeader title="Simulation Options"></CardHeader>
                             <CardContent>
                                 <Typography variant="h6">Info</Typography>
-                                <Typography variant="body2" style={{ paddingLeft: 10 }}>
-                                    {state.appSlice.totalTicks} Ticks
-                                </Typography>
+                                <Typography>Time {state.simulationSlice.simulationState.time}</Typography>
                                 <Typography variant="h6">Create</Typography>
                                 <Button onClick={() => dispatch(CREATE_SMALL_CITY())}>Create Small City</Button>
                                 <Typography variant="h6">Ticks Per Day</Typography>
-                                <Button onClick={() => dispatch(SET_TICKS_PER_DAY(5))}>5 Ticks</Button>
-                                <Button onClick={() => dispatch(SET_TICKS_PER_DAY(10))}>10 Ticks</Button>
-                                <Button onClick={() => dispatch(SET_TICKS_PER_DAY(30))}>30 Ticks</Button>
+                                <Button onClick={() => dispatch(SET_TICKS_PER_DAY(24))}>24 Ticks</Button>
+                                <Button onClick={() => dispatch(SET_TICKS_PER_DAY(48))}>48 Ticks</Button>
+                                <Button onClick={() => dispatch(SET_TICKS_PER_DAY(192))}>192 Ticks</Button>
+                                <Button onClick={() => dispatch(SET_TICKS_PER_DAY(240))}>240 Ticks</Button>
+                                <Typography variant="h6">Seconds per tick</Typography>
+                                <Button onClick={() => dispatch(SET_MILLISECONDS_PER_TICK(1000))}>1s</Button>
+                                <Button onClick={() => dispatch(SET_MILLISECONDS_PER_TICK(500))}>0.5s</Button>
+                                <Button onClick={() => dispatch(SET_MILLISECONDS_PER_TICK(250))}>0.25s</Button>
                             </CardContent>
                         </Card>
                     </Grid>

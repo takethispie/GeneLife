@@ -1,6 +1,5 @@
 ﻿using Arch.Core;
 using Arch.System;
-using GeneLife.Athena;
 using GeneLife.Core.Entities.Factories;
 using GeneLife.Tests.Factories;
 using GeneLife.Core.Entities.Generators;
@@ -9,8 +8,10 @@ using Arch.Core.Extensions;
 using GeneLife.Core.Components;
 using System.Numerics;
 using FluentAssertions;
+using GeneLife.Survival;
 
 namespace GeneLife.Tests.World;
+
 public class MoveTests
 {
     private Arch.Core.World world;
@@ -30,11 +31,9 @@ public class MoveTests
         world = Arch.Core.World.Create();
         archetypeFactory = new ArchetypeFactory();
         archetypeFactory.RegisterFactory(new NpcArchetypeFactory());
-        archetypeFactory.RegisterFactory(new VehicleArchetypeFactory());
         archetypeFactory.RegisterFactory(new BuildingsArchetypeFactory());
-        archetypeFactory.RegisterFactory(new LiquidsArchetypeFactory());
         systems = new Group<float>();
-        AthenaSystem.Register(world, systems, archetypeFactory);
+        SurvivalSystem.Register(world, systems, archetypeFactory);
         systems.Initialize();
     }
 

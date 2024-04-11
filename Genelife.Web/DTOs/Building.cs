@@ -1,6 +1,6 @@
 ﻿using GeneLife.Core.Components;
 using GeneLife.Core.Components.Buildings;
-using GeneLife.Sibyl.Components;
+using GeneLife.Knowledge.Components;
 
 namespace Genelife.Web.DTOs;
 
@@ -18,7 +18,7 @@ public class Building
         Position = position.Coordinates.ToString();
         Type = "shop";
     }
-    
+
     public Building(int id, Adress adress, Position position, School _)
     {
         Id = id;
@@ -26,7 +26,7 @@ public class Building
         Position = position.Coordinates.ToString();
         Type = "school";
     }
-    
+
     public Building(int id, Adress adress, Position position, HouseHold _)
     {
         Id = id;

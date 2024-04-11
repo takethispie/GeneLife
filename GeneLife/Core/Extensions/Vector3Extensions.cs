@@ -13,15 +13,15 @@ public static class Vector3Extensions
     {
         var cubeOriginCorner = new Vector3(origin.X - distanceToBoundary, origin.Y - distanceToBoundary,
             origin.Z - distanceToBoundary);
-        
+
         var oppositeCorner = cubeOriginCorner + new Vector3(distanceToBoundary, distanceToBoundary, distanceToBoundary);
-        
+
         var insideEntities = new ConcurrentBag<Entity>();
         foreach (var entity in entities)
         {
             if (!entity.Has<Position>()) continue;
             var position = entity.Get<Position>();
-            if(position.Coordinates.X > cubeOriginCorner.X
+            if (position.Coordinates.X > cubeOriginCorner.X
                    && position.Coordinates.X < oppositeCorner.X
                    && position.Coordinates.Y > cubeOriginCorner.Y
                    && position.Coordinates.Y < oppositeCorner.Y
@@ -32,7 +32,7 @@ public static class Vector3Extensions
         return insideEntities.ToArray();
     }
 
-    public static bool CloseEnoughForWalkingTo(this Vector3 origin, Vector3 target) 
+    public static bool CloseEnoughForWalkingTo(this Vector3 origin, Vector3 target)
         => Vector3.Distance(origin, target) < Constants.MaxWalkingDistance;
 
     public static Vector3 MovePointTowards(this Vector3 a, Vector3 b, float distance)

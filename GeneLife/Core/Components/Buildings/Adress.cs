@@ -1,5 +1,4 @@
-﻿using System.Numerics;
-
+﻿
 namespace GeneLife.Core.Components.Buildings;
 
 public struct Adress

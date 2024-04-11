@@ -3,7 +3,7 @@ using GeneLife.Core.Components;
 using GeneLife.Core.Components.Buildings;
 using GeneLife.Core.Entities.Exceptions;
 using GeneLife.Core.Entities.Interfaces;
-using GeneLife.Sibyl.Components;
+using GeneLife.Knowledge.Components;
 
 namespace GeneLife.Core.Entities.Factories;
 
@@ -11,32 +11,29 @@ internal class BuildingsArchetypeFactory : IArchetypeBuilder
 {
     private static ComponentType[] House() => new ComponentType[]
     {
-        typeof(Flammable),
-        typeof(Lifespan),
-        typeof(Ownable),
-        typeof(Position),
-        typeof(Adress),
-        typeof(HouseHold)
+    typeof(Flammable),
+    typeof(Ownable),
+    typeof(Position),
+    typeof(Adress),
+    typeof(HouseHold)
     };
 
     private static ComponentType[] SchoolBuilding() => new ComponentType[]
     {
-        typeof(Flammable),
-        typeof(Lifespan),
-        typeof(Ownable),
-        typeof(Position),
-        typeof(Adress),
-        typeof(School)
+    typeof(Flammable),
+    typeof(Ownable),
+    typeof(Position),
+    typeof(Adress),
+    typeof(School)
     };
 
     private static ComponentType[] Shop() => new ComponentType[]
     {
-        typeof(Flammable),
-        typeof(Lifespan),
-        typeof(Ownable),
-        typeof(Position),
-        typeof(Adress),
-        typeof(Shop)
+    typeof(Flammable),
+    typeof(Ownable),
+    typeof(Position),
+    typeof(Adress),
+    typeof(Shop)
     };
 
     public ComponentType[] Build(string type)
