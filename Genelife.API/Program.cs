@@ -1,31 +1,22 @@
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddAuthorization();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
-namespace Genelife.API;
+var app = builder.Build();
 
-public class Program
+app.UseSwagger();
+app.UseSwaggerUI();
+
+app.UseHttpsRedirection();
+
+app.UseAuthorization();
+
+app.MapGet("/healthcheck", (HttpContext httpContext) =>
 {
-    public static void Main(string[] args)
-    {
-        var builder = WebApplication.CreateBuilder(args);
-        builder.Services.AddAuthorization();
-        builder.Services.AddEndpointsApiExplorer();
-        builder.Services.AddSwaggerGen();
+    return Results.Ok();
+})
+.WithName("healthcheck")
+.WithOpenApi();
 
-        var app = builder.Build();
-
-        app.UseSwagger();
-        app.UseSwaggerUI();
-
-        app.UseHttpsRedirection();
-
-        app.UseAuthorization();
-
-        app.MapGet("/healthcheck", (HttpContext httpContext) =>
-        {
-            return Results.Ok();
-        })
-        .WithName("healthcheck")
-        .WithOpenApi();
-
-        app.Run();
-    }
-}
+app.Run();

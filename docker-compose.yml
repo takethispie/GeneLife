@@ -1,0 +1,49 @@
+version: "3.9"
+
+services:
+  rabbitmq:
+    image: masstransit/rabbitmq:latest
+    ports:
+     - "5672:5672"
+     - "15672:15672"
+     - "15692:15692"
+
+  survival:
+    build:
+      context: .
+      dockerfile: Dockerfile-survival
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    depends_on:
+      rabbitmq:
+        condition: service_started
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    depends_on:
+      rabbitmq:
+        condition: service_started
+
+  main:
+    build:
+      context: .
+      dockerfile: Dockerfile-main
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    depends_on:
+      rabbitmq:
+        condition: service_started
+
+  work:
+    build:
+      context: .
+      dockerfile: Dockerfile-work
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    depends_on:
+      rabbitmq:
+        condition: service_started
