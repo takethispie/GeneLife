@@ -53,10 +53,16 @@ app.MapPost("/create/human/{sex}", ([FromQuery]Sex sex, [FromServices] IPublishE
 .WithName("createHuman")
 .WithOpenApi();
 
-app.MapPost("/simulation/start", ([FromServices] IPublishEndpoint endpoint) => {
+app.MapGet("/simulation/start", ([FromServices] IPublishEndpoint endpoint) => {
     endpoint.Publish(new StartClock());
 })
 .WithName("simulationStart")
+.WithOpenApi();
+
+app.MapGet("/simulation/setClockSpeed/{milliseconds}", ([FromQuery] int milliseconds, [FromServices] IPublishEndpoint endpoint) => {
+    endpoint.Publish(new SetClockSpeed(milliseconds));
+})
+.WithName("setClockSpeed")
 .WithOpenApi();
 
 app.Run();

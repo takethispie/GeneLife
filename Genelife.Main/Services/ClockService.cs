@@ -41,4 +41,9 @@ public class ClockService {
             await PublishEndpoint.Publish(new DayElapsed());
         }
     }
+
+    public void SetSpeed(int milliseconds) {
+        if(milliseconds >= 200) Timer.Interval = milliseconds;
+        else Timer.Interval = 1000;
+    }
 }

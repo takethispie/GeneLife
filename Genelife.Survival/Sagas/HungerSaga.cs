@@ -1,13 +1,18 @@
+using System.Linq.Expressions;
 using Genelife.Domain.Commands;
 using Genelife.Domain.Events;
 using MassTransit;
 
 namespace Genelife.Survival.Sagas;
 
-public class HungerSaga : ISaga, InitiatedBy<CreateHuman>, IConsumer<HourElapsed>, IConsumer<DayElapsed>
+public class HungerSaga : ISaga, InitiatedBy<CreateHuman>, Observes<HourElapsed, HungerSaga>, Observes<DayElapsed, HungerSaga>
 {
     public Guid CorrelationId { get; set; }
     public int Hunger { get; set; }
+
+    public Expression<Func<HungerSaga, HourElapsed, bool>> CorrelationExpression => (_,_) => true;
+
+    Expression<Func<HungerSaga, DayElapsed, bool>> Observes<DayElapsed, HungerSaga>.CorrelationExpression => (_,_) => true;
 
     public Task Consume(ConsumeContext<CreateHuman> context)
     {
@@ -23,8 +28,16 @@ public class HungerSaga : ISaga, InitiatedBy<CreateHuman>, IConsumer<HourElapsed
 
     public async Task Consume(ConsumeContext<DayElapsed> context)
     {
+        if(Hunger >= 10) {
+            Console.WriteLine($"{CorrelationId} is starving");
+            return;
+        }
         Hunger++;
-        if(Hunger >= 8) await context.Publish(new StartedBeingHungry(CorrelationId));
+        if(Hunger >= 8) {
+            Console.WriteLine($"{CorrelationId} started being hungry");
+            await context.Publish(new StartedBeingHungry(CorrelationId));
+        }
+        Console.WriteLine($"{CorrelationId} Hunger level: {Hunger}");
         return;
     }
 }
