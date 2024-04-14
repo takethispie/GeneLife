@@ -1,3 +1,4 @@
+using Genelife.Main.Services;
 using MassTransit;
 using System.Reflection;
 
@@ -10,6 +11,7 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
     Host.CreateDefaultBuilder(args)
         .ConfigureServices((hostContext, services) =>
         {
+            services.AddSingleton<ClockService>();
             services.AddMassTransit(x =>
             {
                 x.AddDelayedMessageScheduler();
