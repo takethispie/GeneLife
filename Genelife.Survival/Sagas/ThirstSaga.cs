@@ -5,24 +5,17 @@ using MassTransit;
 
 namespace Genelife.Survival.Sagas;
 
-public class ThirstSaga : ISaga, InitiatedBy<CreateHuman>, Observes<HourElapsed, ThirstSaga>, Observes<DayElapsed, ThirstSaga>
+public class ThirstSaga : ISaga, InitiatedBy<CreateHuman>, Observes<DayElapsed, ThirstSaga>
 {
     public Guid CorrelationId { get; set; }
     public int Thirst { get; set; }
 
     public Expression<Func<ThirstSaga, DayElapsed, bool>> CorrelationExpression => (_, _) => true;
 
-    Expression<Func<ThirstSaga, HourElapsed, bool>> Observes<HourElapsed, ThirstSaga>.CorrelationExpression => (_, _) => true;
-
     public Task Consume(ConsumeContext<CreateHuman> context)
     {
         Console.WriteLine($"{context.Message.Human.FirstName} {context.Message.Human.LastName}'s thirst set to 0");
         Thirst = 0;
-        return Task.CompletedTask;
-    }
-
-    public Task Consume(ConsumeContext<HourElapsed> context)
-    {
         return Task.CompletedTask;
     }
 
