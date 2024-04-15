@@ -1,3 +1,3 @@
-namespace Domain.Events;
+namespace Genelife.Domain.Events;
 
 public record Tick();

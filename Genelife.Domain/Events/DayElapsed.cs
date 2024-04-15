@@ -1,3 +1,3 @@
 namespace Genelife.Domain.Events;
 
-public record HourElapsed();
+public record DayElapsed();

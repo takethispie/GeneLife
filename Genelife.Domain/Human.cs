@@ -1,3 +1,3 @@
 ﻿namespace Genelife.Domain;
 
-public record Human(Guid Id, string FirstName, string LastName, int Age, Sex Sex);
+public record Human(Guid CorrelationId, string FirstName, string LastName, int Age, Sex Sex);

@@ -1,5 +1,6 @@
 using Genelife.Domain;
+using MassTransit;
 
-namespace Domain.Commands;
+namespace Genelife.Domain.Commands;
 
-public record CreateHuman(Guid Id, Human Human);
+public record CreateHuman(Guid CorrelationId, Human Human) : CorrelatedBy<Guid>;
