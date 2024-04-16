@@ -1,3 +1,4 @@
+using Genelife.Physical.Repository;
 using MassTransit;
 using System.Reflection;
 
@@ -9,6 +10,7 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
     Host.CreateDefaultBuilder(args)
         .ConfigureServices((hostContext, services) =>
         {
+            services.AddSingleton<GroceryShopRepository>();
             services.AddMassTransit(x =>
             {
                 x.SetKebabCaseEndpointNameFormatter();

@@ -4,7 +4,7 @@ using MassTransit;
 
 namespace Genelife.Main.Consumers;
 
-public class ClockConsumer(ClockService service) : IConsumer<StartClock>, IConsumer<SetClockSpeed>
+public class ClockConsumer(ClockService service) : IConsumer<StartClock>, IConsumer<SetClockSpeed>, IConsumer<StopClock>
 {
     private readonly ClockService ClockService = service;
 
@@ -19,6 +19,13 @@ public class ClockConsumer(ClockService service) : IConsumer<StartClock>, IConsu
     {
         Console.WriteLine($"Set clock speed to {context.Message.Milliseconds} ms");
         ClockService.SetSpeed(context.Message.Milliseconds);
+        return Task.CompletedTask;
+    }
+
+    public Task Consume(ConsumeContext<StopClock> context)
+    {
+        Console.WriteLine("Stopped simulation");
+        ClockService.Stop();
         return Task.CompletedTask;
     }
 }
