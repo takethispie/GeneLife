@@ -14,9 +14,6 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
             services.AddMassTransit(x =>
             {
                 x.SetKebabCaseEndpointNameFormatter();
-
-                // By default, sagas are in-memory, but should be changed to a durable
-                // saga repository.
                 x.SetInMemorySagaRepositoryProvider();
 
                 var entryAssembly = Assembly.GetEntryAssembly();

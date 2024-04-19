@@ -47,7 +47,7 @@ app.MapGet("/healthcheck", (HttpContext httpContext) => Results.Ok())
 
 app.MapPost("/create/human/{sex}", ([FromQuery]Sex sex, [FromServices] IPublishEndpoint endpoint) => {
     var human = HumanGenerator.Build(sex);
-    endpoint.Publish(new CreateHuman(human.CorrelationId, human));
+    endpoint.Publish(new CreateHuman(human.CorrelationId, human, Vector3.Zero));
     return Results.Ok(human.CorrelationId);
 })
 .WithName("createHuman")
@@ -82,6 +82,13 @@ app.MapGet("/simulation/setClockSpeed/{milliseconds}", ([FromQuery] int millisec
 })
 .WithName("setClockSpeed")
 .WithOpenApi();
+
+app.MapGet("/action/go/{correlationId}/groceryShop", ([FromQuery]Guid correlationId, [FromServices] IPublishEndpoint endpoint) => {
+    endpoint.Publish(new GoToGroceryShop(correlationId));
+})
+.WithName("simulationStop")
+.WithOpenApi();
+
 
 
 app.Run();
