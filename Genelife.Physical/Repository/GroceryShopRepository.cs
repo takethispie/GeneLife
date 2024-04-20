@@ -7,7 +7,7 @@ public class GroceryShopRepository() {
     private List<GroceryShop> groceryShops = [];
 
     public void Add(GroceryShop groceryShop) {
-        if(groceryShops.Any(x => x.Guid == groceryShop.Guid) is not true) 
+        if(groceryShops.Any(x => x.Guid == groceryShop.Guid) is false) 
             groceryShops.Add(groceryShop);
     }
 

@@ -11,6 +11,7 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
         .ConfigureServices((hostContext, services) =>
         {
             services.AddSingleton<GroceryShopRepository>();
+            services.AddSingleton<HumanRepository>();
             services.AddMassTransit(x =>
             {
                 x.SetKebabCaseEndpointNameFormatter();

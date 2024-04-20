@@ -12,7 +12,7 @@ public class GroceryShopSaga : ISaga, InitiatedBy<CreateGroceryShop>
 
     public Task Consume(ConsumeContext<CreateGroceryShop> context)
     {
-        Console.WriteLine($"created Grocery Store {context.Message.CorrelationId}");
+        Console.WriteLine($"created Grocery Store {context.Message.CorrelationId} at position {context.Message.Position}");
         Size = context.Message.Size;
         Position = context.Message.Position;
         return Task.CompletedTask;

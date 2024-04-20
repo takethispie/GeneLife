@@ -23,6 +23,7 @@ public class HungerSaga : ISaga, InitiatedBy<CreateHuman>, Observes<DayElapsed, 
     {
         if(Hunger >= 10) {
             Console.WriteLine($"{CorrelationId} is starving");
+            
             return;
         }
         Hunger++;

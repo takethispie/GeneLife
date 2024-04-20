@@ -54,12 +54,27 @@ app.MapPost("/create/human/{sex}", ([FromQuery]Sex sex, [FromServices] IPublishE
 .WithOpenApi();
 
 
-app.MapPost("/create/groceryShop/{x}/{y}", ([FromQuery]float x, [FromQuery] float y, [FromServices] IPublishEndpoint endpoint) => {
+app.MapPost("/create/groceryShop/{x}/{y}", ([FromQuery]int x, [FromQuery] int y, [FromServices] IPublishEndpoint endpoint) => {
     var guid = Guid.NewGuid();
     endpoint.Publish(new CreateGroceryShop(guid, new Vector3(x, y, 0), new Vector2(50, 50)));
     return Results.Ok(guid);
 })
 .WithName("createGrocery")
+.WithOpenApi();
+
+
+app.MapPost("/create/city/small", ([FromServices] IPublishEndpoint endpoint) => {
+    var guid = Guid.NewGuid();
+    endpoint.Publish(new CreateGroceryShop(guid, new Vector3(500, 500, 0), new Vector2(50, 50)));
+    var human = HumanGenerator.Build(Sex.Male);
+    endpoint.Publish(new CreateHuman(human.CorrelationId, human, Vector3.Zero));
+    human = HumanGenerator.Build(Sex.Male);
+    endpoint.Publish(new CreateHuman(human.CorrelationId, human, new Vector3(50, 100, 0)));
+    human = HumanGenerator.Build(Sex.Female);
+    endpoint.Publish(new CreateHuman(human.CorrelationId, human, new Vector3(100, 200, 0)));
+    return Results.Ok(guid);
+})
+.WithName("createSmallCity")
 .WithOpenApi();
 
 
@@ -83,12 +98,12 @@ app.MapGet("/simulation/setClockSpeed/{milliseconds}", ([FromQuery] int millisec
 .WithName("setClockSpeed")
 .WithOpenApi();
 
+
 app.MapGet("/action/go/{correlationId}/groceryShop", ([FromQuery]Guid correlationId, [FromServices] IPublishEndpoint endpoint) => {
     endpoint.Publish(new GoToGroceryShop(correlationId));
 })
-.WithName("simulationStop")
+.WithName("goToGroceryShop")
 .WithOpenApi();
-
 
 
 app.Run();

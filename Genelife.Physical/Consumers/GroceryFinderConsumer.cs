@@ -6,15 +6,16 @@ namespace Genelife.Physical.Consumers;
 
 public class GroceryFinderConsumer(GroceryShopRepository groceryShopRepository, HumanRepository humanRepository) : IConsumer<GoToGroceryShop>
 {
-    private readonly GroceryShopRepository repository = groceryShopRepository;
-    private readonly HumanRepository humanRepository = humanRepository;
+    private GroceryShopRepository repository = groceryShopRepository;
+    private HumanRepository humanRepository = humanRepository;
 
     public async Task Consume(ConsumeContext<GoToGroceryShop> context)
     {
-        var human = humanRepository.Get(context.Message.CorrelationId);
+        Console.WriteLine($"finding nearest grocery shop for Human {context.Message.HumanId}");
+        var human = humanRepository.Get(context.Message.HumanId);
         if(human == null)
         {
-            Console.WriteLine($"human with id: {context.Message.CorrelationId} not found");
+            Console.WriteLine($"human with id: {context.Message.HumanId} not found");
             return;
         }
         var grocery = repository.GetClosest(human.Position);
