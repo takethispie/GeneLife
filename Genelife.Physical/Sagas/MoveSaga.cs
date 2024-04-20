@@ -32,13 +32,13 @@ public class MoveSaga : MassTransitStateMachine<MoveSagaState>
 
         Event(() => TickEvent, e => e.CorrelateBy(saga => "any", ctx => "any"));
 
-        Initially(When(CreateHuman).Then(bc =>bc.Saga.Position = bc.Message.Position).TransitionTo(Idle));
+        Initially(When(CreateHuman).Then(bc =>bc.Saga.Position = new Vector3(bc.Message.X, bc.Message.Y, 0)).TransitionTo(Idle));
 
         During(Idle, 
             When(MoveTo)
             .Then(bc => {
-                Console.WriteLine($"Human {bc.Saga.CorrelationId} moving to {bc.Message.Position}");
-                bc.Saga.Target = bc.Message.Position;
+                Console.WriteLine($"Human {bc.Saga.CorrelationId} moving to {bc.Message.X}:{bc.Message.Y}");
+                bc.Saga.Target = new Vector3(bc.Message.X, bc.Message.Y, 0);
             }).TransitionTo(Moving),
 
             When(TickEvent).TransitionTo(Idle),
@@ -49,7 +49,7 @@ public class MoveSaga : MassTransitStateMachine<MoveSagaState>
             When(TickEvent, ctx => Vector3.Distance(ctx.Saga.Position, ctx.Saga.Target) > 100f)
             .Then(bc => {
                 Console.WriteLine($"{bc.Saga.CorrelationId} at {bc.Saga.Position} moving towards {bc.Saga.Target}");
-                bc.Saga.Position.MovePointTowards(bc.Saga.Target, 100f);
+                bc.Saga.Position = bc.Saga.Position.MovePointTowards(bc.Saga.Target, 100f);
             }).TransitionTo(Moving),
 
             When(Died).TransitionTo(Dead)

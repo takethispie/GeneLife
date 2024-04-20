@@ -45,7 +45,7 @@ app.MapGet("/healthcheck", (HttpContext httpContext) => Results.Ok()).WithName("
 
 app.MapPost("/create/human/{sex}", (Sex sex, [FromServices] IPublishEndpoint endpoint) => {
     var human = HumanGenerator.Build(sex);
-    endpoint.Publish(new CreateHuman(human.CorrelationId, human, Vector3.Zero));
+    endpoint.Publish(new CreateHuman(human.CorrelationId, human, 0, 0));
     return Results.Ok(human.CorrelationId);
 })
 .WithName("createHuman")
@@ -54,7 +54,7 @@ app.MapPost("/create/human/{sex}", (Sex sex, [FromServices] IPublishEndpoint end
 
 app.MapPost("/create/groceryShop/{x}/{y}", (int x, int y, [FromServices] IPublishEndpoint endpoint) => {
     var guid = Guid.NewGuid();
-    endpoint.Publish(new CreateGroceryShop(guid, x, y, new Vector2(50, 50)));
+    endpoint.Publish(new CreateGroceryShop(guid, x, y, 50, 50));
     return Results.Ok(guid);
 })
 .WithName("createGrocery")
@@ -63,13 +63,13 @@ app.MapPost("/create/groceryShop/{x}/{y}", (int x, int y, [FromServices] IPublis
 
 app.MapPost("/create/city/small", ([FromServices] IPublishEndpoint endpoint) => {
     var guid = Guid.NewGuid();
-    endpoint.Publish(new CreateGroceryShop(guid, 500, 500, new Vector2(50, 50)));
+    endpoint.Publish(new CreateGroceryShop(guid, 500, 500, 50, 50));
     var human = HumanGenerator.Build(Sex.Male);
-    endpoint.Publish(new CreateHuman(human.CorrelationId, human, Vector3.Zero));
+    endpoint.Publish(new CreateHuman(human.CorrelationId, human, 0, 0));
     human = HumanGenerator.Build(Sex.Male);
-    endpoint.Publish(new CreateHuman(human.CorrelationId, human, new Vector3(50, 100, 0)));
+    endpoint.Publish(new CreateHuman(human.CorrelationId, human, 50, 100));
     human = HumanGenerator.Build(Sex.Female);
-    endpoint.Publish(new CreateHuman(human.CorrelationId, human, new Vector3(100, 200, 0)));
+    endpoint.Publish(new CreateHuman(human.CorrelationId, human, 100, 200));
     return Results.Ok(guid);
 })
 .WithName("createSmallCity")

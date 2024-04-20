@@ -14,7 +14,7 @@ public class GroceryShopCreationConsumer(GroceryShopRepository groceryShopReposi
     {
         Console.WriteLine($"storing grocery store: {context.Message.CorrelationId}");
         var msg = context.Message;
-        repository.Add(new GroceryShop(msg.CorrelationId, new Vector3(msg.X, msg.Y, 0), msg.Size ));
+        repository.Add(new GroceryShop(msg.CorrelationId, new Vector3(msg.X, msg.Y, 0), msg.Width, msg.Depth ));
         return Task.CompletedTask;
     }
 }

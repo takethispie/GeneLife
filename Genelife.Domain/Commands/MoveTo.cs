@@ -3,4 +3,4 @@ using System.Numerics;
 
 namespace Genelife.Domain.Commands;
 
-public record MoveTo(Guid CorrelationId, Vector3 Position) : CorrelatedBy<Guid>;
+public record MoveTo(Guid CorrelationId, int X, int Y) : CorrelatedBy<Guid>;

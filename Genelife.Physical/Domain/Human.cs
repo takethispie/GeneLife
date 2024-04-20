@@ -1,5 +1,4 @@
-﻿using MassTransit;
-using System.Numerics;
+﻿using System.Numerics;
 
 namespace Genelife.Physical.Domain;
-public record Human(Guid CorrelationId, Vector3 Position) : CorrelatedBy<Guid>;
+public record Human(Guid CorrelationId, Vector3 Position);

@@ -12,8 +12,8 @@ public class GroceryShopSaga : ISaga, InitiatedBy<CreateGroceryShop>
 
     public Task Consume(ConsumeContext<CreateGroceryShop> context)
     {
-        Console.WriteLine($"created Grocery Store {context.Message.CorrelationId} at position {context.Message.X}");
-        Size = context.Message.Size;
+        Console.WriteLine($"created Grocery Store {context.Message.CorrelationId} at position {context.Message.X}:{context.Message.Y}");
+        Size = new Vector2(context.Message.Width, context.Message.Depth);
         Position = new Vector3(context.Message.X, context.Message.Y, 0);
         return Task.CompletedTask;
     }
