@@ -21,7 +21,7 @@ public class GroceryFinderConsumer(GroceryShopRepository groceryShopRepository, 
         var grocery = repository.GetClosest(human.Position);
         if(grocery == null)
             Console.WriteLine($"grocery not found close to position {human.Position}");
-        await context.Publish(new MoveTo(human.CorrelationId, Convert.ToInt32(grocery.Position.X), Convert.ToInt32(grocery.Position.Y)));
+        await context.Publish(new MoveTo(human.CorrelationId, Convert.ToInt32(grocery.Position.X), Convert.ToInt32(grocery.Position.Y), grocery.Guid));
         return;
     }
 

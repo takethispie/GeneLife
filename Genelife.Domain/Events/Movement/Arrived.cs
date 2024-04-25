@@ -2,4 +2,4 @@
 
 namespace Genelife.Domain.Events;
 
-public record Arrived(Guid CorrelationId) : CorrelatedBy<Guid>;
+public record Arrived(Guid CorrelationId, Guid TargetId) : CorrelatedBy<Guid>;

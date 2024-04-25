@@ -103,5 +103,17 @@ app.MapGet("/action/go/{correlationId}/groceryShop", (Guid correlationId, [FromS
 .WithName("goToGroceryShop")
 .WithOpenApi();
 
+app.MapGet("/cheat/sethunger/{correlationId}/{value}", async (Guid correlationId, int value, [FromServices] IPublishEndpoint endpoint) => {
+    await endpoint.Publish(new SetHunger(correlationId, value));
+})
+.WithName("set Hunger")
+.WithOpenApi();
+
+app.MapGet("/cheat/setthirst/{correlationId}/{value}", async (Guid correlationId, int value, [FromServices] IPublishEndpoint endpoint) => {
+    await endpoint.Publish(new SetThirst(correlationId, value));
+})
+.WithName("set thirst")
+.WithOpenApi();
+
 
 app.Run();

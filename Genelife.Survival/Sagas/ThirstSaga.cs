@@ -5,7 +5,7 @@ using MassTransit;
 
 namespace Genelife.Survival.Sagas;
 
-public class ThirstSaga : ISaga, InitiatedBy<CreateHuman>, Observes<DayElapsed, ThirstSaga>, Orchestrates<HasDrank>
+public class ThirstSaga : ISaga, InitiatedBy<CreateHuman>, Observes<DayElapsed, ThirstSaga>, Orchestrates<Drink>, Orchestrates<SetThirst>
 {
     public Guid CorrelationId { get; set; }
     public int Thirst { get; set; }
@@ -21,12 +21,12 @@ public class ThirstSaga : ISaga, InitiatedBy<CreateHuman>, Observes<DayElapsed, 
 
     public async Task Consume(ConsumeContext<DayElapsed> context)
     {
-        if(Thirst >= 20) {
-            Console.WriteLine($"{CorrelationId} is starving");
-            return;
-        }
         Thirst++;
-        if(Thirst >= 17) {
+        if(Thirst >= 20) {
+            Console.WriteLine($"{CorrelationId} is dehydrated");
+            await context.Publish(new Dehydrated(CorrelationId));
+        }
+        else if(Thirst >= 17) {
             Console.WriteLine($"{CorrelationId} started being thirsty");
             await context.Publish(new StartedBeingThirsty(CorrelationId));
         }
@@ -34,9 +34,17 @@ public class ThirstSaga : ISaga, InitiatedBy<CreateHuman>, Observes<DayElapsed, 
         return;
     }
 
-    public Task Consume(ConsumeContext<HasDrank> context)
+    public async Task Consume(ConsumeContext<Drink> context)
     {
         Thirst = 0;
+        Console.WriteLine($"human {CorrelationId} drank");
+        await context.Publish(new HasDrank(CorrelationId));
+    }
+
+    public Task Consume(ConsumeContext<SetThirst> context)
+    {
+        Thirst = context.Message.Value;
+        Console.WriteLine($"set thirst to {Thirst} for human {CorrelationId}");
         return Task.CompletedTask;
     }
 }

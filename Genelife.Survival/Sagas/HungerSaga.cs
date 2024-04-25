@@ -5,12 +5,12 @@ using MassTransit;
 
 namespace Genelife.Survival.Sagas;
 
-public class HungerSaga : ISaga, InitiatedBy<CreateHuman>, Observes<DayElapsed, HungerSaga>, Orchestrates<HasEaten>
+public class HungerSaga : ISaga, InitiatedBy<CreateHuman>, Observes<DayElapsed, HungerSaga>, Orchestrates<Eat>, Orchestrates<SetHunger>
 {
     public Guid CorrelationId { get; set; }
     public int Hunger { get; set; }
 
-    public Expression<Func<HungerSaga, DayElapsed, bool>> CorrelationExpression => (_,_) => true;
+    public Expression<Func<HungerSaga, DayElapsed, bool>> CorrelationExpression => (_, _) => true;
 
     public Task Consume(ConsumeContext<CreateHuman> context)
     {
@@ -21,13 +21,14 @@ public class HungerSaga : ISaga, InitiatedBy<CreateHuman>, Observes<DayElapsed, 
 
     public async Task Consume(ConsumeContext<DayElapsed> context)
     {
-        if(Hunger >= 10) {
-            Console.WriteLine($"{CorrelationId} is starving");
-            
-            return;
-        }
         Hunger++;
-        if(Hunger >= 8) {
+        if (Hunger >= 10)
+        {
+            Console.WriteLine($"{CorrelationId} is starving");
+            await context.Publish(new Starving(CorrelationId));
+        }
+        else if (Hunger >= 8)
+        {
             Console.WriteLine($"{CorrelationId} started being hungry");
             await context.Publish(new StartedBeingHungry(CorrelationId));
         }
@@ -35,9 +36,17 @@ public class HungerSaga : ISaga, InitiatedBy<CreateHuman>, Observes<DayElapsed, 
         return;
     }
 
-    public Task Consume(ConsumeContext<HasEaten> context)
+    public async Task Consume(ConsumeContext<Eat> context)
     {
         Hunger = 0;
+        Console.WriteLine($"human {CorrelationId} ate food");
+        await context.Publish(new HasEaten(CorrelationId));
+    }
+
+    public Task Consume(ConsumeContext<SetHunger> context)
+    {
+        Hunger = context.Message.Value;
+        Console.WriteLine($"set Hunger to {Hunger} for human {CorrelationId}");
         return Task.CompletedTask;
     }
 }
