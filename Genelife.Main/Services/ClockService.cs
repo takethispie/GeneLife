@@ -43,7 +43,7 @@ public class ClockService {
     }
 
     public void SetSpeed(int milliseconds) {
-        if(milliseconds >= 200) Timer.Interval = milliseconds;
+        if(milliseconds >= 100) Timer.Interval = milliseconds;
         else Timer.Interval = 1000;
     }
 }

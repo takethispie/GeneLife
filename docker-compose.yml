@@ -49,3 +49,23 @@ services:
     depends_on:
       rabbitmq:
         condition: service_started
+
+  physical:
+    build:
+      context: .
+      dockerfile: Dockerfile-physical
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    depends_on:
+      rabbitmq:
+        condition: service_started
+
+  inventory:
+    build:
+      context: .
+      dockerfile: Dockerfile-inventory
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    depends_on:
+      rabbitmq:
+        condition: service_started
