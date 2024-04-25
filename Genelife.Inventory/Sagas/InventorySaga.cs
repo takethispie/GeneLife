@@ -49,6 +49,7 @@ public class InventorySaga : ISaga, InitiatedBy<CreateHuman>, InitiatedBy<Create
     {
         Money -= ItemPriceMapper.Map(context.Message.ItemType);
         Items.Add(ItemMapper.Map(context.Message.ItemType));
+        Console.WriteLine($"new balance for {CorrelationId}: {Money}C");
         await context.Publish(new ItemBought(CorrelationId, context.Message.ItemType));
     }
 }
