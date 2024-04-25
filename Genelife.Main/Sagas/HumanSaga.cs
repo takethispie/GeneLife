@@ -11,6 +11,9 @@ public class HumanSagaState : SagaStateMachineInstance
     public string CurrentState { get; set; }
     public bool Starving { get; set; } = false;
     public bool Dehydrated { get; set; } = false;
+    public int IdleTickTime { get; set; } = 0;
+    public bool IsHome { get; set; } = true;
+    public Guid Home { get; set; } = Guid.Empty;
 }
 
 public class HumanSaga : MassTransitStateMachine<HumanSagaState>
@@ -19,6 +22,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
     public State Eating { get; set; } = null;
     public State Drinking { get; set; } = null;
     public State GettingGroceries { get; set; } = null;
+    public State GoingHome { get; set; } = null;
 
 
     public Event<Dehydrated> Dehydrating { get; set; } = null;
@@ -36,18 +40,24 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         Event(() => Tick, e => e.CorrelateBy(saga => "any", ctx => "any"));
 
         During(Idle,
-            When(Dehydrating).Then(bc => {
+            When(Dehydrating).Then(async bc => {
                 bc.Saga.Dehydrated = true;
                 Console.WriteLine($"{bc.Saga.CorrelationId} going to grocery shop");
-                bc.Publish(new GoToGroceryShop(bc.Saga.CorrelationId));
+                await bc.Publish(new GoToGroceryShop(bc.Saga.CorrelationId));
             }).TransitionTo(GettingGroceries),
 
-            When(Starving).Then(bc => {
+            When(Starving).Then(async bc => {
                 bc.Saga.Starving = true;
                 Console.WriteLine($"{bc.Saga.CorrelationId} going to grocery shop");
-                bc.Publish(new GoToGroceryShop(bc.Saga.CorrelationId));
+                await bc.Publish(new GoToGroceryShop(bc.Saga.CorrelationId));
             }).TransitionTo(GettingGroceries),
 
+            When(Tick, (bc) => bc.Saga.IdleTickTime > 10 && bc.Saga.IsHome is false).Then(async bc => {
+                bc.Saga.IdleTickTime++;
+                bc.Saga.IdleTickTime = 0;
+                await bc.Publish(new GoHome(bc.Saga.CorrelationId));
+            }).TransitionTo(Idle),
+            When(Tick, (bc) => bc.Saga.IsHome is false).Then(bc => bc.Saga.IdleTickTime++).TransitionTo(Idle),
             When(Tick).TransitionTo(Idle)
         );
 
@@ -55,10 +65,10 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             When(Dehydrating).Then(bc => bc.Saga.Dehydrated = true).TransitionTo(GettingGroceries),
             When(Starving).Then(bc => bc.Saga.Starving = true).TransitionTo(GettingGroceries),
 
-            When(ArrivedSomeWhere).Then(bc => {
+            When(ArrivedSomeWhere).Then(async bc => {
                 Console.WriteLine($"{bc.Saga.CorrelationId} arrived at {bc.Message.TargetId}");
-                if(bc.Saga.Dehydrated) bc.Publish(new BuyItem(bc.Saga.CorrelationId, ItemType.Drink, bc.Message.TargetId));
-                if(bc.Saga.Starving) bc.Publish(new BuyItem(bc.Saga.CorrelationId, ItemType.Food, bc.Message.TargetId));
+                if(bc.Saga.Dehydrated) await bc.Publish(new BuyItem(bc.Saga.CorrelationId, ItemType.Drink, bc.Message.TargetId));
+                if(bc.Saga.Starving) await bc.Publish(new BuyItem(bc.Saga.CorrelationId, ItemType.Food, bc.Message.TargetId));
             }).TransitionTo(GettingGroceries),
 
             When(ItemBought).Then(async bc => {
@@ -76,6 +86,11 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             When(Ate).Then(bc => bc.Saga.Starving = false).TransitionTo(GettingGroceries),
             When(Tick, bc => bc.Saga.Dehydrated is false && bc.Saga.Starving is false).TransitionTo(Idle),
             When(Tick).TransitionTo(GettingGroceries)
+        );
+
+        During(GoingHome,
+            When(ArrivedSomeWhere).Then(bc => bc.Saga.IsHome = true).TransitionTo(Idle),
+            When(Tick).TransitionTo(GoingHome)
         );
     }
 }
