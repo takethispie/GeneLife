@@ -12,7 +12,6 @@ public class MoveSagaState : SagaStateMachineInstance
     public string CurrentState { get; set; }
     public Vector3 Position { get; set; }
     public Vector3 Target {  get; set; } = Vector3.Zero;
-
 }
 
 public class MoveSaga : MassTransitStateMachine<MoveSagaState>
@@ -34,7 +33,7 @@ public class MoveSaga : MassTransitStateMachine<MoveSagaState>
 
         Initially(When(CreateHuman).Then(bc =>bc.Saga.Position = new Vector3(bc.Message.X, bc.Message.Y, 0)).TransitionTo(Idle));
 
-        During(Idle, 
+        During(Idle,
             When(MoveTo)
             .Then(bc => {
                 Console.WriteLine($"Human {bc.Saga.CorrelationId} moving to {bc.Message.X}:{bc.Message.Y}");

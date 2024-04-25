@@ -5,7 +5,7 @@ using MassTransit;
 
 namespace Genelife.Survival.Sagas;
 
-public class ThirstSaga : ISaga, InitiatedBy<CreateHuman>, Observes<DayElapsed, ThirstSaga>
+public class ThirstSaga : ISaga, InitiatedBy<CreateHuman>, Observes<DayElapsed, ThirstSaga>, Orchestrates<HasDrank>
 {
     public Guid CorrelationId { get; set; }
     public int Thirst { get; set; }
@@ -32,5 +32,11 @@ public class ThirstSaga : ISaga, InitiatedBy<CreateHuman>, Observes<DayElapsed, 
         }
         Console.WriteLine($"{CorrelationId} Thirst level: {Thirst}");
         return;
+    }
+
+    public Task Consume(ConsumeContext<HasDrank> context)
+    {
+        Thirst = 0;
+        return Task.CompletedTask;
     }
 }
