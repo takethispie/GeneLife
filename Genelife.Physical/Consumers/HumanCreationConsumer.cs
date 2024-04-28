@@ -6,9 +6,9 @@ using MassTransit;
 
 namespace Genelife.Physical.Consumers;
 
-public class HumanCreationConsumer(HumanRepository humanRepository) : IConsumer<CreateHuman>
+public class HumanCreationConsumer(HumanCache humanRepository) : IConsumer<CreateHuman>
 {
-    private HumanRepository repository = humanRepository;
+    private HumanCache repository = humanRepository;
 
     public Task Consume(ConsumeContext<CreateHuman> context)
     {

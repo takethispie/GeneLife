@@ -3,7 +3,7 @@ using Genelife.Physical.Domain;
 
 namespace Genelife.Physical.Repository;
 
-public class HumanRepository()
+public class HumanCache()
 {
     private List<Human> humans = [];
 

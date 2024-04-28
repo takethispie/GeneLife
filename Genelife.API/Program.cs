@@ -47,7 +47,17 @@ app.MapPost("/create/human/{sex}", (Sex sex, [FromServices] IPublishEndpoint end
     endpoint.Publish(new CreateHuman(human.CorrelationId, human, 0, 0));
     return Results.Ok(human.CorrelationId);
 })
-.WithName("createHuman")
+.WithName("create Human")
+.WithOpenApi();
+
+app.MapPost("/create/human/{sex}/{hunger}/{thirst}", async (Sex sex, int hunger, int thirst, [FromServices] IPublishEndpoint endpoint) => {
+    var human = HumanGenerator.Build(sex);
+    await endpoint.Publish(new CreateHuman(human.CorrelationId, human, 0, 0));
+    await endpoint.Publish(new SetHunger(human.CorrelationId, hunger));
+    await endpoint.Publish(new SetThirst(human.CorrelationId, thirst));
+    return Results.Ok(human.CorrelationId);
+})
+.WithName("create Human with specific hunger and thirst")
 .WithOpenApi();
 
 
@@ -56,7 +66,7 @@ app.MapPost("/create/groceryShop/{x}/{y}", (int x, int y, [FromServices] IPublis
     endpoint.Publish(new CreateGroceryShop(guid, x, y, 50, 50));
     return Results.Ok(guid);
 })
-.WithName("createGrocery")
+.WithName("create Grocery store")
 .WithOpenApi();
 
 
@@ -71,35 +81,35 @@ app.MapPost("/create/city/small", ([FromServices] IPublishEndpoint endpoint) => 
     endpoint.Publish(new CreateHuman(human.CorrelationId, human, 100, 200));
     return Results.Ok(guid);
 })
-.WithName("createSmallCity")
+.WithName("create Small City")
 .WithOpenApi();
 
 
 app.MapGet("/simulation/start", ([FromServices] IPublishEndpoint endpoint) => {
     endpoint.Publish(new StartClock());
 })
-.WithName("simulationStart")
+.WithName("simulation Start")
 .WithOpenApi();
 
 
 app.MapGet("/simulation/stop", ([FromServices] IPublishEndpoint endpoint) => {
     endpoint.Publish(new StopClock());
 })
-.WithName("simulationStop")
+.WithName("simulation Stop")
 .WithOpenApi();
 
 
 app.MapGet("/simulation/setClockSpeed/{milliseconds}", (int milliseconds, [FromServices] IPublishEndpoint endpoint) => {
     endpoint.Publish(new SetClockSpeed(milliseconds));
 })
-.WithName("setClockSpeed")
+.WithName("set Clock Speed")
 .WithOpenApi();
 
 
 app.MapGet("/action/go/{correlationId}/groceryShop", (Guid correlationId, [FromServices] IPublishEndpoint endpoint) => {
     endpoint.Publish(new GoToGroceryShop(correlationId));
 })
-.WithName("goToGroceryShop")
+.WithName("go To Grocery Store")
 .WithOpenApi();
 
 app.MapGet("/cheat/sethunger/{correlationId}/{value}", async (Guid correlationId, int value, [FromServices] IPublishEndpoint endpoint) => {

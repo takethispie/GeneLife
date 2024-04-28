@@ -22,26 +22,31 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
     Host.CreateDefaultBuilder(args)
         .ConfigureServices((hostContext, services) =>
         {
-            services.AddSingleton<GroceryShopRepository>();
-            services.AddSingleton<HumanRepository>();
+            services.AddSingleton<GroceryShopCache>();
+            services.AddSingleton<HumanCache>();
+            
             services.AddMassTransit(x =>
             {
                 x.SetKebabCaseEndpointNameFormatter();
                 var entryAssembly = Assembly.GetEntryAssembly();
 
                 x.AddConsumers(entryAssembly);
-                x.AddSagaStateMachine<MoveSaga, MoveSagaState>().MongoDbRepository(r =>
+                x.AddSagaStateMachine<MoveSaga, MoveSagaState>(so => {
+                    so.UseConcurrencyLimit(1);
+                }).MongoDbRepository(r =>
                 {
                     r.Connection = "mongodb://root:example@mongo:27017/";
                     r.DatabaseName = "physicaldb";
                     r.CollectionName = "move";
                 });
-                x.AddSaga<GroceryShopSaga>().MongoDbRepository(r =>
+                x.AddSaga<GroceryShopSaga>(so => {
+                    so.UseConcurrentMessageLimit(1);
+                }).MongoDbRepository(r =>
                 {
                     r.Connection = "mongodb://root:example@mongo:27017/";
                     r.DatabaseName = "physicaldb";
                     r.CollectionName = "grocery-store";
-                }); ;
+                });
                 x.AddActivities(entryAssembly);
 
                 x.UsingRabbitMq((context, cfg) =>

@@ -13,7 +13,6 @@ public class HumanSagaState : SagaStateMachineInstance, ISagaVersion
     public bool Dehydrated { get; set; } = false;
     public int IdleTickTime { get; set; } = 0;
     public bool IsHome { get; set; } = true;
-    public Guid Home { get; set; } = Guid.Empty;
     public int Version { get; set; }
 }
 
@@ -57,16 +56,17 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                 bc.Saga.IdleTickTime++;
                 bc.Saga.IdleTickTime = 0;
                 await bc.Publish(new GoHome(bc.Saga.CorrelationId));
-            }).TransitionTo(Idle),
+            }).TransitionTo(GoingHome),
             When(Tick, (bc) => bc.Saga.IsHome is false).Then(bc => bc.Saga.IdleTickTime++).TransitionTo(Idle),
             When(Tick).TransitionTo(Idle)
         );
 
         During(GettingGroceries,
-            When(Dehydrating).Then(bc => bc.Saga.Dehydrated = true).TransitionTo(GettingGroceries),
-            When(Starving).Then(bc => bc.Saga.Starving = true).TransitionTo(GettingGroceries),
+            When(Dehydrating, (ctx) => ctx.Saga.Dehydrated = false).Then(bc => bc.Saga.Dehydrated = true).TransitionTo(GettingGroceries),
+            When(Starving, (ctx) => ctx.Saga.Starving = false).Then(bc => bc.Saga.Starving = true).TransitionTo(GettingGroceries),
 
             When(ArrivedSomeWhere).Then(async bc => {
+                bc.Saga.IsHome = false;
                 Console.WriteLine($"{bc.Saga.CorrelationId} arrived at {bc.Message.TargetId}");
                 if(bc.Saga.Dehydrated) await bc.Publish(new BuyItem(bc.Saga.CorrelationId, ItemType.Drink, bc.Message.TargetId));
                 if(bc.Saga.Starving) await bc.Publish(new BuyItem(bc.Saga.CorrelationId, ItemType.Food, bc.Message.TargetId));
@@ -86,11 +86,14 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             When(Drank).Then(bc => bc.Saga.Dehydrated = false).TransitionTo(GettingGroceries),
             When(Ate).Then(bc => bc.Saga.Starving = false).TransitionTo(GettingGroceries),
             When(Tick, bc => bc.Saga.Dehydrated is false && bc.Saga.Starving is false).TransitionTo(Idle),
-            When(Tick).TransitionTo(GettingGroceries)
+            When(Tick, bc => bc.Saga.Dehydrated is true || bc.Saga.Starving is true).TransitionTo(GettingGroceries)
         );
 
         During(GoingHome,
-            When(ArrivedSomeWhere).Then(bc => bc.Saga.IsHome = true).TransitionTo(Idle),
+            When(ArrivedSomeWhere).Then(bc => {
+                Console.WriteLine($"{bc.Message.CorrelationId} got back home");
+                bc.Saga.IsHome = true;
+            }).TransitionTo(Idle),
             When(Tick).TransitionTo(GoingHome)
         );
     }

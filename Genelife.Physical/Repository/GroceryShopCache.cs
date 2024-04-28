@@ -3,7 +3,7 @@ using Genelife.Physical.Domain;
 
 namespace Genelife.Physical.Repository;
 
-public class GroceryShopRepository() {
+public class GroceryShopCache() {
     private List<GroceryShop> groceryShops = [];
 
     public void Add(GroceryShop groceryShop) {

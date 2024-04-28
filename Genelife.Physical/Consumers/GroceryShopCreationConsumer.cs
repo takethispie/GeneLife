@@ -6,9 +6,9 @@ using MassTransit;
 
 namespace Genelife.Physical.Consumers;
 
-public class GroceryShopCreationConsumer(GroceryShopRepository groceryShopRepository) : IConsumer<CreateGroceryShop>
+public class GroceryShopCreationConsumer(GroceryShopCache groceryShopRepository) : IConsumer<CreateGroceryShop>
 {
-    private GroceryShopRepository repository = groceryShopRepository;
+    private GroceryShopCache repository = groceryShopRepository;
 
     public Task Consume(ConsumeContext<CreateGroceryShop> context)
     {

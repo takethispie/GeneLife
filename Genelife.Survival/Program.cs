@@ -28,13 +28,17 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
 
                 x.AddConsumers(entryAssembly);
                 x.AddSagaStateMachines(entryAssembly);
-                x.AddSaga<HungerSaga>().MongoDbRepository(r =>
+                x.AddSaga<HungerSaga>(so => {
+                    so.UseConcurrentMessageLimit(1);
+                }).MongoDbRepository(r =>
                 {
                     r.Connection = "mongodb://root:example@mongo:27017/";
                     r.DatabaseName = "survivaldb";
                     r.CollectionName = "hunger";
                 });
-                x.AddSaga<ThirstSaga>().MongoDbRepository(r =>
+                x.AddSaga<ThirstSaga>(so => {
+                    so.UseConcurrentMessageLimit(1);
+                }).MongoDbRepository(r =>
                 {
                     r.Connection = "mongodb://root:example@mongo:27017/";
                     r.DatabaseName = "survivaldb";
