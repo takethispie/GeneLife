@@ -4,7 +4,6 @@ using Genelife.Domain.Generators;
 using Genelife.Domain;
 using MassTransit;
 using Microsoft.AspNetCore.Mvc;
-using System.Numerics;
 
 static bool IsRunningInContainer() => bool.TryParse(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), out var inContainer) && inContainer;
 

@@ -35,6 +35,7 @@ public class InventorySaga :
     public async Task Consume(ConsumeContext<StoreItem> context)
     {
         Items.Add(ItemMapper.Map(context.Message.ItemId));
+        Console.WriteLine($"{context.CorrelationId} stored item {context.Message.ItemId}");
         await context.Publish(new ItemStored(CorrelationId));
     }
 
@@ -48,6 +49,7 @@ public class InventorySaga :
             }
             return true;
         }).ToList();
+        Console.WriteLine($"{context.Message.CorrelationId} found and took needed item");
         await context.Publish(found ? 
             new ItemFound(CorrelationId, context.Message.ItemType) 
             : new ItemNotFound(CorrelationId, context.Message.ItemType));
