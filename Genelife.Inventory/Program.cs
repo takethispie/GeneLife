@@ -2,7 +2,6 @@ using Genelife.Inventory.Sagas;
 using MassTransit;
 using OpenTelemetry.Resources;
 using System.Reflection;
-using MassTransit.Monitoring;
 using OpenTelemetry.Metrics;
 using Microsoft.AspNetCore.Builder;
 using OpenTelemetry.Exporter;

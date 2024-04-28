@@ -2,8 +2,10 @@ using Genelife.Main.Sagas;
 using Genelife.Main.Services;
 using MassTransit;
 using MassTransit.Monitoring;
+using OpenTelemetry.Exporter;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using System.Reflection;
 
 static bool IsRunningInContainer() => bool.TryParse(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), out var inContainer) && inContainer;
@@ -46,10 +48,27 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
             });
 
             services.AddOpenTelemetry()
-            .ConfigureResource(ConfigureResource)
-            .WithMetrics(b => b
-                // MassTransit Meter
-                .AddMeter(InstrumentationOptions.MeterName)
-                .AddPrometheusExporter()
-            );
+                .ConfigureResource(ConfigureResource)
+                .WithMetrics(b => b
+                    // MassTransit Meter
+                    .AddMeter("MassTransit")
+                    .AddOtlpExporter(o =>
+                    {
+                        o.Endpoint = new Uri(IsRunningInContainer() ? "http://lgtm:4317" : "http://localhost:4317");
+                        o.Protocol = OtlpExportProtocol.Grpc;
+                    })
+                    .AddPrometheusExporter()
+                ).WithTracing(b => b
+                    .AddSource("MassTransit")
+                    .SetResourceBuilder(ResourceBuilder.CreateDefault()
+                        .AddService("Inventory Service")
+                        .AddTelemetrySdk()
+                        .AddEnvironmentVariableDetector()
+                    )
+                    .AddOtlpExporter(o =>
+                    {
+                        o.Endpoint = new Uri(IsRunningInContainer() ? "http://lgtm:4317" : "http://localhost:4317");
+                        o.Protocol = OtlpExportProtocol.Grpc;
+                    })
+                );
         });
