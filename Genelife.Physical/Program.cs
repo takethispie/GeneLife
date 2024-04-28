@@ -1,4 +1,5 @@
 using Genelife.Physical.Repository;
+using Genelife.Physical.Sagas;
 using MassTransit;
 using System.Reflection;
 
@@ -15,13 +16,21 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
             services.AddMassTransit(x =>
             {
                 x.SetKebabCaseEndpointNameFormatter();
-                x.SetInMemorySagaRepositoryProvider();
-
                 var entryAssembly = Assembly.GetEntryAssembly();
 
                 x.AddConsumers(entryAssembly);
-                x.AddSagaStateMachines(entryAssembly);
-                x.AddSagas(entryAssembly);
+                x.AddSagaStateMachine<MoveSaga, MoveSagaState>().MongoDbRepository(r =>
+                {
+                    r.Connection = "mongodb://root:example@mongo:27017/";
+                    r.DatabaseName = "physicaldb";
+                    r.CollectionName = "move";
+                });
+                x.AddSaga<GroceryShopSaga>().MongoDbRepository(r =>
+                {
+                    r.Connection = "mongodb://root:example@mongo:27017/";
+                    r.DatabaseName = "physicaldb";
+                    r.CollectionName = "grocery-store";
+                }); ;
                 x.AddActivities(entryAssembly);
 
                 x.UsingRabbitMq((context, cfg) =>

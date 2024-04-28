@@ -1,5 +1,16 @@
 version: "3.9"
 
+volumes:
+  mongo_data:
+  pg_grafana:
+    driver: local
+  grafana:
+    driver: local
+  pg_data_wh:
+    driver: local
+  pgadmin-data:
+    driver: local
+
 services:
   rabbitmq:
     image: masstransit/rabbitmq:latest
@@ -69,3 +80,87 @@ services:
     depends_on:
       rabbitmq:
         condition: service_started
+
+  mongo:
+    restart: always
+    image: mongo:4.2.0
+    ports:
+      - 27017:27017
+    volumes:
+      - mongo_data:/data/mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    expose:
+      - 27017
+ 
+ 
+  mongo-express:
+    image: mongo-express
+    depends_on:
+        - mongo
+    ports:
+      - "8888:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: example
+      ME_CONFIG_MONGODB_URL: mongodb://root:example@mongo:27017/
+      ME_CONFIG_BASICAUTH: false
+
+
+  pg_data_wh:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_DB: my_data_wh_db
+      POSTGRES_USER: my_data_wh_user
+      POSTGRES_PASSWORD: my_data_wh_pwd
+    ports:
+      - "5488:5432"
+    volumes:
+      - pg_data_wh:/var/lib/postgresql/data
+ 
+ 
+  pg_grafana:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_DB: my_grafana_db
+      POSTGRES_USER: my_grafana_user
+      POSTGRES_PASSWORD: my_grafana_pwd
+    ports:
+      - "5499:5432"
+    volumes:
+      - pg_grafana:/var/lib/postgresql/data
+ 
+ 
+  grafana:
+    image: grafana/grafana:latest
+    user: "0:0"
+    environment:
+      GF_DATABASE_TYPE: postgres
+      GF_DATABASE_HOST: pg_grafana:5432
+      GF_DATABASE_NAME: my_grafana_db
+      GF_DATABASE_USER: my_grafana_user
+      GF_DATABASE_PASSWORD: my_grafana_pwd
+      GF_DATABASE_SSL_MODE: disable
+    restart: unless-stopped
+    depends_on:
+        - pg_grafana
+    ports:
+      - 3111:3000
+    volumes:
+      - grafana:/var/lib/grafana
+
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin4_container
+    restart: always
+    ports:
+      - "8889:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: user@email.com
+      PGADMIN_DEFAULT_PASSWORD: password
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin

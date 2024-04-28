@@ -5,10 +5,11 @@ using MassTransit;
 
 namespace Genelife.Survival.Sagas;
 
-public class HungerSaga : ISaga, InitiatedBy<CreateHuman>, Observes<DayElapsed, HungerSaga>, Orchestrates<Eat>, Orchestrates<SetHunger>
+public class HungerSaga : ISaga, InitiatedBy<CreateHuman>, Observes<DayElapsed, HungerSaga>, Orchestrates<Eat>, Orchestrates<SetHunger>, ISagaVersion
 {
     public Guid CorrelationId { get; set; }
     public int Hunger { get; set; }
+    public int Version { get; set; }
 
     public Expression<Func<HungerSaga, DayElapsed, bool>> CorrelationExpression => (_, _) => true;
 

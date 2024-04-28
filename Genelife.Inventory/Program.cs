@@ -1,3 +1,4 @@
+using Genelife.Inventory.Sagas;
 using MassTransit;
 using System.Reflection;
 
@@ -12,14 +13,14 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
             services.AddMassTransit(x =>
             {
                 x.SetKebabCaseEndpointNameFormatter();
-
-                // By default, sagas are in-memory, but should be changed to a durable
-                // saga repository.
-                x.SetInMemorySagaRepositoryProvider();
-
                 var entryAssembly = Assembly.GetEntryAssembly();
 
                 x.AddConsumers(entryAssembly);
+                x.AddSaga<InventorySaga>().MongoDbRepository(r =>
+                {
+                    r.Connection = "mongodb://root:example@mongo:27017/";
+                    r.DatabaseName = "inventorydb";
+                });
                 x.AddSagaStateMachines(entryAssembly);
                 x.AddSagas(entryAssembly);
                 x.AddActivities(entryAssembly);
@@ -28,9 +29,6 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
                 {
                     if (IsRunningInContainer())
                         cfg.Host("rabbitmq");
-
-                    cfg.UseDelayedMessageScheduler();
-
                     cfg.ConfigureEndpoints(context);
                 });
             });

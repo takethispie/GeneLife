@@ -1,3 +1,4 @@
+using Genelife.Main.Sagas;
 using Genelife.Main.Services;
 using MassTransit;
 using System.Reflection;
@@ -14,13 +15,15 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
             services.AddSingleton<ClockService>();
             services.AddMassTransit(x =>
             {
-                x.AddDelayedMessageScheduler();
                 x.SetKebabCaseEndpointNameFormatter();
-                x.SetInMemorySagaRepositoryProvider();
-
                 var entryAssembly = Assembly.GetEntryAssembly();
 
                 x.AddConsumers(entryAssembly);
+                x.AddSagaStateMachine<HumanSaga, HumanSagaState>().MongoDbRepository(r =>
+                {
+                    r.Connection = "mongodb://root:example@mongo:27017/";
+                    r.DatabaseName = "maindb";
+                });
                 x.AddSagaStateMachines(entryAssembly);
                 x.AddSagas(entryAssembly);
                 x.AddActivities(entryAssembly);
@@ -29,9 +32,6 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
                 {
                     if (IsRunningInContainer())
                         cfg.Host("rabbitmq");
-
-                    cfg.UseDelayedMessageScheduler();
-
                     cfg.ConfigureEndpoints(context);
                 });
             });

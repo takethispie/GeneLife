@@ -1,3 +1,4 @@
+using Genelife.Survival.Sagas;
 using MassTransit;
 using System.Reflection;
 
@@ -12,16 +13,22 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
             services.AddMassTransit(x =>
             {
                 x.SetKebabCaseEndpointNameFormatter();
-
-                // By default, sagas are in-memory, but should be changed to a durable
-                // saga repository.
-                x.SetInMemorySagaRepositoryProvider();
-
                 var entryAssembly = Assembly.GetEntryAssembly();
 
                 x.AddConsumers(entryAssembly);
                 x.AddSagaStateMachines(entryAssembly);
-                x.AddSagas(entryAssembly);
+                x.AddSaga<HungerSaga>().MongoDbRepository(r =>
+                {
+                    r.Connection = "mongodb://root:example@mongo:27017/";
+                    r.DatabaseName = "survivaldb";
+                    r.CollectionName = "hunger";
+                });
+                x.AddSaga<ThirstSaga>().MongoDbRepository(r =>
+                {
+                    r.Connection = "mongodb://root:example@mongo:27017/";
+                    r.DatabaseName = "survivaldb";
+                    r.CollectionName = "thirst";
+                });
                 x.AddActivities(entryAssembly);
 
                 x.UsingRabbitMq((context, cfg) =>

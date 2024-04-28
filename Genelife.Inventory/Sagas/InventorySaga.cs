@@ -4,11 +4,19 @@ using MassTransit;
 
 namespace Genelife.Inventory.Sagas;
 
-public class InventorySaga : ISaga, InitiatedBy<CreateHuman>, InitiatedBy<CreateGroceryShop>, Orchestrates<StoreItem>, Orchestrates<TakeItem>, Orchestrates<BuyItem>
+public class InventorySaga : 
+    ISaga, 
+    InitiatedBy<CreateHuman>, 
+    InitiatedBy<CreateGroceryShop>, 
+    Orchestrates<StoreItem>, 
+    Orchestrates<TakeItem>, 
+    Orchestrates<BuyItem>,
+    ISagaVersion
 {
     public Guid CorrelationId { get; set; }
     public List<Item> Items { get; set; }
     public int Money { get; set; }
+    public int Version { get; set; }
 
     public Task Consume(ConsumeContext<CreateHuman> context)
     {

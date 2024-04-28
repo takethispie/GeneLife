@@ -5,7 +5,7 @@ using MassTransit;
 
 namespace Genelife.Main.Sagas;
 
-public class HumanSagaState : SagaStateMachineInstance
+public class HumanSagaState : SagaStateMachineInstance, ISagaVersion
 {
     public Guid CorrelationId { get; set; }
     public string CurrentState { get; set; }
@@ -14,6 +14,7 @@ public class HumanSagaState : SagaStateMachineInstance
     public int IdleTickTime { get; set; } = 0;
     public bool IsHome { get; set; } = true;
     public Guid Home { get; set; } = Guid.Empty;
+    public int Version { get; set; }
 }
 
 public class HumanSaga : MassTransitStateMachine<HumanSagaState>

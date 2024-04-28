@@ -4,11 +4,12 @@ using MassTransit;
 
 namespace Genelife.Physical.Sagas;
 
-public class GroceryShopSaga : ISaga, InitiatedBy<CreateGroceryShop>
+public class GroceryShopSaga : ISaga, InitiatedBy<CreateGroceryShop>, ISagaVersion
 {
     public Guid CorrelationId { get; set; }
     public Vector2 Size { get; set; }
     public Vector3 Position { get; set; }
+    public int Version { get; set; }
 
     public Task Consume(ConsumeContext<CreateGroceryShop> context)
     {

@@ -6,13 +6,14 @@ using System.Numerics;
 
 namespace Genelife.Physical.Sagas;
 
-public class MoveSagaState : SagaStateMachineInstance
+public class MoveSagaState : SagaStateMachineInstance, ISagaVersion
 {
     public Guid CorrelationId { get; set; }
     public string CurrentState { get; set; }
     public Vector3 Position { get; set; }
     public Vector3 Target {  get; set; } = Vector3.Zero;
     public Guid TargetId { get; set; } = Guid.Empty;
+    public int Version { get; set; }
 }
 
 public class MoveSaga : MassTransitStateMachine<MoveSagaState>
