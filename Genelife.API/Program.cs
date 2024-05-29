@@ -42,9 +42,9 @@ app.UseAuthorization();
 app.MapGet("/healthcheck", (HttpContext httpContext) => Results.Ok()).WithName("healthcheck").WithOpenApi();
 
 
-app.MapPost("/create/human/{sex}", (Sex sex, [FromServices] IPublishEndpoint endpoint) => {
+app.MapPost("/create/human/{sex}", async (Sex sex, [FromServices] IPublishEndpoint endpoint) => {
     var human = HumanGenerator.Build(sex);
-    endpoint.Publish(new CreateHuman(human.CorrelationId, human, 0, 0));
+    await endpoint.Publish(new CreateHuman(human.CorrelationId, human, 0, 0));
     return Results.Ok(human.CorrelationId);
 })
 .WithName("create Human")
@@ -61,53 +61,53 @@ app.MapPost("/create/human/{sex}/{hunger}/{thirst}", async (Sex sex, int hunger,
 .WithOpenApi();
 
 
-app.MapPost("/create/groceryShop/{x}/{y}", (int x, int y, [FromServices] IPublishEndpoint endpoint) => {
+app.MapPost("/create/groceryShop/{x}/{y}", async (int x, int y, [FromServices] IPublishEndpoint endpoint) => {
     var guid = Guid.NewGuid();
-    endpoint.Publish(new CreateGroceryShop(guid, x, y, 50, 50));
+    await endpoint.Publish(new CreateGroceryShop(guid, x, y, 50, 50));
     return Results.Ok(guid);
 })
 .WithName("create Grocery store")
 .WithOpenApi();
 
 
-app.MapPost("/create/city/small", ([FromServices] IPublishEndpoint endpoint) => {
+app.MapPost("/create/city/small", async ([FromServices] IPublishEndpoint endpoint) => {
     var guid = Guid.NewGuid();
-    endpoint.Publish(new CreateGroceryShop(guid, 500, 500, 50, 50));
+    await endpoint.Publish(new CreateGroceryShop(guid, 500, 500, 50, 50));
     var human = HumanGenerator.Build(Sex.Male);
-    endpoint.Publish(new CreateHuman(human.CorrelationId, human, 0, 0));
+    await endpoint.Publish(new CreateHuman(human.CorrelationId, human, 0, 0));
     human = HumanGenerator.Build(Sex.Male);
-    endpoint.Publish(new CreateHuman(human.CorrelationId, human, 50, 100));
+    await endpoint.Publish(new CreateHuman(human.CorrelationId, human, 50, 100));
     human = HumanGenerator.Build(Sex.Female);
-    endpoint.Publish(new CreateHuman(human.CorrelationId, human, 100, 200));
+    await endpoint.Publish(new CreateHuman(human.CorrelationId, human, 100, 200));
     return Results.Ok(guid);
 })
 .WithName("create Small City")
 .WithOpenApi();
 
 
-app.MapGet("/simulation/start", ([FromServices] IPublishEndpoint endpoint) => {
-    endpoint.Publish(new StartClock());
+app.MapGet("/simulation/start", async ([FromServices] IPublishEndpoint endpoint) => {
+    await endpoint.Publish(new StartClock());
 })
 .WithName("simulation Start")
 .WithOpenApi();
 
 
-app.MapGet("/simulation/stop", ([FromServices] IPublishEndpoint endpoint) => {
-    endpoint.Publish(new StopClock());
+app.MapGet("/simulation/stop", async ([FromServices] IPublishEndpoint endpoint) => {
+    await endpoint.Publish(new StopClock());
 })
 .WithName("simulation Stop")
 .WithOpenApi();
 
 
-app.MapGet("/simulation/setClockSpeed/{milliseconds}", (int milliseconds, [FromServices] IPublishEndpoint endpoint) => {
-    endpoint.Publish(new SetClockSpeed(milliseconds));
+app.MapGet("/simulation/setClockSpeed/{milliseconds}", async (int milliseconds, [FromServices] IPublishEndpoint endpoint) => {
+    await endpoint.Publish(new SetClockSpeed(milliseconds));
 })
 .WithName("set Clock Speed")
 .WithOpenApi();
 
 
-app.MapGet("/action/go/{correlationId}/groceryShop", (Guid correlationId, [FromServices] IPublishEndpoint endpoint) => {
-    endpoint.Publish(new GoToGroceryShop(correlationId));
+app.MapGet("/action/go/{correlationId}/groceryShop", async (Guid correlationId, [FromServices] IPublishEndpoint endpoint) => {
+    await endpoint.Publish(new GoToGroceryShop(correlationId));
 })
 .WithName("go To Grocery Store")
 .WithOpenApi();

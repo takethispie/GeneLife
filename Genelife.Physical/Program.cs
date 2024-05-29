@@ -47,6 +47,14 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
                     r.DatabaseName = "physicaldb";
                     r.CollectionName = "grocery-store";
                 });
+                x.AddSaga<HouseSaga>(so => {
+                    so.UseConcurrentMessageLimit(1);
+                }).MongoDbRepository(r =>
+                {
+                    r.Connection = "mongodb://root:example@mongo:27017/";
+                    r.DatabaseName = "physicaldb";
+                    r.CollectionName = "house-store";
+                });
                 x.AddActivities(entryAssembly);
 
                 x.UsingRabbitMq((context, cfg) =>

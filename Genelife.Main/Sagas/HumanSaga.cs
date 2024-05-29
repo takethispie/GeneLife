@@ -9,11 +9,10 @@ public class HumanSagaState : SagaStateMachineInstance, ISagaVersion
 {
     public Guid CorrelationId { get; set; }
     public string CurrentState { get; set; }
-    public bool Starving { get; set; } = false;
-    public bool Dehydrated { get; set; } = false;
-    public int IdleTickTime { get; set; } = 0;
     public bool IsHome { get; set; } = true;
     public int Version { get; set; }
+    public bool NeedsFood { get; set; } = false;
+    public bool NeedsDrink { get; set; } = false;
 }
 
 public class HumanSaga : MassTransitStateMachine<HumanSagaState>
@@ -24,77 +23,68 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
     public State GettingGroceries { get; set; } = null;
     public State GoingHome { get; set; } = null;
 
-
     public Event<Dehydrated> Dehydrating { get; set; } = null;
     public Event<Starving> Starving { get; set; } = null;
     public Event<CreateHuman> Created { get; set; } = null;
-    public Event<Arrived> ArrivedSomeWhere { get; set; } = null;
+    public Event<Arrived> Arrived { get; set; } = null;
     public Event<ItemBought> ItemBought { get; set; } = null;
     public Event<HasDrank> Drank { get; set; } = null;
     public Event<HasEaten> Ate { get; set; } = null;
-    public Event<Tick> Tick { get; set; } = null;
 
     public HumanSaga() {
         InstanceState(x => x.CurrentState);
         Initially(When(Created).TransitionTo(Idle));
-        Event(() => Tick, e => e.CorrelateBy(saga => "any", ctx => "any"));
 
         During(Idle,
-            When(Dehydrating).Then(async bc => {
-                bc.Saga.Dehydrated = true;
+            When(Dehydrating, bc => bc.Saga.NeedsDrink is false).Then(async bc => {
                 Console.WriteLine($"{bc.Saga.CorrelationId} going to grocery shop");
+                bc.Saga.NeedsDrink = true;
                 await bc.Publish(new GoToGroceryShop(bc.Saga.CorrelationId));
             }).TransitionTo(GettingGroceries),
 
-            When(Starving).Then(async bc => {
-                bc.Saga.Starving = true;
+            When(Starving, bc => bc.Saga.NeedsFood is false).Then(async bc => {
                 Console.WriteLine($"{bc.Saga.CorrelationId} going to grocery shop");
+                bc.Saga.NeedsFood = true;
+                //TODO doesnt work for some reason
                 await bc.Publish(new GoToGroceryShop(bc.Saga.CorrelationId));
-            }).TransitionTo(GettingGroceries),
+            }).TransitionTo(GettingGroceries), 
 
-            When(Tick, (bc) => bc.Saga.IdleTickTime > 10 && bc.Saga.IsHome is false).Then(async bc => {
-                bc.Saga.IdleTickTime++;
-                bc.Saga.IdleTickTime = 0;
-                await bc.Publish(new GoHome(bc.Saga.CorrelationId));
-            }).TransitionTo(GoingHome),
-            When(Tick, (bc) => bc.Saga.IsHome is false).Then(bc => bc.Saga.IdleTickTime++).TransitionTo(Idle),
-            When(Tick).TransitionTo(Idle)
+            When(Drank).Then(bc => {
+                bc.Saga.NeedsDrink = false;
+            }).TransitionTo(Idle),
+
+            When(Ate).Then(bc => {
+                bc.Saga.NeedsFood = false;
+            }).TransitionTo(Idle),
+
+            When(ItemBought).Then(DrinkOrEatWhenHasItem).TransitionTo(Idle)
         );
 
         During(GettingGroceries,
-            When(Dehydrating, (ctx) => ctx.Saga.Dehydrated = false).Then(bc => bc.Saga.Dehydrated = true).TransitionTo(GettingGroceries),
-            When(Starving, (ctx) => ctx.Saga.Starving = false).Then(bc => bc.Saga.Starving = true).TransitionTo(GettingGroceries),
-
-            When(ArrivedSomeWhere).Then(async bc => {
+            When(Dehydrating).TransitionTo(GettingGroceries),
+            When(Starving).TransitionTo(GettingGroceries),
+            When(Arrived).Then(async bc => {
                 bc.Saga.IsHome = false;
-                Console.WriteLine($"{bc.Saga.CorrelationId} arrived at {bc.Message.TargetId}");
-                if(bc.Saga.Dehydrated) await bc.Publish(new BuyItem(bc.Saga.CorrelationId, ItemType.Drink, bc.Message.TargetId));
-                if(bc.Saga.Starving) await bc.Publish(new BuyItem(bc.Saga.CorrelationId, ItemType.Food, bc.Message.TargetId));
+                await bc.Publish(new ListFoodAndDrinkToBuy(bc.Saga.CorrelationId, bc.Message.TargetId));
             }).TransitionTo(GettingGroceries),
-
-            When(ItemBought).Then(async bc => {
-                Console.WriteLine($"{bc.Saga.CorrelationId} bought an item {bc.Message.ItemType}");
-                var res = (bc.Saga.Dehydrated, bc.Saga.Starving, bc.Message.ItemType) switch
-                {
-                    (true, _, ItemType.Drink) => bc.Publish(new Drink(bc.Saga.CorrelationId)),
-                    (_, true, ItemType.Food) => bc.Publish(new Eat(bc.Saga.CorrelationId)),
-                   _ => Task.CompletedTask
-                };
-                await res;
-            }).TransitionTo(GettingGroceries),
-
-            When(Drank).Then(bc => bc.Saga.Dehydrated = false).TransitionTo(GettingGroceries),
-            When(Ate).Then(bc => bc.Saga.Starving = false).TransitionTo(GettingGroceries),
-            When(Tick, bc => bc.Saga.Dehydrated is false && bc.Saga.Starving is false).TransitionTo(Idle),
-            When(Tick, bc => bc.Saga.Dehydrated is true || bc.Saga.Starving is true).TransitionTo(GettingGroceries)
+            When(ItemBought).Then(DrinkOrEatWhenHasItem).TransitionTo(Idle)
         );
 
         During(GoingHome,
-            When(ArrivedSomeWhere).Then(bc => {
+            When(Arrived).Then(bc => {
                 Console.WriteLine($"{bc.Message.CorrelationId} got back home");
                 bc.Saga.IsHome = true;
-            }).TransitionTo(Idle),
-            When(Tick).TransitionTo(GoingHome)
+            }).TransitionTo(Idle)
         );
+    }
+
+    private async void DrinkOrEatWhenHasItem(BehaviorContext<HumanSagaState, ItemBought> bc) {
+        if(bc.Saga.NeedsFood && bc.Message.ItemType == ItemType.Food) {
+            await bc.Publish(new TakeItem(bc.Saga.CorrelationId, ItemType.Food));
+            await bc.Publish(new Eat(bc.Saga.CorrelationId));
+        } else if(bc.Saga.NeedsDrink && bc.Message.ItemType == ItemType.Drink) {
+            await bc.Publish(new TakeItem(bc.Saga.CorrelationId, ItemType.Drink));
+            await bc.Publish(new Drink(bc.Saga.CorrelationId));
+        }
     }
 }

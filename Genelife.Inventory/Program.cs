@@ -6,6 +6,9 @@ using OpenTelemetry.Metrics;
 using Microsoft.AspNetCore.Builder;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Trace;
+using Serilog;
+using Serilog.Formatting.Compact;
+using Serilog.Sinks.Grafana.Loki;
 
 static bool IsRunningInContainer() => bool.TryParse(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), out var inContainer) && inContainer;
 
@@ -16,7 +19,23 @@ static void ConfigureResource(ResourceBuilder r)
         serviceInstanceId: Environment.MachineName);
 }
 
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Debug)
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .CreateLogger();
+
 var builder = WebApplication.CreateBuilder(args);
+builder.Host.UseSerilog((ctx,cfg)=>
+{
+    //Override Few of the Configurations
+    cfg.Enrich.WithProperty("Application", ctx.HostingEnvironment.ApplicationName)
+        .Enrich.WithProperty("Environment", ctx.HostingEnvironment.EnvironmentName)
+        .WriteTo.Console(new RenderedCompactJsonFormatter())
+        .WriteTo.GrafanaLoki("http://lgtm:3100/");
+
+
+});
 builder.Services.AddOpenTelemetry()
 .ConfigureResource(ConfigureResource)
 .WithMetrics(b => b
@@ -47,7 +66,7 @@ builder.Services.AddMassTransit(x => {
     var entryAssembly = Assembly.GetEntryAssembly();
 
     x.AddConsumers(entryAssembly);
-    x.AddSaga<InventorySaga>().MongoDbRepository(r =>
+    x.AddSaga<InventorySaga>(so => so.UseConcurrentMessageLimit(1)).MongoDbRepository(r =>
     {
         r.Connection = "mongodb://root:example@mongo:27017/";
         r.DatabaseName = "inventorydb";

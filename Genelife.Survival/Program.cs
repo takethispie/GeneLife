@@ -28,7 +28,7 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
 
                 x.AddConsumers(entryAssembly);
                 x.AddSagaStateMachines(entryAssembly);
-                x.AddSaga<HungerSaga>(so => {
+                x.AddSaga<SurvivalSaga>(so => {
                     so.UseConcurrentMessageLimit(1);
                 }).MongoDbRepository(r =>
                 {
@@ -36,16 +36,7 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
                     r.DatabaseName = "survivaldb";
                     r.CollectionName = "hunger";
                 });
-                x.AddSaga<ThirstSaga>(so => {
-                    so.UseConcurrentMessageLimit(1);
-                }).MongoDbRepository(r =>
-                {
-                    r.Connection = "mongodb://root:example@mongo:27017/";
-                    r.DatabaseName = "survivaldb";
-                    r.CollectionName = "thirst";
-                });
                 x.AddActivities(entryAssembly);
-
                 x.UsingRabbitMq((context, cfg) =>
                 {
                     if (IsRunningInContainer())

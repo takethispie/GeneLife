@@ -1,6 +1,7 @@
 using Genelife.Domain.Commands;
 using Genelife.Domain.Events;
 using MassTransit;
+using Serilog;
 
 namespace Genelife.Inventory.Sagas;
 
@@ -10,7 +11,7 @@ public class InventorySaga :
     InitiatedBy<CreateGroceryShop>, 
     Orchestrates<StoreItem>, 
     Orchestrates<TakeItem>, 
-    Orchestrates<BuyItem>,
+    Orchestrates<BuyItems>,
     ISagaVersion
 {
     public Guid CorrelationId { get; set; }
@@ -35,7 +36,7 @@ public class InventorySaga :
     public async Task Consume(ConsumeContext<StoreItem> context)
     {
         Items.Add(ItemMapper.Map(context.Message.ItemId));
-        Console.WriteLine($"{context.CorrelationId} stored item {context.Message.ItemId}");
+        Log.Information($"{context.CorrelationId} stored item {context.Message.ItemId}");
         await context.Publish(new ItemStored(CorrelationId));
     }
 
@@ -49,17 +50,20 @@ public class InventorySaga :
             }
             return true;
         }).ToList();
-        Console.WriteLine($"{context.Message.CorrelationId} found and took needed item");
+        Log.Information($"{context.Message.CorrelationId} found and took needed item");
         await context.Publish(found ? 
             new ItemFound(CorrelationId, context.Message.ItemType) 
             : new ItemNotFound(CorrelationId, context.Message.ItemType));
     }
 
-    public async Task Consume(ConsumeContext<BuyItem> context)
+    public Task Consume(ConsumeContext<BuyItems> context)
     {
-        Money -= ItemPriceMapper.Map(context.Message.ItemType);
-        Items.Add(ItemMapper.Map(context.Message.ItemType));
-        Console.WriteLine($"new balance for {CorrelationId}: {Money}C");
-        await context.Publish(new ItemBought(CorrelationId, context.Message.ItemType));
+        context.Message.Items.ToList().ForEach(async item => {
+            Money -= ItemPriceMapper.Map(item.ItemType);
+            Items.Add(ItemMapper.Map(item.ItemType));
+            await context.Publish(new ItemBought(CorrelationId, item.ItemType));
+        });
+        Log.Information($"new balance for {CorrelationId}: {Money}C");
+        return Task.CompletedTask;
     }
 }

@@ -2,4 +2,6 @@ using MassTransit;
 
 namespace Genelife.Domain.Commands;
 
-public record BuyItem(Guid CorrelationId, ItemType ItemType, Guid TargetStore) : CorrelatedBy<Guid>;
+public record GroceryListItem(ItemType ItemType, int Count);
+
+public record BuyItems(Guid CorrelationId, GroceryListItem[] Items, Guid TargetStore) : CorrelatedBy<Guid>;

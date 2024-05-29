@@ -33,9 +33,9 @@ public class ClockService {
         Ticks++;
         if(Ticks < 10) return;
         Ticks = 0;
-        Console.WriteLine("1 hour went by");
         await PublishEndpoint.Publish(new HourElapsed());
         TimeOnly = TimeOnly.AddHours(1);
+        if(TimeOnly.Hour == 12) Console.WriteLine("Noon of current day");
         if(TimeOnly.Hour == 0) {
             Console.WriteLine("1 day went by");
             await PublishEndpoint.Publish(new DayElapsed());

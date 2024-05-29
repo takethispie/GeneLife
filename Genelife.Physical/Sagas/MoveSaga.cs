@@ -38,7 +38,7 @@ public class MoveSaga : MassTransitStateMachine<MoveSagaState>
         During(Idle,
             When(MoveTo)
             .Then(bc => {
-                Console.WriteLine($"Human {bc.Saga.CorrelationId} moving to {bc.Message.X}:{bc.Message.Y}");
+                Console.WriteLine($"{bc.Saga.CorrelationId} moving to {bc.Message.X}:{bc.Message.Y}");
                 bc.Saga.Target = new Vector3(bc.Message.X, bc.Message.Y, 0);
                 bc.Saga.TargetId = bc.Message.TargetId;
             }).TransitionTo(Moving),
@@ -54,7 +54,10 @@ public class MoveSaga : MassTransitStateMachine<MoveSagaState>
                 bc.Saga.Position = bc.Saga.Position.MovePointTowards(bc.Saga.Target, 100f);
             }).TransitionTo(Moving),
 
-            When(Died).TransitionTo(Dead)
+            When(Died).TransitionTo(Dead),
+            When(MoveTo).Then(async bc => {
+                await bc.Publish(new Busy(bc.Saga.CorrelationId));
+            }).TransitionTo(Moving)
         );
 
         During(Moving,
