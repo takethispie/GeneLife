@@ -11,8 +11,8 @@ public class HumanSagaState : SagaStateMachineInstance, ISagaVersion
     public string CurrentState { get; set; }
     public bool IsHome { get; set; } = true;
     public int Version { get; set; }
-    public int Hunger { get; set; } = 0;
-    public int Thirst { get; set; } = 0;
+    public int Hunger { get; set; }
+    public int Thirst { get; set; }
 }
 
 public class HumanSaga : MassTransitStateMachine<HumanSagaState>

@@ -19,16 +19,6 @@ services:
      - "15672:15672"
      - "15692:15692"
 
-  survival:
-    build:
-      context: .
-      dockerfile: Dockerfile-survival
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-    depends_on:
-      rabbitmq:
-        condition: service_started
-
   api:
     build:
       context: .
