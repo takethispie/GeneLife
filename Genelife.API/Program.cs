@@ -124,5 +124,27 @@ app.MapGet("/cheat/setthirst/{correlationId}/{value}", async (Guid correlationId
 .WithName("set thirst")
 .WithOpenApi();
 
+app.MapGet("/usecase/survivalNoFoodInventory", async ([FromServices] IPublishEndpoint endpoint) => {
+    var guid = Guid.NewGuid();
+    await endpoint.Publish(new CreateGroceryShop(guid, 500, 500, 50, 50));
+    var human = HumanGenerator.Build(Sex.Male);
+    await endpoint.Publish(new CreateHuman(human.CorrelationId, human, 0, 0));
+    await endpoint.Publish(new SetHunger(human.CorrelationId, 9));
+    await endpoint.Publish(new SetThirst(human.CorrelationId, 19));
+    human = HumanGenerator.Build(Sex.Male);
+    await endpoint.Publish(new CreateHuman(human.CorrelationId, human, 50, 100));
+    await endpoint.Publish(new SetHunger(human.CorrelationId, 7));
+    await endpoint.Publish(new SetThirst(human.CorrelationId, 15));
+    human = HumanGenerator.Build(Sex.Female);
+    await endpoint.Publish(new CreateHuman(human.CorrelationId, human, 100, 200));
+    await endpoint.Publish(new SetHunger(human.CorrelationId, 9));
+    await endpoint.Publish(new SetThirst(human.CorrelationId, 19));
+    await endpoint.Publish(new SetClockSpeed(100));
+    await endpoint.Publish(new StartClock());
+    return Results.Ok();
+})
+.WithName("survival with no food in inventory usecase")
+.WithOpenApi();
+
 
 app.Run();
