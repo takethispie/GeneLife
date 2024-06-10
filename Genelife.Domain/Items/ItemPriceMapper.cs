@@ -1,6 +1,4 @@
-using Genelife.Domain;
-
-namespace Genelife.Inventory;
+namespace Genelife.Domain;
 
 public static class ItemPriceMapper {
     public static int Map(ItemType itemType) => itemType switch {

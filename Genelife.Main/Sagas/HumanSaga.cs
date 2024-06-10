@@ -13,6 +13,7 @@ public class HumanSagaState : SagaStateMachineInstance, ISagaVersion
     public int Version { get; set; }
     public int Hunger { get; set; }
     public int Thirst { get; set; }
+    public List<Item> Inventory { get; set; } = [];
 }
 
 public class HumanSaga : MassTransitStateMachine<HumanSagaState>
