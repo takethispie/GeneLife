@@ -1,11 +1,10 @@
-using System.Linq.Expressions;
 using System.Numerics;
 using Genelife.Domain.Commands;
 using MassTransit;
 
 namespace Genelife.Physical.Sagas;
 
-public class HouseSaga : ISaga, ISagaVersion, InitiatedBy<CreateHouse>, Orchestrates<AttachToHouse>, Observes<GoHome, HouseSaga>
+public class HouseSaga : ISaga, ISagaVersion, InitiatedBy<CreateHouse>, Orchestrates<AttachToHouse>
 {
     public Guid CorrelationId { get; set; }
     public Vector2 Size { get; set; }
@@ -13,7 +12,6 @@ public class HouseSaga : ISaga, ISagaVersion, InitiatedBy<CreateHouse>, Orchestr
     public int Version { get; set; }
     public List<Guid> Occupants { get; set; }
 
-    public Expression<Func<HouseSaga, GoHome, bool>> CorrelationExpression => throw new NotImplementedException();
 
     public Task Consume(ConsumeContext<CreateHouse> context)
     {
@@ -30,18 +28,5 @@ public class HouseSaga : ISaga, ISagaVersion, InitiatedBy<CreateHouse>, Orchestr
             Occupants.Add(context.Message.CorrelationId);
         } else Console.WriteLine($"{context.Message.Being} is already an occupant of house {context.Message.CorrelationId}");
         return Task.CompletedTask;
-    }
-
-    public async Task Consume(ConsumeContext<GoHome> context)
-    {
-        if(Occupants.Any(x => x == context.Message.CorrelationId)) {
-            Console.WriteLine($"{context.Message.CorrelationId} going to its home {CorrelationId}");
-            await context.Publish(
-                new MoveTo(context.Message.CorrelationId, 
-                Convert.ToInt32(Position.X), 
-                Convert.ToInt32(Position.Y), 
-                CorrelationId)
-            );
-        }
     }
 }

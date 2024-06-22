@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace Genelife.Physical.Extensions;
+namespace Genelife.Domain.Extensions;
 public static class VectorExtensions
 {
     public static Vector3 MovePointTowards(this Vector3 a, Vector3 b, float distance)

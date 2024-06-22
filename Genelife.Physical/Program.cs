@@ -31,14 +31,6 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
                 var entryAssembly = Assembly.GetEntryAssembly();
 
                 x.AddConsumers(entryAssembly);
-                x.AddSagaStateMachine<MoveSaga, MoveSagaState>(so => {
-                    so.UseConcurrencyLimit(1);
-                }).MongoDbRepository(r =>
-                {
-                    r.Connection = "mongodb://root:example@mongo:27017/";
-                    r.DatabaseName = "physicaldb";
-                    r.CollectionName = "move";
-                });
                 x.AddSaga<GroceryShopSaga>(so => {
                     so.UseConcurrentMessageLimit(10);
                 }).MongoDbRepository(r =>

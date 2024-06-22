@@ -106,8 +106,8 @@ app.MapGet("/simulation/setClockSpeed/{milliseconds}", async (int milliseconds, 
 .WithOpenApi();
 
 
-app.MapGet("/action/go/{correlationId}/groceryShop", async (Guid correlationId, [FromServices] IPublishEndpoint endpoint) => {
-    await endpoint.Publish(new GoToGroceryShop(correlationId));
+app.MapGet("/action/go/{correlationId}/groceryShop", (Guid correlationId, [FromServices] IPublishEndpoint endpoint) => {
+    //await endpoint.Publish(new GoToGroceryShop(correlationId));
 })
 .WithName("go To Grocery Store")
 .WithOpenApi();
