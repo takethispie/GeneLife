@@ -1,3 +1,4 @@
+using Genelife.Main.Consumers;
 using Genelife.Main.Sagas;
 using Genelife.Main.Services;
 using MassTransit;
@@ -60,7 +61,7 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
                 ).WithTracing(b => b
                     .AddSource("MassTransit")
                     .SetResourceBuilder(ResourceBuilder.CreateDefault()
-                        .AddService("Inventory Service")
+                        .AddService("Main")
                         .AddTelemetrySdk()
                         .AddEnvironmentVariableDetector()
                     )

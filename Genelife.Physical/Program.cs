@@ -74,7 +74,7 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
                 ).WithTracing(b => b
                     .AddSource("MassTransit")
                     .SetResourceBuilder(ResourceBuilder.CreateDefault()
-                        .AddService("Inventory Service")
+                        .AddService("Physical")
                         .AddTelemetrySdk()
                         .AddEnvironmentVariableDetector()
                     )

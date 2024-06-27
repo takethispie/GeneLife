@@ -23,6 +23,7 @@ public class GroceryShopSaga : ISaga, InitiatedBy<CreateGroceryShop>, Orchestrat
 
     public async Task Consume(ConsumeContext<BuyItems> context)
     {
+        Console.WriteLine($"{context.Message.CorrelationId} buying items");
         foreach(var item in context.Message.Items) {
             //TODO proper item selection/cost management 
             await context.Publish(new ItemBought(context.Message.Buyer, new Item(0, item.ItemType.ToString(), item.ItemType), 2));

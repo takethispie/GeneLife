@@ -35,35 +35,44 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
     public Event<CreateHuman> Created { get; set; } = null;
     public Event<Arrived> Arrived { get; set; } = null;
     public Event<Tick> UpdateTick { get; set; } = null;
+    public Event<DayElapsed> DayElapsed { get; set; } = null;
     public Event<ClosestGroceryShopFound> FoundGroceryShop { get; set; } = null;
     public Event<ItemBought> ItemBought { get; set; } = null;
+    public Event<SetHunger> SetHunger { get; set; } = null;
+    public Event<SetThirst> SetThirst { get; set; } = null;
+
 
     public HumanSaga() {
         InstanceState(x => x.CurrentState);
         Initially(When(Created).TransitionTo(Idle));
+        Event(() => UpdateTick, e => e.CorrelateBy(saga => "any", ctx => "any"));
+        Event(() => DayElapsed, e => e.CorrelateBy(saga => "any", ctx => "any"));
+
+        DuringAny(
+            When(DayElapsed).Then((bc) => {
+                Console.WriteLine($"{bc.Saga.CorrelationId} Hunger: {bc.Saga.Hunger} Thirst: {bc.Saga.Thirst}");
+                bc.Saga.Hunger++;
+                bc.Saga.Thirst++;
+            }),
+
+            When(SetHunger).Then(bc => bc.Saga.Hunger = bc.Message.Value),
+            When(SetThirst).Then(bc => bc.Saga.Thirst = bc.Message.Value)
+        );
 
         AddIdleLoop();
         AddGroceryLoop();
-
-        During(Moving,
-            When(UpdateTick, bc => bc.Saga.Target.HasValue && Vector3.Distance(bc.Saga.Position, bc.Saga.Target.Value) > bc.Saga.Speed)
-                .Then(bc => {
-                    bc.Saga.Position = bc.Saga.Position.MovePointTowards(bc.Saga.Target.Value, bc.Saga.Speed);
-                }).TransitionTo(Moving),
-            When(UpdateTick, bc => bc.Saga.Target.HasValue && Vector3.Distance(bc.Saga.Position, bc.Saga.Target.Value) <= 2f)
-                .Then(async bc => {
-                    await bc.Publish(new Arrived(bc.Saga.CorrelationId, bc.Saga.TargetId));
-                }).TransitionTo(Idle)
-        );
+        AddMovingLoop();
     }
 
 
 #region gameplay loops
     private void AddIdleLoop() {
+
         During(Idle,
             When(UpdateTick, bc => bc.Saga.CurrentLoop == EventLoop.GroceryStore).TransitionTo(GroceryStoreLoop),
 
             When(UpdateTick, bc => ShouldGetGroceries(bc.Saga)).Then(async bc => {
+                Console.WriteLine($"{bc.Saga.CorrelationId} Need to get groceries");
                 bc.Saga.CurrentLoop = EventLoop.GroceryStore;
                 bc.Saga.GroceryList = GetGroceryList(bc.Saga);
                 await bc.Publish(new FindClosestGroceryShop(bc.Saga.CorrelationId, bc.Saga.Position));
@@ -73,12 +82,14 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                 var item = bc.Saga.Inventory.FirstOrDefault(x => x.ItemType == ItemType.Food);
                 if( bc.Saga.Inventory.Remove(item) is false) throw new Exception("couldnt remove item");
                 bc.Saga.CurrentLoop = EventLoop.Idle;
+                Console.WriteLine($"{bc.Saga.CorrelationId} Has Eaten");
             }).TransitionTo(GroceryStoreLoop),
 
             When(UpdateTick, bc => ShouldDrink(bc.Saga)).Then(bc => {
                 var item = bc.Saga.Inventory.FirstOrDefault(x => x.ItemType == ItemType.Drink);
                 if( bc.Saga.Inventory.Remove(item) is false) throw new Exception("couldnt remove item");
                 bc.Saga.CurrentLoop = EventLoop.Idle;
+                Console.WriteLine($"{bc.Saga.CorrelationId} has Drank");
             }).TransitionTo(GroceryStoreLoop)
 
         );
@@ -88,16 +99,35 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             When(FoundGroceryShop).Then(bc => {
                 bc.Saga.Target = bc.Message.Position;
                 bc.Saga.TargetId = bc.Message.GroceryShopId;
+                Console.WriteLine($"{bc.Saga.CorrelationId} found grocery store at {bc.Message.Position}");
             }).TransitionTo(Moving),
 
             When(UpdateTick, bc => IsNearby(bc.Saga))
                 .Then(async bc => {
                     await bc.Publish(new BuyItems(bc.Saga.TargetId, bc.Saga.GroceryList, bc.Saga.CorrelationId));
+                    Console.WriteLine($"{bc.Saga.CorrelationId} is buying items");
                 }),
             
             When(ItemBought).Then(bc => {
+                Console.WriteLine($"{bc.Saga.CorrelationId} has bought {bc.Message.Item.Name}");
                 bc.Saga.Inventory.Add(bc.Message.Item);
             }).TransitionTo(Idle)
+        );
+    }
+
+    private void AddMovingLoop() {
+        During(Moving,
+            When(UpdateTick, bc => bc.Saga.Target.HasValue && Vector3.Distance(bc.Saga.Position, bc.Saga.Target.Value) > bc.Saga.Speed)
+                .Then(bc => {
+                    bc.Saga.Position = bc.Saga.Position.MovePointTowards(bc.Saga.Target.Value, bc.Saga.Speed);
+                }).TransitionTo(Moving),
+            When(UpdateTick, bc => bc.Saga.Target.HasValue && Vector3.Distance(bc.Saga.Position, bc.Saga.Target.Value) <= 2f)
+                .Then(async bc => {
+                    await bc.Publish(new Arrived(bc.Saga.CorrelationId, bc.Saga.TargetId));
+                    bc.Saga.Target = null;
+                    bc.Saga.TargetId = Guid.Empty;
+                    Console.WriteLine($"{bc.Saga.CorrelationId} arrived at {bc.Saga.Target}");
+                }).TransitionTo(Idle)
         );
     }
 #endregion
