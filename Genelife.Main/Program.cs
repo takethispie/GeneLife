@@ -31,7 +31,7 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
                 var entryAssembly = Assembly.GetEntryAssembly();
 
                 x.AddConsumers(entryAssembly);
-                x.AddSagaStateMachine<HumanSaga, HumanSagaState>(so => so.UseConcurrentMessageLimit(10)).MongoDbRepository(r =>
+                x.AddSagaStateMachine<HumanSaga, HumanSagaState>(so => so.UseConcurrentMessageLimit(1)).MongoDbRepository(r =>
                 {
                     r.Connection = "mongodb://root:example@mongo:27017/";
                     r.DatabaseName = "maindb";

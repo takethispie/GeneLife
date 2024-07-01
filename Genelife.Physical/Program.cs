@@ -32,7 +32,7 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
 
                 x.AddConsumers(entryAssembly);
                 x.AddSaga<GroceryShopSaga>(so => {
-                    so.UseConcurrentMessageLimit(10);
+                    so.UseConcurrentMessageLimit(1);
                 }).MongoDbRepository(r =>
                 {
                     r.Connection = "mongodb://root:example@mongo:27017/";
@@ -40,7 +40,7 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
                     r.CollectionName = "grocery-store";
                 });
                 x.AddSaga<HouseSaga>(so => {
-                    so.UseConcurrentMessageLimit(10);
+                    so.UseConcurrentMessageLimit(1);
                 }).MongoDbRepository(r =>
                 {
                     r.Connection = "mongodb://root:example@mongo:27017/";

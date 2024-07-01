@@ -4,25 +4,9 @@ using Genelife.Domain.Commands;
 using Genelife.Domain.Events;
 using Genelife.Domain.Extensions;
 using MassTransit;
+using MongoDB.Bson;
 
 namespace Genelife.Main.Sagas;
-
-public class HumanSagaState : SagaStateMachineInstance, ISagaVersion
-{
-    public Guid CorrelationId { get; set; }
-    public string CurrentState { get; set; }
-    public bool IsHome { get; set; } = true;
-    public int Version { get; set; }
-    public int Hunger { get; set; }
-    public int Thirst { get; set; }
-    public List<Item> Inventory { get; set; } = [];
-    public Vector3 Position { get; set; }
-    public Vector3? Target { get; set; } = null;
-    public Guid TargetId { get; set; }
-    public float Speed { get; set; }
-    public EventLoop CurrentLoop { get; set; }
-    public GroceryListItem[] GroceryList { get; set; } = [];
-}
 
 public class HumanSaga : MassTransitStateMachine<HumanSagaState>
 {
@@ -37,7 +21,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
     public Event<Tick> UpdateTick { get; set; } = null;
     public Event<DayElapsed> DayElapsed { get; set; } = null;
     public Event<ClosestGroceryShopFound> FoundGroceryShop { get; set; } = null;
-    public Event<ItemBought> ItemBought { get; set; } = null;
+    public Event<ItemsBought> ItemsBought { get; set; } = null;
     public Event<SetHunger> SetHunger { get; set; } = null;
     public Event<SetThirst> SetThirst { get; set; } = null;
 
@@ -71,6 +55,20 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         During(Idle,
             When(UpdateTick, bc => bc.Saga.CurrentLoop == EventLoop.GroceryStore).TransitionTo(GroceryStoreLoop),
 
+            When(UpdateTick, bc => ShouldEat(bc.Saga)).Then(bc => {
+                var item = bc.Saga.Inventory.FirstOrDefault(x => x.ItemType == ItemType.Food);
+                if(bc.Saga.Inventory.Remove(item) is false) throw new Exception("couldnt remove item");
+                Console.WriteLine($"{bc.Saga.CorrelationId} Has Eaten");
+                bc.Saga.Hunger = 0;
+            }).TransitionTo(Idle),
+
+            When(UpdateTick, bc => ShouldDrink(bc.Saga)).Then(bc => {
+                var item = bc.Saga.Inventory.FirstOrDefault(x => x.ItemType == ItemType.Drink);
+                if(bc.Saga.Inventory.Remove(item) is false) throw new Exception("couldnt remove item");
+                Console.WriteLine($"{bc.Saga.CorrelationId} has Drank");
+                bc.Saga.Thirst = 0;
+            }).TransitionTo(Idle),
+
             When(UpdateTick, bc => ShouldGetGroceries(bc.Saga)).Then(async bc => {
                 Console.WriteLine($"{bc.Saga.CorrelationId} Need to get groceries");
                 bc.Saga.CurrentLoop = EventLoop.GroceryStore;
@@ -78,20 +76,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                 await bc.Publish(new FindClosestGroceryShop(bc.Saga.CorrelationId, bc.Saga.Position));
             }).TransitionTo(GroceryStoreLoop),
 
-            When(UpdateTick, bc => ShouldEat(bc.Saga)).Then(bc => {
-                var item = bc.Saga.Inventory.FirstOrDefault(x => x.ItemType == ItemType.Food);
-                if( bc.Saga.Inventory.Remove(item) is false) throw new Exception("couldnt remove item");
-                bc.Saga.CurrentLoop = EventLoop.Idle;
-                Console.WriteLine($"{bc.Saga.CorrelationId} Has Eaten");
-            }).TransitionTo(GroceryStoreLoop),
-
-            When(UpdateTick, bc => ShouldDrink(bc.Saga)).Then(bc => {
-                var item = bc.Saga.Inventory.FirstOrDefault(x => x.ItemType == ItemType.Drink);
-                if( bc.Saga.Inventory.Remove(item) is false) throw new Exception("couldnt remove item");
-                bc.Saga.CurrentLoop = EventLoop.Idle;
-                Console.WriteLine($"{bc.Saga.CorrelationId} has Drank");
-            }).TransitionTo(GroceryStoreLoop)
-
+            When(Arrived, bc => bc.Saga.CurrentLoop == EventLoop.GroceryStore).TransitionTo(GroceryStoreLoop)
         );
     }
     private void AddGroceryLoop() {
@@ -102,15 +87,16 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                 Console.WriteLine($"{bc.Saga.CorrelationId} found grocery store at {bc.Message.Position}");
             }).TransitionTo(Moving),
 
-            When(UpdateTick, bc => IsNearby(bc.Saga))
+            When(UpdateTick, bc => IsNearbyTarget(bc.Saga))
                 .Then(async bc => {
                     await bc.Publish(new BuyItems(bc.Saga.TargetId, bc.Saga.GroceryList, bc.Saga.CorrelationId));
                     Console.WriteLine($"{bc.Saga.CorrelationId} is buying items");
                 }),
             
-            When(ItemBought).Then(bc => {
-                Console.WriteLine($"{bc.Saga.CorrelationId} has bought {bc.Message.Item.Name}");
-                bc.Saga.Inventory.Add(bc.Message.Item);
+            When(ItemsBought).Then(bc => {
+                Console.WriteLine($"{bc.Saga.CorrelationId} has bought items");
+                bc.Saga.Inventory.AddRange(bc.Message.Items);
+                bc.Saga.CurrentLoop = EventLoop.Idle;
             }).TransitionTo(Idle)
         );
     }
@@ -144,15 +130,15 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
     private static bool ShouldDrink(HumanSagaState state)
         => state.Thirst >= 10 && state.Inventory.Any(x => x.ItemType == ItemType.Drink);
 
-    private static bool IsNearby(HumanSagaState state)
+    private static bool IsNearbyTarget(HumanSagaState state)
         => state.Target.HasValue && Vector3.Distance(state.Position, state.Target.Value) <= 2f && state.Target is not null;
 #endregion
 
 
 #region game logic
         public static GroceryListItem[] GetGroceryList(HumanSagaState state) => (state.Hunger >= 20, state.Thirst >= 10) switch {
-            (true, false) => [new GroceryListItem(ItemType.Drink, 1)],
-            (false, true) => [new GroceryListItem(ItemType.Food, 1)],
+            (true, false) => [new GroceryListItem(ItemType.Food, 1)],
+            (false, true) => [new GroceryListItem(ItemType.Drink, 1)],
             (true, true) => [new GroceryListItem(ItemType.Drink, 1), new GroceryListItem(ItemType.Food, 1)],
             _ => []
         };
