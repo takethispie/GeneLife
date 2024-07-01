@@ -48,14 +48,11 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
                     r.CollectionName = "house-store";
                 });
                 x.AddActivities(entryAssembly);
-
                 x.UsingRabbitMq((context, cfg) =>
                 {
                     if (IsRunningInContainer())
                         cfg.Host("rabbitmq");
-
                     cfg.UseDelayedMessageScheduler();
-
                     cfg.ConfigureEndpoints(context);
                 });
             });

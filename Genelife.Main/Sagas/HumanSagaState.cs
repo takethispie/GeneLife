@@ -15,8 +15,9 @@ public class HumanSagaState : SagaStateMachineInstance, ISagaVersion
     public List<Item> Inventory { get; set; } = [];
     public Vector3 Position { get; set; }
     public Vector3? Target { get; set; } = null;
+    public Vector3? Home { get; set; } = null;
     public Guid TargetId { get; set; }
-    public float Speed { get; set; }
+    public float Speed { get; set; } = 100f;
     public EventLoop CurrentLoop { get; set; } = EventLoop.Idle;
     public GroceryListItem[] GroceryList { get; set; } = [];
 }

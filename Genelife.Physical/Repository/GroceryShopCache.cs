@@ -13,5 +13,5 @@ public class GroceryShopCache() {
 
     public void Remove(Guid guid) => groceryShops = groceryShops.Where(x => x.Guid != guid).ToList();
 
-    public GroceryShop GetClosest(Vector3 position) => groceryShops.OrderByDescending(x => Vector3.Distance(x.Position, position)).FirstOrDefault();
+    public GroceryShop? GetClosest(Vector3 position) => groceryShops.OrderByDescending(x => Vector3.Distance(x.Position, position)).FirstOrDefault();
 }
