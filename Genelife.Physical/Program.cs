@@ -22,9 +22,7 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
     Host.CreateDefaultBuilder(args)
         .ConfigureServices((hostContext, services) =>
         {
-            services.AddSingleton<GroceryShopCache>();
-            services.AddSingleton<HumanCache>();
-            
+            services.AddSingleton<GroceryShopCache>();            
             services.AddMassTransit(x =>
             {
                 x.SetKebabCaseEndpointNameFormatter();
