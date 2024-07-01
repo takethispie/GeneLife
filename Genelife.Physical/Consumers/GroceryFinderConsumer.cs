@@ -1,28 +1,26 @@
-﻿using Genelife.Domain.Commands;
+﻿using System.Numerics;
+using Genelife.Domain.Commands;
+using Genelife.Domain.Events;
+using Genelife.Physical.Domain;
 using Genelife.Physical.Repository;
 using MassTransit;
+using MongoDB.Bson;
 
 namespace Genelife.Physical.Consumers;
 
-public class GroceryFinderConsumer(GroceryShopRepository groceryShopRepository, HumanRepository humanRepository) : IConsumer<GoToGroceryShop>
+public class GroceryFinderConsumer(GroceryShopCache groceryShopRepository) : IConsumer<FindClosestGroceryShop>
 {
-    private GroceryShopRepository repository = groceryShopRepository;
-    private HumanRepository humanRepository = humanRepository;
+    private readonly GroceryShopCache repository = groceryShopRepository;
 
-    public async Task Consume(ConsumeContext<GoToGroceryShop> context)
+    public async Task Consume(ConsumeContext<FindClosestGroceryShop> context)
     {
-        Console.WriteLine($"finding nearest grocery shop for Human {context.Message.HumanId}");
-        var human = humanRepository.Get(context.Message.HumanId);
-        if(human == null)
-        {
-            Console.WriteLine($"human with id: {context.Message.HumanId} not found");
-            return;
+        Console.WriteLine($"finding nearest grocery shop for Human {context.Message.CorrelationId}");
+        if(repository.GetClosest(context.Message.SourcePosition) is GroceryShop grocery) {
+            Console.WriteLine($"grocery found: {grocery.ToJson()}");
+
+            await context.Publish(new ClosestGroceryShopFound(context.Message.CorrelationId, grocery.Position.X, grocery.Position.Y, 0, grocery.Guid));
         }
-        var grocery = repository.GetClosest(human.Position);
-        if(grocery == null)
-            Console.WriteLine($"grocery not found close to position {human.Position}");
-        await context.Publish(new MoveTo(human.CorrelationId, Convert.ToInt32(grocery.Position.X), Convert.ToInt32(grocery.Position.Y), grocery.Guid));
-        return;
+        else Console.WriteLine($"grocery not found close to position {context.Message.SourcePosition}");
     }
 
 }

@@ -3,7 +3,7 @@ using Genelife.Physical.Domain;
 
 namespace Genelife.Physical.Repository;
 
-public class GroceryShopRepository() {
+public class GroceryShopCache() {
     private List<GroceryShop> groceryShops = [];
 
     public void Add(GroceryShop groceryShop) {
@@ -13,5 +13,5 @@ public class GroceryShopRepository() {
 
     public void Remove(Guid guid) => groceryShops = groceryShops.Where(x => x.Guid != guid).ToList();
 
-    public GroceryShop GetClosest(Vector3 position) => groceryShops.OrderByDescending(x => Vector3.Distance(x.Position, position)).FirstOrDefault();
+    public GroceryShop? GetClosest(Vector3 position) => groceryShops.OrderByDescending(x => Vector3.Distance(x.Position, position)).FirstOrDefault();
 }
