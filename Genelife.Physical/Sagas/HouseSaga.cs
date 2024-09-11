@@ -10,7 +10,7 @@ public class HouseSaga : ISaga, ISagaVersion, InitiatedBy<CreateHouse>, Orchestr
     public Vector2 Size { get; set; }
     public Vector3 Position { get; set; }
     public int Version { get; set; }
-    public List<Guid> Occupants { get; set; }
+    public List<Guid> Occupants { get; set; } = [];
 
 
     public Task Consume(ConsumeContext<CreateHouse> context)

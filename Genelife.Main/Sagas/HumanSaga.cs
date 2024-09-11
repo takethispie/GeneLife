@@ -11,10 +11,9 @@ namespace Genelife.Main.Sagas;
 public class HumanSaga : MassTransitStateMachine<HumanSagaState>
 {
     public State Idle { get; set; } = null!;
-    public State Eating { get; set; } = null;
-    public State Drinking { get; set; } = null;
     public State Moving { get; set; } = null;
     public State GroceryStoreLoop { get; set; } = null;
+    public State Working { get; set; } = null;
 
     public Event<CreateHuman> Created { get; set; } = null;
     public Event<Arrived> Arrived { get; set; } = null;
