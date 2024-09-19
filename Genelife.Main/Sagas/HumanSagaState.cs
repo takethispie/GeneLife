@@ -20,4 +20,5 @@ public class HumanSagaState : SagaStateMachineInstance, ISagaVersion
     public float Speed { get; set; } = 100f;
     public EventLoop CurrentLoop { get; set; } = EventLoop.Idle;
     public GroceryListItem[] GroceryList { get; set; } = [];
+    public float Money { get; set; } = 0;
 }

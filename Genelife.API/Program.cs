@@ -4,6 +4,7 @@ using Genelife.Domain.Generators;
 using Genelife.Domain;
 using MassTransit;
 using Microsoft.AspNetCore.Mvc;
+using System.Numerics;
 
 static bool IsRunningInContainer() => bool.TryParse(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), out var inContainer) && inContainer;
 
@@ -49,6 +50,7 @@ app.MapPost("/create/human/{sex}", async (Sex sex, [FromServices] IPublishEndpoi
 })
 .WithName("create Human")
 .WithOpenApi();
+
 
 app.MapPost("/create/human/{sex}/{hunger}/{thirst}", async (Sex sex, int hunger, int thirst, [FromServices] IPublishEndpoint endpoint) => {
     var human = HumanGenerator.Build(sex);
@@ -112,17 +114,20 @@ app.MapGet("/action/go/{correlationId}/groceryShop", (Guid correlationId, [FromS
 .WithName("go To Grocery Store")
 .WithOpenApi();
 
+
 app.MapGet("/cheat/sethunger/{correlationId}/{value}", async (Guid correlationId, int value, [FromServices] IPublishEndpoint endpoint) => {
     await endpoint.Publish(new SetHunger(correlationId, value));
 })
 .WithName("set Hunger")
 .WithOpenApi();
 
+
 app.MapGet("/cheat/setthirst/{correlationId}/{value}", async (Guid correlationId, int value, [FromServices] IPublishEndpoint endpoint) => {
     await endpoint.Publish(new SetThirst(correlationId, value));
 })
 .WithName("set thirst")
 .WithOpenApi();
+
 
 app.MapGet("/usecase/survivalNoFoodInventory", async ([FromServices] IPublishEndpoint endpoint) => {
     var guid = Guid.NewGuid();
@@ -141,4 +146,16 @@ app.MapGet("/usecase/survivalNoFoodInventory", async ([FromServices] IPublishEnd
 .WithOpenApi();
 
 
+app.MapGet("/work/company/create", async ([FromServices] IPublishEndpoint endpoint, string Name, int x, int y) => {
+    await endpoint.Publish(new CreateCompany(Guid.NewGuid(), Name, new Vector3(x, y, 0)));
+})
+.WithName("create new company")
+.WithOpenApi(); 
+
+
+app.MapGet("/work/hire", ([FromServices] IPublishEndpoint endpoint, Guid PersonId, Guid JobId) => {
+
+})
+.WithName("hire person in job")
+.WithOpenApi();
 app.Run();

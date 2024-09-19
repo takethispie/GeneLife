@@ -23,6 +23,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
     public Event<ItemsBought> ItemsBought { get; set; } = null;
     public Event<SetHunger> SetHunger { get; set; } = null;
     public Event<SetThirst> SetThirst { get; set; } = null;
+    public Event<TransferHourlyPay> MoneyTransfered { get; set;} = null;
 
 
     public HumanSaga() {
@@ -44,7 +45,12 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             }),
 
             When(SetHunger).Then(bc => bc.Saga.Hunger = bc.Message.Value),
-            When(SetThirst).Then(bc => bc.Saga.Thirst = bc.Message.Value)
+            When(SetThirst).Then(bc => bc.Saga.Thirst = bc.Message.Value),
+            When(MoneyTransfered).Then(bc =>
+            {
+                Console.WriteLine($"{bc.Message.Amount} added to {bc.CorrelationId}, new balance: {bc.Saga.Money}");
+                bc.Saga.Money += bc.Message.Amount;
+            })
         );
 
         AddIdleLoop();
