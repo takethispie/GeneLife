@@ -1,18 +1,26 @@
+using Genelife.Work.Sagas;
 using MassTransit;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using Serilog;
 using System.Reflection;
 
 static bool IsRunningInContainer() => bool.TryParse(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), out var inContainer) && inContainer;
 
 static void ConfigureResource(ResourceBuilder r)
 {
-    r.AddService("Inventory",
+    r.AddService("Work",
         serviceVersion: "1",
         serviceInstanceId: Environment.MachineName);
 }
+
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Debug)
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .CreateLogger();
 
 await CreateHostBuilder(args).Build().RunAsync();
 
@@ -26,8 +34,24 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
                 var entryAssembly = Assembly.GetEntryAssembly();
 
                 x.AddConsumers(entryAssembly);
-                x.AddSagaStateMachines(entryAssembly);
-                x.AddSagas(entryAssembly);
+                x.AddSaga<CompanySaga>(so =>
+                {
+                    so.UseConcurrentMessageLimit(1);
+                }).MongoDbRepository(r =>
+                {
+                    r.Connection = "mongodb://root:example@mongo:27017/";
+                    r.DatabaseName = "workdb";
+                    r.CollectionName = "company-store";
+                });
+                x.AddSaga<CompanyJobSaga>(so =>
+                {
+                    so.UseConcurrentMessageLimit(1);
+                }).MongoDbRepository(r =>
+                {
+                    r.Connection = "mongodb://root:example@mongo:27017/";
+                    r.DatabaseName = "workdb";
+                    r.CollectionName = "job-store";
+                });
                 x.AddActivities(entryAssembly);
 
                 x.UsingRabbitMq((context, cfg) =>

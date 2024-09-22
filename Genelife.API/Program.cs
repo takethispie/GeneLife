@@ -5,6 +5,7 @@ using Genelife.Domain;
 using MassTransit;
 using Microsoft.AspNetCore.Mvc;
 using System.Numerics;
+using Genelife.Domain.Events;
 
 static bool IsRunningInContainer() => bool.TryParse(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), out var inContainer) && inContainer;
 
@@ -145,15 +146,32 @@ app.MapGet("/usecase/survivalNoFoodInventory", async ([FromServices] IPublishEnd
 .WithName("survival with no food in inventory usecase")
 .WithOpenApi();
 
+app.MapGet("/usecase/humanwithJob", async ([FromServices] IPublishEndpoint endpoint) => {
+    var guid = Guid.NewGuid();
+    await endpoint.Publish(new CreateGroceryShop(guid, 500, 500, 50, 50));
+    var human = HumanGenerator.Build(Sex.Male);
+    await endpoint.Publish(new CreateHuman(human.CorrelationId, human, 0, 0, 9, 19));
+    var companyId = Guid.NewGuid();
+    await endpoint.Publish(new CreateCompany(companyId, "", new Vector3(0, 500, 500)));
+    await endpoint.Publish(new Hired(human.CorrelationId, companyId, 20));
+    await endpoint.Publish(new SetClockSpeed(100));
+    await endpoint.Publish(new StartClock());
+    return Results.Ok();
+})
+.WithName("human with job")
+.WithOpenApi();
+
 
 app.MapGet("/work/company/create", async ([FromServices] IPublishEndpoint endpoint, string Name, int x, int y) => {
-    await endpoint.Publish(new CreateCompany(Guid.NewGuid(), Name, new Vector3(x, y, 0)));
+    var id = Guid.NewGuid();
+    await endpoint.Publish(new CreateCompany(id, Name, new Vector3(x, y, 0)));
+    return Results.Ok(id);
 })
 .WithName("create new company")
 .WithOpenApi(); 
 
 
-app.MapGet("/work/hire", ([FromServices] IPublishEndpoint endpoint, Guid PersonId, Guid JobId) => {
+app.MapGet("/work/hire", ([FromServices] IPublishEndpoint endpoint, Guid PersonId, Guid companyId) => {
 
 })
 .WithName("hire person in job")
