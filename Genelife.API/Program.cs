@@ -153,7 +153,7 @@ app.MapGet("/usecase/humanwithJob", async ([FromServices] IPublishEndpoint endpo
     await endpoint.Publish(new CreateHuman(human.CorrelationId, human, 0, 0, 9, 19));
     var companyId = Guid.NewGuid();
     await endpoint.Publish(new CreateCompany(companyId, "", new Vector3(0, 500, 500)));
-    await endpoint.Publish(new Hired(human.CorrelationId, companyId, 20));
+    await endpoint.Publish(new Hired(human.CorrelationId, companyId, 2));
     await endpoint.Publish(new SetClockSpeed(100));
     await endpoint.Publish(new StartClock());
     return Results.Ok();

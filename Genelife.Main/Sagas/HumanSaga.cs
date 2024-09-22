@@ -5,6 +5,7 @@ using Genelife.Domain.Events;
 using Genelife.Domain.Extensions;
 using MassTransit;
 using MongoDB.Bson;
+using Serilog;
 
 namespace Genelife.Main.Sagas;
 
@@ -39,7 +40,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
 
         DuringAny(
             When(DayElapsed).Then((bc) => {
-                Console.WriteLine($"{bc.Saga.CorrelationId} Hunger: {bc.Saga.Hunger} Thirst: {bc.Saga.Thirst}");
+                Log.Information($"{bc.Saga.CorrelationId} Hunger: {bc.Saga.Hunger} Thirst: {bc.Saga.Thirst}");
                 bc.Saga.Hunger++;
                 bc.Saga.Thirst++;
             }),
@@ -48,7 +49,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             When(SetThirst).Then(bc => bc.Saga.Thirst = bc.Message.Value),
             When(MoneyTransfered).Then(bc =>
             {
-                Console.WriteLine($"{bc.Message.Amount} added to {bc.CorrelationId}, new balance: {bc.Saga.Money}");
+                Log.Information($"{bc.Message.Amount} added to {bc.CorrelationId}, new balance: {bc.Saga.Money}");
                 bc.Saga.Money += bc.Message.Amount;
             })
         );
@@ -68,19 +69,19 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             When(UpdateTick, bc => ShouldEat(bc.Saga)).Then(bc => {
                 var item = bc.Saga.Inventory.FirstOrDefault(x => x.ItemType == ItemType.Food);
                 if(bc.Saga.Inventory.Remove(item) is false) throw new Exception("couldnt remove item");
-                Console.WriteLine($"{bc.Saga.CorrelationId} Has Eaten");
+                Log.Information($"{bc.Saga.CorrelationId} Has Eaten");
                 bc.Saga.Hunger = 0;
             }).TransitionTo(Idle),
 
             When(UpdateTick, bc => ShouldDrink(bc.Saga)).Then(bc => {
                 var item = bc.Saga.Inventory.FirstOrDefault(x => x.ItemType == ItemType.Drink);
                 if(bc.Saga.Inventory.Remove(item) is false) throw new Exception("couldnt remove item");
-                Console.WriteLine($"{bc.Saga.CorrelationId} has Drank");
+                Log.Information($"{bc.Saga.CorrelationId} has Drank");
                 bc.Saga.Thirst = 0;
             }).TransitionTo(Idle),
 
             When(UpdateTick, bc => ShouldGetGroceries(bc.Saga)).Then(async bc => {
-                Console.WriteLine($"{bc.Saga.CorrelationId} Need to get groceries");
+                Log.Information($"{bc.Saga.CorrelationId} Need to get groceries");
                 bc.Saga.CurrentLoop = EventLoop.GroceryStore;
                 bc.Saga.GroceryList = GetGroceryList(bc.Saga);
                 await bc.Publish(new FindClosestGroceryShop(bc.Saga.CorrelationId, bc.Saga.Position));
@@ -91,7 +92,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             When(UpdateTick, bc => bc.Saga.Position != bc.Saga.Home).Then(bc => {
                 bc.Saga.TargetId = Guid.Empty;
                 bc.Saga.Target = bc.Saga.Home;
-                Console.WriteLine("Going Home");
+                Log.Information("Going Home");
             }).TransitionTo(Moving)
         );
     }
@@ -100,17 +101,17 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             When(FoundGroceryShop).Then(bc => {
                 bc.Saga.Target = new Vector3(bc.Message.X, bc.Message.Y, bc.Message.Z);
                 bc.Saga.TargetId = bc.Message.GroceryShopId;
-                Console.WriteLine($"{bc.Saga.CorrelationId} found grocery store at {bc.Message.X} {bc.Message.Y}");
+                Log.Information($"{bc.Saga.CorrelationId} found grocery store at {bc.Message.X} {bc.Message.Y}");
             }).TransitionTo(Moving),
 
             When(UpdateTick, bc => IsNearbyTarget(bc.Saga))
                 .Then(async bc => {
                     await bc.Publish(new BuyItems(bc.Saga.TargetId, bc.Saga.GroceryList, bc.Saga.CorrelationId));
-                    Console.WriteLine($"{bc.Saga.CorrelationId} is buying items");
+                    Log.Information($"{bc.Saga.CorrelationId} is buying items");
                 }),
             
             When(ItemsBought).Then(bc => {
-                Console.WriteLine($"{bc.Saga.CorrelationId} has bought items");
+                Log.Information($"{bc.Saga.CorrelationId} has bought items");
                 bc.Saga.Inventory.AddRange(bc.Message.Items);
                 bc.Saga.GroceryList = [];
                 bc.Saga.Target = null;
@@ -125,13 +126,13 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             When(UpdateTick, bc => bc.Saga.Target.HasValue && Vector3.Distance(bc.Saga.Position, bc.Saga.Target.Value) > bc.Saga.Speed)
                 .Then(bc => {
                     bc.Saga.Position = bc.Saga.Position.MovePointTowards(bc.Saga.Target.Value, bc.Saga.Speed);
-                    Console.WriteLine($"{bc.Saga.CorrelationId} new position: {bc.Saga.Position}");
+                    Log.Information($"{bc.Saga.CorrelationId} new position: {bc.Saga.Position}");
                 }).TransitionTo(Moving),
             When(UpdateTick, bc => bc.Saga.Target.HasValue && Vector3.Distance(bc.Saga.Position, bc.Saga.Target.Value) <= bc.Saga.Speed)
                 .Then(async bc => {
                     bc.Saga.Position = bc.Saga.Target.Value;
                     await bc.Publish(new Arrived(bc.Saga.CorrelationId, bc.Saga.TargetId));
-                    Console.WriteLine($"{bc.Saga.CorrelationId} arrived at {bc.Saga.Target}");
+                    Log.Information($"{bc.Saga.CorrelationId} arrived at {bc.Saga.Target}");
                     bc.Saga.Target = null;
                     bc.Saga.TargetId = Guid.Empty;
                 }).TransitionTo(Idle)
