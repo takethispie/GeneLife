@@ -1,6 +1,7 @@
 using Genelife.Domain.Commands;
 using Genelife.Main.Services;
 using MassTransit;
+using Serilog;
 
 namespace Genelife.Main.Consumers;
 
@@ -10,21 +11,21 @@ public class ClockConsumer(ClockService service) : IConsumer<StartClock>, IConsu
 
     public Task Consume(ConsumeContext<StartClock> context)
     {
-        Console.WriteLine("Started simulation");
+        Log.Information("Started simulation");
         ClockService.Start();
         return Task.CompletedTask;
     }
 
     public Task Consume(ConsumeContext<SetClockSpeed> context)
     {
-        Console.WriteLine($"Set clock speed to {context.Message.Milliseconds} ms");
+        Log.Information($"Set clock speed to {context.Message.Milliseconds} ms");
         ClockService.SetSpeed(context.Message.Milliseconds);
         return Task.CompletedTask;
     }
 
     public Task Consume(ConsumeContext<StopClock> context)
     {
-        Console.WriteLine("Stopped simulation");
+        Log.Information("Stopped simulation");
         ClockService.Stop();
         return Task.CompletedTask;
     }

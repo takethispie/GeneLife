@@ -3,6 +3,7 @@ using Genelife.Domain;
 using Genelife.Domain.Commands;
 using Genelife.Domain.Events;
 using MassTransit;
+using Serilog;
 
 namespace Genelife.Physical.Sagas;
 
@@ -15,7 +16,7 @@ public class GroceryShopSaga : ISaga, InitiatedBy<CreateGroceryShop>, Orchestrat
 
     public Task Consume(ConsumeContext<CreateGroceryShop> context)
     {
-        Console.WriteLine($"created Grocery Store {context.Message.CorrelationId} at position {context.Message.X}:{context.Message.Y}");
+        Log.Information($"created Grocery Store {context.Message.CorrelationId} at position {context.Message.X}:{context.Message.Y}");
         Size = new Vector2(context.Message.Width, context.Message.Depth);
         Position = new Vector3(context.Message.X, context.Message.Y, 0);
         return Task.CompletedTask;
@@ -23,7 +24,7 @@ public class GroceryShopSaga : ISaga, InitiatedBy<CreateGroceryShop>, Orchestrat
 
     public async Task Consume(ConsumeContext<BuyItems> context)
     {
-        Console.WriteLine($"{context.Message.CorrelationId} buying items");
+        Log.Information($"{context.Message.CorrelationId} buying items");
         //TODO proper item selection/cost management 
         await context.Publish(
             new ItemsBought(
