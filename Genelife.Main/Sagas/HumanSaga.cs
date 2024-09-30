@@ -4,7 +4,6 @@ using Genelife.Domain.Commands;
 using Genelife.Domain.Events;
 using Genelife.Domain.Extensions;
 using MassTransit;
-using MongoDB.Bson;
 using Serilog;
 
 namespace Genelife.Main.Sagas;

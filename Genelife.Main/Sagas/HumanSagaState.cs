@@ -21,4 +21,5 @@ public class HumanSagaState : SagaStateMachineInstance, ISagaVersion
     public EventLoop CurrentLoop { get; set; } = EventLoop.Idle;
     public GroceryListItem[] GroceryList { get; set; } = [];
     public float Money { get; set; } = 0;
+    public bool HasJob { get; set; } = false;
 }

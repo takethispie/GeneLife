@@ -33,7 +33,7 @@ public class ClockService {
         Ticks++;
         if(Ticks < 10) return;
         Ticks = 0;
-        await PublishEndpoint.Publish(new HourElapsed());
+        await PublishEndpoint.Publish(new HourElapsed(TimeOnly));
         TimeOnly = TimeOnly.AddHours(1);
         if(TimeOnly.Hour == 12) Console.WriteLine("Noon of current day");
         if(TimeOnly.Hour == 0) {
