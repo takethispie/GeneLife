@@ -5,7 +5,11 @@ using Genelife.Domain;
 using MassTransit;
 using Microsoft.AspNetCore.Mvc;
 using System.Numerics;
+using Genelife.Domain.Commands.Cheat;
+using Genelife.Domain.Commands.Clock;
+using Genelife.Domain.Commands.Create;
 using Genelife.Domain.Events;
+using Genelife.Domain.Events.Work;
 
 static bool IsRunningInContainer() => bool.TryParse(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), out var inContainer) && inContainer;
 
@@ -152,7 +156,7 @@ app.MapGet("/usecase/humanwithJob", async ([FromServices] IPublishEndpoint endpo
     var human = HumanGenerator.Build(Sex.Male);
     await endpoint.Publish(new CreateHuman(human.CorrelationId, human, 0, 0, 9, 19));
     var companyId = Guid.NewGuid();
-    await endpoint.Publish(new CreateCompany(companyId, "", new Vector3(0, 500, 500)));
+    await endpoint.Publish(new CreateCompany(companyId, "", new(0, 500, 500)));
     await endpoint.Publish(new Hired(human.CorrelationId, companyId, 2));
     await endpoint.Publish(new SetClockSpeed(100));
     await endpoint.Publish(new StartClock());
@@ -164,7 +168,7 @@ app.MapGet("/usecase/humanwithJob", async ([FromServices] IPublishEndpoint endpo
 
 app.MapGet("/work/company/create", async ([FromServices] IPublishEndpoint endpoint, string Name, int x, int y) => {
     var id = Guid.NewGuid();
-    await endpoint.Publish(new CreateCompany(id, Name, new Vector3(x, y, 0)));
+    await endpoint.Publish(new CreateCompany(id, Name, new(x, y, 0)));
     return Results.Ok(id);
 })
 .WithName("create new company")

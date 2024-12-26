@@ -1,5 +1,5 @@
 using MassTransit;
 
-namespace Genelife.Domain.Events;
+namespace Genelife.Domain.Events.Survival;
 
 public record HasDrank(Guid CorrelationId) : CorrelatedBy<Guid>;

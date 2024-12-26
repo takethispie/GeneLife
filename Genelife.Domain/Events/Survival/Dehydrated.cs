@@ -1,6 +1,6 @@
 ﻿
 using MassTransit;
 
-namespace Genelife.Domain.Events;
+namespace Genelife.Domain.Events.Survival;
 
 public record Dehydrated(Guid CorrelationId) : CorrelatedBy<Guid>;

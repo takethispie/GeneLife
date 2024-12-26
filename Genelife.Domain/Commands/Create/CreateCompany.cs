@@ -1,6 +1,6 @@
 using System.Numerics;
 using MassTransit;
 
-namespace Genelife.Domain.Commands;
+namespace Genelife.Domain.Commands.Create;
 
 public record CreateCompany(Guid CorrelationId, string Name, Vector3 HQPosition) : CorrelatedBy<Guid>;

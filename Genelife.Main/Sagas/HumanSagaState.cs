@@ -1,6 +1,8 @@
 using System.Numerics;
 using Genelife.Domain;
 using Genelife.Domain.Commands;
+using Genelife.Domain.Commands.Items;
+using Genelife.Domain.Items;
 using MassTransit;
 
 namespace Genelife.Main.Sagas;

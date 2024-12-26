@@ -69,7 +69,7 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
                     .AddMeter("MassTransit")
                     .AddOtlpExporter(o =>
                     {
-                        o.Endpoint = new Uri(IsRunningInContainer() ? "http://lgtm:4317" : "http://localhost:4317");
+                        o.Endpoint = new(IsRunningInContainer() ? "http://lgtm:4317" : "http://localhost:4317");
                         o.Protocol = OtlpExportProtocol.Grpc;
                     })
                     .AddPrometheusExporter()
@@ -82,7 +82,7 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
                     )
                     .AddOtlpExporter(o =>
                     {
-                        o.Endpoint = new Uri(IsRunningInContainer() ? "http://lgtm:4317" : "http://localhost:4317");
+                        o.Endpoint = new(IsRunningInContainer() ? "http://lgtm:4317" : "http://localhost:4317");
                         o.Protocol = OtlpExportProtocol.Grpc;
                     })
                 );

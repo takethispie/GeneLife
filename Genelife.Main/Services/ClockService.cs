@@ -1,5 +1,6 @@
 using System.Timers;
 using Genelife.Domain.Events;
+using Genelife.Domain.Events.Clock;
 using MassTransit;
 
 namespace Genelife.Main.Services;
@@ -12,11 +13,11 @@ public class ClockService {
 
     public ClockService(IPublishEndpoint endpoint) {
         PublishEndpoint = endpoint;
-        Timer = new System.Timers.Timer(1000);
+        Timer = new(1000);
         Timer.Elapsed += OnTimedEvent;
         Timer.AutoReset = true;
         Ticks = 0;
-        TimeOnly = new TimeOnly(0, 0);
+        TimeOnly = new(0, 0);
     }
 
     public void Start() {

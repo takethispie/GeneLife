@@ -1,5 +1,6 @@
 using System.Numerics;
 using Genelife.Domain.Commands;
+using Genelife.Domain.Commands.Create;
 using MassTransit;
 using Serilog;
 
@@ -17,8 +18,8 @@ public class HouseSaga : ISaga, ISagaVersion, InitiatedBy<CreateHouse>, Orchestr
     public Task Consume(ConsumeContext<CreateHouse> context)
     {
         Log.Information($"created House {context.Message.CorrelationId} at position {context.Message.X}:{context.Message.Y}");
-        Size = new Vector2(context.Message.Width, context.Message.Depth);
-        Position = new Vector3(context.Message.X, context.Message.Y, 0);
+        Size = new(context.Message.Width, context.Message.Depth);
+        Position = new(context.Message.X, context.Message.Y, 0);
         return Task.CompletedTask;
     }
 

@@ -1,4 +1,5 @@
 using Genelife.Domain.Commands;
+using Genelife.Domain.Commands.Clock;
 using Genelife.Main.Services;
 using MassTransit;
 using Serilog;

@@ -1,6 +1,8 @@
 ﻿using System.Numerics;
 using Genelife.Domain.Commands;
+using Genelife.Domain.Commands.Buildings;
 using Genelife.Domain.Events;
+using Genelife.Domain.Events.Buildings;
 using Genelife.Physical.Domain;
 using Genelife.Physical.Repository;
 using MassTransit;

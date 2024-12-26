@@ -1,6 +1,9 @@
 using System.Linq.Expressions;
 using Genelife.Domain.Commands;
+using Genelife.Domain.Commands.Money;
 using Genelife.Domain.Events;
+using Genelife.Domain.Events.Clock;
+using Genelife.Domain.Events.Work;
 using MassTransit;
 using Serilog;
 

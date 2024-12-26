@@ -1,5 +1,6 @@
+using Genelife.Domain.Items;
 using MassTransit;
 
-namespace Genelife.Domain.Commands;
+namespace Genelife.Domain.Commands.Items;
 
-public record TakeItem(Guid CorrelationId, ItemType ItemType) : CorrelatedBy<Guid>; 
+public record TakeItem(Guid CorrelationId, Item Item) : CorrelatedBy<Guid>; 

@@ -1,3 +1,3 @@
-namespace Genelife.Domain.Events;
+namespace Genelife.Domain.Events.Clock;
 
 public record Tick();

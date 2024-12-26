@@ -1,7 +1,9 @@
 using System.Linq.Expressions;
 using System.Numerics;
 using Genelife.Domain.Commands;
+using Genelife.Domain.Commands.Create;
 using Genelife.Domain.Events;
+using Genelife.Domain.Events.Work;
 using MassTransit;
 using Serilog;
 
