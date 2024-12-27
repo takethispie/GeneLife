@@ -2,6 +2,7 @@ using System.Numerics;
 using Genelife.Domain;
 using Genelife.Domain.Commands;
 using Genelife.Domain.Commands.Items;
+using Genelife.Domain.Human;
 using Genelife.Domain.Items;
 using MassTransit;
 
@@ -10,17 +11,11 @@ namespace Genelife.Main.Sagas;
 public class HumanSagaState : SagaStateMachineInstance, ISagaVersion
 {
     public Guid CorrelationId { get; set; }
+    public Character Character { get; set; }
     public string CurrentState { get; set; }
     public int Version { get; set; }
-    public int Hunger { get; set; } = 0;
-    public int Thirst { get; set; } = 0;
-    public List<Item> Inventory { get; set; } = [];
     public Vector3 Position { get; set; }
     public Vector3? Target { get; set; } = null;
     public Vector3? Home { get; set; } = null;
-    public Guid TargetId { get; set; }
     public float Speed { get; set; } = 100f;
-    public EventLoop CurrentLoop { get; set; } = EventLoop.Idle;
-    public GroceryListItem[] GroceryList { get; set; } = [];
-    public float Money { get; set; } = 0;
 }

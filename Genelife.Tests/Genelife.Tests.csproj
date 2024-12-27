@@ -21,7 +21,6 @@
     <ProjectReference Include="..\Genelife.Domain\Genelife.Domain.csproj" />
     <ProjectReference Include="..\Genelife.Main\Genelife.Main.csproj" />
     <ProjectReference Include="..\Genelife.Physical\Genelife.Physical.csproj" />
-    <ProjectReference Include="..\Genelife.Work\Genelife.Work.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,4 +1,4 @@
-namespace Genelife.Domain.Store;
+namespace Genelife.Domain.Shop;
 
 public enum StoreType
 {

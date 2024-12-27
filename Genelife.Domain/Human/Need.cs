@@ -1,17 +1,9 @@
 namespace Genelife.Domain.Human;
 
-public class Need
-{
-    public NeedType Type { get; }
-    public float Value { get; private set; }
-    public float DecayRate { get; }
-
-    public Need(NeedType type, float decayRate)
-    {
-        Type = type;
-        Value = 100f;
-        DecayRate = decayRate;
-    }
+public class Need(NeedType type, float decayRate) {
+    public NeedType Type { get; } = type;
+    public float Value { get; private set; } = 100f;
+    private float DecayRate { get; init; } = decayRate;
 
     public void Modify(float amount)
     {

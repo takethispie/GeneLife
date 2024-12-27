@@ -1,17 +1,8 @@
 namespace Genelife.Domain.Human;
 
-public class CareerLevel
-{
-    public int Level { get; }
-    public string Title { get; }
-    public decimal HourlyPay { get; }
-    public Dictionary<string, float> RequiredSkills { get; }
-
-    public CareerLevel(int level, string title, decimal hourlyPay, Dictionary<string, float> requiredSkills)
-    {
-        Level = level;
-        Title = title;
-        HourlyPay = hourlyPay;
-        RequiredSkills = requiredSkills;
-    }
+public class CareerLevel(int level, string title, float hourlyPay, Dictionary<string, float> requiredSkills) {
+    public int Level { get; } = level;
+    public string Title { get; } = title;
+    public float HourlyPay { get; } = hourlyPay;
+    public Dictionary<string, float> RequiredSkills { get; } = requiredSkills;
 }

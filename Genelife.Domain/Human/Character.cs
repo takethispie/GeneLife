@@ -1,3 +1,4 @@
+using Genelife.Domain.Housing;
 using Genelife.Domain.Items;
 using MassTransit;
 
@@ -16,13 +17,15 @@ public class Character : CorrelatedBy<Guid>
     public Guid CorrelationId { get; init; }
     public Sex Sex { get; init; }
     public Career CurrentCareer { get; private set; }
-    public decimal Money { get; set; }
+    public float Money { get; set; }
     public Dictionary<string, float> Skills { get; }
     public DateTime LastWorkDay { get; private set; }
     public bool IsWorking { get; private set; }
     public Inventory Inventory { get; }
+    public List<Guid> OwnedProperties { get; }
+    public House CurrentLocation { get; private set; }
+    public Room CurrentRoom { get; private set; }
     
-
     private readonly Random random;
     private readonly List<Activity> availableActivities;
 
@@ -57,6 +60,7 @@ public class Character : CorrelatedBy<Guid>
         // Initialize available activities
         availableActivities = InitializeActivities();
     }
+    
 
     private List<Activity> InitializeActivities() => [
         new("Eat", 30,
@@ -85,6 +89,7 @@ public class Character : CorrelatedBy<Guid>
             }
         )
     ];
+    
 
     public void UpdateNeeds(float minutes)
     {
@@ -93,6 +98,7 @@ public class Character : CorrelatedBy<Guid>
             need.Decay(minutes);
         }
     }
+    
 
     public void PerformActivity(Activity activity)
     {
@@ -108,6 +114,7 @@ public class Character : CorrelatedBy<Guid>
         if (strongestMoodEffect.Value > 0.5f)
             CurrentMood = strongestMoodEffect.Key;
     }
+    
 
     public Activity ChooseNextActivity()
     {
@@ -131,8 +138,7 @@ public class Character : CorrelatedBy<Guid>
         report += $"Current Mood: {CurrentMood}\n";
         report += "Needs:\n";
         
-        foreach (var need in Needs)
-        {
+        foreach (var need in Needs) {
             report += $"  {need.Key}: {need.Value.Value:F1}%\n";
         }
 
@@ -140,6 +146,7 @@ public class Character : CorrelatedBy<Guid>
             report += $"Current Activity: {CurrentActivity.Name}\n";
         return report;
     }
+    
 
     public void ActivityTick() {
         if (CurrentActivity == null) return;
@@ -147,21 +154,23 @@ public class Character : CorrelatedBy<Guid>
         if (CurrentActivity.Duration <= 0) CurrentActivity = null;
     }
     
+    
     public void ApplyForJob(Career career)
     {
-            // Check if meets minimum requirements for level 1
-            var entryLevel = career.CareerLevels.First();
-            var qualifies = entryLevel.RequiredSkills.All(
-                skill => Skills.ContainsKey(skill.Key) && Skills[skill.Key] >= skill.Value
-            );
+        // Check if meets minimum requirements for level 1
+        var entryLevel = career.CareerLevels.First();
+        var qualifies = entryLevel.RequiredSkills.All(
+            skill => Skills.ContainsKey(skill.Key) && Skills[skill.Key] >= skill.Value
+        );
 
-            if (qualifies)
-            {
-                CurrentCareer = career;
-                Money += 100m; // Signing bonus
-            }
-            else throw new InvalidOperationException("Does not meet minimum job requirements");
+        if (qualifies)
+        {
+            CurrentCareer = career;
+            Money += 100; // Signing bonus
+        }
+        else throw new InvalidOperationException("Does not meet minimum job requirements");
     }
+    
 
     public void WorkShift(DateTime currentTime)
     {
@@ -175,40 +184,40 @@ public class Character : CorrelatedBy<Guid>
         Needs[NeedType.Fun].Modify(-20f);
         
         // Earn money
-        decimal hoursWorked = (decimal)CurrentCareer.WorkingHours.TotalHours;
-        decimal dailyPay = CurrentCareer.HourlyPay * hoursWorked;
+        var dailyPay = CurrentCareer.HourlyPay * CurrentCareer.WorkingHours;
         Money += dailyPay;
 
         // Skill improvement chance
-        foreach (var skill in CurrentCareer.RequiredSkills)
-        {
+        foreach (var skill in CurrentCareer.RequiredSkills) {
             if (random.NextDouble() < 0.3) // 30% chance to improve relevant skill
                 ImproveSkill(skill.Key, 0.1f);
         }
 
         // Try for promotion
-        if (random.NextDouble() < 0.1) // 10% chance to check for promotion each day
+        if (random.NextDouble() < 0.1) 
             TryPromotion();
 
         LastWorkDay = currentTime.Date;
         IsWorking = false;
     }
+    
 
     public void ImproveSkill(string skillName, float amount)
     {
-        if (!Skills.TryGetValue(skillName, out var value))
-        {
+        if (!Skills.TryGetValue(skillName, out var value)) {
             value = 0f;
             Skills[skillName] = value;
         }
         Skills[skillName] = Math.Min(10f, value + amount);
     }
+    
 
     public void TryPromotion() {
         if (!(CurrentCareer?.TryPromote(Skills) ?? false)) return;
         CurrentMood = Mood.Happy;
         Money += 500; // Promotion bonus
     }
+    
     
     public bool UseItem(string itemName)
     {
@@ -225,6 +234,7 @@ public class Character : CorrelatedBy<Guid>
             Inventory.RemoveItem(itemName);
         return true;
     }
+    
 
     public void SellItem(string itemName, int quantity = 1)
     {
@@ -232,11 +242,42 @@ public class Character : CorrelatedBy<Guid>
         if (Inventory.RemoveItem(itemName, quantity))
             Money += item.Value * quantity;
     }
+    
 
     public bool BuyItem(Item item)
     {
         if (Money < item.Value || Inventory.RemainingSlots <= 0) return false;
         Money -= item.Value;
         return Inventory.AddItem(item);
+    }
+    
+    
+    public bool BuyHouse(House house)
+    {
+        if (!house.SetOwner(this)) return false;
+        CurrentLocation = house;
+        return true;
+    }
+    
+
+    public bool SellHouse(House house)
+    {
+        if (!OwnedProperties.Contains(house.CorrelationId))
+            return false;
+        OwnedProperties.Remove(house.CorrelationId);
+        Money += house.Value;
+        house.IsForSale = true;
+        if (CurrentLocation == house)
+            CurrentLocation = null;
+        return true;
+    }
+
+    public void EnterRoom(Room room) {
+        if (CurrentLocation?.Rooms.Contains(room) != true) return;
+        CurrentRoom = room;
+        // Apply room comfort modifiers
+        foreach (var modifier in room.ComfortModifiers) {
+            Needs[modifier.Key].Modify(modifier.Value * 0.1f);
+        }
     }
 }
