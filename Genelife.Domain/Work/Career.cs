@@ -1,4 +1,4 @@
-namespace Genelife.Domain.Human;
+namespace Genelife.Domain.Work;
 
 public class Career
 {

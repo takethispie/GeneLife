@@ -1,10 +1,13 @@
 using Genelife.Domain.Human;
 using Genelife.Domain.Items;
+using Genelife.Domain.Work;
+using MassTransit;
 
 namespace Genelife.Domain.Shop;
 
-public class Store
+public class Store : CorrelatedBy<Guid>
 {
+    public Guid CorrelationId { get; init; }
     public string Name { get; }
     public StoreType Type { get; }
     public List<StoreItem> Inventory { get; private set; }
@@ -15,8 +18,9 @@ public class Store
     private Dictionary<DayOfWeek, List<StoreEmployee>> schedule = new();
     public IReadOnlyList<StoreEmployee> Employees => employees.AsReadOnly();
 
-    public Store(string name, StoreType type, float initialCash = 5000)
+    public Store(Guid id, string name, StoreType type, float initialCash = 5000)
     {
+        CorrelationId = id;
         Name = name;
         Type = type;
         CashBalance = initialCash;
@@ -170,11 +174,9 @@ public class Store
     
     public bool HireEmployee(Character character, int shiftStart)
     {
-        if (employees.Any(e => e.Character == character))
-            return false;
-
+        if (employees.Any(e => e.Character == character)) return false;
         var position = new StorePosition(
-            this,
+            CorrelationId,
             $"{Type} Staff",
             15, // Starting hourly wage
             new List<DayOfWeek> { DayOfWeek.Monday, DayOfWeek.Wednesday, DayOfWeek.Friday },

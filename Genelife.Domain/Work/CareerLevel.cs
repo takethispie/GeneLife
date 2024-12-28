@@ -1,4 +1,4 @@
-namespace Genelife.Domain.Human;
+namespace Genelife.Domain.Work;
 
 public class CareerLevel(int level, string title, float hourlyPay, Dictionary<string, float> requiredSkills) {
     public int Level { get; } = level;

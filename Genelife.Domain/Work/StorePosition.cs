@@ -1,17 +1,16 @@
-using Bogus.DataSets;
-using Genelife.Domain.Human;
+using Genelife.Domain.Shop;
 
-namespace Genelife.Domain.Shop;
+namespace Genelife.Domain.Work;
 
 public class StorePosition : Career
 {
-    public Store Workplace { get; }
+    public Guid Workplace { get; }
     public List<DayOfWeek> ShiftDays { get; private set; }
     public int ShiftStart { get; private set; }
     public int ShiftLength { get; private set; }
 
     public StorePosition(
-        Store workplace,
+        Guid workplace,
         string title,
         float startingPay,
         List<DayOfWeek> shiftDays,

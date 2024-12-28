@@ -1,4 +1,5 @@
 using Genelife.Domain.Human;
+using Genelife.Domain.Work;
 
 namespace Genelife.Domain.Generators;
 
