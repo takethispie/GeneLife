@@ -9,7 +9,8 @@ public class HumanSagaState : SagaStateMachineInstance, ISagaVersion
 {
     public Guid CorrelationId { get; set; }
     public Human Human { get; set; } = null!;
-    public ILivingActivity Activity { get; set; }
+    public ActivityEnum? Activity { get; set; }
     public string CurrentState { get; set; }
     public int Version { get; set; }
+    public int ActivityTickDuration { get; set; }
 }

@@ -43,7 +43,6 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         
         During(Idle, 
             When(UpdateTick).Then(bc => {
-                if (bc.Saga.Activity != null) return;
                 var activity = new ChooseActivity().Execute(bc.Saga.Human);
                 var state = activity switch {
                     Eat eat => Eating,
@@ -52,22 +51,27 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                     _ => Idle
                 };
                 Log.Information($"{bc.Saga.CorrelationId} is transitioning to {state}");
-                bc.Saga.Activity = activity;
+                bc.Saga.Activity = activity.ToEnum();
+                bc.Saga.ActivityTickDuration = activity.TickDuration;
                 bc.Saga.Human = activity.Apply(bc.Saga.Human);
                 bc.TransitionToState(state);
-            })
+            }),
+
+            When(DayElapsed).Then(bc => {})
         );
         
         During(Eating, Sleeping, Showering,
             When(UpdateTick).Then(bc => {
-                if (bc.Saga.Activity.TickDuration >= 0) {
-                    bc.Saga.Activity.TickDuration -= 1;
+                if (bc.Saga.ActivityTickDuration >= 0) {
+                    bc.Saga.ActivityTickDuration -= 1;
                     return;
                 }
                 Log.Information($"{bc.Saga.CorrelationId} has finished {bc.Saga.CurrentState}");
                 bc.Saga.Activity = null;
                 bc.TransitionToState(Idle);
-            })    
+            }),
+
+            When(DayElapsed).Then(bc => {})
         );
     }
 }
