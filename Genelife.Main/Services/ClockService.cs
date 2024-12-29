@@ -1,4 +1,5 @@
 using System.Timers;
+using Genelife.Domain;
 using Genelife.Domain.Events;
 using Genelife.Domain.Events.Clock;
 using MassTransit;
@@ -6,45 +7,48 @@ using MassTransit;
 namespace Genelife.Main.Services;
 
 public class ClockService {
-    private System.Timers.Timer Timer;
-    private IPublishEndpoint PublishEndpoint;
-    private int Ticks;
-    private TimeOnly TimeOnly;
+    private System.Timers.Timer timer;
+    private IPublishEndpoint publishEndpoint;
+    private int ticks;
+    private TimeOnly timeOnly;
 
     public ClockService(IPublishEndpoint endpoint) {
-        PublishEndpoint = endpoint;
-        Timer = new(1000);
-        Timer.Elapsed += OnTimedEvent;
-        Timer.AutoReset = true;
-        Ticks = 0;
-        TimeOnly = new(0, 0);
+        publishEndpoint = endpoint;
+        timer = new(1000);
+        timer.Elapsed += OnTimedEvent;
+        timer.AutoReset = true;
+        ticks = 0;
+        timeOnly = new(0, 0);
     }
 
     public void Start() {
-        Timer.Enabled = true;
+        timer.Enabled = true;
     }
 
     public void Stop() {
-        Timer.Enabled = false;
+        timer.Enabled = false;
     }   
 
-    private async void OnTimedEvent(Object source, ElapsedEventArgs e)
+    private async void OnTimedEvent(object source, ElapsedEventArgs e)
     {
-        await PublishEndpoint.Publish(new Tick());
-        Ticks++;
-        if(Ticks < 10) return;
-        Ticks = 0;
-        await PublishEndpoint.Publish(new HourElapsed());
-        TimeOnly = TimeOnly.AddHours(1);
-        if(TimeOnly.Hour == 12) Console.WriteLine("Noon of current day");
-        if(TimeOnly.Hour == 0) {
-            Console.WriteLine("1 day went by");
-            await PublishEndpoint.Publish(new DayElapsed());
+        await publishEndpoint.Publish(new Tick());
+        ticks++;
+        if(ticks < Constants.TickPerHour) return;
+        ticks = 0;
+        await publishEndpoint.Publish(new HourElapsed());
+        timeOnly = timeOnly.AddHours(1);
+        switch (timeOnly.Hour) {
+            case 12:
+                Console.WriteLine("Noon of current day");
+                break;
+            case 0:
+                Console.WriteLine("1 day went by");
+                await publishEndpoint.Publish(new DayElapsed());
+                break;
         }
     }
 
     public void SetSpeed(int milliseconds) {
-        if(milliseconds >= 100) Timer.Interval = milliseconds;
-        else Timer.Interval = 1000;
+        timer.Interval = milliseconds >= 100 ? milliseconds : 1000;
     }
 }

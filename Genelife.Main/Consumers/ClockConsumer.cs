@@ -8,26 +8,26 @@ namespace Genelife.Main.Consumers;
 
 public class ClockConsumer(ClockService service) : IConsumer<StartClock>, IConsumer<SetClockSpeed>, IConsumer<StopClock>
 {
-    private readonly ClockService ClockService = service;
+    private readonly ClockService clockService = service;
 
     public Task Consume(ConsumeContext<StartClock> context)
     {
         Log.Information("Started simulation");
-        ClockService.Start();
+        clockService.Start();
         return Task.CompletedTask;
     }
 
     public Task Consume(ConsumeContext<SetClockSpeed> context)
     {
         Log.Information($"Set clock speed to {context.Message.Milliseconds} ms");
-        ClockService.SetSpeed(context.Message.Milliseconds);
+        clockService.SetSpeed(context.Message.Milliseconds);
         return Task.CompletedTask;
     }
 
     public Task Consume(ConsumeContext<StopClock> context)
     {
         Log.Information("Stopped simulation");
-        ClockService.Stop();
+        clockService.Stop();
         return Task.CompletedTask;
     }
 }
