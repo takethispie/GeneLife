@@ -3,7 +3,7 @@ using OneOf;
 namespace Genelife.Domain.Interfaces;
 
 public interface IActivity {
-    int TickDuration { get; set; }
+    public int TickDuration { get; set; }
 
-    Human Apply(Human being);
+    public Human Apply(Human being);
 }
