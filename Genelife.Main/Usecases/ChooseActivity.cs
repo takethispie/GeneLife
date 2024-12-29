@@ -4,8 +4,8 @@ using Genelife.Main.Domain.Activities;
 
 namespace Genelife.Main.Usecases;
 
-public class ChooseActivity : ISideEffectUsecase<IActivity, Human> {
-    public IActivity Execute(Human human) {
+public class ChooseActivity : ISideEffectUsecase<ILivingActivity, Human> {
+    public ILivingActivity Execute(Human human) {
         List<(float val, string name)> needs = [
             (human.Energy, "Energy"), 
             (human.Hygiene, "Hygiene"),

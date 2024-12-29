@@ -4,7 +4,7 @@ using OneOf;
 
 namespace Genelife.Main.Domain.Activities;
 
-public class Sleep : IActivity {
+public class Sleep : ILivingActivity {
     public int TickDuration { get; set; } = Constants.TickPerHour * 8;
 
     public Human Apply(Human being) => being with { Energy = 100 };

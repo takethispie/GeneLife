@@ -78,3 +78,5 @@ app.MapGet("/cheat/sethunger/{correlationId}/{value}", async (Guid correlationId
 })
 .WithName("set Hunger")
 .WithOpenApi();
+
+app.Run();

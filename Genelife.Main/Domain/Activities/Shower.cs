@@ -3,7 +3,7 @@ using Genelife.Domain.Interfaces;
 
 namespace Genelife.Main.Domain.Activities;
 
-public class Shower : IActivity {
+public class Shower : ILivingActivity {
     public int TickDuration { get; set; } = 5;
     
     public Human Apply(Human being) => being with { Hygiene = 100 };

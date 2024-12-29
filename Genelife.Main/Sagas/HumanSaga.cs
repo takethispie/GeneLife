@@ -28,6 +28,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         }).TransitionTo(Idle));
         Event(() => UpdateTick, e => e.CorrelateBy(saga => "any", ctx => "any"));
         Event(() => DayElapsed, e => e.CorrelateBy(saga => "any", ctx => "any"));
+        Event(() => HourElapsed, e => e.CorrelateBy(saga => "any", ctx => "any"));
         
         DuringAny(
             When(HourElapsed).Then(bc => {
@@ -51,13 +52,21 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                     _ => Idle
                 };
                 Log.Information($"{bc.Saga.CorrelationId} is transitioning to {state}");
+                bc.Saga.Activity = activity;
+                bc.Saga.Human = activity.Apply(bc.Saga.Human);
                 bc.TransitionToState(state);
             })
         );
         
-        During(Eating,
+        During(Eating, Sleeping, Showering,
             When(UpdateTick).Then(bc => {
-                
+                if (bc.Saga.Activity.TickDuration >= 0) {
+                    bc.Saga.Activity.TickDuration -= 1;
+                    return;
+                }
+                Log.Information($"{bc.Saga.CorrelationId} has finished {bc.Saga.CurrentState}");
+                bc.Saga.Activity = null;
+                bc.TransitionToState(Idle);
             })    
         );
     }

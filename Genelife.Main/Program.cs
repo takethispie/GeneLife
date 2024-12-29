@@ -20,7 +20,7 @@ static void ConfigureResource(ResourceBuilder r)
         serviceInstanceId: Environment.MachineName);
 }
 
-const string facility = "work-service";
+const string facility = "main-service";
 
 var facilityLabel = new LokiLabel() { 
             Key = "genelife-server", 

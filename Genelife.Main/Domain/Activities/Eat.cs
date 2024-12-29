@@ -3,7 +3,7 @@ using Genelife.Domain.Interfaces;
 
 namespace Genelife.Main.Domain.Activities;
 
-public class Eat : IActivity {
+public class Eat : ILivingActivity {
     
     public int TickDuration { get; set; } = Constants.TickPerHour;
 

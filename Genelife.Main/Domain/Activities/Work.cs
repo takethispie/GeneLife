@@ -3,7 +3,7 @@ using Genelife.Domain.Interfaces;
 
 namespace Genelife.Main.Domain.Activities;
 
-public class Work(float dailySalary) : IActivity {
+public class Work(float dailySalary) : ILivingActivity {
     
     public int TickDuration { get; set; } = Constants.TickPerHour * 6;
     public float DailySalary { get; init; } = dailySalary;
