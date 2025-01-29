@@ -4,13 +4,14 @@ using Genelife.Main.Domain.Activities;
 
 namespace Genelife.Main.Usecases;
 
-public class ChooseActivity : ISideEffectUsecase<ILivingActivity, Human> {
-    public ILivingActivity Execute(Human human) {
-        List<(float val, string name)> needs = [
-            (human.Energy, "Energy"), 
-            (human.Hygiene, "Hygiene"),
-            (human.Hunger, "Hunger")
-        ];
+public class ChooseActivity {
+    public ILivingActivity Execute(Human human, int hour) {
+        List<(float val, string name)> needs = [];
+
+        if (hour >= 22) needs.Add((human.Energy, "Energy"));
+        if(hour is > 5 and < 8 or > 18 and < 22) needs.Add((human.Hygiene, "Hygiene"));
+        if(hour is > 12 and < 14 or > 18 and < 22) needs.Add((human.Hunger, "Hunger"));
+        
         return needs.OrderBy(x => x.val).First().name switch {
             "Energy" => new Sleep(),
             "Hygiene" => new Shower(),

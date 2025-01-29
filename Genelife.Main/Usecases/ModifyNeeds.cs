@@ -3,16 +3,12 @@ using Genelife.Domain.Interfaces;
 
 namespace Genelife.Main.Usecases;
 
-public class ModifyNeeds(int hygiene, int energy, int hunger) : IMutatorUsecase<Human> {
-    public int Hygiene { get; set; } = hygiene;
-    public int Energy { get; set; } = energy;
-    public int Hunger { get; set; } = hunger;
-    
+public class ModifyNeeds {
     private static float Modify(float value, float amount) => Math.Clamp(value + amount, 0f, 100f);
 
-    public Human Execute(Human human) => human with {
-        Hygiene = Modify(human.Hygiene, Hygiene),
-        Energy = Modify(human.Energy, Energy),
-        Hunger = Modify(human.Hunger, Hunger),
+    public Human Execute(Human human, int hygiene, int energy, int hunger) => human with {
+        Hygiene = Modify(human.Hygiene, hygiene),
+        Energy = Modify(human.Energy, energy),
+        Hunger = Modify(human.Hunger, hunger),
     };
 }

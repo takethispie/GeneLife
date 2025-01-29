@@ -31,7 +31,7 @@ public class ClockService {
 
     private async void OnTimedEvent(object source, ElapsedEventArgs e)
     {
-        await publishEndpoint.Publish(new Tick());
+        await publishEndpoint.Publish(new Tick(timeOnly.Hour));
         ticks++;
         if(ticks < Constants.TickPerHour) return;
         ticks = 0;

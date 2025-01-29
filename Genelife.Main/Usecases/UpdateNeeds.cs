@@ -3,7 +3,7 @@ using Genelife.Domain.Interfaces;
 
 namespace Genelife.Main.Usecases;
 
-public class UpdateNeeds : IMutatorUsecase<Human> {
+public class UpdateNeeds {
     private static float Modify(float value, float amount) => Math.Clamp(value + amount, 0f, 100f);
 
     private static float Decay(float value, float decayRate) => Modify(value, -decayRate * 60);

@@ -10,6 +10,7 @@ using OpenTelemetry.Trace;
 using Serilog;
 using Serilog.Sinks.Grafana.Loki;
 using System.Reflection;
+using Genelife.Main.Usecases;
 
 static bool IsRunningInContainer() => bool.TryParse(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), out var inContainer) && inContainer;
 
@@ -37,8 +38,11 @@ CreateHostBuilder(args).Build().Run();
 
 static IHostBuilder CreateHostBuilder(string[] args) =>
     Host.CreateDefaultBuilder(args)
-        .ConfigureServices((hostContext, services) =>
-        {
+        .ConfigureServices((hostContext, services) => {
+            services.AddScoped<ChooseActivity>();
+            services.AddScoped<ModifyNeeds>();
+            services.AddScoped<UpdateNeeds>();
+            
             services.AddSingleton<ClockService>();
             services.AddMassTransit(x =>
             {

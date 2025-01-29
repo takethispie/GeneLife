@@ -19,9 +19,14 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
     public Event<Tick> UpdateTick { get; set; } = null;
     public Event<DayElapsed> DayElapsed { get; set; } = null;
     public Event<HourElapsed> HourElapsed { get; set; } = null;
+    
+    private readonly UpdateNeeds updateNeeds;
+    private readonly ChooseActivity chooseActivity;
 
 
-    public HumanSaga() {
+    public HumanSaga(UpdateNeeds updateNeedsUS, ChooseActivity chooseActivityUS) {
+        updateNeeds = updateNeedsUS;
+        chooseActivity = chooseActivityUS;
         InstanceState(x => x.CurrentState);
         Initially(When(Created).Then(bc => {
             bc.Saga.Human = bc.Message.Human;
@@ -32,7 +37,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         
         DuringAny(
             When(HourElapsed).Then(bc => {
-                bc.Saga.Human = new UpdateNeeds().Execute(bc.Saga.Human);
+                bc.Saga.Human = updateNeeds.Execute(bc.Saga.Human);
                 Log.Information($"{bc.Saga.CorrelationId} " +
                     $"needs: {bc.Saga.Human.Hunger} hunger " +
                     $"and {bc.Saga.Human.Energy} energy " +
@@ -43,7 +48,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         
         During(Idle, 
             When(UpdateTick).Then(bc => {
-                var activity = new ChooseActivity().Execute(bc.Saga.Human);
+                var activity = chooseActivity.Execute(bc.Saga.Human, bc.Message.Hour);
                 var state = activity switch {
                     Eat eat => Eating,
                     Sleep sleep => Sleeping,
@@ -56,7 +61,6 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                 bc.Saga.Human = activity.Apply(bc.Saga.Human);
                 bc.TransitionToState(state);
             }),
-
             When(DayElapsed).Then(bc => {})
         );
         
@@ -70,7 +74,6 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                 bc.Saga.Activity = null;
                 bc.TransitionToState(Idle);
             }),
-
             When(DayElapsed).Then(bc => {})
         );
     }
