@@ -16,9 +16,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddMassTransit(x => {
     x.SetKebabCaseEndpointNameFormatter();
     x.SetInMemorySagaRepositoryProvider();
-
     var entryAssembly = Assembly.GetEntryAssembly();
-
     x.AddConsumers(entryAssembly);
     x.AddSagaStateMachines(entryAssembly);
     x.AddSagas(entryAssembly);
@@ -28,7 +26,6 @@ builder.Services.AddMassTransit(x => {
     {
         if (IsRunningInContainer())
             cfg.Host("rabbitmq");
-
         cfg.UseDelayedMessageScheduler();
         cfg.ConfigureEndpoints(context);
     });
@@ -45,9 +42,17 @@ app.MapGet("/healthcheck", (HttpContext httpContext) => Results.Ok()).WithName("
 
 
 app.MapPost("/create/human/{sex}", async (Sex sex, [FromServices] IPublishEndpoint endpoint) => {
-        var guid = Guid.NewGuid();
-        await endpoint.Publish(new CreateHuman(guid, HumanGenerator.Build(sex)));
-    })
+    var guid = Guid.NewGuid();
+    await endpoint.Publish(new CreateHuman(guid, HumanGenerator.Build(sex)));
+})
+.WithName("create Human")
+.WithOpenApi();
+
+app.MapPost("/create/human/{count}/{sex}", async (int count, Sex sex, [FromServices] IPublishEndpoint endpoint) => {
+    
+    var guid = Guid.NewGuid();
+    await endpoint.Publish(new CreateHuman(guid, HumanGenerator.Build(sex)));
+})
 .WithName("create Human")
 .WithOpenApi();
 

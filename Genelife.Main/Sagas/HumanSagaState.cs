@@ -1,6 +1,5 @@
-using System.Numerics;
 using Genelife.Domain;
-using Genelife.Domain.Interfaces;
+using Genelife.Main.Domain;
 using MassTransit;
 
 namespace Genelife.Main.Sagas;

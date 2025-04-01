@@ -7,7 +7,6 @@ namespace Genelife.Main.Usecases;
 public class ChooseActivity {
     public ILivingActivity Execute(Human human, int hour) {
         List<(float val, string name)> needs = [];
-
         if (hour >= 22) needs.Add((human.Energy, "Energy"));
         if(hour is > 5 and < 8 or > 18 and < 22) needs.Add((human.Hygiene, "Hygiene"));
         if(hour is > 12 and < 14 or > 18 and < 22) needs.Add((human.Hunger, "Hunger"));

@@ -1,7 +1,7 @@
 using Genelife.Domain.Interfaces;
 using Genelife.Main.Domain.Activities;
 
-namespace Genelife.Main.Sagas;
+namespace Genelife.Main.Domain;
 
 public enum ActivityEnum {
     Eat,

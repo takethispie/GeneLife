@@ -7,8 +7,8 @@ using MassTransit;
 namespace Genelife.Main.Services;
 
 public class ClockService {
-    private System.Timers.Timer timer;
-    private IPublishEndpoint publishEndpoint;
+    private readonly System.Timers.Timer timer;
+    private readonly IPublishEndpoint publishEndpoint;
     private int ticks;
     private TimeOnly timeOnly;
 

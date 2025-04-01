@@ -1,5 +1,6 @@
 using Genelife.Domain.Events.Clock;
 using Genelife.Domain.Events.Living;
+using Genelife.Main.Domain;
 using Genelife.Main.Domain.Activities;
 using Genelife.Main.Usecases;
 using MassTransit;
