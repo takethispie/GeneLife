@@ -13,7 +13,7 @@ COPY ./Genelife.Domain ./Genelife.Domain
 WORKDIR "/src/Genelife.Domain"
 RUN dotnet build "./Genelife.Domain.csproj" -c $BUILD_CONFIGURATION -o /app/build
  
-FROM build as depbuild
+FROM build AS depbuild
 WORKDIR /src
 COPY ["Genelife.API/Genelife.API.csproj", "Genelife.API/"]
 RUN dotnet restore "./Genelife.API/Genelife.API.csproj"

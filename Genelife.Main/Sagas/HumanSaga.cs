@@ -1,5 +1,6 @@
 using Genelife.Domain.Events.Clock;
 using Genelife.Domain.Events.Living;
+using Genelife.Domain.Events.Company;
 using Genelife.Main.Domain;
 using Genelife.Main.Domain.Activities;
 using Genelife.Main.Usecases;
@@ -20,6 +21,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
     public Event<Tick> UpdateTick { get; set; } = null;
     public Event<DayElapsed> DayElapsed { get; set; } = null;
     public Event<HourElapsed> HourElapsed { get; set; } = null;
+    public Event<SalaryPaid> SalaryPaid { get; set; } = null;
     
     private readonly UpdateNeeds updateNeeds;
     private readonly ChooseActivity chooseActivity;
@@ -35,6 +37,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         Event(() => UpdateTick, e => e.CorrelateBy(saga => "any", ctx => "any"));
         Event(() => DayElapsed, e => e.CorrelateBy(saga => "any", ctx => "any"));
         Event(() => HourElapsed, e => e.CorrelateBy(saga => "any", ctx => "any"));
+        Event(() => SalaryPaid, e => e.CorrelateBy(saga => saga.Human.FirstName + saga.Human.LastName, ctx => ctx.Message.HumanId.ToString()));
         
         DuringAny(
             When(HourElapsed).Then(bc => {
@@ -44,6 +47,15 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                     $"and {bc.Saga.Human.Energy} energy " +
                     $"and {bc.Saga.Human.Hygiene} hygiene "
                 );
+            }),
+            When(SalaryPaid).Then(bc => {
+                var currentMoney = bc.Saga.Human.Money;
+                var newMoney = currentMoney + (float)bc.Message.Amount;
+                bc.Saga.Human = bc.Saga.Human with { Money = newMoney };
+                
+                Log.Information($"{bc.Saga.CorrelationId} received salary: {bc.Message.Amount:C} " +
+                    $"(tax deducted: {bc.Message.TaxDeducted:C}). " +
+                    $"Total money: {newMoney:F2}");
             })
         );
         

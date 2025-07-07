@@ -42,6 +42,12 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
             services.AddScoped<ChooseActivity>();
             services.AddScoped<ModifyNeeds>();
             services.AddScoped<UpdateNeeds>();
+            services.AddScoped<CalculatePayroll>();
+            services.AddScoped<EvaluateHiring>();
+            services.AddScoped<UpdateProductivity>();
+            services.AddScoped<GenerateJobPosting>();
+            services.AddScoped<MatchApplicationToJob>();
+            services.AddScoped<CalculateOfferSalary>();
             
             services.AddSingleton<ClockService>();
             services.AddMassTransit(x =>
@@ -51,6 +57,16 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
 
                 x.AddConsumers(entryAssembly);
                 x.AddSagaStateMachine<HumanSaga, HumanSagaState>(so => so.UseConcurrentMessageLimit(1)).MongoDbRepository(r =>
+                {
+                    r.Connection = "mongodb://root:example@mongo:27017/";
+                    r.DatabaseName = "maindb";
+                });
+                x.AddSagaStateMachine<CompanySaga, CompanySagaState>(so => so.UseConcurrentMessageLimit(1)).MongoDbRepository(r =>
+                {
+                    r.Connection = "mongodb://root:example@mongo:27017/";
+                    r.DatabaseName = "maindb";
+                });
+                x.AddSagaStateMachine<JobPostingSaga, JobPostingSagaState>(so => so.UseConcurrentMessageLimit(1)).MongoDbRepository(r =>
                 {
                     r.Connection = "mongodb://root:example@mongo:27017/";
                     r.DatabaseName = "maindb";
