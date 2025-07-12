@@ -46,6 +46,7 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
         );
 
         // Configure event correlations
+        Event(() => Created, e => e.CorrelateById(ctx => ctx.Message.JobPostingId));
         Event(() => DayElapsed, e => e.CorrelateBy(saga => "any", ctx => "any"));
         Event(() => ApplicationSubmitted, e => e.CorrelateBy(saga => saga.JobPosting.Id.ToString(), ctx => ctx.Message.JobPostingId.ToString()));
         Event(() => ReviewApplication, e => e.CorrelateBy(saga => saga.JobPosting.Id.ToString(), ctx => ctx.Message.JobPostingId.ToString()));
@@ -135,7 +136,7 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                     {
                         var salary = context.Message.OfferedSalary ?? application.RequestedSalary;
                         
-                        context.Publish(new HireEmployee(
+                        context.Publish(new EmployeeHired(
                             context.Saga.JobPosting.CompanyId,
                             application.HumanId,
                             salary
@@ -275,7 +276,7 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                     if (context.Message.NewStatus == ApplicationStatus.Accepted)
                     {
                         var salary = context.Message.OfferedSalary ?? application.RequestedSalary;
-                        context.Publish(new HireEmployee(
+                        context.Publish(new EmployeeHired(
                             context.Saga.JobPosting.CompanyId,
                             application.HumanId,
                             salary

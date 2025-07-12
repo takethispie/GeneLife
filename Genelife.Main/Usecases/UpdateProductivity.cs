@@ -6,7 +6,7 @@ public class UpdateProductivity
 {
     public (decimal averageProductivity, decimal revenueChange) Execute(
         Company company, 
-        List<Employment> employees)
+        List<Employee> employees)
     {
         var activeEmployees = employees.Where(e => e.Status == EmploymentStatus.Active).ToList();
         
@@ -31,7 +31,7 @@ public class UpdateProductivity
         return (averageProductivity, revenueChange);
     }
     
-    public Employment UpdateEmployeeProductivity(Employment employment, Random random)
+    public Employee UpdateEmployeeProductivity(Employee employment, Random random)
     {
         // Simulate productivity changes based on various factors
         var productivityChange = (decimal)(random.NextDouble() * 0.4 - 0.2); // -0.2 to +0.2

@@ -4,7 +4,7 @@ namespace Genelife.Main.Usecases;
 
 public class EvaluateHiring
 {
-    public (bool shouldHire, int positionsNeeded) Execute(Company company, List<Employment> employees, decimal averageProductivity)
+    public (bool shouldHire, int positionsNeeded) Execute(Company company, List<Employee> employees, decimal averageProductivity)
     {
         var activeEmployees = employees.Count(e => e.Status == EmploymentStatus.Active);
         

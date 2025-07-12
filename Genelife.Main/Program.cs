@@ -11,6 +11,7 @@ using Serilog;
 using Serilog.Sinks.Grafana.Loki;
 using System.Reflection;
 using Genelife.Main.Usecases;
+using Genelife.Domain.Generators;
 
 static bool IsRunningInContainer() => bool.TryParse(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), out var inContainer) && inContainer;
 
@@ -47,6 +48,7 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
             services.AddScoped<UpdateProductivity>();
             services.AddScoped<GenerateJobPosting>();
             services.AddScoped<MatchApplicationToJob>();
+            services.AddScoped<GenerateEmployment>();
             services.AddScoped<CalculateOfferSalary>();
             
             services.AddSingleton<ClockService>();

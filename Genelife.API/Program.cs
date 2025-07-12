@@ -36,7 +36,6 @@ builder.Services.AddMassTransit(x => {
 });
 
 var app = builder.Build();
-
 app.UseSwagger();
 app.UseSwaggerUI();
 app.UseHttpsRedirection();
@@ -45,15 +44,18 @@ app.UseAuthorization();
 app.MapGet("/healthcheck", (HttpContext httpContext) => Results.Ok()).WithName("healthcheck").WithOpenApi();
 
 
-app.MapPost("/create/human/{sex}", async (Sex sex, [FromServices] IPublishEndpoint endpoint) => {
+app.MapPost("/create/human/{sex}", async (Sex sex, [FromServices] IPublishEndpoint endpoint) =>
+{
     var guid = Guid.NewGuid();
     await endpoint.Publish(new CreateHuman(guid, HumanGenerator.Build(sex)));
 })
 .WithName("create Human")
 .WithOpenApi();
 
-app.MapPost("/create/human/{count}/{sex}", async (int count, Sex sex, [FromServices] IPublishEndpoint endpoint) => {
-    
+
+app.MapPost("/create/human/{count}/{sex}", async (int count, Sex sex, [FromServices] IPublishEndpoint endpoint) =>
+{
+
     var guid = Guid.NewGuid();
     await endpoint.Publish(new CreateHuman(guid, HumanGenerator.Build(sex)));
 })
@@ -82,13 +84,16 @@ app.MapGet("/simulation/setClockSpeed/{milliseconds}", async (int milliseconds, 
 .WithOpenApi();
 
 
-app.MapGet("/cheat/sethunger/{correlationId}/{value}", async (Guid correlationId, int value, [FromServices] IPublishEndpoint endpoint) => {
+app.MapGet("/cheat/sethunger/{correlationId}/{value}", async (Guid correlationId, int value, [FromServices] IPublishEndpoint endpoint) =>
+{
     await endpoint.Publish(new SetHunger(correlationId, value));
 })
 .WithName("set Hunger")
 .WithOpenApi();
 
-app.MapPost("/create/company/{type}", async (CompanyType type, [FromServices] IPublishEndpoint endpoint) => {
+
+app.MapPost("/create/company/{type}", async (CompanyType type, [FromServices] IPublishEndpoint endpoint) =>
+{
     var companyId = Guid.NewGuid();
     var company = new Company(
         Id: companyId,
@@ -98,14 +103,16 @@ app.MapPost("/create/company/{type}", async (CompanyType type, [FromServices] IP
         TaxRate: 0.25m,
         EmployeeIds: []
     );
-    
+
     await endpoint.Publish(new CreateCompanyEvent(companyId, company));
     return Results.Ok(new { CompanyId = companyId, Company = company });
 })
 .WithName("create Company")
 .WithOpenApi();
 
-app.MapPost("/create/jobposting", async ([FromBody] CreateJobPostingRequest request, [FromServices] IPublishEndpoint endpoint) => {
+
+app.MapPost("/create/jobposting", async ([FromBody] CreateJobPostingRequest request, [FromServices] IPublishEndpoint endpoint) =>
+{
     await endpoint.Publish(new CreateJobPosting(
         request.CompanyId,
         request.Title,
@@ -122,7 +129,9 @@ app.MapPost("/create/jobposting", async ([FromBody] CreateJobPostingRequest requ
 .WithName("create Job Posting")
 .WithOpenApi();
 
-app.MapPost("/submit/application", async ([FromBody] SubmitJobApplicationRequest request, [FromServices] IPublishEndpoint endpoint) => {
+
+app.MapPost("/submit/application", async ([FromBody] SubmitJobApplicationRequest request, [FromServices] IPublishEndpoint endpoint) =>
+{
     await endpoint.Publish(new SubmitJobApplication(
         request.JobPostingId,
         request.HumanId,
@@ -135,5 +144,6 @@ app.MapPost("/submit/application", async ([FromBody] SubmitJobApplicationRequest
 })
 .WithName("submit Job Application")
 .WithOpenApi();
+
 
 app.Run();

@@ -7,7 +7,7 @@ public class CalculatePayroll
 {
     public (decimal totalPaid, decimal totalTaxes, List<SalaryPaid> salaryPayments) Execute(
         Company company, 
-        List<Employment> employees)
+        List<Employee> employees)
     {
         var salaryPayments = new List<SalaryPaid>();
         decimal totalPaid = 0;

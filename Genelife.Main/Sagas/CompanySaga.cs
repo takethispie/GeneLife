@@ -20,7 +20,7 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
 
     public Event<CreateCompanyEvent> Created { get; set; } = null!;
     public Event<DayElapsed> DayElapsed { get; set; } = null!;
-    public Event<HireEmployee> EmployeeHired { get; set; } = null!;
+    public Event<EmployeeHired> EmployeeHired { get; set; } = null!;
     public Event<EmployeeProductivityUpdated> ProductivityUpdated { get; set; } = null!;
     public Event<StartHiring> StartHiring { get; set; } = null!;
     public Event<ProcessPayroll> ProcessPayroll { get; set; } = null!;
@@ -107,7 +107,7 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
             When(EmployeeHired)
                 .Then(context =>
                 {
-                    var employment = new Employment(
+                    var employment = new Employee(
                         context.Message.HumanId,
                         context.Message.CompanyId,
                         context.Message.Salary,
@@ -224,7 +224,7 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
                 .Then(context =>
                 {
                     // Handle external hiring events
-                    var employment = new Employment(
+                    var employment = new Employee(
                         context.Message.HumanId,
                         context.Message.CompanyId,
                         context.Message.Salary,

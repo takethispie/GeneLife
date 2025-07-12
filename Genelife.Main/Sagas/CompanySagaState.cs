@@ -7,7 +7,7 @@ public class CompanySagaState : SagaStateMachineInstance, ISagaVersion
 {
     public Guid CorrelationId { get; set; }
     public Company Company { get; set; } = null!;
-    public List<Employment> Employees { get; set; } = new();
+    public List<Employee> Employees { get; set; } = new();
     public int DaysElapsedCount { get; set; }
     public PayrollState PayrollState { get; set; }
     public HiringState HiringState { get; set; }
