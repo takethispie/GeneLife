@@ -1,9 +1,7 @@
-using MassTransit;
-
 namespace Genelife.Domain;
 
 public record Human(
-    string FirstName, 
+    string FirstName,
     string LastName,
     DateTime Birthday,
     Sex Sex,

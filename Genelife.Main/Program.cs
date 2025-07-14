@@ -11,6 +11,7 @@ using Serilog;
 using Serilog.Sinks.Grafana.Loki;
 using System.Reflection;
 using Genelife.Main.Usecases;
+using Genelife.Domain.Generators;
 
 static bool IsRunningInContainer() => bool.TryParse(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), out var inContainer) && inContainer;
 
@@ -39,10 +40,6 @@ CreateHostBuilder(args).Build().Run();
 static IHostBuilder CreateHostBuilder(string[] args) =>
     Host.CreateDefaultBuilder(args)
         .ConfigureServices((hostContext, services) => {
-            services.AddScoped<ChooseActivity>();
-            services.AddScoped<ModifyNeeds>();
-            services.AddScoped<UpdateNeeds>();
-            
             services.AddSingleton<ClockService>();
             services.AddMassTransit(x =>
             {
@@ -51,6 +48,16 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
 
                 x.AddConsumers(entryAssembly);
                 x.AddSagaStateMachine<HumanSaga, HumanSagaState>(so => so.UseConcurrentMessageLimit(1)).MongoDbRepository(r =>
+                {
+                    r.Connection = "mongodb://root:example@mongo:27017/";
+                    r.DatabaseName = "maindb";
+                });
+                x.AddSagaStateMachine<CompanySaga, CompanySagaState>(so => so.UseConcurrentMessageLimit(1)).MongoDbRepository(r =>
+                {
+                    r.Connection = "mongodb://root:example@mongo:27017/";
+                    r.DatabaseName = "maindb";
+                });
+                x.AddSagaStateMachine<JobPostingSaga, JobPostingSagaState>(so => so.UseConcurrentMessageLimit(1)).MongoDbRepository(r =>
                 {
                     r.Connection = "mongodb://root:example@mongo:27017/";
                     r.DatabaseName = "maindb";
