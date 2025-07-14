@@ -1,3 +1,5 @@
+using Genelife.Domain.Work;
+
 namespace Genelife.Domain.Generators;
 
 public class GenerateEmployment
@@ -54,21 +56,12 @@ public class GenerateEmployment
         var maxExperience = Math.Max(0, age - 18); // Assume work starts at 18
         var experience = random.Next(0, Math.Min(maxExperience + 1, 25)); // Cap at 25 years
         
-        // Generate skills based on experience level
-        var skills = GenerateSkills(experience);
-        
-        // Determine employment status (80% unemployed initially for job seeking simulation)
-        var employmentStatus = random.NextDouble() < 0.8 ? EmploymentStatus.Unemployed : EmploymentStatus.Active;
-        
-        // Set job seeking status
-        var isActivelyJobSeeking = employmentStatus == EmploymentStatus.Unemployed || random.NextDouble() < 0.1; // 10% of employed people are also looking
-        
         return new Employment(
-            Skills: skills,
+            Skills: GenerateSkills(experience),
             YearsOfExperience: experience,
-            EmploymentStatus: employmentStatus,
-            IsActivelyJobSeeking: isActivelyJobSeeking,
-            LastJobSearchDate: isActivelyJobSeeking ? DateTime.UtcNow.AddDays(-random.Next(0, 30)) : null
+            EmploymentStatus: EmploymentStatus.Unemployed,
+            IsActivelyJobSeeking: false,
+            LastJobSearchDate: null
         );
     }
     
@@ -80,10 +73,7 @@ public class GenerateEmployment
         var numCommonSkills = Math.Min(random.Next(3, 7), CommonSkills.Count);
         skills.AddRange(CommonSkills.OrderBy(x => random.Next()).Take(numCommonSkills));
         
-        // Add specialized skills based on experience level
         var skillCategories = new List<List<string>>();
-        
-        // Randomly choose 1-2 specialization areas
         var allSpecializations = new List<List<string>>
         {
             TechnicalSkills, BusinessSkills, HealthcareSkills, ManufacturingSkills, RetailSkills
@@ -113,7 +103,7 @@ public class GenerateEmployment
             skills.AddRange(specializedSkills);
         }
         
-        return skills.Distinct().ToList();
+        return [.. skills.Distinct()];
     }
     
     public decimal GenerateDesiredSalary(Employment employmentProfile, JobPosting jobPosting)

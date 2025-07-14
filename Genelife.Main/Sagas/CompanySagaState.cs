@@ -1,4 +1,5 @@
 using Genelife.Domain;
+using Genelife.Domain.Work;
 using MassTransit;
 
 namespace Genelife.Main.Sagas;
@@ -12,7 +13,8 @@ public class CompanySagaState : SagaStateMachineInstance, ISagaVersion
     public PayrollState PayrollState { get; set; }
     public HiringState HiringState { get; set; }
     public WorkProgressState WorkProgressState { get; set; }
-    public string CurrentState { get; set; } = null!;
+    public string CurrentState { get; set; }
+    
     public int Version { get; set; }
     public DateTime LastPayrollDate { get; set; }
     public int PositionsNeeded { get; set; }

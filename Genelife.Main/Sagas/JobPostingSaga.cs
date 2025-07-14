@@ -3,6 +3,7 @@ using Genelife.Domain.Events.Clock;
 using Genelife.Domain.Events.Jobs;
 using Genelife.Domain.Events.Company;
 using Genelife.Domain.Commands.Jobs;
+using Genelife.Main.Domain;
 using Genelife.Main.Usecases;
 using MassTransit;
 using Serilog;
@@ -21,20 +22,13 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
     public Event<ReviewApplication> ReviewApplication { get; set; } = null!;
     public Event<DayElapsed> DayElapsed { get; set; } = null!;
 
-    private readonly MatchApplicationToJob matchApplicationToJob;
-    private readonly CalculateOfferSalary calculateOfferSalary;
-    private readonly Random random = new();
-
-    public JobPostingSaga(MatchApplicationToJob matchApplicationToJobUC, CalculateOfferSalary calculateOfferSalaryUC)
+    public JobPostingSaga()
     {
-        matchApplicationToJob = matchApplicationToJobUC;
-        calculateOfferSalary = calculateOfferSalaryUC;
         InstanceState(x => x.CurrentState);
 
         Initially(
             When(Created)
-                .Then(context =>
-                {
+                .Then(context => {
                     context.Saga.JobPosting = context.Message.JobPosting;
                     context.Saga.CreatedDate = DateTime.UtcNow;
                     context.Saga.DaysActive = 0;
@@ -46,10 +40,10 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
         );
 
         // Configure event correlations
-        Event(() => Created, e => e.CorrelateById(ctx => ctx.Message.JobPostingId));
+        Event(() => Created, e => e.CorrelateById(ctx => ctx.Message.CorrelationId));
         Event(() => DayElapsed, e => e.CorrelateBy(saga => "any", ctx => "any"));
-        Event(() => ApplicationSubmitted, e => e.CorrelateBy(saga => saga.JobPosting.Id.ToString(), ctx => ctx.Message.JobPostingId.ToString()));
-        Event(() => ReviewApplication, e => e.CorrelateBy(saga => saga.JobPosting.Id.ToString(), ctx => ctx.Message.JobPostingId.ToString()));
+        Event(() => ApplicationSubmitted, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.JobPostingId.ToString()));
+        Event(() => ReviewApplication, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.JobPostingId.ToString()));
 
         During(Active,
             When(DayElapsed)
@@ -64,7 +58,7 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                         Log.Information($"Job posting expired: {context.Saga.JobPosting.Title}");
                         context.Saga.JobPosting = context.Saga.JobPosting with { Status = JobPostingStatus.Expired };
                         context.Publish(new JobPostingStatusChanged(
-                            context.Saga.JobPosting.Id,
+                            context.Saga.CorrelationId,
                             context.Saga.JobPosting.CompanyId,
                             JobPostingStatus.Active,
                             JobPostingStatus.Expired,
@@ -76,7 +70,7 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                     
                     // Auto-review applications if we have enough
                     if (context.Saga.Applications.Count >= 5 && 
-                        context.Saga.Applications.Any(a => a.Status == ApplicationStatus.Submitted))
+                        context.Saga.Applications.Any(a => a.Data.Status == ApplicationStatus.Submitted))
                     {
                         Log.Information($"Auto-reviewing applications for: {context.Saga.JobPosting.Title}");
                         context.TransitionToState(ReviewingApplications);
@@ -88,17 +82,17 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                 {
                     // Calculate match score for the application
                     var application = context.Message.Application;
-                    var matchScore = matchApplicationToJob.CalculateMatchScore(context.Saga.JobPosting, application);
+                    var matchScore = new CalculateMatchScore().Execute(context.Saga.JobPosting, application);
                     var updatedApplication = application with { MatchScore = matchScore };
 
-                    context.Saga.Applications.Add(updatedApplication);
+                    context.Saga.Applications.Add(new IdentifiedJobApplication(context.Message.CorrelationId, updatedApplication));
                     context.Saga.ApplicationsReceived++;
 
                     Log.Information($"Application received for {context.Saga.JobPosting.Title} from {context.Message.HumanId} (Match: {matchScore:F2})");
 
                     // Publish application status change
                     context.Publish(new ApplicationStatusChanged(
-                        application.Id,
+                        context.Message.CorrelationId,
                         application.JobPostingId,
                         application.HumanId,
                         ApplicationStatus.Submitted,
@@ -114,18 +108,22 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
             When(ReviewApplication)
                 .Then(context =>
                 {
-                    var application = context.Saga.Applications.FirstOrDefault(a => a.Id == context.Message.ApplicationId);
-                    if (application == null) return;
-                    var oldStatus = application.Status;
-                    var updatedApplication = application with { Status = context.Message.NewStatus };
-                    var index = context.Saga.Applications.IndexOf(application);
+                    var identifiedApplication = context.Saga.Applications.FirstOrDefault(a => a.Id == context.Message.ApplicationId);
+                    if (identifiedApplication == null) return;
+                    var oldStatus = identifiedApplication.Data.Status;
+                    var updatedApplication = identifiedApplication with {
+                        Data = identifiedApplication.Data with {
+                            Status = context.Message.NewStatus
+                        }
+                    };
+                    var index = context.Saga.Applications.IndexOf(identifiedApplication);
                     context.Saga.Applications[index] = updatedApplication;
                     Log.Information($"Application {context.Message.ApplicationId} status changed from {oldStatus} to {context.Message.NewStatus}");
 
                     context.Publish(new ApplicationStatusChanged(
-                        application.Id,
-                        application.JobPostingId,
-                        application.HumanId,
+                        identifiedApplication.Id,
+                        identifiedApplication.Data.JobPostingId,
+                        identifiedApplication.Data.HumanId,
                         oldStatus,
                         context.Message.NewStatus,
                         context.Message.ReviewNotes
@@ -134,30 +132,34 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                     // If accepted, hire the employee
                     if (context.Message.NewStatus == ApplicationStatus.Accepted)
                     {
-                        var salary = context.Message.OfferedSalary ?? application.RequestedSalary;
+                        var salary = context.Message.OfferedSalary ?? identifiedApplication.Data.RequestedSalary;
                         
                         context.Publish(new EmployeeHired(
                             context.Saga.JobPosting.CompanyId,
-                            application.HumanId,
+                            identifiedApplication.Data.HumanId,
                             salary
                         ));
                         
-                        context.Saga.SelectedApplicationId = application.Id;
+                        context.Saga.SelectedApplicationId = identifiedApplication.Id;
                         context.Saga.JobPosting = context.Saga.JobPosting with { Status = JobPostingStatus.Filled };
-                        Log.Information($"Job filled: {context.Saga.JobPosting.Title} - Hired {application.HumanId} for {salary:C}");
+                        Log.Information($"Job filled: {context.Saga.JobPosting.Title} - Hired {identifiedApplication.Data.HumanId} for {salary:C}");
                         
                         // Reject remaining applications
-                        foreach (var remainingApp in context.Saga.Applications.Where(a => a.Id != application.Id && 
-                                                                                         a.Status == ApplicationStatus.UnderReview))
+                        foreach (var remainingApp in context.Saga.Applications.Where(a => a.Id != identifiedApplication.Id && 
+                                                                                         a.Data.Status == ApplicationStatus.UnderReview))
                         {
-                            var rejectedApp = remainingApp with { Status = ApplicationStatus.Rejected };
+                            var rejectedApp = remainingApp with {
+                                Data = remainingApp.Data with {
+                                    Status = ApplicationStatus.Rejected
+                                }
+                            };
                             var remainingIndex = context.Saga.Applications.IndexOf(remainingApp);
                             context.Saga.Applications[remainingIndex] = rejectedApp;
                             
                             context.Publish(new ApplicationStatusChanged(
                                 remainingApp.Id,
-                                remainingApp.JobPostingId,
-                                remainingApp.HumanId,
+                                remainingApp.Data.JobPostingId,
+                                remainingApp.Data.HumanId,
                                 ApplicationStatus.UnderReview,
                                 ApplicationStatus.Rejected,
                                 "Position filled by another candidate"
@@ -174,28 +176,32 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                 {
                     // Auto-review applications based on match scores
                     var pendingApplications = context.Saga.Applications
-                        .Where(a => a.Status == ApplicationStatus.Submitted || a.Status == ApplicationStatus.UnderReview)
+                        .Where(a => a.Data.Status is ApplicationStatus.Submitted or ApplicationStatus.UnderReview)
                         .ToList();
                     
-                    if (!pendingApplications.Any())
+                    if (pendingApplications.Count == 0)
                     {
                         context.TransitionToState(Active);
                         return;
                     }
                     
-                    var rankedApplications = matchApplicationToJob.RankApplications(pendingApplications);
+                    IdentifiedJobApplication[] rankedApplications = [.. pendingApplications
+                        .OrderByDescending(app => app.Data.MatchScore)
+                        .ThenByDescending(app => app.Data.YearsOfExperience)
+                        .ThenBy(app => app.Data.RequestedSalary)];
                     var topApplication = rankedApplications.FirstOrDefault();
-                    
-                    if (topApplication != null && topApplication.MatchScore >= 0.7m)
+                    if (topApplication is null) return;
+                    if (topApplication.Data is { MatchScore: >= 0.7m })
                     {
                         // Auto-accept top candidate if match score is high enough
-                        var salary = calculateOfferSalary.Execute(context.Saga.JobPosting, topApplication);
+                        var salary = new CalculateOfferSalary().Execute(context.Saga.JobPosting, topApplication.Data);
                         
-                        Log.Information($"Auto-accepting top candidate for {context.Saga.JobPosting.Title}: {topApplication.HumanId} (Score: {topApplication.MatchScore:F2})");
+                        Log.Information($"Auto-accepting top candidate for {context.Saga.JobPosting.Title}: " +
+                                        $"{topApplication.Data.HumanId} (Score: {topApplication.Data.MatchScore:F2})");
                         
                         context.Publish(new ReviewApplication(
                             topApplication.Id,
-                            topApplication.JobPostingId,
+                            topApplication.Data.JobPostingId,
                             ApplicationStatus.Accepted,
                             "Auto-accepted based on high match score",
                             salary
@@ -206,28 +212,28 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                         // Review applications with lower scores
                         foreach (var application in rankedApplications.Take(3))
                         {
-                            var newStatus = application.MatchScore switch
+                            var newStatus = application.Data.MatchScore switch
                             {
                                 >= 0.6m => ApplicationStatus.Interviewing,
                                 >= 0.4m => ApplicationStatus.UnderReview,
                                 _ => ApplicationStatus.Rejected
                             };
-                            
-                            if (newStatus != application.Status)
-                            {
-                                var updatedApp = application with { Status = newStatus };
-                                var index = context.Saga.Applications.IndexOf(application);
-                                context.Saga.Applications[index] = updatedApp;
+
+                            if (newStatus == application.Data.Status) continue;
+                            var updatedApp = application with {
+                                Data = application.Data with { Status = newStatus }
+                            };
+                            var index = context.Saga.Applications.IndexOf(application);
+                            context.Saga.Applications[index] = updatedApp;
                                 
-                                context.Publish(new ApplicationStatusChanged(
-                                    application.Id,
-                                    application.JobPostingId,
-                                    application.HumanId,
-                                    application.Status,
-                                    newStatus,
-                                    $"Auto-reviewed: Match score {application.MatchScore:F2}"
-                                ));
-                            }
+                            context.Publish(new ApplicationStatusChanged(
+                                application.Id,
+                                application.Data.JobPostingId,
+                                application.Data.HumanId,
+                                application.Data.Status,
+                                newStatus,
+                                $"Auto-reviewed: Match score {application.Data.MatchScore:F2}"
+                            ));
                         }
                         context.TransitionToState(Active);
                     }
@@ -238,14 +244,14 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                 {
                     // Handle new applications during review phase
                     var application = context.Message.Application;
-                    var matchScore = matchApplicationToJob.CalculateMatchScore(context.Saga.JobPosting, application);
+                    var matchScore = new CalculateMatchScore().Execute(context.Saga.JobPosting, application);
                     var updatedApplication = application with { MatchScore = matchScore };
-                    context.Saga.Applications.Add(updatedApplication);
+                    context.Saga.Applications.Add(new IdentifiedJobApplication(context.Message.CorrelationId, updatedApplication));
                     context.Saga.ApplicationsReceived++;
                     Log.Information($"Late application received for {context.Saga.JobPosting.Title} from {context.Message.HumanId} (Match: {matchScore:F2})");
                     
                     context.Publish(new ApplicationStatusChanged(
-                        application.Id,
+                        context.Message.CorrelationId,
                         application.JobPostingId,
                         application.HumanId,
                         ApplicationStatus.Submitted,
@@ -260,14 +266,16 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                     var application = context.Saga.Applications.FirstOrDefault(a => a.Id == context.Message.ApplicationId);
                     if (application == null) return;
 
-                    var oldStatus = application.Status;
-                    var updatedApplication = application with { Status = context.Message.NewStatus };
+                    var oldStatus = application.Data.Status;
+                    var updatedApplication = application with {
+                        Data = application.Data with { Status = context.Message.NewStatus }
+                    };
                     var index = context.Saga.Applications.IndexOf(application);
                     context.Saga.Applications[index] = updatedApplication;
                     context.Publish(new ApplicationStatusChanged(
                         application.Id,
-                        application.JobPostingId,
-                        application.HumanId,
+                        application.Data.JobPostingId,
+                        application.Data.HumanId,
                         oldStatus,
                         context.Message.NewStatus,
                         context.Message.ReviewNotes
@@ -275,10 +283,10 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
 
                     if (context.Message.NewStatus == ApplicationStatus.Accepted)
                     {
-                        var salary = context.Message.OfferedSalary ?? application.RequestedSalary;
+                        var salary = context.Message.OfferedSalary ?? application.Data.RequestedSalary;
                         context.Publish(new EmployeeHired(
                             context.Saga.JobPosting.CompanyId,
-                            application.HumanId,
+                            application.Data.HumanId,
                             salary
                         ));
                         
@@ -304,21 +312,23 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                 {
                     // Reject any remaining applications
                     var pendingApplications = context.Saga.Applications
-                        .Where(a => a.Status == ApplicationStatus.Submitted || 
-                                   a.Status == ApplicationStatus.UnderReview ||
-                                   a.Status == ApplicationStatus.Interviewing)
+                        .Where(a => a.Data.Status is ApplicationStatus.Submitted 
+                            or ApplicationStatus.UnderReview 
+                            or ApplicationStatus.Interviewing)
                         .ToList();
                     
                     foreach (var application in pendingApplications)
                     {
-                        var rejectedApp = application with { Status = ApplicationStatus.Rejected };
+                        var rejectedApp = application with {
+                            Data = application.Data with { Status = ApplicationStatus.Rejected }
+                        };
                         var index = context.Saga.Applications.IndexOf(application);
                         context.Saga.Applications[index] = rejectedApp;
                         context.Publish(new ApplicationStatusChanged(
                             application.Id,
-                            application.JobPostingId,
-                            application.HumanId,
-                            application.Status,
+                            application.Data.JobPostingId,
+                            application.Data.HumanId,
+                            application.Data.Status,
                             ApplicationStatus.Rejected,
                             "Job posting expired"
                         ));

@@ -22,7 +22,7 @@ public class JobPostingSagaTests
         var jobPosting = TestDataBuilder.CreateJobPosting();
 
         await using var provider = new ServiceCollection()
-            .AddSingleton<MatchApplicationToJob>()
+            .AddSingleton<CalculateMatchScore>()
             .AddSingleton<CalculateOfferSalary>()
             .AddMassTransitTestHarness(cfg =>
             {
@@ -36,7 +36,7 @@ public class JobPostingSagaTests
         var sagaHarness = harness.GetSagaStateMachineHarness<JobPostingSaga, JobPostingSagaState>();
 
         // Act
-        await harness.Bus.Publish(new JobPostingCreated(jobPosting.Id, jobPosting.CompanyId, jobPosting));
+        await harness.Bus.Publish(new JobPostingCreated(Guid.NewGuid(), jobPosting.CompanyId, jobPosting));
 
         // Assert
         (await harness.Consumed.Any<JobPostingCreated>()).Should().BeTrue();
@@ -52,7 +52,7 @@ public class JobPostingSagaTests
         var jobApplication = TestDataBuilder.CreateJobApplication();
 
         await using var provider = new ServiceCollection()
-            .AddSingleton<MatchApplicationToJob>()
+            .AddSingleton<CalculateMatchScore>()
             .AddSingleton<CalculateOfferSalary>()
             .AddMassTransitTestHarness(cfg =>
             {
@@ -66,11 +66,11 @@ public class JobPostingSagaTests
         var sagaHarness = harness.GetSagaStateMachineHarness<JobPostingSaga, JobPostingSagaState>();
 
         // Create the saga first
-        await harness.Bus.Publish(new JobPostingCreated(jobPosting.Id, jobPosting.CompanyId, jobPosting));
+        await harness.Bus.Publish(new JobPostingCreated(Guid.NewGuid(), jobPosting.CompanyId, jobPosting));
         await Task.Delay(100); // Wait for saga creation
 
         // Act
-        await harness.Bus.Publish(new JobApplicationSubmitted(jobApplication.Id, jobApplication.JobPostingId, jobApplication.HumanId, jobApplication));
+        await harness.Bus.Publish(new JobApplicationSubmitted(Guid.NewGuid(), jobApplication.JobPostingId, jobApplication.HumanId, jobApplication));
 
         // Assert
         (await harness.Consumed.Any<JobApplicationSubmitted>()).Should().BeTrue();
@@ -82,9 +82,10 @@ public class JobPostingSagaTests
         // Arrange
         var jobPosting = TestDataBuilder.CreateJobPosting();
         var applicationId = Guid.NewGuid();
+        var jobPostingId = Guid.NewGuid();
 
         await using var provider = new ServiceCollection()
-            .AddSingleton<MatchApplicationToJob>()
+            .AddSingleton<CalculateMatchScore>()
             .AddSingleton<CalculateOfferSalary>()
             .AddMassTransitTestHarness(cfg =>
             {
@@ -98,11 +99,11 @@ public class JobPostingSagaTests
         var sagaHarness = harness.GetSagaStateMachineHarness<JobPostingSaga, JobPostingSagaState>();
 
         // Create the saga first
-        await harness.Bus.Publish(new JobPostingCreated(jobPosting.Id, jobPosting.CompanyId, jobPosting));
+        await harness.Bus.Publish(new JobPostingCreated(jobPostingId, jobPosting.CompanyId, jobPosting));
         await Task.Delay(100); // Wait for saga creation
 
         // Act
-        await harness.Bus.Publish(new ReviewApplication(applicationId, jobPosting.Id, ApplicationStatus.UnderReview));
+        await harness.Bus.Publish(new ReviewApplication(applicationId, jobPostingId, ApplicationStatus.UnderReview));
 
         // Assert
         (await harness.Consumed.Any<ReviewApplication>()).Should().BeTrue();
@@ -114,9 +115,10 @@ public class JobPostingSagaTests
     {
         // Arrange
         var jobPosting = TestDataBuilder.CreateJobPosting();
+        var jobPostingId = Guid.NewGuid();
 
         await using var provider = new ServiceCollection()
-            .AddSingleton<MatchApplicationToJob>()
+            .AddSingleton<CalculateMatchScore>()
             .AddSingleton<CalculateOfferSalary>()
             .AddMassTransitTestHarness(cfg =>
             {
@@ -130,7 +132,7 @@ public class JobPostingSagaTests
         var sagaHarness = harness.GetSagaStateMachineHarness<JobPostingSaga, JobPostingSagaState>();
 
         // Create the saga first
-        await harness.Bus.Publish(new JobPostingCreated(jobPosting.Id, jobPosting.CompanyId, jobPosting));
+        await harness.Bus.Publish(new JobPostingCreated(jobPostingId, jobPosting.CompanyId, jobPosting));
         await Task.Delay(100); // Wait for saga creation
 
         // Act
@@ -146,11 +148,12 @@ public class JobPostingSagaTests
         // Arrange
         var jobPosting = TestDataBuilder.CreateJobPosting();
         var applicationId = Guid.NewGuid();
+        var jobPostingId = Guid.NewGuid();
         var humanId = Guid.NewGuid();
         var status = "Accepted";
 
         await using var provider = new ServiceCollection()
-            .AddSingleton<MatchApplicationToJob>()
+            .AddSingleton<CalculateMatchScore>()
             .AddSingleton<CalculateOfferSalary>()
             .AddMassTransitTestHarness(cfg =>
             {
@@ -164,11 +167,11 @@ public class JobPostingSagaTests
         var sagaHarness = harness.GetSagaStateMachineHarness<JobPostingSaga, JobPostingSagaState>();
 
         // Create the saga first
-        await harness.Bus.Publish(new JobPostingCreated(jobPosting.Id, jobPosting.CompanyId, jobPosting));
+        await harness.Bus.Publish(new JobPostingCreated(jobPostingId, jobPosting.CompanyId, jobPosting));
         await Task.Delay(100); // Wait for saga creation
 
         // Act
-        await harness.Bus.Publish(new ApplicationStatusChanged(applicationId, jobPosting.Id, humanId, ApplicationStatus.Submitted, ApplicationStatus.Accepted));
+        await harness.Bus.Publish(new ApplicationStatusChanged(applicationId, jobPostingId, humanId, ApplicationStatus.Submitted, ApplicationStatus.Accepted));
 
         // Assert - ApplicationStatusChanged is published by the saga, not consumed
         // We can verify the saga processed the event by checking it was created and received the initial event
@@ -182,9 +185,11 @@ public class JobPostingSagaTests
         var jobPosting = TestDataBuilder.CreateJobPosting();
         var jobApplication = TestDataBuilder.CreateJobApplication();
         var humanId = Guid.NewGuid();
+        var jobPostingId = Guid.NewGuid();
+        var jobApplicationId = Guid.NewGuid();
 
         await using var provider = new ServiceCollection()
-            .AddSingleton<MatchApplicationToJob>()
+            .AddSingleton<CalculateMatchScore>()
             .AddSingleton<CalculateOfferSalary>()
             .AddMassTransitTestHarness(cfg =>
             {
@@ -198,13 +203,13 @@ public class JobPostingSagaTests
         var sagaHarness = harness.GetSagaStateMachineHarness<JobPostingSaga, JobPostingSagaState>();
 
         // Act
-        await harness.Bus.Publish(new JobPostingCreated(jobPosting.Id, jobPosting.CompanyId, jobPosting));
+        await harness.Bus.Publish(new JobPostingCreated(jobPostingId, jobPosting.CompanyId, jobPosting));
         await Task.Delay(100);
 
-        await harness.Bus.Publish(new JobApplicationSubmitted(jobApplication.Id, jobApplication.JobPostingId, jobApplication.HumanId, jobApplication));
+        await harness.Bus.Publish(new JobApplicationSubmitted(jobApplicationId, jobApplication.JobPostingId, jobApplication.HumanId, jobApplication));
         await Task.Delay(100);
 
-        await harness.Bus.Publish(new ReviewApplication(jobApplication.Id, jobPosting.Id, ApplicationStatus.UnderReview));
+        await harness.Bus.Publish(new ReviewApplication(jobApplicationId, jobPostingId, ApplicationStatus.UnderReview));
         await Task.Delay(100);
 
         await harness.Bus.Publish(new DayElapsed());
@@ -228,9 +233,11 @@ public class JobPostingSagaTests
         var jobApplication = TestDataBuilder.CreateJobApplication();
         var humanId = Guid.NewGuid();
         var salary = 75000m;
+        var jobPostingId = Guid.NewGuid();
+        var jobApplicationId = Guid.NewGuid();
 
         await using var provider = new ServiceCollection()
-            .AddSingleton<MatchApplicationToJob>()
+            .AddSingleton<CalculateMatchScore>()
             .AddSingleton<CalculateOfferSalary>()
             .AddMassTransitTestHarness(cfg =>
             {
@@ -244,16 +251,16 @@ public class JobPostingSagaTests
         var sagaHarness = harness.GetSagaStateMachineHarness<JobPostingSaga, JobPostingSagaState>();
 
         // Act - Complete workflow
-        await harness.Bus.Publish(new JobPostingCreated(jobPosting.Id, jobPosting.CompanyId, jobPosting));
+        await harness.Bus.Publish(new JobPostingCreated(jobPostingId, jobPosting.CompanyId, jobPosting));
         await Task.Delay(100);
 
-        await harness.Bus.Publish(new JobApplicationSubmitted(jobApplication.Id, jobApplication.JobPostingId, jobApplication.HumanId, jobApplication));
+        await harness.Bus.Publish(new JobApplicationSubmitted(jobApplicationId, jobApplication.JobPostingId, jobApplication.HumanId, jobApplication));
         await Task.Delay(100);
 
-        await harness.Bus.Publish(new ReviewApplication(jobApplication.Id, jobPosting.Id, ApplicationStatus.UnderReview));
+        await harness.Bus.Publish(new ReviewApplication(jobApplicationId, jobPostingId, ApplicationStatus.UnderReview));
         await Task.Delay(100);
 
-        await harness.Bus.Publish(new ApplicationStatusChanged(jobApplication.Id, jobPosting.Id, humanId, ApplicationStatus.UnderReview, ApplicationStatus.Accepted));
+        await harness.Bus.Publish(new ApplicationStatusChanged(jobApplicationId, jobPostingId, humanId, ApplicationStatus.UnderReview, ApplicationStatus.Accepted));
 
         // Assert
         (await harness.Consumed.Any<JobPostingCreated>()).Should().BeTrue();

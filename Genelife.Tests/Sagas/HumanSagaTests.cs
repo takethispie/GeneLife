@@ -28,7 +28,7 @@ public class HumanSagaTests
             .AddSingleton<UpdateNeeds>()
             .AddSingleton<ChooseActivity>()
             .AddSingleton<GenerateEmployment>()
-            .AddSingleton<MatchApplicationToJob>()
+            .AddSingleton<CalculateMatchScore>()
             .AddMassTransitTestHarness(cfg =>
             {
                 cfg.AddSagaStateMachine<HumanSaga, HumanSagaState>();
@@ -61,7 +61,7 @@ public class HumanSagaTests
             .AddSingleton<UpdateNeeds>()
             .AddSingleton<ChooseActivity>()
             .AddSingleton<GenerateEmployment>()
-            .AddSingleton<MatchApplicationToJob>()
+            .AddSingleton<CalculateMatchScore>()
             .AddMassTransitTestHarness(cfg =>
             {
                 cfg.AddSagaStateMachine<HumanSaga, HumanSagaState>();
@@ -95,7 +95,7 @@ public class HumanSagaTests
             .AddSingleton<UpdateNeeds>()
             .AddSingleton<ChooseActivity>()
             .AddSingleton<GenerateEmployment>()
-            .AddSingleton<MatchApplicationToJob>()
+            .AddSingleton<CalculateMatchScore>()
             .AddMassTransitTestHarness(cfg =>
             {
                 cfg.AddSagaStateMachine<HumanSaga, HumanSagaState>();
@@ -129,7 +129,7 @@ public class HumanSagaTests
             .AddSingleton<UpdateNeeds>()
             .AddSingleton<ChooseActivity>()
             .AddSingleton<GenerateEmployment>()
-            .AddSingleton<MatchApplicationToJob>()
+            .AddSingleton<CalculateMatchScore>()
             .AddMassTransitTestHarness(cfg =>
             {
                 cfg.AddSagaStateMachine<HumanSaga, HumanSagaState>();
@@ -146,7 +146,7 @@ public class HumanSagaTests
         await Task.Delay(100); // Wait for saga creation
 
         // Act
-        await harness.Bus.Publish(new JobPostingCreated(jobPosting.Id, jobPosting.CompanyId, jobPosting));
+        await harness.Bus.Publish(new JobPostingCreated(Guid.NewGuid(), jobPosting.CompanyId, jobPosting));
         await Task.Delay(500); // Wait for potential job application processing
 
         // Assert
@@ -166,7 +166,7 @@ public class HumanSagaTests
             .AddSingleton<UpdateNeeds>()
             .AddSingleton<ChooseActivity>()
             .AddSingleton<GenerateEmployment>()
-            .AddSingleton<MatchApplicationToJob>()
+            .AddSingleton<CalculateMatchScore>()
             .AddMassTransitTestHarness(cfg =>
             {
                 cfg.AddSagaStateMachine<HumanSaga, HumanSagaState>();
@@ -202,7 +202,7 @@ public class HumanSagaTests
             .AddSingleton<UpdateNeeds>()
             .AddSingleton<ChooseActivity>()
             .AddSingleton<GenerateEmployment>()
-            .AddSingleton<MatchApplicationToJob>()
+            .AddSingleton<CalculateMatchScore>()
             .AddMassTransitTestHarness(cfg =>
             {
                 cfg.AddSagaStateMachine<HumanSaga, HumanSagaState>();
@@ -241,7 +241,7 @@ public class HumanSagaTests
             .AddSingleton<UpdateNeeds>()
             .AddSingleton<ChooseActivity>()
             .AddSingleton<GenerateEmployment>()
-            .AddSingleton<MatchApplicationToJob>()
+            .AddSingleton<CalculateMatchScore>()
             .AddMassTransitTestHarness(cfg =>
             {
                 cfg.AddSagaStateMachine<HumanSaga, HumanSagaState>();

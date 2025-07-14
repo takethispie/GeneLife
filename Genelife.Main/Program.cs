@@ -40,17 +40,6 @@ CreateHostBuilder(args).Build().Run();
 static IHostBuilder CreateHostBuilder(string[] args) =>
     Host.CreateDefaultBuilder(args)
         .ConfigureServices((hostContext, services) => {
-            services.AddScoped<ChooseActivity>();
-            services.AddScoped<ModifyNeeds>();
-            services.AddScoped<UpdateNeeds>();
-            services.AddScoped<CalculatePayroll>();
-            services.AddScoped<EvaluateHiring>();
-            services.AddScoped<UpdateProductivity>();
-            services.AddScoped<GenerateJobPosting>();
-            services.AddScoped<MatchApplicationToJob>();
-            services.AddScoped<GenerateEmployment>();
-            services.AddScoped<CalculateOfferSalary>();
-            
             services.AddSingleton<ClockService>();
             services.AddMassTransit(x =>
             {

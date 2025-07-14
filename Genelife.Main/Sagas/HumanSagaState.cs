@@ -1,4 +1,5 @@
 using Genelife.Domain;
+using Genelife.Domain.Work;
 using Genelife.Main.Domain;
 using MassTransit;
 

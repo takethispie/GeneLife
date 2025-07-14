@@ -74,26 +74,25 @@ public class GenerateJobPosting
         }
     };
     
-    public JobPosting GenerateForCompany(Company company, JobLevel level, int positionsNeeded)
+    public JobPosting GenerateForCompany(Guid companyId, CompanyType companyType, JobLevel level, int positionsNeeded)
     {
-        var titles = JobTitlesByType.GetValueOrDefault(company.Type, JobTitlesByType[CompanyType.Services]);
-        var skills = SkillsByType.GetValueOrDefault(company.Type, SkillsByType[CompanyType.Services]);
+        var titles = JobTitlesByType.GetValueOrDefault(companyType, JobTitlesByType[CompanyType.Services]);
+        var skills = SkillsByType.GetValueOrDefault(companyType, SkillsByType[CompanyType.Services]);
         
         var title = titles[random.Next(titles.Count)];
-        var description = GenerateJobDescription(title, company.Type, level);
+        var description = GenerateJobDescription(title, companyType, level);
         var requirements = GenerateRequirements(skills, level);
-        var (salaryMin, salaryMax) = GenerateSalaryRange(company.Type, level);
+        var (salaryMin, salaryMax) = GenerateSalaryRange(companyType, level);
         
         return new JobPosting(
-            Id: Guid.NewGuid(),
-            CompanyId: company.Id,
+            CompanyId: companyId,
             Title: title,
             Description: description,
             Requirements: requirements,
             SalaryMin: salaryMin,
             SalaryMax: salaryMax,
             Level: level,
-            Industry: company.Type,
+            Industry: companyType,
             PostedDate: DateTime.UtcNow,
             ExpiryDate: DateTime.UtcNow.AddDays(30),
             Status: JobPostingStatus.Active,

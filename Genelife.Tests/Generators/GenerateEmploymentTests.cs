@@ -67,23 +67,6 @@ public class GenerateEmploymentTests
         employment.Skills.Should().HaveCountGreaterThan(0); // Should have many skills
     }
 
-    [Fact]
-    public void Execute_ShouldSetJobSeekingStatusCorrectly()
-    {
-        // Arrange
-        var human = TestDataBuilder.CreateHuman();
-
-        // Act
-        var employment = _generator.Execute(human);
-
-        // Assert
-        if (employment.EmploymentStatus == EmploymentStatus.Unemployed)
-        {
-            employment.IsActivelyJobSeeking.Should().BeTrue();
-        }
-        // Employed people might or might not be job seeking
-    }
-
     [Theory]
     [InlineData(JobLevel.Entry)]
     [InlineData(JobLevel.Senior)]

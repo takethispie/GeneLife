@@ -1,5 +1,6 @@
 using Bogus;
 using Genelife.Domain;
+using Genelife.Domain.Work;
 
 namespace Genelife.Tests.TestData;
 
@@ -30,7 +31,6 @@ public static class TestDataBuilder
     }
 
     public static Company CreateCompany(
-        Guid? id = null,
         string? name = null,
         decimal? revenue = null,
         decimal? taxRate = null,
@@ -40,7 +40,6 @@ public static class TestDataBuilder
         int? maxEmployees = null)
     {
         return new Company(
-            id ?? Guid.NewGuid(),
             name ?? Faker.Company.CompanyName(),
             revenue ?? Faker.Random.Decimal(100000, 10000000),
             taxRate ?? Faker.Random.Decimal(0.15m, 0.35m),
@@ -52,7 +51,6 @@ public static class TestDataBuilder
     }
 
     public static JobPosting CreateJobPosting(
-        Guid? id = null,
         Guid? companyId = null,
         string? title = null,
         string? description = null,
@@ -73,7 +71,6 @@ public static class TestDataBuilder
         var finalExpiryDate = expiryDate;
 
         return new JobPosting(
-            id ?? Guid.NewGuid(),
             companyId ?? Guid.NewGuid(),
             title ?? Faker.Name.JobTitle(),
             description ?? Faker.Lorem.Paragraph(),
@@ -90,7 +87,6 @@ public static class TestDataBuilder
     }
 
     public static JobApplication CreateJobApplication(
-        Guid? id = null,
         Guid? jobPostingId = null,
         Guid? humanId = null,
         DateTime? applicationDate = null,
@@ -102,7 +98,6 @@ public static class TestDataBuilder
         decimal? matchScore = null)
     {
         return new JobApplication(
-            id ?? Guid.NewGuid(),
             jobPostingId ?? Guid.NewGuid(),
             humanId ?? Guid.NewGuid(),
             applicationDate ?? Faker.Date.Recent(7),

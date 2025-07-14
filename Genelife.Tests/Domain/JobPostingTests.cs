@@ -7,46 +7,6 @@ namespace Genelife.Tests.Domain;
 public class JobPostingTests
 {
     [Fact]
-    public void JobPosting_ShouldCreateWithValidProperties()
-    {
-        // Arrange
-        var id = Guid.NewGuid();
-        var companyId = Guid.NewGuid();
-        var title = "Senior Software Engineer";
-        var description = "We are looking for a senior software engineer...";
-        var requirements = new List<string> { "C#", ".NET", "SQL" };
-        var salaryMin = 80000m;
-        var salaryMax = 120000m;
-        var level = JobLevel.Senior;
-        var industry = CompanyType.Technology;
-        var postedDate = DateTime.UtcNow.AddDays(-1);
-        var expiryDate = DateTime.UtcNow.AddDays(30);
-        var status = JobPostingStatus.Active;
-        var maxApplications = 150;
-
-        // Act
-        var jobPosting = new JobPosting(
-            id, companyId, title, description, requirements,
-            salaryMin, salaryMax, level, industry, postedDate,
-            expiryDate, status, maxApplications);
-
-        // Assert
-        jobPosting.Id.Should().Be(id);
-        jobPosting.CompanyId.Should().Be(companyId);
-        jobPosting.Title.Should().Be(title);
-        jobPosting.Description.Should().Be(description);
-        jobPosting.Requirements.Should().BeEquivalentTo(requirements);
-        jobPosting.SalaryMin.Should().Be(salaryMin);
-        jobPosting.SalaryMax.Should().Be(salaryMax);
-        jobPosting.Level.Should().Be(level);
-        jobPosting.Industry.Should().Be(industry);
-        jobPosting.PostedDate.Should().Be(postedDate);
-        jobPosting.ExpiryDate.Should().Be(expiryDate);
-        jobPosting.Status.Should().Be(status);
-        jobPosting.MaxApplications.Should().Be(maxApplications);
-    }
-
-    [Fact]
     public void JobPosting_ShouldCreateWithDefaultMaxApplications()
     {
         // Arrange & Act
@@ -88,39 +48,6 @@ public class JobPostingTests
 
         // Assert
         jobPosting.Status.Should().Be(status);
-    }
-
-    [Fact]
-    public void JobPosting_ShouldSupportRecordEquality()
-    {
-        // Arrange
-        var id = Guid.NewGuid();
-        var companyId = Guid.NewGuid();
-        var requirements = new List<string> { "C#", ".NET", "SQL" };
-        var postedDate = new DateTime(2023, 1, 1);
-        var expiryDate = new DateTime(2023, 12, 31);
-        var jobPosting1 = TestDataBuilder.CreateJobPosting(id: id, companyId: companyId, title: "Developer", description: "Test description", requirements: requirements, salaryMin: 50000m, salaryMax: 80000m, level: JobLevel.Mid, industry: CompanyType.Technology, postedDate: postedDate, expiryDate: expiryDate, status: JobPostingStatus.Active, maxApplications: 100);
-        var jobPosting2 = TestDataBuilder.CreateJobPosting(id: id, companyId: companyId, title: "Developer", description: "Test description", requirements: requirements, salaryMin: 50000m, salaryMax: 80000m, level: JobLevel.Mid, industry: CompanyType.Technology, postedDate: postedDate, expiryDate: expiryDate, status: JobPostingStatus.Active, maxApplications: 100);
-        var jobPosting3 = TestDataBuilder.CreateJobPosting(id: Guid.NewGuid(), companyId: companyId, title: "Developer", description: "Test description", requirements: requirements, salaryMin: 50000m, salaryMax: 80000m, level: JobLevel.Mid, industry: CompanyType.Technology, postedDate: postedDate, expiryDate: expiryDate, status: JobPostingStatus.Active, maxApplications: 100);
-
-        // Act & Assert
-        jobPosting1.Should().Be(jobPosting2);
-        jobPosting1.Should().NotBe(jobPosting3);
-    }
-
-    [Fact]
-    public void JobPosting_ShouldSupportWithExpressions()
-    {
-        // Arrange
-        var originalJobPosting = TestDataBuilder.CreateJobPosting(status: JobPostingStatus.Draft);
-
-        // Act
-        var updatedJobPosting = originalJobPosting with { Status = JobPostingStatus.Active };
-
-        // Assert
-        updatedJobPosting.Status.Should().Be(JobPostingStatus.Active);
-        updatedJobPosting.Title.Should().Be(originalJobPosting.Title);
-        updatedJobPosting.Id.Should().Be(originalJobPosting.Id);
     }
 
     [Fact]

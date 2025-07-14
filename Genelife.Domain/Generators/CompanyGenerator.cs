@@ -72,7 +72,6 @@ public static class CompanyGenerator
         var maxEmployees = minEmployees + Random.Next(10, 30);
         
         return new Company(
-            Id: Guid.NewGuid(),
             Name: name,
             Revenue: baseRevenue,
             TaxRate: taxRate,

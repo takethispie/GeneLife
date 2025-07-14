@@ -8,7 +8,7 @@ using Genelife.Domain.Commands.Company;
 using Genelife.Domain.Commands.Jobs;
 using Genelife.Domain.Events.Living;
 using Genelife.Domain.Generators;
-using CreateCompanyEvent = Genelife.Domain.Events.Company.CompanyCreated;
+using Genelife.Domain.Events.Company;
 using Genelife.API.DTOs;
 
 static bool IsRunningInContainer() => bool.TryParse(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), out var inContainer) && inContainer;
@@ -55,11 +55,19 @@ app.MapPost("/create/human/{sex}", async (Sex sex, [FromServices] IPublishEndpoi
 
 app.MapPost("/create/human/{count}/{sex}", async (int count, Sex sex, [FromServices] IPublishEndpoint endpoint) =>
 {
-
-    var guid = Guid.NewGuid();
-    await endpoint.Publish(new CreateHuman(guid, HumanGenerator.Build(sex)));
+    var results = new List<object>();
+    
+    for (int i = 0; i < count; i++)
+    {
+        var humanId = Guid.NewGuid();
+        var human = HumanGenerator.Build(sex);
+        await endpoint.Publish(new CreateHuman(humanId, human));
+        results.Add(new { HumanId = humanId, Human = human });
+    }
+    
+    return Results.Ok(new { CreatedCount = count, Humans = results });
 })
-.WithName("create Human")
+.WithName("create Multiple Humans")
 .WithOpenApi();
 
 
@@ -96,7 +104,6 @@ app.MapPost("/create/company/{type}", async (CompanyType type, [FromServices] IP
 {
     var companyId = Guid.NewGuid();
     var company = new Company(
-        Id: companyId,
         Name: $"{type} Corp {Random.Shared.Next(1000, 9999)}",
         Type: type,
         Revenue: 50000m + (decimal)(Random.Shared.NextDouble() * 100000),
@@ -104,7 +111,7 @@ app.MapPost("/create/company/{type}", async (CompanyType type, [FromServices] IP
         EmployeeIds: []
     );
 
-    await endpoint.Publish(new CreateCompanyEvent(companyId, company));
+    await endpoint.Publish(new CompanyCreated(companyId, company));
     return Results.Ok(new { CompanyId = companyId, Company = company });
 })
 .WithName("create Company")
@@ -143,6 +150,47 @@ app.MapPost("/submit/application", async ([FromBody] SubmitJobApplicationRequest
     return Results.Ok("Application submitted");
 })
 .WithName("submit Job Application")
+.WithOpenApi();
+
+
+app.MapPost("/create/population/{humanCount}", async (int humanCount, [FromServices] IPublishEndpoint endpoint) =>
+{
+    var results = new
+    {
+        Humans = new List<object>(),
+        Companies = new List<object>()
+    };
+
+    // Create humans with random sex distribution
+    for (int i = 0; i < humanCount; i++)
+    {
+        var sex = Random.Shared.Next(2) == 0 ? Sex.Male : Sex.Female;
+        var humanId = Guid.NewGuid();
+        var human = HumanGenerator.Build(sex);
+        
+        await endpoint.Publish(new CreateHuman(humanId, human));
+        results.Humans.Add(new { HumanId = humanId, Human = human });
+    }
+
+    // Create companies of different types (one of each type)
+    var companyTypes = Enum.GetValues<CompanyType>();
+    foreach (var companyType in companyTypes)
+    {
+        var company = CompanyGenerator.Generate(companyType);
+        var id = Guid.NewGuid();
+        await endpoint.Publish(new CompanyCreated(id, company));
+        results.Companies.Add(new { CompanyId = id, Company = company });
+    }
+
+    return Results.Ok(new
+    {
+        Message = $"Created {humanCount} humans and {companyTypes.Length} companies",
+        CreatedHumans = humanCount,
+        CreatedCompanies = companyTypes.Length,
+        Details = results
+    });
+})
+.WithName("create Population")
 .WithOpenApi();
 
 

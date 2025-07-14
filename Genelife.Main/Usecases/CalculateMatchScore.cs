@@ -2,9 +2,9 @@ using Genelife.Domain;
 
 namespace Genelife.Main.Usecases;
 
-public class MatchApplicationToJob
+public class CalculateMatchScore
 {
-    public decimal CalculateMatchScore(JobPosting jobPosting, JobApplication application)
+    public decimal Execute(JobPosting jobPosting, JobApplication application)
     {
         decimal score = 0.0m;
         
@@ -86,9 +86,4 @@ public class MatchApplicationToJob
         
         return 0.4m; // Significant penalty for high salary expectations
     }
-
-    public List<JobApplication> RankApplications(List<JobApplication> applications) => [.. applications
-            .OrderByDescending(app => app.MatchScore)
-            .ThenByDescending(app => app.YearsOfExperience)
-            .ThenBy(app => app.RequestedSalary)];
 }
