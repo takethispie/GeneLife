@@ -10,6 +10,8 @@ using OpenTelemetry.Trace;
 using Serilog;
 using Serilog.Sinks.Grafana.Loki;
 using System.Reflection;
+using Genelife.Main.Usecases;
+using Genelife.Domain.Generators;
 
 static bool IsRunningInContainer() => bool.TryParse(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), out var inContainer) && inContainer;
 
@@ -20,7 +22,7 @@ static void ConfigureResource(ResourceBuilder r)
         serviceInstanceId: Environment.MachineName);
 }
 
-const string facility = "work-service";
+const string facility = "main-service";
 
 var facilityLabel = new LokiLabel() { 
             Key = "genelife-server", 
@@ -37,8 +39,7 @@ CreateHostBuilder(args).Build().Run();
 
 static IHostBuilder CreateHostBuilder(string[] args) =>
     Host.CreateDefaultBuilder(args)
-        .ConfigureServices((hostContext, services) =>
-        {
+        .ConfigureServices((hostContext, services) => {
             services.AddSingleton<ClockService>();
             services.AddMassTransit(x =>
             {
@@ -47,6 +48,16 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
 
                 x.AddConsumers(entryAssembly);
                 x.AddSagaStateMachine<HumanSaga, HumanSagaState>(so => so.UseConcurrentMessageLimit(1)).MongoDbRepository(r =>
+                {
+                    r.Connection = "mongodb://root:example@mongo:27017/";
+                    r.DatabaseName = "maindb";
+                });
+                x.AddSagaStateMachine<CompanySaga, CompanySagaState>(so => so.UseConcurrentMessageLimit(1)).MongoDbRepository(r =>
+                {
+                    r.Connection = "mongodb://root:example@mongo:27017/";
+                    r.DatabaseName = "maindb";
+                });
+                x.AddSagaStateMachine<JobPostingSaga, JobPostingSagaState>(so => so.UseConcurrentMessageLimit(1)).MongoDbRepository(r =>
                 {
                     r.Connection = "mongodb://root:example@mongo:27017/";
                     r.DatabaseName = "maindb";
@@ -69,7 +80,7 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
                     .AddMeter("MassTransit")
                     .AddOtlpExporter(o =>
                     {
-                        o.Endpoint = new Uri(IsRunningInContainer() ? "http://lgtm:4317" : "http://localhost:4317");
+                        o.Endpoint = new(IsRunningInContainer() ? "http://lgtm:4317" : "http://localhost:4317");
                         o.Protocol = OtlpExportProtocol.Grpc;
                     })
                     .AddPrometheusExporter()
@@ -82,7 +93,7 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
                     )
                     .AddOtlpExporter(o =>
                     {
-                        o.Endpoint = new Uri(IsRunningInContainer() ? "http://lgtm:4317" : "http://localhost:4317");
+                        o.Endpoint = new(IsRunningInContainer() ? "http://lgtm:4317" : "http://localhost:4317");
                         o.Protocol = OtlpExportProtocol.Grpc;
                     })
                 );

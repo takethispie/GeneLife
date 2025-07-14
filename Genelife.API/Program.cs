@@ -1,11 +1,15 @@
 using System.Reflection;
-using Genelife.Domain.Commands;
-using Genelife.Domain.Generators;
 using Genelife.Domain;
 using MassTransit;
 using Microsoft.AspNetCore.Mvc;
-using System.Numerics;
-using Genelife.Domain.Events;
+using Genelife.Domain.Commands.Cheat;
+using Genelife.Domain.Commands.Clock;
+using Genelife.Domain.Commands.Company;
+using Genelife.Domain.Commands.Jobs;
+using Genelife.Domain.Events.Living;
+using Genelife.Domain.Generators;
+using Genelife.Domain.Events.Company;
+using Genelife.API.DTOs;
 
 static bool IsRunningInContainer() => bool.TryParse(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), out var inContainer) && inContainer;
 
@@ -16,9 +20,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddMassTransit(x => {
     x.SetKebabCaseEndpointNameFormatter();
     x.SetInMemorySagaRepositoryProvider();
-
     var entryAssembly = Assembly.GetEntryAssembly();
-
     x.AddConsumers(entryAssembly);
     x.AddSagaStateMachines(entryAssembly);
     x.AddSagas(entryAssembly);
@@ -28,14 +30,12 @@ builder.Services.AddMassTransit(x => {
     {
         if (IsRunningInContainer())
             cfg.Host("rabbitmq");
-
         cfg.UseDelayedMessageScheduler();
         cfg.ConfigureEndpoints(context);
     });
 });
 
 var app = builder.Build();
-
 app.UseSwagger();
 app.UseSwaggerUI();
 app.UseHttpsRedirection();
@@ -44,47 +44,30 @@ app.UseAuthorization();
 app.MapGet("/healthcheck", (HttpContext httpContext) => Results.Ok()).WithName("healthcheck").WithOpenApi();
 
 
-app.MapPost("/create/human/{sex}", async (Sex sex, [FromServices] IPublishEndpoint endpoint) => {
-    var human = HumanGenerator.Build(sex);
-    await endpoint.Publish(new CreateHuman(human.CorrelationId, human, 0, 0));
-    return Results.Ok(human.CorrelationId);
+app.MapPost("/create/human/{sex}", async (Sex sex, [FromServices] IPublishEndpoint endpoint) =>
+{
+    var guid = Guid.NewGuid();
+    await endpoint.Publish(new CreateHuman(guid, HumanGenerator.Build(sex)));
 })
 .WithName("create Human")
 .WithOpenApi();
 
 
-app.MapPost("/create/human/{sex}/{hunger}/{thirst}", async (Sex sex, int hunger, int thirst, [FromServices] IPublishEndpoint endpoint) => {
-    var human = HumanGenerator.Build(sex);
-    await endpoint.Publish(new CreateHuman(human.CorrelationId, human, 0, 0));
-    await endpoint.Publish(new SetHunger(human.CorrelationId, hunger));
-    await endpoint.Publish(new SetThirst(human.CorrelationId, thirst));
-    return Results.Ok(human.CorrelationId);
+app.MapPost("/create/human/{count}/{sex}", async (int count, Sex sex, [FromServices] IPublishEndpoint endpoint) =>
+{
+    var results = new List<object>();
+    
+    for (int i = 0; i < count; i++)
+    {
+        var humanId = Guid.NewGuid();
+        var human = HumanGenerator.Build(sex);
+        await endpoint.Publish(new CreateHuman(humanId, human));
+        results.Add(new { HumanId = humanId, Human = human });
+    }
+    
+    return Results.Ok(new { CreatedCount = count, Humans = results });
 })
-.WithName("create Human with specific hunger and thirst")
-.WithOpenApi();
-
-
-app.MapPost("/create/groceryShop/{x}/{y}", async (int x, int y, [FromServices] IPublishEndpoint endpoint) => {
-    var guid = Guid.NewGuid();
-    await endpoint.Publish(new CreateGroceryShop(guid, x, y, 50, 50));
-    return Results.Ok(guid);
-})
-.WithName("create Grocery store")
-.WithOpenApi();
-
-
-app.MapPost("/create/city/small", async ([FromServices] IPublishEndpoint endpoint) => {
-    var guid = Guid.NewGuid();
-    await endpoint.Publish(new CreateGroceryShop(guid, 500, 500, 50, 50));
-    var human = HumanGenerator.Build(Sex.Male);
-    await endpoint.Publish(new CreateHuman(human.CorrelationId, human, 0, 0));
-    human = HumanGenerator.Build(Sex.Male);
-    await endpoint.Publish(new CreateHuman(human.CorrelationId, human, 50, 100));
-    human = HumanGenerator.Build(Sex.Female);
-    await endpoint.Publish(new CreateHuman(human.CorrelationId, human, 100, 200));
-    return Results.Ok(guid);
-})
-.WithName("create Small City")
+.WithName("create Multiple Humans")
 .WithOpenApi();
 
 
@@ -109,71 +92,106 @@ app.MapGet("/simulation/setClockSpeed/{milliseconds}", async (int milliseconds, 
 .WithOpenApi();
 
 
-app.MapGet("/action/go/{correlationId}/groceryShop", (Guid correlationId, [FromServices] IPublishEndpoint endpoint) => {
-    //await endpoint.Publish(new GoToGroceryShop(correlationId));
-})
-.WithName("go To Grocery Store")
-.WithOpenApi();
-
-
-app.MapGet("/cheat/sethunger/{correlationId}/{value}", async (Guid correlationId, int value, [FromServices] IPublishEndpoint endpoint) => {
+app.MapGet("/cheat/sethunger/{correlationId}/{value}", async (Guid correlationId, int value, [FromServices] IPublishEndpoint endpoint) =>
+{
     await endpoint.Publish(new SetHunger(correlationId, value));
 })
 .WithName("set Hunger")
 .WithOpenApi();
 
 
-app.MapGet("/cheat/setthirst/{correlationId}/{value}", async (Guid correlationId, int value, [FromServices] IPublishEndpoint endpoint) => {
-    await endpoint.Publish(new SetThirst(correlationId, value));
-})
-.WithName("set thirst")
-.WithOpenApi();
-
-
-app.MapGet("/usecase/survivalNoFoodInventory", async ([FromServices] IPublishEndpoint endpoint) => {
-    var guid = Guid.NewGuid();
-    await endpoint.Publish(new CreateGroceryShop(guid, 500, 500, 50, 50));
-    var human = HumanGenerator.Build(Sex.Male);
-    await endpoint.Publish(new CreateHuman(human.CorrelationId, human, 0, 0, 9, 19));
-    human = HumanGenerator.Build(Sex.Male);
-    await endpoint.Publish(new CreateHuman(human.CorrelationId, human, 50, 100, 7, 15));
-    human = HumanGenerator.Build(Sex.Female);
-    await endpoint.Publish(new CreateHuman(human.CorrelationId, human, 100, 200, 9, 19));
-    await endpoint.Publish(new SetClockSpeed(100));
-    await endpoint.Publish(new StartClock());
-    return Results.Ok();
-})
-.WithName("survival with no food in inventory usecase")
-.WithOpenApi();
-
-app.MapGet("/usecase/humanwithJob", async ([FromServices] IPublishEndpoint endpoint) => {
-    var guid = Guid.NewGuid();
-    await endpoint.Publish(new CreateGroceryShop(guid, 500, 500, 50, 50));
-    var human = HumanGenerator.Build(Sex.Male);
-    await endpoint.Publish(new CreateHuman(human.CorrelationId, human, 0, 0, 9, 19));
+app.MapPost("/create/company/{type}", async (CompanyType type, [FromServices] IPublishEndpoint endpoint) =>
+{
     var companyId = Guid.NewGuid();
-    await endpoint.Publish(new CreateCompany(companyId, "", new Vector3(0, 500, 500)));
-    await endpoint.Publish(new Hired(human.CorrelationId, companyId, 2));
-    await endpoint.Publish(new SetClockSpeed(100));
-    await endpoint.Publish(new StartClock());
-    return Results.Ok();
+    var company = new Company(
+        Name: $"{type} Corp {Random.Shared.Next(1000, 9999)}",
+        Type: type,
+        Revenue: 50000m + (decimal)(Random.Shared.NextDouble() * 100000),
+        TaxRate: 0.25m,
+        EmployeeIds: []
+    );
+
+    await endpoint.Publish(new CompanyCreated(companyId, company));
+    return Results.Ok(new { CompanyId = companyId, Company = company });
 })
-.WithName("human with job")
+.WithName("create Company")
 .WithOpenApi();
 
 
-app.MapGet("/work/company/create", async ([FromServices] IPublishEndpoint endpoint, string Name, int x, int y) => {
-    var id = Guid.NewGuid();
-    await endpoint.Publish(new CreateCompany(id, Name, new Vector3(x, y, 0)));
-    return Results.Ok(id);
+app.MapPost("/create/jobposting", async ([FromBody] CreateJobPostingRequest request, [FromServices] IPublishEndpoint endpoint) =>
+{
+    await endpoint.Publish(new CreateJobPosting(
+        request.CompanyId,
+        request.Title,
+        request.Description,
+        request.Requirements,
+        request.SalaryMin,
+        request.SalaryMax,
+        request.Level,
+        request.MaxApplications,
+        request.DaysToExpire
+    ));
+    return Results.Ok("Job posting created");
 })
-.WithName("create new company")
-.WithOpenApi(); 
-
-
-app.MapGet("/work/hire", ([FromServices] IPublishEndpoint endpoint, Guid PersonId, Guid companyId) => {
-
-})
-.WithName("hire person in job")
+.WithName("create Job Posting")
 .WithOpenApi();
+
+
+app.MapPost("/submit/application", async ([FromBody] SubmitJobApplicationRequest request, [FromServices] IPublishEndpoint endpoint) =>
+{
+    await endpoint.Publish(new SubmitJobApplication(
+        request.JobPostingId,
+        request.HumanId,
+        request.RequestedSalary,
+        request.CoverLetter ?? "I am interested in this position.",
+        request.Skills,
+        request.Experience
+    ));
+    return Results.Ok("Application submitted");
+})
+.WithName("submit Job Application")
+.WithOpenApi();
+
+
+app.MapPost("/create/population/{humanCount}", async (int humanCount, [FromServices] IPublishEndpoint endpoint) =>
+{
+    var results = new
+    {
+        Humans = new List<object>(),
+        Companies = new List<object>()
+    };
+
+    // Create humans with random sex distribution
+    for (int i = 0; i < humanCount; i++)
+    {
+        var sex = Random.Shared.Next(2) == 0 ? Sex.Male : Sex.Female;
+        var humanId = Guid.NewGuid();
+        var human = HumanGenerator.Build(sex);
+        
+        await endpoint.Publish(new CreateHuman(humanId, human));
+        results.Humans.Add(new { HumanId = humanId, Human = human });
+    }
+
+    // Create companies of different types (one of each type)
+    var companyTypes = Enum.GetValues<CompanyType>();
+    foreach (var companyType in companyTypes)
+    {
+        var company = CompanyGenerator.Generate(companyType);
+        var id = Guid.NewGuid();
+        await endpoint.Publish(new CompanyCreated(id, company));
+        results.Companies.Add(new { CompanyId = id, Company = company });
+    }
+
+    return Results.Ok(new
+    {
+        Message = $"Created {humanCount} humans and {companyTypes.Length} companies",
+        CreatedHumans = humanCount,
+        CreatedCompanies = companyTypes.Length,
+        Details = results
+    });
+})
+.WithName("create Population")
+.WithOpenApi();
+
+
 app.Run();
