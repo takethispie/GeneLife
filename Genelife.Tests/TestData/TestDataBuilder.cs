@@ -71,7 +71,7 @@ public static class TestDataBuilder
         var finalExpiryDate = expiryDate;
 
         return new JobPosting(
-            companyId ?? Guid.NewGuid(),
+            companyId.ToString() ?? Guid.NewGuid().ToString(),
             title ?? Faker.Name.JobTitle(),
             description ?? Faker.Lorem.Paragraph(),
             requirements ?? Faker.Make(3, () => Faker.Hacker.Noun()).ToList(),

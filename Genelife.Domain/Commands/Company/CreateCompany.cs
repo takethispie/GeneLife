@@ -1,5 +1,5 @@
-using Genelife.Domain;
+using MassTransit;
 
 namespace Genelife.Domain.Commands.Company;
 
-public record CreateCompany(Domain.Company Company);
+public record CreateCompany(Guid CorrelationId, Domain.Company Company) : CorrelatedBy<Guid>;

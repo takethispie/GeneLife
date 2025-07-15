@@ -14,5 +14,5 @@ public class JobPostingSagaState : SagaStateMachineInstance, ISagaVersion
     public DateTime CreatedDate { get; set; }
     public int DaysActive { get; set; }
     public int ApplicationsReceived { get; set; }
-    public Guid? SelectedApplicationId { get; set; }
+    public string SelectedApplicationId { get; set; }
 }

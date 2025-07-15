@@ -17,7 +17,7 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
     public State Filled { get; set; } = null!;
     public State Expired { get; set; } = null!;
 
-    public Event<JobPostingCreated> Created { get; set; } = null!;
+    public Event<CreateJobPosting> Created { get; set; } = null!;
     public Event<JobApplicationSubmitted> ApplicationSubmitted { get; set; } = null!;
     public Event<ReviewApplication> ReviewApplication { get; set; } = null!;
     public Event<DayElapsed> DayElapsed { get; set; } = null!;
@@ -40,7 +40,6 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
         );
 
         // Configure event correlations
-        Event(() => Created, e => e.CorrelateById(ctx => ctx.Message.CorrelationId));
         Event(() => DayElapsed, e => e.CorrelateBy(saga => "any", ctx => "any"));
         Event(() => ApplicationSubmitted, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.JobPostingId.ToString()));
         Event(() => ReviewApplication, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.JobPostingId.ToString()));
@@ -59,7 +58,7 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                         context.Saga.JobPosting = context.Saga.JobPosting with { Status = JobPostingStatus.Expired };
                         context.Publish(new JobPostingStatusChanged(
                             context.Saga.CorrelationId,
-                            context.Saga.JobPosting.CompanyId,
+                            Guid.Parse(context.Saga.JobPosting.CompanyId),
                             JobPostingStatus.Active,
                             JobPostingStatus.Expired,
                             "Job posting expired"
@@ -135,12 +134,12 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                         var salary = context.Message.OfferedSalary ?? identifiedApplication.Data.RequestedSalary;
                         
                         context.Publish(new EmployeeHired(
-                            context.Saga.JobPosting.CompanyId,
+                            Guid.Parse(context.Saga.JobPosting.CompanyId),
                             identifiedApplication.Data.HumanId,
                             salary
                         ));
                         
-                        context.Saga.SelectedApplicationId = identifiedApplication.Id;
+                        context.Saga.SelectedApplicationId = identifiedApplication.Id.ToString();
                         context.Saga.JobPosting = context.Saga.JobPosting with { Status = JobPostingStatus.Filled };
                         Log.Information($"Job filled: {context.Saga.JobPosting.Title} - Hired {identifiedApplication.Data.HumanId} for {salary:C}");
                         
@@ -285,12 +284,12 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                     {
                         var salary = context.Message.OfferedSalary ?? application.Data.RequestedSalary;
                         context.Publish(new EmployeeHired(
-                            context.Saga.JobPosting.CompanyId,
+                            Guid.Parse(context.Saga.JobPosting.CompanyId),
                             application.Data.HumanId,
                             salary
                         ));
                         
-                        context.Saga.SelectedApplicationId = application.Id;
+                        context.Saga.SelectedApplicationId = application.Id.ToString();
                         context.Saga.JobPosting = context.Saga.JobPosting with { Status = JobPostingStatus.Filled };
                         context.TransitionToState(Filled);
                     }

@@ -146,11 +146,11 @@ public class HumanSagaTests
         await Task.Delay(100); // Wait for saga creation
 
         // Act
-        await harness.Bus.Publish(new JobPostingCreated(Guid.NewGuid(), jobPosting.CompanyId, jobPosting));
+        await harness.Bus.Publish(new CreateJobPosting(Guid.NewGuid(), Guid.Parse(jobPosting.CompanyId), jobPosting));
         await Task.Delay(500); // Wait for potential job application processing
 
         // Assert
-        (await harness.Consumed.Any<JobPostingCreated>()).Should().BeTrue();
+        (await harness.Consumed.Any<CreateJobPosting>()).Should().BeTrue();
     }
 
     [Fact]

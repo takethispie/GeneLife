@@ -10,6 +10,7 @@ using Genelife.Domain.Events.Living;
 using Genelife.Domain.Generators;
 using Genelife.Domain.Events.Company;
 using Genelife.API.DTOs;
+using CreateCompany = Genelife.Domain.Commands.Company.CreateCompany;
 
 static bool IsRunningInContainer() => bool.TryParse(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), out var inContainer) && inContainer;
 
@@ -99,6 +100,13 @@ app.MapGet("/cheat/sethunger/{correlationId}/{value}", async (Guid correlationId
 .WithName("set Hunger")
 .WithOpenApi();
 
+app.MapGet("/cheat/setage/{correlationId}/{value:int}", async (Guid correlationId, int value, [FromServices] IPublishEndpoint endpoint) =>
+    {
+        await endpoint.Publish(new SetHunger(correlationId, value));
+    })
+    .WithName("set Age")
+    .WithOpenApi();
+
 
 app.MapPost("/create/company/{type}", async (CompanyType type, [FromServices] IPublishEndpoint endpoint) =>
 {
@@ -111,26 +119,16 @@ app.MapPost("/create/company/{type}", async (CompanyType type, [FromServices] IP
         EmployeeIds: []
     );
 
-    await endpoint.Publish(new CompanyCreated(companyId, company));
+    await endpoint.Publish(new CreateCompany(companyId, company));
     return Results.Ok(new { CompanyId = companyId, Company = company });
 })
 .WithName("create Company")
 .WithOpenApi();
 
 
-app.MapPost("/create/jobposting", async ([FromBody] CreateJobPostingRequest request, [FromServices] IPublishEndpoint endpoint) =>
-{
-    await endpoint.Publish(new CreateJobPosting(
-        request.CompanyId,
-        request.Title,
-        request.Description,
-        request.Requirements,
-        request.SalaryMin,
-        request.SalaryMax,
-        request.Level,
-        request.MaxApplications,
-        request.DaysToExpire
-    ));
+app.MapPost("/create/jobposting", async ([FromBody] JobPosting request, [FromServices] IPublishEndpoint endpoint) => {
+    var id = Guid.NewGuid();
+    await endpoint.Publish(new CreateJobPosting(id, Guid.Parse(request.CompanyId), request));
     return Results.Ok("Job posting created");
 })
 .WithName("create Job Posting")
@@ -178,7 +176,7 @@ app.MapPost("/create/population/{humanCount}", async (int humanCount, [FromServi
     {
         var company = CompanyGenerator.Generate(companyType);
         var id = Guid.NewGuid();
-        await endpoint.Publish(new CompanyCreated(id, company));
+        await endpoint.Publish(new CreateCompany(id, company));
         results.Companies.Add(new { CompanyId = id, Company = company });
     }
 

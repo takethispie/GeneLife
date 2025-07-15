@@ -85,7 +85,7 @@ public class GenerateJobPosting
         var (salaryMin, salaryMax) = GenerateSalaryRange(companyType, level);
         
         return new JobPosting(
-            CompanyId: companyId,
+            CompanyId: companyId.ToString(),
             Title: title,
             Description: description,
             Requirements: requirements,
@@ -135,11 +135,11 @@ public class GenerateJobPosting
     {
         var numRequirements = level switch
         {
-            JobLevel.Entry => random.Next(3, 6),
-            JobLevel.Junior => random.Next(4, 7),
-            JobLevel.Mid => random.Next(5, 8),
-            JobLevel.Senior => random.Next(6, 10),
-            JobLevel.Lead => random.Next(7, 11),
+            JobLevel.Entry => random.Next(1, 3),
+            JobLevel.Junior => random.Next(3, 6),
+            JobLevel.Mid => random.Next(6, 8),
+            JobLevel.Senior => random.Next(8, 10),
+            JobLevel.Lead => random.Next(10, 12),
             JobLevel.Manager => random.Next(6, 9),
             JobLevel.Director => random.Next(5, 8),
             JobLevel.Executive => random.Next(4, 7),
@@ -158,58 +158,58 @@ public class GenerateJobPosting
         {
             CompanyType.Technology => level switch
             {
-                JobLevel.Entry => 4500m,
-                JobLevel.Junior => 5500m,
-                JobLevel.Mid => 7000m,
-                JobLevel.Senior => 9000m,
-                JobLevel.Lead => 11000m,
+                JobLevel.Entry => 2000m,
+                JobLevel.Junior => 3000m,
+                JobLevel.Mid => 5000m,
+                JobLevel.Senior => 8000m,
+                JobLevel.Lead => 10000m,
                 JobLevel.Manager => 12000m,
                 JobLevel.Director => 15000m,
-                JobLevel.Executive => 20000m,
+                JobLevel.Executive => 25000m,
                 _ => 6000m
             },
             CompanyType.Healthcare => level switch
             {
-                JobLevel.Entry => 4000m,
-                JobLevel.Junior => 5000m,
-                JobLevel.Mid => 6500m,
-                JobLevel.Senior => 8500m,
-                JobLevel.Lead => 10000m,
-                JobLevel.Manager => 11000m,
-                JobLevel.Director => 14000m,
-                JobLevel.Executive => 18000m,
+                JobLevel.Entry => 2000m,
+                JobLevel.Junior => 3000m,
+                JobLevel.Mid => 4000m,
+                JobLevel.Senior => 5000m,
+                JobLevel.Lead => 7000m,
+                JobLevel.Manager => 8000m,
+                JobLevel.Director => 10000m,
+                JobLevel.Executive => 12000m,
                 _ => 5500m
             },
             CompanyType.Services => level switch
             {
-                JobLevel.Entry => 3500m,
-                JobLevel.Junior => 4500m,
-                JobLevel.Mid => 6000m,
-                JobLevel.Senior => 8000m,
-                JobLevel.Lead => 9500m,
-                JobLevel.Manager => 10500m,
-                JobLevel.Director => 13000m,
-                JobLevel.Executive => 17000m,
+                JobLevel.Entry => 1500m,
+                JobLevel.Junior => 2500m,
+                JobLevel.Mid => 3500m,
+                JobLevel.Senior => 5000m,
+                JobLevel.Lead => 6500m,
+                JobLevel.Manager => 8500m,
+                JobLevel.Director => 10000m,
+                JobLevel.Executive => 12000m,
                 _ => 4500m
             },
             CompanyType.Manufacturing => level switch
             {
-                JobLevel.Entry => 3000m,
-                JobLevel.Junior => 4000m,
-                JobLevel.Mid => 5500m,
-                JobLevel.Senior => 7000m,
-                JobLevel.Lead => 8500m,
-                JobLevel.Manager => 9500m,
-                JobLevel.Director => 12000m,
-                JobLevel.Executive => 16000m,
-                _ => 4000m
+                JobLevel.Entry => 1000m,
+                JobLevel.Junior => 2000m,
+                JobLevel.Mid => 2500m,
+                JobLevel.Senior => 3000m,
+                JobLevel.Lead => 4500m,
+                JobLevel.Manager => 5500m,
+                JobLevel.Director => 7000m,
+                JobLevel.Executive => 9000m,
+                _ => 2000m
             },
             CompanyType.Retail => level switch
             {
-                JobLevel.Entry => 2500m,
-                JobLevel.Junior => 3200m,
-                JobLevel.Mid => 4500m,
-                JobLevel.Senior => 6000m,
+                JobLevel.Entry => 1500m,
+                JobLevel.Junior => 2200m,
+                JobLevel.Mid => 3500m,
+                JobLevel.Senior => 4000m,
                 JobLevel.Lead => 7500m,
                 JobLevel.Manager => 8500m,
                 JobLevel.Director => 11000m,

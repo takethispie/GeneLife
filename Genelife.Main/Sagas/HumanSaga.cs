@@ -1,3 +1,4 @@
+using Genelife.Domain.Commands.Cheat;
 using Genelife.Domain.Events.Clock;
 using Genelife.Domain.Events.Living;
 using Genelife.Domain.Events.Company;
@@ -26,9 +27,14 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
     public Event<DayElapsed> DayElapsed { get; set; } = null;
     public Event<HourElapsed> HourElapsed { get; set; } = null;
     public Event<SalaryPaid> SalaryPaid { get; set; } = null;
-    public Event<JobPostingCreated> JobPostingCreated { get; set; } = null;
+    public Event<CreateJobPosting> JobPostingCreated { get; set; } = null;
     public Event<EmployeeHired> HireEmployee { get; set; } = null;
     public Event<ApplicationStatusChanged> ApplicationStatusChanged { get; set; } = null;
+    public Event<SetHunger> SetHunger { get; set; } = null;
+    public Event<SetAge> SetAge { get; set; } = null;
+    public Event<SetEnergy> SetEnergy { get; set; } = null;
+    public Event<SetHygiene> SetHygiene { get; set; } = null;
+    public Event<SetMoney>  SetMoney { get; set; } = null;
 
     private readonly Random random = new();
 
@@ -70,7 +76,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                     $"Total money: {newMoney:F2}");
             }),
             
-            When(JobPostingCreated).Then(async bc => {
+            When(JobPostingCreated).Then(bc => {
                 // Only apply if human is actively job seeking and has employment profile
                 if (bc.Saga.EmploymentProfile?.IsActivelyJobSeeking != true) return;
                 
@@ -96,13 +102,10 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                 
                 if (!shouldApply) return;
                 
-                // Add some delay to simulate thinking time
-                await Task.Delay(TimeSpan.FromSeconds(random.Next(30, 300))); // 30 seconds to 5 minutes
-                
                 var desiredSalary = new GenerateEmployment().GenerateDesiredSalary(bc.Saga.EmploymentProfile, jobPosting);
                 var coverLetter = new GenerateEmployment().GenerateCoverLetter(bc.Saga.Human, bc.Saga.EmploymentProfile, jobPosting);
                 
-                await bc.Publish(new SubmitJobApplication(
+                bc.Publish(new SubmitJobApplication(
                     bc.Message.CorrelationId,
                     bc.Saga.CorrelationId,
                     desiredSalary,
@@ -141,7 +144,11 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                 {
                     bc.Saga.EmploymentProfile = bc.Saga.EmploymentProfile with { IsActivelyJobSeeking = true };
                 }
-            })
+            }),
+            When(SetAge).Then(bc => bc.Saga.Human = new ChangeBirthday().Execute(bc.Saga.Human, bc.Message.Value)),
+            When(SetEnergy).Then(bc => bc.Saga.Human = bc.Saga.Human with { Energy = bc.Message.Value }),
+            When(SetHunger).Then(bc => bc.Saga.Human = bc.Saga.Human with { Hunger = bc.Message.Value }),
+            When(SetHygiene).Then(bc => bc.Saga.Human = bc.Saga.Human with { Hygiene = bc.Message.Value })
         );
         
         During(Idle, 
@@ -151,34 +158,25 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                     Eat eat => Eating,
                     Sleep sleep => Sleeping,
                     Shower shower => Showering,
+                    Work work => Working,
                     _ => Idle
                 };
                 Log.Information($"{bc.Saga.CorrelationId} is transitioning to {state}");
-                bc.Saga.Activity = activity.ToEnum();
-                bc.Saga.ActivityTickDuration = activity.TickDuration;
-                bc.Saga.Human = activity.Apply(bc.Saga.Human);
+                if (activity is null) bc.Saga.Activity = null;
+                else {
+                    bc.Saga.Activity = activity.ToEnum();
+                    bc.Saga.ActivityTickDuration = activity.TickDuration;
+                    bc.Saga.Human = activity.Apply(bc.Saga.Human);
+                }
                 bc.TransitionToState(state);
             }),
             When(DayElapsed).Then(bc => {
                 // Periodically update job seeking behavior
-                if (bc.Saga.EmploymentProfile?.EmploymentStatus == EmploymentStatus.Unemployed)
-                {
-                    // Unemployed people become more active in job seeking over time
-                    if (!bc.Saga.EmploymentProfile.IsActivelyJobSeeking && random.NextDouble() < 0.1) // 10% chance per day
-                    {
-                        bc.Saga.EmploymentProfile = bc.Saga.EmploymentProfile with { IsActivelyJobSeeking = true };
-                        Log.Information($"{bc.Saga.Human.FirstName} {bc.Saga.Human.LastName} started actively job seeking");
-                    }
-                }
-                else if (bc.Saga.EmploymentProfile?.EmploymentStatus == EmploymentStatus.Active)
-                {
-                    // Employed people might occasionally look for better opportunities
-                    if (!bc.Saga.EmploymentProfile.IsActivelyJobSeeking && random.NextDouble() < 0.02) // 2% chance per day
-                    {
-                        bc.Saga.EmploymentProfile = bc.Saga.EmploymentProfile with { IsActivelyJobSeeking = true };
-                        Log.Information($"{bc.Saga.Human.FirstName} {bc.Saga.Human.LastName} started looking for new opportunities");
-                    }
-                }
+                if (bc.Saga.EmploymentProfile?.EmploymentStatus != EmploymentStatus.Unemployed) return;
+                // Unemployed people become more active in job seeking over time
+                if (bc.Saga.EmploymentProfile.IsActivelyJobSeeking || !(random.NextDouble() < 0.5)) return; 
+                bc.Saga.EmploymentProfile = bc.Saga.EmploymentProfile with { IsActivelyJobSeeking = true };
+                Log.Information($"{bc.Saga.Human.FirstName} {bc.Saga.Human.LastName} started actively job seeking");
             })
         );
         

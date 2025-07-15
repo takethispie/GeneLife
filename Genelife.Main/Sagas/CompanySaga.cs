@@ -1,7 +1,6 @@
 using Genelife.Domain;
 using Genelife.Domain.Events.Clock;
 using Genelife.Domain.Events.Company;
-using Genelife.Domain.Events.Jobs;
 using Genelife.Domain.Commands.Company;
 using Genelife.Domain.Commands.Jobs;
 using Genelife.Domain.Work;
@@ -18,7 +17,7 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
     public State Hiring { get; set; } = null!;
     public State WorkProgress { get; set; } = null!;
 
-    public Event<CompanyCreated> Created { get; set; } = null!;
+    public Event<CreateCompany> Created { get; set; } = null!;
     public Event<DayElapsed> DayElapsed { get; set; } = null!;
     public Event<EmployeeHired> EmployeeHired { get; set; } = null!;
     public Event<EmployeeProductivityUpdated> ProductivityUpdated { get; set; } = null!;
@@ -156,7 +155,7 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
                 .Then(context =>
                 {
                     // Create job postings for open positions
-                    if (context.Saga.PositionsNeeded > 0 && context.Saga.Company.Revenue > 10000m) // Can afford to hire
+                    if (context.Saga.PositionsNeeded > 0)
                     {
                         // Generate job postings for each position needed
                         for (int i = 0; i < context.Saga.PositionsNeeded; i++)
@@ -179,7 +178,7 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
                             );
                             var id = Guid.NewGuid();
                             // Publish job posting created event to start the JobPostingSaga
-                            context.Publish(new JobPostingCreated(id, jobPosting.CompanyId, jobPosting));
+                            context.Publish(new CreateJobPosting(id, Guid.Parse(jobPosting.CompanyId), jobPosting));
                             
                             Log.Information($"Company {context.Saga.Company.Name}: Created job posting for {jobPosting.Title} with salary range {jobPosting.SalaryMin:C} - {jobPosting.SalaryMax:C}");
                         }
