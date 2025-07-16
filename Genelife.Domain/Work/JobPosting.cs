@@ -1,7 +1,7 @@
 namespace Genelife.Domain;
 
 public record JobPosting(
-    string CompanyId,
+    Guid CompanyId,
     string Title,
     string Description,
     List<string> Requirements,

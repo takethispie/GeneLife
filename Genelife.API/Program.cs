@@ -10,6 +10,9 @@ using Genelife.Domain.Events.Living;
 using Genelife.Domain.Generators;
 using Genelife.Domain.Events.Company;
 using Genelife.API.DTOs;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Serializers;
 using CreateCompany = Genelife.Domain.Commands.Company.CreateCompany;
 
 static bool IsRunningInContainer() => bool.TryParse(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), out var inContainer) && inContainer;
@@ -18,6 +21,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddAuthorization();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
 builder.Services.AddMassTransit(x => {
     x.SetKebabCaseEndpointNameFormatter();
     x.SetInMemorySagaRepositoryProvider();
@@ -128,7 +132,7 @@ app.MapPost("/create/company/{type}", async (CompanyType type, [FromServices] IP
 
 app.MapPost("/create/jobposting", async ([FromBody] JobPosting request, [FromServices] IPublishEndpoint endpoint) => {
     var id = Guid.NewGuid();
-    await endpoint.Publish(new CreateJobPosting(id, Guid.Parse(request.CompanyId), request));
+    await endpoint.Publish(new CreateJobPosting(id, request.CompanyId, request));
     return Results.Ok("Job posting created");
 })
 .WithName("create Job Posting")

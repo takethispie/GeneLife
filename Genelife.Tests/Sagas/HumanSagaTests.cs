@@ -146,7 +146,7 @@ public class HumanSagaTests
         await Task.Delay(100); // Wait for saga creation
 
         // Act
-        await harness.Bus.Publish(new CreateJobPosting(Guid.NewGuid(), Guid.Parse(jobPosting.CompanyId), jobPosting));
+        await harness.Bus.Publish(new CreateJobPosting(Guid.NewGuid(), jobPosting.CompanyId, jobPosting));
         await Task.Delay(500); // Wait for potential job application processing
 
         // Assert

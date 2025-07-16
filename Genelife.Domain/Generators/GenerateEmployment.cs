@@ -55,11 +55,12 @@ public class GenerateEmployment
         var age = DateTime.Now.Year - human.Birthday.Year;
         var maxExperience = Math.Max(0, age - 18); // Assume work starts at 18
         var experience = random.Next(0, Math.Min(maxExperience + 1, 25)); // Cap at 25 years
-        
+
         return new Employment(
-            Skills: GenerateSkills(experience),
-            YearsOfExperience: experience,
-            EmploymentStatus: EmploymentStatus.Unemployed,
+            GenerateSkills(experience),
+            experience,
+            Guid.Empty,
+            Status: EmploymentStatus.Unemployed,
             IsActivelyJobSeeking: false,
             LastJobSearchDate: null
         );

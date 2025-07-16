@@ -36,7 +36,7 @@ public class JobPostingSagaTests
         var sagaHarness = harness.GetSagaStateMachineHarness<JobPostingSaga, JobPostingSagaState>();
 
         // Act
-        await harness.Bus.Publish(new CreateJobPosting(Guid.NewGuid(), Guid.Parse(jobPosting.CompanyId), jobPosting));
+        await harness.Bus.Publish(new CreateJobPosting(Guid.NewGuid(), jobPosting.CompanyId, jobPosting));
 
         // Assert
         (await harness.Consumed.Any<CreateJobPosting>()).Should().BeTrue();
@@ -66,11 +66,11 @@ public class JobPostingSagaTests
         var sagaHarness = harness.GetSagaStateMachineHarness<JobPostingSaga, JobPostingSagaState>();
 
         // Create the saga first
-        await harness.Bus.Publish(new CreateJobPosting(Guid.NewGuid(), Guid.Parse(jobPosting.CompanyId), jobPosting));
+        await harness.Bus.Publish(new CreateJobPosting(Guid.NewGuid(), jobPosting.CompanyId, jobPosting));
         await Task.Delay(100); // Wait for saga creation
 
         // Act
-        await harness.Bus.Publish(new JobApplicationSubmitted(Guid.NewGuid(), jobApplication.JobPostingId, jobApplication.HumanId, jobApplication));
+        await harness.Bus.Publish(new JobApplicationSubmitted(jobApplication.JobPostingId, jobApplication.HumanId, jobApplication));
 
         // Assert
         (await harness.Consumed.Any<JobApplicationSubmitted>()).Should().BeTrue();
@@ -99,7 +99,7 @@ public class JobPostingSagaTests
         var sagaHarness = harness.GetSagaStateMachineHarness<JobPostingSaga, JobPostingSagaState>();
 
         // Create the saga first
-        await harness.Bus.Publish(new CreateJobPosting(jobPostingId, Guid.Parse(jobPosting.CompanyId), jobPosting));
+        await harness.Bus.Publish(new CreateJobPosting(jobPostingId, jobPosting.CompanyId, jobPosting));
         await Task.Delay(100); // Wait for saga creation
 
         // Act
@@ -132,7 +132,7 @@ public class JobPostingSagaTests
         var sagaHarness = harness.GetSagaStateMachineHarness<JobPostingSaga, JobPostingSagaState>();
 
         // Create the saga first
-        await harness.Bus.Publish(new CreateJobPosting(jobPostingId, Guid.Parse(jobPosting.CompanyId), jobPosting));
+        await harness.Bus.Publish(new CreateJobPosting(jobPostingId, jobPosting.CompanyId, jobPosting));
         await Task.Delay(100); // Wait for saga creation
 
         // Act
@@ -167,7 +167,7 @@ public class JobPostingSagaTests
         var sagaHarness = harness.GetSagaStateMachineHarness<JobPostingSaga, JobPostingSagaState>();
 
         // Create the saga first
-        await harness.Bus.Publish(new CreateJobPosting(jobPostingId, Guid.Parse(jobPosting.CompanyId), jobPosting));
+        await harness.Bus.Publish(new CreateJobPosting(jobPostingId, jobPosting.CompanyId, jobPosting));
         await Task.Delay(100); // Wait for saga creation
 
         // Act
@@ -203,10 +203,10 @@ public class JobPostingSagaTests
         var sagaHarness = harness.GetSagaStateMachineHarness<JobPostingSaga, JobPostingSagaState>();
 
         // Act
-        await harness.Bus.Publish(new CreateJobPosting(jobPostingId, Guid.Parse(jobPosting.CompanyId), jobPosting));
+        await harness.Bus.Publish(new CreateJobPosting(jobPostingId, jobPosting.CompanyId, jobPosting));
         await Task.Delay(100);
 
-        await harness.Bus.Publish(new JobApplicationSubmitted(jobApplicationId, jobApplication.JobPostingId, jobApplication.HumanId, jobApplication));
+        await harness.Bus.Publish(new JobApplicationSubmitted(jobApplicationId, jobApplication.HumanId, jobApplication));
         await Task.Delay(100);
 
         await harness.Bus.Publish(new ReviewApplication(jobApplicationId, jobPostingId, ApplicationStatus.UnderReview));
@@ -251,10 +251,10 @@ public class JobPostingSagaTests
         var sagaHarness = harness.GetSagaStateMachineHarness<JobPostingSaga, JobPostingSagaState>();
 
         // Act - Complete workflow
-        await harness.Bus.Publish(new CreateJobPosting(jobPostingId, Guid.Parse(jobPosting.CompanyId), jobPosting));
+        await harness.Bus.Publish(new CreateJobPosting(jobPostingId, jobPosting.CompanyId, jobPosting));
         await Task.Delay(100);
 
-        await harness.Bus.Publish(new JobApplicationSubmitted(jobApplicationId, jobApplication.JobPostingId, jobApplication.HumanId, jobApplication));
+        await harness.Bus.Publish(new JobApplicationSubmitted(jobApplicationId, jobApplication.HumanId, jobApplication));
         await Task.Delay(100);
 
         await harness.Bus.Publish(new ReviewApplication(jobApplicationId, jobPostingId, ApplicationStatus.UnderReview));

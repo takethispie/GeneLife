@@ -41,8 +41,8 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
 
         // Configure event correlations
         Event(() => DayElapsed, e => e.CorrelateBy(saga => "any", ctx => "any"));
-        Event(() => ApplicationSubmitted, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.JobPostingId.ToString()));
-        Event(() => ReviewApplication, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.JobPostingId.ToString()));
+        Event(() => ApplicationSubmitted, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.CorrelationId.ToString()));
+        Event(() => ReviewApplication, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.CorrelationId.ToString()));
 
         During(Active,
             When(DayElapsed)
@@ -58,7 +58,7 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                         context.Saga.JobPosting = context.Saga.JobPosting with { Status = JobPostingStatus.Expired };
                         context.Publish(new JobPostingStatusChanged(
                             context.Saga.CorrelationId,
-                            Guid.Parse(context.Saga.JobPosting.CompanyId),
+                            context.Saga.JobPosting.CompanyId,
                             JobPostingStatus.Active,
                             JobPostingStatus.Expired,
                             "Job posting expired"
@@ -68,12 +68,9 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                     }
                     
                     // Auto-review applications if we have enough
-                    if (context.Saga.Applications.Count >= 5 && 
-                        context.Saga.Applications.Any(a => a.Data.Status == ApplicationStatus.Submitted))
-                    {
-                        Log.Information($"Auto-reviewing applications for: {context.Saga.JobPosting.Title}");
-                        context.TransitionToState(ReviewingApplications);
-                    }
+                    if (context.Saga.Applications.Count < 5 || context.Saga.Applications.All(a => a.Data.Status != ApplicationStatus.Submitted)) return;
+                    Log.Information($"Auto-reviewing applications for: {context.Saga.JobPosting.Title}");
+                    context.TransitionToState(ReviewingApplications);
                 }),
 
             When(ApplicationSubmitted)
@@ -134,12 +131,12 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                         var salary = context.Message.OfferedSalary ?? identifiedApplication.Data.RequestedSalary;
                         
                         context.Publish(new EmployeeHired(
-                            Guid.Parse(context.Saga.JobPosting.CompanyId),
+                            context.Saga.JobPosting.CompanyId,
                             identifiedApplication.Data.HumanId,
                             salary
                         ));
                         
-                        context.Saga.SelectedApplicationId = identifiedApplication.Id.ToString();
+                        context.Saga.SelectedApplicationId = identifiedApplication.Id;
                         context.Saga.JobPosting = context.Saga.JobPosting with { Status = JobPostingStatus.Filled };
                         Log.Information($"Job filled: {context.Saga.JobPosting.Title} - Hired {identifiedApplication.Data.HumanId} for {salary:C}");
                         
@@ -284,12 +281,12 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                     {
                         var salary = context.Message.OfferedSalary ?? application.Data.RequestedSalary;
                         context.Publish(new EmployeeHired(
-                            Guid.Parse(context.Saga.JobPosting.CompanyId),
+                            context.Saga.JobPosting.CompanyId,
                             application.Data.HumanId,
                             salary
                         ));
                         
-                        context.Saga.SelectedApplicationId = application.Id.ToString();
+                        context.Saga.SelectedApplicationId = application.Id;
                         context.Saga.JobPosting = context.Saga.JobPosting with { Status = JobPostingStatus.Filled };
                         context.TransitionToState(Filled);
                     }

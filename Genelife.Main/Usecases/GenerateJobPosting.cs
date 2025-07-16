@@ -85,7 +85,7 @@ public class GenerateJobPosting
         var (salaryMin, salaryMax) = GenerateSalaryRange(companyType, level);
         
         return new JobPosting(
-            CompanyId: companyId.ToString(),
+            CompanyId: companyId,
             Title: title,
             Description: description,
             Requirements: requirements,

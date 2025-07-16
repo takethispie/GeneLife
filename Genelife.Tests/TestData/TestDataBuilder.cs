@@ -66,12 +66,9 @@ public static class TestDataBuilder
     {
         var minSalary = salaryMin ?? Faker.Random.Decimal(30000, 80000);
         var maxSalary = salaryMax ?? minSalary + Faker.Random.Decimal(10000, 50000);
-
-        // Handle expiryDate: if null was passed explicitly, keep null; otherwise generate random
-        var finalExpiryDate = expiryDate;
-
+        
         return new JobPosting(
-            companyId.ToString() ?? Guid.NewGuid().ToString(),
+            companyId ?? Guid.NewGuid(),
             title ?? Faker.Name.JobTitle(),
             description ?? Faker.Lorem.Paragraph(),
             requirements ?? Faker.Make(3, () => Faker.Hacker.Noun()).ToList(),
@@ -80,7 +77,7 @@ public static class TestDataBuilder
             level ?? Faker.PickRandom<JobLevel>(),
             industry ?? Faker.PickRandom<CompanyType>(),
             postedDate ?? Faker.Date.Recent(30),
-            finalExpiryDate,
+            expiryDate,
             status ?? JobPostingStatus.Active,
             maxApplications ?? Faker.Random.Int(50, 200)
         );
@@ -129,9 +126,9 @@ public static class TestDataBuilder
     }
 
     public static Employment CreateEmployment(
-        List<string>? skills = null,
-        int? yearsOfExperience = null,
-        Guid? currentEmployerId = null,
+        List<string>? skills,
+        int? yearsOfExperience,
+        Guid currentEmployerId,
         decimal? currentSalary = null,
         EmploymentStatus? employmentStatus = null,
         DateTime? lastJobSearchDate = null,
@@ -145,24 +142,6 @@ public static class TestDataBuilder
             employmentStatus ?? EmploymentStatus.Unemployed,
             lastJobSearchDate,
             isActivelyJobSeeking ?? true
-        );
-    }
-
-    public static HumanSkills CreateHumanSkills(
-        Guid? humanId = null,
-        List<string>? technicalSkills = null,
-        List<string>? softSkills = null,
-        int? yearsOfExperience = null,
-        JobLevel? currentLevel = null,
-        decimal? desiredSalary = null)
-    {
-        return new HumanSkills(
-            humanId ?? Guid.NewGuid(),
-            technicalSkills ?? Faker.Make(5, () => Faker.Hacker.Noun()).ToList(),
-            softSkills ?? Faker.Make(3, () => Faker.Lorem.Word()).ToList(),
-            yearsOfExperience ?? Faker.Random.Int(0, 20),
-            currentLevel ?? Faker.PickRandom<JobLevel>(),
-            desiredSalary ?? Faker.Random.Decimal(40000, 120000)
         );
     }
 }

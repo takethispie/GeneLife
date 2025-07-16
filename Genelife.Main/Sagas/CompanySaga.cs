@@ -152,50 +152,40 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
 
         During(Hiring,
             When(DayElapsed)
-                .Then(context =>
-                {
+                .Then(context => {
                     // Create job postings for open positions
-                    if (context.Saga.PositionsNeeded > 0)
+                    if (context.Saga.PositionsNeeded <= 0) return;
+                    // Generate job postings for each position needed
+                    for (var i = 0; i < context.Saga.PositionsNeeded; i++)
                     {
-                        // Generate job postings for each position needed
-                        for (int i = 0; i < context.Saga.PositionsNeeded; i++)
+                        // Determine job level based on company size and needs
+                        var jobLevel = context.Saga.Employees.Count switch
                         {
-                            // Determine job level based on company size and needs
-                            var jobLevel = context.Saga.Employees.Count switch
-                            {
-                                < 5 => JobLevel.Entry,
-                                < 15 => JobLevel.Junior,
-                                < 30 => JobLevel.Mid,
-                                < 50 => JobLevel.Senior,
-                                _ => JobLevel.Lead
-                            };
+                            < 5 => JobLevel.Entry,
+                            < 15 => JobLevel.Junior,
+                            < 30 => JobLevel.Mid,
+                            < 50 => JobLevel.Senior,
+                            _ => JobLevel.Lead
+                        };
                             
-                            var jobPosting = new GenerateJobPosting().GenerateForCompany(
-                                context.Saga.CorrelationId, 
-                                context.Saga.Company.Type, 
-                                jobLevel, 
-                                1
-                            );
-                            var id = Guid.NewGuid();
-                            // Publish job posting created event to start the JobPostingSaga
-                            context.Publish(new CreateJobPosting(id, Guid.Parse(jobPosting.CompanyId), jobPosting));
+                        var jobPosting = new GenerateJobPosting().GenerateForCompany(
+                            context.Saga.CorrelationId, 
+                            context.Saga.Company.Type, 
+                            jobLevel, 
+                            1
+                        );
+                        var id = Guid.NewGuid();
+                        // Publish job posting created event to start the JobPostingSaga
+                        context.Publish(new CreateJobPosting(id, jobPosting.CompanyId, jobPosting));
                             
-                            Log.Information($"Company {context.Saga.Company.Name}: Created job posting for {jobPosting.Title} with salary range {jobPosting.SalaryMin:C} - {jobPosting.SalaryMax:C}");
-                        }
+                        Log.Information($"Company {context.Saga.Company.Name}: Created job posting for {jobPosting.Title} with salary range {jobPosting.SalaryMin:C} - {jobPosting.SalaryMax:C}");
+                    }
                         
-                        // Reset positions needed since we've created job postings for all
-                        context.Saga.PositionsNeeded = 0;
-                        context.Saga.HiringState = HiringState.HiringComplete;
-                        Log.Information($"Company {context.Saga.Company.Name}: Job postings created, returning to Active state");
-                        context.TransitionToState(Active);
-                    }
-                    else if (context.Saga.Company.Revenue <= 10000m)
-                    {
-                        // Can't afford to hire right now
-                        Log.Information($"Company {context.Saga.Company.Name}: Cannot afford to hire (Revenue: {context.Saga.Company.Revenue:C}), postponing hiring");
-                        context.Saga.HiringState = HiringState.HiringComplete;
-                        context.TransitionToState(Active);
-                    }
+                    // Reset positions needed since we've created job postings for all
+                    context.Saga.PositionsNeeded = 0;
+                    context.Saga.HiringState = HiringState.HiringComplete;
+                    Log.Information($"Company {context.Saga.Company.Name}: Job postings created, returning to Active state");
+                    context.TransitionToState(Active);
                 }),
 
             When(EmployeeHired)
