@@ -29,7 +29,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
     public Event<HourElapsed> HourElapsed { get; set; } = null;
     public Event<SalaryPaid> SalaryPaid { get; set; } = null;
     public Event<CreateJobPosting> JobPostingCreated { get; set; } = null;
-    public Event<EmployeeHired> HireEmployee { get; set; } = null;
+    public Event<EmployeeHired> EmployeeHired { get; set; } = null;
     public Event<ApplicationStatusChanged> ApplicationStatusChanged { get; set; } = null;
     public Event<SetHunger> SetHunger { get; set; } = null;
     public Event<SetAge> SetAge { get; set; } = null;
@@ -53,7 +53,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         Event(() => HourElapsed, e => e.CorrelateBy(saga => "any", _ => "any"));
         Event(() => SalaryPaid, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.HumanId.ToString()));
         Event(() => JobPostingCreated, e => e.CorrelateBy(saga => "any", _ => "any"));
-        Event(() => HireEmployee, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.HumanId.ToString()));
+        Event(() => EmployeeHired, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.HumanId.ToString()));
         Event(() => ApplicationStatusChanged, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.HumanId.ToString()));
         
         DuringAny(
@@ -96,20 +96,25 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                     tempApplication with { MatchScore = matchScore }
                 ));
                 
+                bc.Saga.Employment.SentApplicationCompanies.Add(jobPosting.CompanyId);
+                
                 // Update last job search date
                 bc.Saga.Employment = bc.Saga.Employment with { LastJobSearchDate = DateTime.UtcNow };
-                
                 Log.Information($"{bc.Saga.Human.FirstName} {bc.Saga.Human.LastName} applied for {jobPosting.Title} " +
                     $"(Match Score: {matchScore:F2}, Desired Salary: {desiredSalary:C})");
             }),
             
-            When(HireEmployee).Then(bc => {
+            When(EmployeeHired).Then(bc => {
+                bc.Saga.Employment.SentApplicationCompanies.ForEach(application => {
+                    bc.Publish(new RemoveApplication(bc.Saga.CorrelationId, application));
+                });
                 bc.Saga.Employment = bc.Saga.Employment with
                 {
                     Status = EmploymentStatus.Active,
                     CurrentEmployerId = bc.Message.CompanyId,
                     CurrentSalary = bc.Message.Salary,
-                    IsActivelyJobSeeking = false
+                    IsActivelyJobSeeking = false,
+                    SentApplicationCompanies = []
                 };
                 Log.Information($"{bc.Saga.Human.FirstName} {bc.Saga.Human.LastName} was hired by company {bc.Message.CompanyId} " +
                     $"with salary {bc.Message.Salary:C}");
@@ -152,9 +157,9 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                     Work => Working,
                     _ => Idle
                 };
-                Log.Information($"{bc.Saga.CorrelationId} is transitioning to {state}");
                 if (activity is null) bc.Saga.Activity = null;
                 else {
+                    if(activity.ToEnum() != bc.Saga.Activity) Log.Information($"{bc.Saga.CorrelationId} is transitioning to {state}");
                     bc.Saga.Activity = activity.ToEnum();
                     bc.Saga.ActivityTickDuration = activity.TickDuration;
                     bc.Saga.Human = activity.Apply(bc.Saga.Human);

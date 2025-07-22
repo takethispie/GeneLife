@@ -6,6 +6,7 @@ using Genelife.Domain.Events.Company;
 using Genelife.Domain.Events.Jobs;
 using Genelife.Domain.Commands.Jobs;
 using Genelife.Domain.Generators;
+using Genelife.Domain.Work;
 using Genelife.Main.Domain;
 using Genelife.Main.Sagas;
 using Genelife.Main.Usecases;

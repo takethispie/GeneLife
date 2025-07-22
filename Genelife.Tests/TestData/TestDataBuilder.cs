@@ -138,6 +138,7 @@ public static class TestDataBuilder
             skills ?? Faker.Make(5, () => Faker.Hacker.Noun()).ToList(),
             yearsOfExperience ?? Faker.Random.Int(0, 20),
             currentEmployerId,
+            [],
             currentSalary,
             employmentStatus ?? EmploymentStatus.Unemployed,
             lastJobSearchDate,

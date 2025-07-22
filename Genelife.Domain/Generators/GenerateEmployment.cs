@@ -60,6 +60,7 @@ public class GenerateEmployment
             GenerateSkills(experience),
             experience,
             Guid.Empty,
+            [],
             Status: EmploymentStatus.Unemployed,
             IsActivelyJobSeeking: false,
             LastJobSearchDate: null

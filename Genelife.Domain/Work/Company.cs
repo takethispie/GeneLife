@@ -1,6 +1,4 @@
-using MassTransit;
-
-namespace Genelife.Domain;
+namespace Genelife.Domain.Work;
 
 public record Company(
     string Name,

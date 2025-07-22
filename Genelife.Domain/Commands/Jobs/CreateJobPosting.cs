@@ -1,3 +1,4 @@
+using Genelife.Domain.Work;
 using MassTransit;
 
 namespace Genelife.Domain.Commands.Jobs;

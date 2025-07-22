@@ -15,7 +15,7 @@ public class EmploymentTests
         var yearsOfExperience = 3;
 
         // Act
-        var employment = new Employment(skills, yearsOfExperience, Guid.Empty);
+        var employment = new Employment(skills, yearsOfExperience, Guid.Empty, []);
 
         // Assert
         employment.Skills.Should().BeEquivalentTo(skills);

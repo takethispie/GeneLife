@@ -177,7 +177,6 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
                         var id = Guid.NewGuid();
                         // Publish job posting created event to start the JobPostingSaga
                         context.Publish(new CreateJobPosting(id, jobPosting.CompanyId, jobPosting));
-                            
                         Log.Information($"Company {context.Saga.Company.Name}: Created job posting for {jobPosting.Title} with salary range {jobPosting.SalaryMin:C} - {jobPosting.SalaryMax:C}");
                     }
                         

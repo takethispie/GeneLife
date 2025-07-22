@@ -42,7 +42,7 @@ services:
 
   mongo:
     restart: always
-    image: mongo:4.2.0
+    image: mongo
     ports:
       - 27017:27017
     volumes:
@@ -69,6 +69,8 @@ services:
 
   lgtm:
       image: grafana/otel-lgtm
+      volumes:
+        - "grafana:/var/lib/grafana"
       ports:
         - '4317:4317'
         - '4318:4318'

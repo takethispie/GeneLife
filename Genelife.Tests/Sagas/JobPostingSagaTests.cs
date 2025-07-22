@@ -3,6 +3,7 @@ using Genelife.Domain;
 using Genelife.Domain.Events.Clock;
 using Genelife.Domain.Events.Jobs;
 using Genelife.Domain.Commands.Jobs;
+using Genelife.Domain.Work;
 using Genelife.Main.Domain;
 using Genelife.Main.Sagas;
 using Genelife.Main.Usecases;
@@ -103,7 +104,7 @@ public class JobPostingSagaTests
         await Task.Delay(100); // Wait for saga creation
 
         // Act
-        await harness.Bus.Publish(new ReviewApplication(applicationId, jobPostingId, ApplicationStatus.UnderReview));
+        await harness.Bus.Publish(new ReviewApplication(jobPostingId, applicationId, ApplicationStatus.UnderReview));
 
         // Assert
         (await harness.Consumed.Any<ReviewApplication>()).Should().BeTrue();
@@ -209,7 +210,7 @@ public class JobPostingSagaTests
         await harness.Bus.Publish(new JobApplicationSubmitted(jobApplicationId, jobApplication.HumanId, jobApplication));
         await Task.Delay(100);
 
-        await harness.Bus.Publish(new ReviewApplication(jobApplicationId, jobPostingId, ApplicationStatus.UnderReview));
+        await harness.Bus.Publish(new ReviewApplication(jobPostingId, jobApplicationId, ApplicationStatus.UnderReview));
         await Task.Delay(100);
 
         await harness.Bus.Publish(new DayElapsed());
@@ -257,7 +258,7 @@ public class JobPostingSagaTests
         await harness.Bus.Publish(new JobApplicationSubmitted(jobApplicationId, jobApplication.HumanId, jobApplication));
         await Task.Delay(100);
 
-        await harness.Bus.Publish(new ReviewApplication(jobApplicationId, jobPostingId, ApplicationStatus.UnderReview));
+        await harness.Bus.Publish(new ReviewApplication(jobPostingId, jobApplicationId, ApplicationStatus.UnderReview));
         await Task.Delay(100);
 
         await harness.Bus.Publish(new ApplicationStatusChanged(jobApplicationId, jobPostingId, humanId, ApplicationStatus.UnderReview, ApplicationStatus.Accepted));

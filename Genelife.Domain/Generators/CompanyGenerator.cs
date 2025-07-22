@@ -1,3 +1,5 @@
+using Genelife.Domain.Work;
+
 namespace Genelife.Domain.Generators;
 
 public static class CompanyGenerator

@@ -10,6 +10,7 @@ using Genelife.Domain.Events.Living;
 using Genelife.Domain.Generators;
 using Genelife.Domain.Events.Company;
 using Genelife.API.DTOs;
+using Genelife.Domain.Work;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
