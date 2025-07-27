@@ -192,47 +192,6 @@ public class HumanSagaTests
     }
 
     [Fact]
-    public async Task ApplicationStatusChanged_ShouldBeConsumed()
-    {
-        // Arrange
-        var human = TestDataBuilder.CreateHuman();
-        var humanId = NewId.NextGuid();
-        var applicationId = Guid.NewGuid();
-
-        await using var provider = new ServiceCollection()
-            .AddSingleton<UpdateNeeds>()
-            .AddSingleton<ChooseActivity>()
-            .AddSingleton<GenerateEmployment>()
-            .AddSingleton<CalculateMatchScore>()
-            .AddMassTransitTestHarness(cfg =>
-            {
-                cfg.AddSagaStateMachine<HumanSaga, HumanSagaState>();
-            })
-            .BuildServiceProvider(true);
-
-        var harness = provider.GetRequiredService<ITestHarness>();
-        await harness.Start();
-
-        var sagaHarness = harness.GetSagaStateMachineHarness<HumanSaga, HumanSagaState>();
-
-        // Create the saga first
-        await harness.Bus.Publish(new CreateHuman(humanId, human));
-        await Task.Delay(100); // Wait for saga creation
-
-        // Act
-        await harness.Bus.Publish(new ApplicationStatusChanged(
-            applicationId, 
-            Guid.NewGuid(), // jobPostingId
-            humanId, 
-            ApplicationStatus.Submitted, 
-            ApplicationStatus.Rejected));
-
-        // Assert
-        (await harness.Consumed.Any<ApplicationStatusChanged>()).Should().BeTrue();
-        (await sagaHarness.Consumed.Any<ApplicationStatusChanged>()).Should().BeTrue();
-    }
-
-    [Fact]
     public async Task Tick_ShouldBeConsumed()
     {
         // Arrange

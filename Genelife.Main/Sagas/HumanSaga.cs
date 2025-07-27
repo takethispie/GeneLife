@@ -121,7 +121,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             }),
             
             When(ApplicationStatusChanged).Then(bc => {
-                var status = bc.Message.NewStatus;
+                var status = bc.Message.Status;
                 Log.Information($"{bc.Saga.Human.FirstName} {bc.Saga.Human.LastName} application status changed to {status}");
                 bc.Saga.Employment = bc.Saga.Employment with { IsActivelyJobSeeking = true };
             }),

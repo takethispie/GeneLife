@@ -57,13 +57,6 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                     {
                         Log.Information($"Job posting expired: {context.Saga.JobPosting.Title}");
                         context.Saga.JobPosting = context.Saga.JobPosting with { Status = JobPostingStatus.Expired };
-                        context.Publish(new JobPostingStatusChanged(
-                            context.Saga.CorrelationId,
-                            context.Saga.JobPosting.CompanyId,
-                            JobPostingStatus.Active,
-                            JobPostingStatus.Expired,
-                            "Job posting expired"
-                        ));
                         context.TransitionToState(Expired);
                         return;
                     }
@@ -89,12 +82,11 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                         context.Message.CorrelationId,
                         application.JobPostingId,
                         application.HumanId,
-                        ApplicationStatus.Submitted,
-                        ApplicationStatus.UnderReview,
-                        ""
+                        ApplicationStatus.UnderReview
                     ));
                     Log.Information($"Max applications reached for: {context.Saga.JobPosting.Title}");
-                    context.TransitionToState(ReviewingApplications);
+                    if(context.Saga.Applications.Count > 2)
+                        context.TransitionToState(ReviewingApplications);
                 }),
             
             When(RemoveApplication).Then(bc => {
@@ -145,16 +137,14 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                         context.TransitionToState(Filled);
                     }
                     
-                    foreach (var application in rankedApplications)
+                    foreach (var application in rankedApplications.Skip(1))
                     {
                         if (application.Data.Status == ApplicationStatus.Rejected) continue;
                         context.Publish(new ApplicationStatusChanged(
                             application.Id,
                             application.Data.JobPostingId,
                             application.Data.HumanId,
-                            application.Data.Status,
-                            ApplicationStatus.Rejected,
-                            $"Auto-reviewed: Match score {application.Data.MatchScore:F2}"
+                            ApplicationStatus.Rejected
                         ));
                         Log.Information($"application rejected: {context.Saga.JobPosting.Title} for {topApplication.Data.HumanId}");
                         context.Saga.Applications = context.Saga.Applications.Where(a => a.Data.HumanId != application.Data.HumanId).ToList();
@@ -177,7 +167,6 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                         context.Message.CorrelationId,
                         application.JobPostingId,
                         application.HumanId,
-                        ApplicationStatus.Submitted,
                         ApplicationStatus.UnderReview
                     ));
                 })
@@ -212,12 +201,10 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                             application.Id,
                             application.Data.JobPostingId,
                             application.Data.HumanId,
-                            application.Data.Status,
-                            ApplicationStatus.Rejected,
-                            "Job posting expired"
+                            ApplicationStatus.Rejected
                         ));
                     }
-                })
+                }).Finalize()
         );
         SetCompletedWhenFinalized();
     }

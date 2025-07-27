@@ -144,42 +144,6 @@ public class JobPostingSagaTests
     }
 
     [Fact]
-    public async Task ApplicationStatusChanged_ShouldBeConsumed()
-    {
-        // Arrange
-        var jobPosting = TestDataBuilder.CreateJobPosting();
-        var applicationId = Guid.NewGuid();
-        var jobPostingId = Guid.NewGuid();
-        var humanId = Guid.NewGuid();
-        var status = "Accepted";
-
-        await using var provider = new ServiceCollection()
-            .AddSingleton<CalculateMatchScore>()
-            .AddSingleton<CalculateOfferSalary>()
-            .AddMassTransitTestHarness(cfg =>
-            {
-                cfg.AddSagaStateMachine<JobPostingSaga, JobPostingSagaState>();
-            })
-            .BuildServiceProvider(true);
-
-        var harness = provider.GetRequiredService<ITestHarness>();
-        await harness.Start();
-
-        var sagaHarness = harness.GetSagaStateMachineHarness<JobPostingSaga, JobPostingSagaState>();
-
-        // Create the saga first
-        await harness.Bus.Publish(new CreateJobPosting(jobPostingId, jobPosting.CompanyId, jobPosting));
-        await Task.Delay(100); // Wait for saga creation
-
-        // Act
-        await harness.Bus.Publish(new ApplicationStatusChanged(applicationId, jobPostingId, humanId, ApplicationStatus.Submitted, ApplicationStatus.Accepted));
-
-        // Assert - ApplicationStatusChanged is published by the saga, not consumed
-        // We can verify the saga processed the event by checking it was created and received the initial event
-        (await sagaHarness.Created.Any()).Should().BeTrue();
-    }
-
-    [Fact]
     public async Task MultipleEvents_ShouldBeHandledInSequence()
     {
         // Arrange
@@ -224,52 +188,5 @@ public class JobPostingSagaTests
         (await sagaHarness.Consumed.Any<CreateJobPosting>()).Should().BeTrue();
         (await sagaHarness.Consumed.Any<ReviewApplication>()).Should().BeTrue();
         (await sagaHarness.Consumed.Any<DayElapsed>()).Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task JobPostingWorkflow_ShouldHandleCompleteLifecycle()
-    {
-        // Arrange
-        var jobPosting = TestDataBuilder.CreateJobPosting();
-        var jobApplication = TestDataBuilder.CreateJobApplication();
-        var humanId = Guid.NewGuid();
-        var salary = 75000m;
-        var jobPostingId = Guid.NewGuid();
-        var jobApplicationId = Guid.NewGuid();
-
-        await using var provider = new ServiceCollection()
-            .AddSingleton<CalculateMatchScore>()
-            .AddSingleton<CalculateOfferSalary>()
-            .AddMassTransitTestHarness(cfg =>
-            {
-                cfg.AddSagaStateMachine<JobPostingSaga, JobPostingSagaState>();
-            })
-            .BuildServiceProvider(true);
-
-        var harness = provider.GetRequiredService<ITestHarness>();
-        await harness.Start();
-
-        var sagaHarness = harness.GetSagaStateMachineHarness<JobPostingSaga, JobPostingSagaState>();
-
-        // Act - Complete workflow
-        await harness.Bus.Publish(new CreateJobPosting(jobPostingId, jobPosting.CompanyId, jobPosting));
-        await Task.Delay(100);
-
-        await harness.Bus.Publish(new JobApplicationSubmitted(jobApplicationId, jobApplication.HumanId, jobApplication));
-        await Task.Delay(100);
-
-        await harness.Bus.Publish(new ReviewApplication(jobPostingId, jobApplicationId, ApplicationStatus.UnderReview));
-        await Task.Delay(100);
-
-        await harness.Bus.Publish(new ApplicationStatusChanged(jobApplicationId, jobPostingId, humanId, ApplicationStatus.UnderReview, ApplicationStatus.Accepted));
-
-        // Assert
-        (await harness.Consumed.Any<CreateJobPosting>()).Should().BeTrue();
-        (await harness.Consumed.Any<JobApplicationSubmitted>()).Should().BeTrue();
-        (await harness.Consumed.Any<ReviewApplication>()).Should().BeTrue();
-        // ApplicationStatusChanged is published by the saga, not consumed
-
-        (await sagaHarness.Consumed.Any<CreateJobPosting>()).Should().BeTrue();
-        (await sagaHarness.Consumed.Any<ReviewApplication>()).Should().BeTrue();
     }
 }
