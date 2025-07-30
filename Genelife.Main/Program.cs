@@ -10,6 +10,7 @@ using OpenTelemetry.Trace;
 using Serilog;
 using Serilog.Sinks.Grafana.Loki;
 using System.Reflection;
+using Automatonymous;
 using Genelife.Main.Usecases;
 using Genelife.Domain.Generators;
 using MongoDB.Bson;

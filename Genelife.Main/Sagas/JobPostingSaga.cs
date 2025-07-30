@@ -44,14 +44,13 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
         Event(() => DayElapsed, e => e.CorrelateBy(saga => "any", ctx => "any"));
         Event(() => ApplicationSubmitted, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.CorrelationId.ToString()));
         Event(() => ReviewApplication, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.CorrelationId.ToString()));
-        Event(() => RemoveApplication, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.CorrelationId.ToString()));
+        Event(() => RemoveApplication, e => e.CorrelateBy(saga => saga.JobPosting.CompanyId.ToString(), ctx => ctx.Message.CompanyId.ToString()));
         
         During(Active,
             When(DayElapsed)
                 .Then(context =>
                 {
                     context.Saga.DaysActive++;
-                    // Check if job posting has expired
                     if (context.Saga.JobPosting.ExpiryDate.HasValue && 
                         DateTime.UtcNow >= context.Saga.JobPosting.ExpiryDate.Value)
                     {
@@ -69,7 +68,6 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
             When(ApplicationSubmitted)
                 .Then(context =>
                 {
-                    // Calculate match score for the application
                     var application = context.Message.Application;
                     var matchScore = new CalculateMatchScore().Execute(context.Saga.JobPosting, application);
                     var updatedApplication = application with { MatchScore = matchScore };
@@ -84,7 +82,7 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                         application.HumanId,
                         ApplicationStatus.UnderReview
                     ));
-                    Log.Information($"Max applications reached for: {context.Saga.JobPosting.Title}");
+                    
                     if(context.Saga.Applications.Count > 2)
                         context.TransitionToState(ReviewingApplications);
                 }),
@@ -155,7 +153,6 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
             When(ApplicationSubmitted)
                 .Then(context =>
                 {
-                    // Handle new applications during review phase
                     var application = context.Message.Application;
                     var matchScore = new CalculateMatchScore().Execute(context.Saga.JobPosting, application);
                     var updatedApplication = application with { MatchScore = matchScore };
@@ -204,6 +201,7 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                             ApplicationStatus.Rejected
                         ));
                     }
+                    Log.Information($"Job posting {context.Saga.CorrelationId} Deleted because it has expired");
                 }).Finalize()
         );
         SetCompletedWhenFinalized();

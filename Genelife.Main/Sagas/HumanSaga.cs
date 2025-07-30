@@ -51,7 +51,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         Event(() => UpdateTick, e => e.CorrelateBy(saga => "any", _ => "any"));
         Event(() => DayElapsed, e => e.CorrelateBy(saga => "any", _ => "any"));
         Event(() => HourElapsed, e => e.CorrelateBy(saga => "any", _ => "any"));
-        Event(() => SalaryPaid, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.HumanId.ToString()));
+        Event(() => SalaryPaid, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.CorrelationId.ToString()));
         Event(() => JobPostingCreated, e => e.CorrelateBy(saga => "any", _ => "any"));
         Event(() => EmployeeHired, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.HumanId.ToString()));
         Event(() => ApplicationStatusChanged, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.HumanId.ToString()));
@@ -105,8 +105,11 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             }),
             
             When(EmployeeHired).Then(bc => {
-                bc.Saga.Employment.SentApplicationCompanies.ForEach(application => {
-                    bc.Publish(new RemoveApplication(bc.Saga.CorrelationId, application));
+                if (bc.Saga.Employment.Status is EmploymentStatus.Active 
+                    && bc.Saga.Employment.CurrentEmployerId != Guid.Empty) return;
+                
+                bc.Saga.Employment.SentApplicationCompanies.ForEach(companyId => {
+                    bc.Publish(new RemoveApplication(bc.Saga.CorrelationId, companyId));
                 });
                 bc.Saga.Employment = bc.Saga.Employment with
                 {
