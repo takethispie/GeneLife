@@ -1,4 +1,5 @@
 using Genelife.Domain;
+using Genelife.Domain.Work;
 using Genelife.Main.Domain;
 using MassTransit;
 
@@ -8,11 +9,11 @@ public class JobPostingSagaState : SagaStateMachineInstance, ISagaVersion
 {
     public Guid CorrelationId { get; set; }
     public JobPosting JobPosting { get; set; } = null!;
-    public List<IdentifiedJobApplication> Applications { get; set; } = new();
+    public List<IdentifiedJobApplication> Applications { get; set; } = [];
     public string CurrentState { get; set; } = null!;
     public int Version { get; set; }
     public DateTime CreatedDate { get; set; }
     public int DaysActive { get; set; }
     public int ApplicationsReceived { get; set; }
-    public Guid? SelectedApplicationId { get; set; }
+    public Guid SelectedApplicationId { get; set; }
 }

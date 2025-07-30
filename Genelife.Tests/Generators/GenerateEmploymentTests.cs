@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Genelife.Domain;
 using Genelife.Domain.Generators;
+using Genelife.Domain.Work;
 using Genelife.Tests.TestData;
 
 namespace Genelife.Tests.Generators;
@@ -74,7 +75,7 @@ public class GenerateEmploymentTests
     public void GenerateDesiredSalary_ShouldReturnReasonableSalary(JobLevel level)
     {
         // Arrange
-        var employment = TestDataBuilder.CreateEmployment(yearsOfExperience: 5);
+        var employment = TestDataBuilder.CreateEmployment([], 5, Guid.Empty);
         var jobPosting = TestDataBuilder.CreateJobPosting(level: level, salaryMin: 50000m, salaryMax: 100000m);
 
         // Act
@@ -89,8 +90,8 @@ public class GenerateEmploymentTests
     public void GenerateDesiredSalary_ShouldIncreaseWithExperience()
     {
         // Arrange
-        var juniorEmployment = TestDataBuilder.CreateEmployment(yearsOfExperience: 1);
-        var seniorEmployment = TestDataBuilder.CreateEmployment(yearsOfExperience: 10);
+        var juniorEmployment = TestDataBuilder.CreateEmployment([], 1, Guid.Empty);
+        var seniorEmployment = TestDataBuilder.CreateEmployment([],10, Guid.Empty);
         var jobPosting = TestDataBuilder.CreateJobPosting(level: JobLevel.Mid, salaryMin: 30000m, salaryMax: 60000m);
 
         // Act

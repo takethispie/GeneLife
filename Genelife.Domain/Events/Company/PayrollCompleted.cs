@@ -1,3 +1,5 @@
+using MassTransit;
+
 namespace Genelife.Domain.Events.Company;
 
-public record PayrollCompleted(Guid CompanyId, decimal TotalPaid, decimal TaxesPaid);
+public record PayrollCompleted(Guid CorrelationId, decimal TotalPaid, decimal TaxesPaid) : CorrelatedBy<Guid>;

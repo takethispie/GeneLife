@@ -1,3 +1,5 @@
+using Genelife.Domain.Interfaces;
+
 namespace Genelife.Domain;
 
 public record Human(

@@ -1,4 +1,5 @@
 using Genelife.Domain;
+using Genelife.Domain.Work;
 
 namespace Genelife.Main.Usecases;
 
@@ -21,7 +22,8 @@ public class CalculateMatchScore
         score += salaryScore * 0.2m;
         
         // Industry preference (10% weight)
-        var industryScore = 0.8m; // Assume good fit for now
+        // Assume good fit for now
+        var industryScore = 0.8m; 
         score += industryScore * 0.1m;
         
         return Math.Min(1.0m, Math.Max(0.0m, score));
@@ -51,7 +53,8 @@ public class CalculateMatchScore
         
         // Penalty for less experience
         var ratio = (decimal)yearsOfExperience / Math.Max(1, requiredYears);
-        return ratio * 0.8m; // Max 80% if no experience
+        // Max 80% if no experience
+        return ratio * 0.8m; 
     }
     
     private decimal CalculateSkillsScore(List<string> requiredSkills, List<string> applicantSkills)
@@ -71,7 +74,8 @@ public class CalculateMatchScore
     private decimal CalculateSalaryScore(decimal salaryMin, decimal salaryMax, decimal requestedSalary)
     {
         if (requestedSalary >= salaryMin && requestedSalary <= salaryMax)
-            return 1.0m; // Perfect match
+            // Perfect match
+            return 1.0m; 
         
         if (requestedSalary < salaryMin)
             // Candidate wants less - good for company
@@ -79,11 +83,13 @@ public class CalculateMatchScore
         
         // Candidate wants more than max
         var overage = requestedSalary - salaryMax;
-        var maxOverage = salaryMax * 0.2m; // 20% over budget is still acceptable
+        // 20% over budget is still acceptable
+        var maxOverage = salaryMax * 0.2m; 
         
         if (overage <= maxOverage)
-            return 1.0m - overage / maxOverage * 0.3m; // Linear penalty up to 30%
-        
-        return 0.4m; // Significant penalty for high salary expectations
+            // Linear penalty up to 30%
+            return 1.0m - overage / maxOverage * 0.3m; 
+        // Significant penalty for high salary expectations
+        return 0.4m; 
     }
 }

@@ -1,4 +1,4 @@
-namespace Genelife.Domain;
+namespace Genelife.Domain.Work;
 
 public enum JobPostingStatus
 {

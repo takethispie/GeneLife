@@ -6,7 +6,8 @@ namespace Genelife.Main.Domain;
 public enum ActivityEnum {
     Eat,
     Sleep,
-    Shower
+    Shower,
+    Work
 }
 
 public static class ActivityExtensions {
@@ -15,6 +16,7 @@ public static class ActivityExtensions {
             Eat => ActivityEnum.Eat,
             Sleep => ActivityEnum.Sleep,
             Shower => ActivityEnum.Shower,
+            Work => ActivityEnum.Work,
             _ => throw new ArgumentOutOfRangeException(nameof(activity), activity, null)
         };
     }

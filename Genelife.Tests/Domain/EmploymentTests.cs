@@ -15,14 +15,14 @@ public class EmploymentTests
         var yearsOfExperience = 3;
 
         // Act
-        var employment = new Employment(skills, yearsOfExperience);
+        var employment = new Employment(skills, yearsOfExperience, Guid.Empty, []);
 
         // Assert
         employment.Skills.Should().BeEquivalentTo(skills);
         employment.YearsOfExperience.Should().Be(yearsOfExperience);
-        employment.CurrentEmployerId.Should().BeNull();
+        employment.CurrentEmployerId.Should().BeEmpty();
         employment.CurrentSalary.Should().BeNull();
-        employment.EmploymentStatus.Should().Be(EmploymentStatus.Unemployed);
+        employment.Status.Should().Be(EmploymentStatus.Unemployed);
         employment.LastJobSearchDate.Should().BeNull();
         employment.IsActivelyJobSeeking.Should().BeTrue();
     }
@@ -31,7 +31,7 @@ public class EmploymentTests
     public void Employment_ShouldAllowEmptySkills()
     {
         // Arrange & Act
-        var employment = TestDataBuilder.CreateEmployment(skills: new List<string>());
+        var employment = TestDataBuilder.CreateEmployment([], 0, Guid.Empty);
 
         // Assert
         employment.Skills.Should().BeEmpty();
@@ -45,7 +45,7 @@ public class EmploymentTests
     public void Employment_ShouldAcceptValidYearsOfExperience(int years)
     {
         // Arrange & Act
-        var employment = TestDataBuilder.CreateEmployment(yearsOfExperience: years);
+        var employment = TestDataBuilder.CreateEmployment([], years, Guid.Empty);
 
         // Assert
         employment.YearsOfExperience.Should().Be(years);
@@ -56,12 +56,14 @@ public class EmploymentTests
     {
         // Arrange & Act
         var employment = TestDataBuilder.CreateEmployment(
-            currentEmployerId: null,
+            [],
+            0,
+            Guid.Empty,
             currentSalary: null,
             lastJobSearchDate: null);
 
         // Assert
-        employment.CurrentEmployerId.Should().BeNull();
+        employment.CurrentEmployerId.Should().BeEmpty();
         employment.CurrentSalary.Should().BeNull();
         employment.LastJobSearchDate.Should().BeNull();
     }
