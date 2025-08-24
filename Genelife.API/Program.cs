@@ -119,8 +119,8 @@ app.MapPost("/create/company/{type}", async (CompanyType type, [FromServices] IP
     var company = new Company(
         Name: $"{type} Corp {Random.Shared.Next(1000, 9999)}",
         Type: type,
-        Revenue: 50000m + (decimal)(Random.Shared.NextDouble() * 100000),
-        TaxRate: 0.25m,
+        Revenue: 50000 + Random.Shared.NextSingle() * 100000,
+        TaxRate: 0.25f,
         EmployeeIds: []
     );
 

@@ -32,8 +32,8 @@ public static class TestDataBuilder
 
     public static Company CreateCompany(
         string? name = null,
-        decimal? revenue = null,
-        decimal? taxRate = null,
+        float? revenue = null,
+        float? taxRate = null,
         List<Guid>? employeeIds = null,
         CompanyType? type = null,
         int? minEmployees = null,
@@ -41,8 +41,8 @@ public static class TestDataBuilder
     {
         return new Company(
             name ?? Faker.Company.CompanyName(),
-            revenue ?? Faker.Random.Decimal(100000, 10000000),
-            taxRate ?? Faker.Random.Decimal(0.15m, 0.35m),
+            revenue ?? Faker.Random.Float(100000f, 10000000f),
+            taxRate ?? Faker.Random.Float(0.15f, 0.35f),
             employeeIds ?? new List<Guid>(),
             type ?? Faker.PickRandom<CompanyType>(),
             minEmployees ?? Faker.Random.Int(1, 10),
@@ -55,8 +55,8 @@ public static class TestDataBuilder
         string? title = null,
         string? description = null,
         List<string>? requirements = null,
-        decimal? salaryMin = null,
-        decimal? salaryMax = null,
+        float? salaryMin = null,
+        float? salaryMax = null,
         JobLevel? level = null,
         CompanyType? industry = null,
         DateTime? postedDate = null,
@@ -64,8 +64,8 @@ public static class TestDataBuilder
         JobPostingStatus? status = null,
         int? maxApplications = null)
     {
-        var minSalary = salaryMin ?? Faker.Random.Decimal(30000, 80000);
-        var maxSalary = salaryMax ?? minSalary + Faker.Random.Decimal(10000, 50000);
+        var minSalary = salaryMin ?? Faker.Random.Float(30000, 80000);
+        var maxSalary = salaryMax ?? minSalary + Faker.Random.Float(10000, 50000);
         
         return new JobPosting(
             companyId ?? Guid.NewGuid(),
@@ -88,40 +88,40 @@ public static class TestDataBuilder
         Guid? humanId = null,
         DateTime? applicationDate = null,
         ApplicationStatus? status = null,
-        decimal? requestedSalary = null,
+        float? requestedSalary = null,
         string? coverLetter = null,
         List<string>? skills = null,
         int? yearsOfExperience = null,
-        decimal? matchScore = null)
+        float? matchScore = null)
     {
         return new JobApplication(
             jobPostingId ?? Guid.NewGuid(),
             humanId ?? Guid.NewGuid(),
             applicationDate ?? Faker.Date.Recent(7),
             status ?? ApplicationStatus.Submitted,
-            requestedSalary ?? Faker.Random.Decimal(40000, 120000),
+            requestedSalary ?? Faker.Random.Float(40000, 120000),
             coverLetter ?? Faker.Lorem.Paragraph(),
             skills ?? Faker.Make(5, () => Faker.Hacker.Noun()).ToList(),
             yearsOfExperience ?? Faker.Random.Int(0, 20),
-            matchScore ?? Faker.Random.Decimal(0, 1)
+            matchScore ?? Faker.Random.Float(0, 1)
         );
     }
 
     public static Employee CreateEmployee(
         Guid? humanId = null,
         Guid? companyId = null,
-        decimal? salary = null,
+        float? salary = null,
         DateTime? hireDate = null,
         EmploymentStatus? status = null,
-        decimal? productivityScore = null)
+        float? productivityScore = null)
     {
         return new Employee(
             humanId ?? Guid.NewGuid(),
             companyId ?? Guid.NewGuid(),
-            salary ?? Faker.Random.Decimal(30000, 150000),
+            salary ?? Faker.Random.Float(30000, 150000),
             hireDate ?? Faker.Date.Past(5),
             status ?? EmploymentStatus.Active,
-            productivityScore ?? Faker.Random.Decimal(0.5m, 1.5m)
+            productivityScore ?? Faker.Random.Float(0.5f, 1.5f)
         );
     }
 
@@ -129,7 +129,7 @@ public static class TestDataBuilder
         List<string>? skills,
         int? yearsOfExperience,
         Guid currentEmployerId,
-        decimal? currentSalary = null,
+        float? currentSalary = null,
         EmploymentStatus? employmentStatus = null,
         DateTime? lastJobSearchDate = null,
         bool? isActivelyJobSeeking = null)

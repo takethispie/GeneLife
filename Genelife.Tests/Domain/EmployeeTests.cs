@@ -12,6 +12,6 @@ public class EmployeeTests
         var employee = TestDataBuilder.CreateEmployee();
 
         // Assert
-        employee.ProductivityScore.Should().BeGreaterThan(0m);
+        employee.ProductivityScore.Should().BeGreaterThan(0f);
     }
 }

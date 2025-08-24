@@ -12,8 +12,8 @@ public class JobApplicationTests
         var application = TestDataBuilder.CreateJobApplication();
 
         // Assert
-        application.MatchScore.Should().BeGreaterThanOrEqualTo(0.0m);
-        application.MatchScore.Should().BeLessThanOrEqualTo(1.0m);
+        application.MatchScore.Should().BeGreaterThanOrEqualTo(0.0f);
+        application.MatchScore.Should().BeLessThanOrEqualTo(1.0f);
     }
 
     [Fact]
@@ -58,13 +58,13 @@ public class JobApplicationTests
     [InlineData(0.0)]
     [InlineData(0.5)]
     [InlineData(1.0)]
-    public void JobApplication_ShouldAcceptValidMatchScores(double score)
+    public void JobApplication_ShouldAcceptValidMatchScores(float score)
     {
         // Arrange & Act
-        var application = TestDataBuilder.CreateJobApplication(matchScore: (decimal)score);
+        var application = TestDataBuilder.CreateJobApplication(matchScore: score);
 
         // Assert
-        application.MatchScore.Should().Be((decimal)score);
+        application.MatchScore.Should().Be(score);
     }
 
     [Fact]

@@ -1,3 +1,3 @@
 namespace Genelife.Domain.Events.Company;
 
-public record EmployeeHired(Guid CompanyId, Guid HumanId, decimal Salary);
+public record EmployeeHired(Guid CompanyId, Guid HumanId, float Salary);

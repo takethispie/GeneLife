@@ -18,5 +18,5 @@ public class CompanySagaState : SagaStateMachineInstance, ISagaVersion
     public int Version { get; set; }
     public DateTime LastPayrollDate { get; set; }
     public int PositionsNeeded { get; set; }
-    public decimal AverageProductivity { get; set; } = 1.0m;
+    public float AverageProductivity { get; set; } = 1.0f;
 }

@@ -5,7 +5,7 @@ namespace Genelife.Main.Usecases;
 
 public class CalculateOfferSalary
 {
-    public decimal Execute(JobPosting jobPosting, JobApplication application)
+    public float Execute(JobPosting jobPosting, JobApplication application)
     {
         var requestedSalary = application.RequestedSalary;
         var salaryMin = jobPosting.SalaryMin;
@@ -20,7 +20,7 @@ public class CalculateOfferSalary
             return salaryMin;
 
         // If requested is above maximum, negotiate based on match score
-        var maxOffer = application.MatchScore >= 0.8m ? salaryMax * 1.1m : salaryMax;
+        var maxOffer = application.MatchScore >= 0.8f ? salaryMax * 1.1f : salaryMax;
         return Math.Min(requestedSalary, maxOffer);
     }
 }

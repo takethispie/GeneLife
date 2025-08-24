@@ -6,17 +6,42 @@ namespace Genelife.Main.Usecases;
 
 public class ChooseActivity {
     public ILivingActivity Execute(Human human, int hour) {
-        List<(float val, string name)> needs = [];
-        if (hour >= 22 || hour <= 1) needs.Add((human.Energy, "Energy"));
-        if(hour is > 5 and < 8 or > 18 and < 22) needs.Add((human.Hygiene, "Hygiene"));
-        if(hour is > 12 and < 14 or > 18 and < 22) needs.Add((human.Hunger, "Hunger"));
+        List<(float val, string name)> actions = [];
+        if (hour is >= 22 or <= 1 && human.Energy < 25) 
+            actions.Add((human.Energy, "Energy"));
+        if(hour is > 5 and < 8 or > 18 and < 22 && human.Hygiene < 25) 
+            actions.Add((human.Hygiene, "Hygiene"));
+        if(hour is > 12 and < 14 or > 18 and < 22 && human.Hunger < 30) 
+            actions.Add((human.Hunger, "Hunger"));
         
-        if (needs.Count == 0) return null;
+        if (actions.Count == 0) return null;
         
-        return needs.OrderBy(x => x.val).First().name switch {
+        return actions.OrderBy(x => x.val).First().name switch {
             "Energy" => new Sleep(),
             "Hygiene" => new Shower(),
             "Hunger" => new Eat(),
+            _ => null
+        };
+    }
+    
+    public ILivingActivity Execute(Human human, int hour, float salary) {
+        List<(float val, string name)> actions = [];
+        if (hour is >= 22 or <= 1 && human.Energy < 25) 
+            actions.Add((human.Energy, "Energy"));
+        if(hour is > 5 and < 8 or > 18 and < 22 && human.Hygiene < 25) 
+            actions.Add((human.Hygiene, "Hygiene"));
+        if(hour is > 12 and < 14 or > 18 and < 22 && human.Hunger < 30) 
+            actions.Add((human.Hunger, "Hunger"));
+        if(hour is > 7 and < 18 && human.Energy > 50)
+            actions.Add((human.Energy, "Work"));
+        
+        if (actions.Count == 0) return null;
+        
+        return actions.OrderBy(x => x.val).First().name switch {
+            "Energy" => new Sleep(),
+            "Hygiene" => new Shower(),
+            "Hunger" => new Eat(),
+            "Work" => new Work(salary),
             _ => null
         };
     }

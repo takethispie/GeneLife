@@ -89,8 +89,8 @@ public class JobPostingTests
     public void JobPosting_ShouldValidateSalaryRange()
     {
         // Arrange
-        var salaryMin = 50000m;
-        var salaryMax = 80000m;
+        var salaryMin = 50000f;
+        var salaryMax = 80000f;
 
         // Act
         var jobPosting = TestDataBuilder.CreateJobPosting(salaryMin: salaryMin, salaryMax: salaryMax);
