@@ -113,7 +113,7 @@ public class HumanSagaTests
         await Task.Delay(100); // Wait for saga creation
 
         // Act
-        await harness.Bus.Publish(new SalaryPaid(humanId, 500.0m, 100.0m));
+        await harness.Bus.Publish(new SalaryPaid(humanId, 500.0f, 100.0f));
 
         // Assert
         (await harness.Consumed.Any<SalaryPaid>()).Should().BeTrue();
@@ -161,7 +161,7 @@ public class HumanSagaTests
         var human = TestDataBuilder.CreateHuman();
         var humanId = NewId.NextGuid();
         var companyId = Guid.NewGuid();
-        var salary = 75000m;
+        var salary = 75000f;
 
         await using var provider = new ServiceCollection()
             .AddSingleton<UpdateNeeds>()

@@ -84,11 +84,11 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                     CoverLetter: "",
                     Skills: bc.Saga.Employment.Skills,
                     YearsOfExperience: bc.Saga.Employment.YearsOfExperience,
-                    MatchScore: 0m
+                    MatchScore: 0f
                 );
                 
                 var matchScore = new CalculateMatchScore().Execute(jobPosting, tempApplication);
-                if (matchScore < 0.3m) return;
+                if (matchScore < 0.3f) return;
                 
                 bc.Publish(new JobApplicationSubmitted(
                     bc.Message.CorrelationId,
@@ -152,7 +152,10 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         
         During(Idle, 
             When(UpdateTick).Then(bc => {
-                var activity = new ChooseActivity().Execute(bc.Saga.Human, bc.Message.Hour);
+                
+                var activity = bc.Saga.Employment.CurrentSalary.HasValue ?
+                    new ChooseActivity().Execute(bc.Saga.Human, bc.Message.Hour, bc.Saga.Employment.CurrentSalary.Value)
+                    : new ChooseActivity().Execute(bc.Saga.Human, bc.Message.Hour);
                 var state = activity switch {
                     Eat => Eating,
                     Sleep => Sleeping,
@@ -162,7 +165,6 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                 };
                 if (activity is null) bc.Saga.Activity = null;
                 else {
-                    if(activity.ToEnum() != bc.Saga.Activity) Log.Information($"{bc.Saga.CorrelationId} is transitioning to {state}");
                     bc.Saga.Activity = activity.ToEnum();
                     bc.Saga.ActivityTickDuration = activity.TickDuration;
                     bc.Saga.Human = activity.Apply(bc.Saga.Human);

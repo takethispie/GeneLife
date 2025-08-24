@@ -38,7 +38,7 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
                     context.Saga.HiringState = HiringState.NotHiring;
                     context.Saga.WorkProgressState = WorkProgressState.Monitoring;
                     context.Saga.LastPayrollDate = DateTime.UtcNow;
-                    context.Saga.AverageProductivity = 1.0m;
+                    context.Saga.AverageProductivity = 1.0f;
                     Log.Information($"Company {context.Saga.Company.Name} created with ID {context.Saga.CorrelationId}");
                 })
                 .TransitionTo(Active)

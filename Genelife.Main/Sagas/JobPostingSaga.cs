@@ -114,7 +114,7 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                         .ThenBy(app => app.Data.RequestedSalary)];
                     var topApplication = rankedApplications.FirstOrDefault();
                     if (topApplication is null) return;
-                    if (topApplication.Data is { MatchScore: >= 0.6m })
+                    if (topApplication.Data is { MatchScore: >= 0.6f })
                     {
                         // Auto-accept top candidate if match score is high enough
                         var salary = new CalculateOfferSalary().Execute(context.Saga.JobPosting, topApplication.Data);

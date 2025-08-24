@@ -5,8 +5,7 @@ public record Employment(
     int YearsOfExperience,
     Guid CurrentEmployerId,
     List<Guid> SentApplicationCompanies,
-    decimal? CurrentSalary = null,
+    float? CurrentSalary = null,
     EmploymentStatus Status = EmploymentStatus.Unemployed,
     DateTime? LastJobSearchDate = null,
-    bool IsActivelyJobSeeking = true
-);
+    bool IsActivelyJobSeeking = true);

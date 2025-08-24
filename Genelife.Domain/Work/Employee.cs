@@ -3,8 +3,8 @@ namespace Genelife.Domain.Work;
 public record Employee(
     Guid HumanId,
     Guid CompanyId,
-    decimal Salary,
+    float Salary,
     DateTime HireDate,
     EmploymentStatus Status,
-    decimal ProductivityScore = 1.0m
+    float ProductivityScore = 1.0f
 );

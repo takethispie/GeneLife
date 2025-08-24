@@ -76,14 +76,14 @@ public class GenerateEmploymentTests
     {
         // Arrange
         var employment = TestDataBuilder.CreateEmployment([], 5, Guid.Empty);
-        var jobPosting = TestDataBuilder.CreateJobPosting(level: level, salaryMin: 50000m, salaryMax: 100000m);
+        var jobPosting = TestDataBuilder.CreateJobPosting(level: level, salaryMin: 50000f, salaryMax: 100000f);
 
         // Act
         var salary = _generator.GenerateDesiredSalary(employment, jobPosting);
 
         // Assert
         salary.Should().BeGreaterThan(0);
-        salary.Should().BeLessOrEqualTo(jobPosting.SalaryMax * 1.3m); // Within reasonable range
+        salary.Should().BeLessOrEqualTo(jobPosting.SalaryMax * 1.3f); // Within reasonable range
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public class GenerateEmploymentTests
         // Arrange
         var juniorEmployment = TestDataBuilder.CreateEmployment([], 1, Guid.Empty);
         var seniorEmployment = TestDataBuilder.CreateEmployment([],10, Guid.Empty);
-        var jobPosting = TestDataBuilder.CreateJobPosting(level: JobLevel.Mid, salaryMin: 30000m, salaryMax: 60000m);
+        var jobPosting = TestDataBuilder.CreateJobPosting(level: JobLevel.Mid, salaryMin: 30000f, salaryMax: 60000f);
 
         // Act
         var juniorSalary = _generator.GenerateDesiredSalary(juniorEmployment, jobPosting);

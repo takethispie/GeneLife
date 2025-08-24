@@ -153,79 +153,79 @@ public class GenerateJobPosting
             .ToList();
     }
     
-    private (decimal min, decimal max) GenerateSalaryRange(CompanyType companyType, JobLevel level)
+    private (float min, float max) GenerateSalaryRange(CompanyType companyType, JobLevel level)
     {
         var baseSalary = companyType switch
         {
             CompanyType.Technology => level switch
             {
-                JobLevel.Entry => 2000m,
-                JobLevel.Junior => 3000m,
-                JobLevel.Mid => 5000m,
-                JobLevel.Senior => 8000m,
-                JobLevel.Lead => 10000m,
-                JobLevel.Manager => 12000m,
-                JobLevel.Director => 15000m,
-                JobLevel.Executive => 25000m,
-                _ => 6000m
+                JobLevel.Entry => 2000,
+                JobLevel.Junior => 3000,
+                JobLevel.Mid => 5000,
+                JobLevel.Senior => 8000,
+                JobLevel.Lead => 10000,
+                JobLevel.Manager => 12000,
+                JobLevel.Director => 15000,
+                JobLevel.Executive => 25000,
+                _ => 6000
             },
             CompanyType.Healthcare => level switch
             {
-                JobLevel.Entry => 2000m,
-                JobLevel.Junior => 3000m,
-                JobLevel.Mid => 4000m,
-                JobLevel.Senior => 5000m,
-                JobLevel.Lead => 7000m,
-                JobLevel.Manager => 8000m,
-                JobLevel.Director => 10000m,
-                JobLevel.Executive => 12000m,
-                _ => 5500m
+                JobLevel.Entry => 2000,
+                JobLevel.Junior => 3000,
+                JobLevel.Mid => 4000,
+                JobLevel.Senior => 5000,
+                JobLevel.Lead => 7000,
+                JobLevel.Manager => 8000,
+                JobLevel.Director => 10000,
+                JobLevel.Executive => 12000,
+                _ => 5500
             },
             CompanyType.Services => level switch
             {
-                JobLevel.Entry => 1500m,
-                JobLevel.Junior => 2500m,
-                JobLevel.Mid => 3500m,
-                JobLevel.Senior => 5000m,
-                JobLevel.Lead => 6500m,
-                JobLevel.Manager => 8500m,
-                JobLevel.Director => 10000m,
-                JobLevel.Executive => 12000m,
-                _ => 4500m
+                JobLevel.Entry => 1500,
+                JobLevel.Junior => 2500,
+                JobLevel.Mid => 3500,
+                JobLevel.Senior => 5000,
+                JobLevel.Lead => 6500,
+                JobLevel.Manager => 8500,
+                JobLevel.Director => 10000,
+                JobLevel.Executive => 12000,
+                _ => 4500
             },
             CompanyType.Manufacturing => level switch
             {
-                JobLevel.Entry => 1000m,
-                JobLevel.Junior => 2000m,
-                JobLevel.Mid => 2500m,
-                JobLevel.Senior => 3000m,
-                JobLevel.Lead => 4500m,
-                JobLevel.Manager => 5500m,
-                JobLevel.Director => 7000m,
-                JobLevel.Executive => 9000m,
-                _ => 2000m
+                JobLevel.Entry => 1000,
+                JobLevel.Junior => 2000,
+                JobLevel.Mid => 2500,
+                JobLevel.Senior => 3000,
+                JobLevel.Lead => 4500,
+                JobLevel.Manager => 5500,
+                JobLevel.Director => 7000,
+                JobLevel.Executive => 9000,
+                _ => 2000
             },
             CompanyType.Retail => level switch
             {
-                JobLevel.Entry => 1500m,
-                JobLevel.Junior => 2200m,
-                JobLevel.Mid => 3500m,
-                JobLevel.Senior => 4000m,
-                JobLevel.Lead => 7500m,
-                JobLevel.Manager => 8500m,
-                JobLevel.Director => 11000m,
-                JobLevel.Executive => 15000m,
-                _ => 3000m
+                JobLevel.Entry => 1500,
+                JobLevel.Junior => 2200,
+                JobLevel.Mid => 3500,
+                JobLevel.Senior => 4000,
+                JobLevel.Lead => 7500,
+                JobLevel.Manager => 8500,
+                JobLevel.Director => 11000,
+                JobLevel.Executive => 15000,
+                _ => 3000
             },
-            _ => 4000m
+            _ => 4000
         };
         
-        var variation = (decimal)(random.NextDouble() * 0.2 + 0.9); // 0.9 to 1.1 multiplier
+        var variation = random.NextSingle() * 0.2 + 0.9; // 0.9 to 1.1 multiplier
         var adjustedBase = baseSalary * variation;
         
-        var min = adjustedBase * 0.9m;
-        var max = adjustedBase * 1.2m;
+        var min = adjustedBase * 0.9;
+        var max = adjustedBase * 1.2;
         
-        return (Math.Round(min, 0), Math.Round(max, 0));
+        return (Convert.ToSingle(Math.Round(min, 0)), Convert.ToSingle(Math.Round(max, 0)));
     }
 }

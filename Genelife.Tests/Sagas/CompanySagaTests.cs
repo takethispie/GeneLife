@@ -88,7 +88,7 @@ public class CompanySagaTests
         // Arrange
         var company = TestDataBuilder.CreateCompany();
         var humanId = Guid.NewGuid();
-        var salary = 75000m;
+        var salary = 75000f;
 
         await using var provider = new ServiceCollection()
             .AddSingleton<CalculatePayroll>()
@@ -124,7 +124,7 @@ public class CompanySagaTests
         // Arrange
         var company = TestDataBuilder.CreateCompany();
         var humanId = Guid.NewGuid();
-        var productivityScore = 0.85m;
+        var productivityScore = 0.85f;
 
         await using var provider = new ServiceCollection()
             .AddSingleton<CalculatePayroll>()
@@ -215,10 +215,10 @@ public class CompanySagaTests
         await harness.Bus.Publish(new CreateCompany(id, company));
         await Task.Delay(100);
 
-        await harness.Bus.Publish(new EmployeeHired(id, humanId, 75000m));
+        await harness.Bus.Publish(new EmployeeHired(id, humanId, 75000f));
         await Task.Delay(100);
 
-        await harness.Bus.Publish(new EmployeeProductivityUpdated(id, humanId, 0.9m));
+        await harness.Bus.Publish(new EmployeeProductivityUpdated(id, humanId, 0.9f));
         await Task.Delay(100);
 
         await harness.Bus.Publish(new DayElapsed());

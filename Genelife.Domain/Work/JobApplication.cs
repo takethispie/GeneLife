@@ -5,9 +5,9 @@ public record JobApplication(
     Guid HumanId,
     DateTime ApplicationDate,
     ApplicationStatus Status,
-    decimal RequestedSalary,
+    float RequestedSalary,
     string CoverLetter,
     List<string> Skills,
     int YearsOfExperience,
-    decimal MatchScore = 0.0m
+    float MatchScore = 0.0f
 );

@@ -2,8 +2,8 @@ namespace Genelife.Domain.Work;
 
 public record Company(
     string Name,
-    decimal Revenue,
-    decimal TaxRate,
+    float Revenue,
+    float TaxRate,
     List<Guid> EmployeeIds,
     CompanyType Type,
     int MinEmployees = 5,

@@ -62,9 +62,7 @@ public class GenerateEmployment
             Guid.Empty,
             [],
             Status: EmploymentStatus.Unemployed,
-            IsActivelyJobSeeking: false,
-            LastJobSearchDate: null
-        );
+            LastJobSearchDate: null, IsActivelyJobSeeking: false);
     }
     
     private List<string> GenerateSkills(int experience)
@@ -108,37 +106,37 @@ public class GenerateEmployment
         return [.. skills.Distinct()];
     }
     
-    public decimal GenerateDesiredSalary(Employment employmentProfile, JobPosting jobPosting)
+    public float GenerateDesiredSalary(Employment employmentProfile, JobPosting jobPosting)
     {
         // Base salary expectation on experience and job level
-        var experienceMultiplier = 1.0m + (employmentProfile.YearsOfExperience * 0.05m); // 5% per year of experience
+        var experienceMultiplier = 1.0f + (employmentProfile.YearsOfExperience * 0.05); // 5% per year of experience
         
         var baseSalary = jobPosting.Level switch
         {
-            JobLevel.Entry => 30000m,
-            JobLevel.Junior => 40000m,
-            JobLevel.Mid => 55000m,
-            JobLevel.Senior => 75000m,
-            JobLevel.Lead => 90000m,
-            JobLevel.Manager => 100000m,
-            JobLevel.Director => 130000m,
-            JobLevel.Executive => 180000m,
-            _ => 40000m
+            JobLevel.Entry => 30000,
+            JobLevel.Junior => 40000,
+            JobLevel.Mid => 55000,
+            JobLevel.Senior => 75000,
+            JobLevel.Lead => 90000,
+            JobLevel.Manager => 100000,
+            JobLevel.Director => 130000,
+            JobLevel.Executive => 180000,
+            _ => 40000
         };
         
         var expectedSalary = baseSalary * experienceMultiplier;
         
         // Add some randomness (±20%)
-        var variation = (decimal)(random.NextDouble() * 0.4 + 0.8); // 0.8 to 1.2
+        var variation = random.NextSingle() * 0.4 + 0.8; // 0.8 to 1.2
         expectedSalary *= variation;
         
         // Ensure it's within a reasonable range of the job posting
-        var minAcceptable = jobPosting.SalaryMin * 0.8m;
-        var maxReasonable = jobPosting.SalaryMax * 1.3m;
+        var minAcceptable = jobPosting.SalaryMin * 0.8f;
+        var maxReasonable = jobPosting.SalaryMax * 1.3f;
         
         expectedSalary = Math.Max(minAcceptable, Math.Min(maxReasonable, expectedSalary));
         
-        return Math.Round(expectedSalary, 0);
+        return Convert.ToSingle(Math.Round(expectedSalary, 0));
     }
     
     public string GenerateCoverLetter(Human human, Employment employmentProfile, JobPosting jobPosting)
