@@ -13,6 +13,7 @@ using System.Reflection;
 using Automatonymous;
 using Genelife.Main.Usecases;
 using Genelife.Domain.Generators;
+using Genelife.Main.Sagas.States;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
@@ -46,6 +47,7 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
         .ConfigureServices((hostContext, services) => {
             services.AddSingleton<ClockService>();
             BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
+            BsonSerializer.RegisterSerializer(new ObjectSerializer(ObjectSerializer.AllAllowedTypes));
             services.AddMassTransit(x =>
             {
                 x.SetKebabCaseEndpointNameFormatter();

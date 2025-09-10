@@ -7,6 +7,7 @@ using Genelife.Domain.Commands.Company;
 using Genelife.Domain.Commands.Jobs;
 using Genelife.Main.Domain;
 using Genelife.Main.Sagas;
+using Genelife.Main.Sagas.States;
 using Genelife.Main.Usecases;
 using Genelife.Tests.TestData;
 using MassTransit;
@@ -27,7 +28,7 @@ public class CompanySagaTests
         await using var provider = new ServiceCollection()
             .AddSingleton<CalculatePayroll>()
             .AddSingleton<EvaluateHiring>()
-            .AddSingleton<UpdateProductivity>()
+            .AddSingleton<UpdateCompanyProductivity>()
             .AddSingleton<GenerateJobPosting>()
             .AddMassTransitTestHarness(cfg =>
             {
@@ -58,7 +59,7 @@ public class CompanySagaTests
         await using var provider = new ServiceCollection()
             .AddSingleton<CalculatePayroll>()
             .AddSingleton<EvaluateHiring>()
-            .AddSingleton<UpdateProductivity>()
+            .AddSingleton<UpdateCompanyProductivity>()
             .AddSingleton<GenerateJobPosting>()
             .AddMassTransitTestHarness(cfg =>
             {
@@ -93,7 +94,7 @@ public class CompanySagaTests
         await using var provider = new ServiceCollection()
             .AddSingleton<CalculatePayroll>()
             .AddSingleton<EvaluateHiring>()
-            .AddSingleton<UpdateProductivity>()
+            .AddSingleton<UpdateCompanyProductivity>()
             .AddSingleton<GenerateJobPosting>()
             .AddMassTransitTestHarness(cfg =>
             {
@@ -129,7 +130,7 @@ public class CompanySagaTests
         await using var provider = new ServiceCollection()
             .AddSingleton<CalculatePayroll>()
             .AddSingleton<EvaluateHiring>()
-            .AddSingleton<UpdateProductivity>()
+            .AddSingleton<UpdateCompanyProductivity>()
             .AddSingleton<GenerateJobPosting>()
             .AddMassTransitTestHarness(cfg =>
             {
@@ -164,7 +165,7 @@ public class CompanySagaTests
         await using var provider = new ServiceCollection()
             .AddSingleton<CalculatePayroll>()
             .AddSingleton<EvaluateHiring>()
-            .AddSingleton<UpdateProductivity>()
+            .AddSingleton<UpdateCompanyProductivity>()
             .AddSingleton<GenerateJobPosting>()
             .AddMassTransitTestHarness(cfg =>
             {
@@ -199,7 +200,7 @@ public class CompanySagaTests
         await using var provider = new ServiceCollection()
             .AddSingleton<CalculatePayroll>()
             .AddSingleton<EvaluateHiring>()
-            .AddSingleton<UpdateProductivity>()
+            .AddSingleton<UpdateCompanyProductivity>()
             .AddSingleton<GenerateJobPosting>()
             .AddMassTransitTestHarness(cfg =>
             {

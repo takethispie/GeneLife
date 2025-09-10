@@ -5,6 +5,7 @@ using Genelife.Domain.Events.Company;
 using Genelife.Domain.Commands.Jobs;
 using Genelife.Domain.Work;
 using Genelife.Main.Domain;
+using Genelife.Main.Sagas.States;
 using Genelife.Main.Usecases;
 using MassTransit;
 using Serilog;

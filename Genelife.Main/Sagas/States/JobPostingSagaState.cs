@@ -1,9 +1,8 @@
-using Genelife.Domain;
 using Genelife.Domain.Work;
 using Genelife.Main.Domain;
 using MassTransit;
 
-namespace Genelife.Main.Sagas;
+namespace Genelife.Main.Sagas.States;
 
 public class JobPostingSagaState : SagaStateMachineInstance, ISagaVersion
 {

@@ -12,30 +12,31 @@ using MassTransit;
 using Serilog;
 using Genelife.Domain.Generators;
 using Genelife.Domain.Work;
+using Genelife.Main.Sagas.States;
 
 namespace Genelife.Main.Sagas;
 
 public class HumanSaga : MassTransitStateMachine<HumanSagaState>
 {
-    public State Idle { get; set; } = null!;
-    public State Working { get; set; } = null;
-    public State Sleeping { get; set; } = null!;
-    public State Eating { get; set; } = null!;
-    public State Showering { get; set; } = null!;
+    public State? Idle { get; set; } = null!;
+    public State? Working { get; set; } = null;
+    public State? Sleeping { get; set; } = null!;
+    public State? Eating { get; set; } = null!;
+    public State? Showering { get; set; } = null!;
 
-    public Event<CreateHuman> Created { get; set; } = null;
-    public Event<Tick> UpdateTick { get; set; } = null;
-    public Event<DayElapsed> DayElapsed { get; set; } = null;
-    public Event<HourElapsed> HourElapsed { get; set; } = null;
-    public Event<SalaryPaid> SalaryPaid { get; set; } = null;
-    public Event<CreateJobPosting> JobPostingCreated { get; set; } = null;
-    public Event<EmployeeHired> EmployeeHired { get; set; } = null;
-    public Event<ApplicationStatusChanged> ApplicationStatusChanged { get; set; } = null;
-    public Event<SetHunger> SetHunger { get; set; } = null;
-    public Event<SetAge> SetAge { get; set; } = null;
-    public Event<SetEnergy> SetEnergy { get; set; } = null;
-    public Event<SetHygiene> SetHygiene { get; set; } = null;
-    public Event<SetMoney>  SetMoney { get; set; } = null;
+    public Event<CreateHuman>? Created { get; set; } = null;
+    public Event<Tick>? UpdateTick { get; set; } = null;
+    public Event<DayElapsed>? DayElapsed { get; set; } = null;
+    public Event<HourElapsed>? HourElapsed { get; set; } = null;
+    public Event<SalaryPaid>? SalaryPaid { get; set; } = null;
+    public Event<CreateJobPosting>? JobPostingCreated { get; set; } = null;
+    public Event<EmployeeHired>? EmployeeHired { get; set; } = null;
+    public Event<ApplicationStatusChanged>? ApplicationStatusChanged { get; set; } = null;
+    public Event<SetHunger>? SetHunger { get; set; } = null;
+    public Event<SetAge>? SetAge { get; set; } = null;
+    public Event<SetEnergy>? SetEnergy { get; set; } = null;
+    public Event<SetHygiene>? SetHygiene { get; set; } = null;
+    public Event<SetMoney>?  SetMoney { get; set; } = null;
     public Event<SetActivelySeekingJob> SetActivelySeekingJob { get; set; } = null!;
 
     public HumanSaga()
@@ -140,7 +141,8 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                 Log.Information($"{bc.Saga.CorrelationId} " +
                                 $"needs: {bc.Saga.Human.Hunger} hunger " +
                                 $"and {bc.Saga.Human.Energy} energy " +
-                                $"and {bc.Saga.Human.Hygiene} hygiene "
+                                $"and {bc.Saga.Human.Hygiene} hygiene " +
+                                $"and {bc.Saga.Human.Money} money "
                 );
                 if (bc.Saga.Employment?.Status != EmploymentStatus.Unemployed) return;
                 //don't always go straight to jobseeking when unemployed
@@ -165,18 +167,17 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                 };
                 if (activity is null) bc.Saga.Activity = null;
                 else {
-                    bc.Saga.Activity = activity.ToEnum();
-                    bc.Saga.ActivityTickDuration = activity.TickDuration;
+                    bc.Saga.Activity = activity;
                     bc.Saga.Human = activity.Apply(bc.Saga.Human);
                 }
                 bc.TransitionToState(state);
             })
         );
         
-        During(Eating, Sleeping, Showering,
+        During(Eating, Sleeping, Showering, Working,
             When(UpdateTick).Then(bc => {
-                if (bc.Saga.ActivityTickDuration >= 0) {
-                    bc.Saga.ActivityTickDuration -= 1;
+                if (bc.Saga.Activity?.TickDuration > 0) {
+                    bc.Saga.Activity.TickDuration -= 1;
                     return;
                 }
                 Log.Information($"{bc.Saga.CorrelationId} has finished {bc.Saga.CurrentState}");

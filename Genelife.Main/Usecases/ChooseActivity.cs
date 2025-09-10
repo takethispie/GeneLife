@@ -5,7 +5,7 @@ using Genelife.Main.Domain.Activities;
 namespace Genelife.Main.Usecases;
 
 public class ChooseActivity {
-    public ILivingActivity Execute(Human human, int hour) {
+    public ILivingActivity? Execute(Human human, int hour) {
         List<(float val, string name)> actions = [];
         if (hour is >= 22 or <= 1 && human.Energy < 25) 
             actions.Add((human.Energy, "Energy"));
@@ -24,7 +24,7 @@ public class ChooseActivity {
         };
     }
     
-    public ILivingActivity Execute(Human human, int hour, float salary) {
+    public ILivingActivity? Execute(Human human, int hour, float salary) {
         List<(float val, string name)> actions = [];
         if (hour is >= 22 or <= 1 && human.Energy < 25) 
             actions.Add((human.Energy, "Energy"));

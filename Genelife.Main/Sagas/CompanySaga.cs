@@ -4,6 +4,7 @@ using Genelife.Domain.Events.Company;
 using Genelife.Domain.Commands.Company;
 using Genelife.Domain.Commands.Jobs;
 using Genelife.Domain.Work;
+using Genelife.Main.Sagas.States;
 using Genelife.Main.Usecases;
 using MassTransit;
 using Serilog;
@@ -21,8 +22,6 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
     public Event<DayElapsed> DayElapsed { get; set; } = null!;
     public Event<EmployeeHired> EmployeeHired { get; set; } = null!;
     public Event<StartHiring> StartHiring { get; set; } = null!;
-    
-    private readonly Random random = new();
 
     public CompanySaga()
     {
@@ -66,7 +65,7 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
                     }
 
                     // Daily work progress update
-                    var (averageProductivity, revenueChange) = new UpdateProductivity().Execute(context.Saga.Company, context.Saga.Employees);
+                    var (averageProductivity, revenueChange) = new UpdateCompanyProductivity().Execute(context.Saga.Company, context.Saga.Employees);
                     context.Saga.AverageProductivity = averageProductivity;
 
                     // Update company revenue
@@ -202,11 +201,11 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
                     for (var i = 0; i < context.Saga.Employees.Count; i++)
                     {
                         if (context.Saga.Employees[i].Status == EmploymentStatus.Active)
-                            context.Saga.Employees[i] = new UpdateProductivity().UpdateEmployeeProductivity(context.Saga.Employees[i], random);
+                            context.Saga.Employees[i] = new UpdateEmployeeProductivity().Execute(context.Saga.Employees[i], new Random());
                     }
 
                     // Calculate overall productivity and revenue impact
-                    var (averageProductivity, revenueChange) = new UpdateProductivity().Execute(context.Saga.Company, context.Saga.Employees);
+                    var (averageProductivity, revenueChange) = new UpdateCompanyProductivity().Execute(context.Saga.Company, context.Saga.Employees);
                     context.Saga.AverageProductivity = averageProductivity;
 
                     // Update company revenue
