@@ -6,7 +6,6 @@ public record JobApplication(
     DateTime ApplicationDate,
     ApplicationStatus Status,
     float RequestedSalary,
-    string CoverLetter,
     List<string> Skills,
     int YearsOfExperience,
     float MatchScore = 0.0f

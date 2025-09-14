@@ -133,7 +133,7 @@ app.MapPost("/create/company/{type}", async (CompanyType type, [FromServices] IP
 
 app.MapPost("/create/jobposting", async ([FromBody] JobPosting request, [FromServices] IPublishEndpoint endpoint) => {
     var id = Guid.NewGuid();
-    await endpoint.Publish(new CreateJobPosting(id, request.CompanyId, request));
+    await endpoint.Publish(new CreateJobPosting(id, request));
     return Results.Ok("Job posting created");
 })
 .WithName("create Job Posting")

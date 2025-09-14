@@ -82,10 +82,8 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                     ApplicationDate: DateTime.UtcNow,
                     Status: ApplicationStatus.Submitted,
                     RequestedSalary: desiredSalary,
-                    CoverLetter: "",
                     Skills: bc.Saga.Employment.Skills,
-                    YearsOfExperience: bc.Saga.Employment.YearsOfExperience,
-                    MatchScore: 0f
+                    YearsOfExperience: bc.Saga.Employment.YearsOfExperience
                 );
                 
                 var matchScore = new CalculateMatchScore().Execute(jobPosting, tempApplication);
@@ -93,11 +91,8 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                 
                 bc.Publish(new JobApplicationSubmitted(
                     bc.Message.CorrelationId,
-                    bc.Saga.CorrelationId,
                     tempApplication with { MatchScore = matchScore }
                 ));
-                
-                bc.Saga.Employment.SentApplicationCompanies.Add(jobPosting.CompanyId);
                 
                 // Update last job search date
                 bc.Saga.Employment = bc.Saga.Employment with { LastJobSearchDate = DateTime.UtcNow };
@@ -106,19 +101,14 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             }),
             
             When(EmployeeHired).Then(bc => {
-                if (bc.Saga.Employment.Status is EmploymentStatus.Active 
-                    && bc.Saga.Employment.CurrentEmployerId != Guid.Empty) return;
+                if (bc.Saga.Employment is { Status: EmploymentStatus.Active } or null) return;
                 
-                bc.Saga.Employment.SentApplicationCompanies.ForEach(companyId => {
-                    bc.Publish(new RemoveApplication(bc.Saga.CorrelationId, companyId));
-                });
                 bc.Saga.Employment = bc.Saga.Employment with
                 {
                     Status = EmploymentStatus.Active,
                     CurrentEmployerId = bc.Message.CompanyId,
                     CurrentSalary = bc.Message.Salary,
-                    IsActivelyJobSeeking = false,
-                    SentApplicationCompanies = []
+                    IsActivelyJobSeeking = false
                 };
                 Log.Information($"{bc.Saga.Human.FirstName} {bc.Saga.Human.LastName} was hired by company {bc.Message.CompanyId} " +
                     $"with salary {bc.Message.Salary:C}");
@@ -127,6 +117,8 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             When(ApplicationStatusChanged).Then(bc => {
                 var status = bc.Message.Status;
                 Log.Information($"{bc.Saga.Human.FirstName} {bc.Saga.Human.LastName} application status changed to {status}");
+                if (status == ApplicationStatus.Submitted) return;
+                if (bc.Saga.Employment is null) return;
                 bc.Saga.Employment = bc.Saga.Employment with { IsActivelyJobSeeking = true };
             }),
             When(SetAge).Then(bc => bc.Saga.Human = new ChangeBirthday().Execute(bc.Saga.Human, bc.Message.Value)),
@@ -154,8 +146,8 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         
         During(Idle, 
             When(UpdateTick).Then(bc => {
-                
-                var activity = bc.Saga.Employment.CurrentSalary.HasValue ?
+                var isEmployed = bc.Saga.Employment is { CurrentSalary: not null };
+                var activity = isEmployed ?
                     new ChooseActivity().Execute(bc.Saga.Human, bc.Message.Hour, bc.Saga.Employment.CurrentSalary.Value)
                     : new ChooseActivity().Execute(bc.Saga.Human, bc.Message.Hour);
                 var state = activity switch {

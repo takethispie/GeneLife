@@ -11,8 +11,5 @@ public class JobPostingSagaState : SagaStateMachineInstance, ISagaVersion
     public List<IdentifiedJobApplication> Applications { get; set; } = [];
     public string CurrentState { get; set; } = null!;
     public int Version { get; set; }
-    public DateTime CreatedDate { get; set; }
     public int DaysActive { get; set; }
-    public int ApplicationsReceived { get; set; }
-    public Guid SelectedApplicationId { get; set; }
 }

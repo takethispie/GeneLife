@@ -66,14 +66,4 @@ public class JobApplicationTests
         // Assert
         application.MatchScore.Should().Be(score);
     }
-
-    [Fact]
-    public void JobApplication_ShouldAllowEmptyCoverLetter()
-    {
-        // Arrange & Act
-        var application = TestDataBuilder.CreateJobApplication(coverLetter: "");
-
-        // Assert
-        application.CoverLetter.Should().BeEmpty();
-    }
 }

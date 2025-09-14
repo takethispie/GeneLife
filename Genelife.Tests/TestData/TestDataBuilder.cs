@@ -53,15 +53,10 @@ public static class TestDataBuilder
     public static JobPosting CreateJobPosting(
         Guid? companyId = null,
         string? title = null,
-        string? description = null,
-        List<string>? requirements = null,
         float? salaryMin = null,
         float? salaryMax = null,
         JobLevel? level = null,
         CompanyType? industry = null,
-        DateTime? postedDate = null,
-        DateTime? expiryDate = null,
-        JobPostingStatus? status = null,
         int? maxApplications = null)
     {
         var minSalary = salaryMin ?? Faker.Random.Float(30000, 80000);
@@ -70,15 +65,10 @@ public static class TestDataBuilder
         return new JobPosting(
             companyId ?? Guid.NewGuid(),
             title ?? Faker.Name.JobTitle(),
-            description ?? Faker.Lorem.Paragraph(),
-            requirements ?? Faker.Make(3, () => Faker.Hacker.Noun()).ToList(),
             minSalary,
             maxSalary,
-            level ?? Faker.PickRandom<JobLevel>(),
             industry ?? Faker.PickRandom<CompanyType>(),
-            postedDate ?? Faker.Date.Recent(30),
-            expiryDate,
-            status ?? JobPostingStatus.Active,
+            level ?? Faker.PickRandom<JobLevel>(),
             maxApplications ?? Faker.Random.Int(50, 200)
         );
     }
@@ -89,7 +79,6 @@ public static class TestDataBuilder
         DateTime? applicationDate = null,
         ApplicationStatus? status = null,
         float? requestedSalary = null,
-        string? coverLetter = null,
         List<string>? skills = null,
         int? yearsOfExperience = null,
         float? matchScore = null)
@@ -100,7 +89,6 @@ public static class TestDataBuilder
             applicationDate ?? Faker.Date.Recent(7),
             status ?? ApplicationStatus.Submitted,
             requestedSalary ?? Faker.Random.Float(40000, 120000),
-            coverLetter ?? Faker.Lorem.Paragraph(),
             skills ?? Faker.Make(5, () => Faker.Hacker.Noun()).ToList(),
             yearsOfExperience ?? Faker.Random.Int(0, 20),
             matchScore ?? Faker.Random.Float(0, 1)
@@ -138,7 +126,6 @@ public static class TestDataBuilder
             skills ?? Faker.Make(5, () => Faker.Hacker.Noun()).ToList(),
             yearsOfExperience ?? Faker.Random.Int(0, 20),
             currentEmployerId,
-            [],
             currentSalary,
             employmentStatus ?? EmploymentStatus.Unemployed,
             lastJobSearchDate,

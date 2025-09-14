@@ -41,62 +41,20 @@ public class GenerateJobPosting
         }
     };
     
-    private static readonly Dictionary<CompanyType, List<string>> SkillsByType = new()
-    {
-        [CompanyType.Technology] = new List<string>
-        {
-            "C#", "JavaScript", "Python", "React", "Angular", "Docker", "Kubernetes",
-            "AWS", "Azure", "SQL", "NoSQL", "Git", "Agile", "Scrum", "REST APIs",
-            "Microservices", "CI/CD", "Unit Testing", "Problem Solving", "Communication"
-        },
-        [CompanyType.Manufacturing] = new List<string>
-        {
-            "Lean Manufacturing", "Six Sigma", "Quality Control", "Safety Protocols",
-            "Equipment Maintenance", "Process Improvement", "Inventory Management",
-            "CAD Software", "Statistical Analysis", "Team Leadership", "Problem Solving"
-        },
-        [CompanyType.Services] = new List<string>
-        {
-            "Project Management", "Client Relations", "Business Analysis", "Excel",
-            "PowerPoint", "CRM Software", "Data Analysis", "Communication", "Negotiation",
-            "Strategic Planning", "Process Improvement", "Team Leadership"
-        },
-        [CompanyType.Retail] = new List<string>
-        {
-            "Customer Service", "Sales", "Inventory Management", "POS Systems",
-            "Visual Merchandising", "Cash Handling", "Team Leadership", "Communication",
-            "Problem Solving", "Retail Software", "Loss Prevention"
-        },
-        [CompanyType.Healthcare] = new List<string>
-        {
-            "Patient Care", "Medical Terminology", "HIPAA Compliance", "Electronic Health Records",
-            "Clinical Skills", "Communication", "Attention to Detail", "Empathy",
-            "Medical Equipment", "Documentation", "Team Collaboration"
-        }
-    };
-    
     public JobPosting GenerateForCompany(Guid companyId, CompanyType companyType, JobLevel level, int positionsNeeded)
     {
         var titles = JobTitlesByType.GetValueOrDefault(companyType, JobTitlesByType[CompanyType.Services]);
-        var skills = SkillsByType.GetValueOrDefault(companyType, SkillsByType[CompanyType.Services]);
-        
         var title = titles[random.Next(titles.Count)];
         var description = GenerateJobDescription(title, companyType, level);
-        var requirements = GenerateRequirements(skills, level);
         var (salaryMin, salaryMax) = GenerateSalaryRange(companyType, level);
         
         return new JobPosting(
             CompanyId: companyId,
             Title: title,
-            Description: description,
-            Requirements: requirements,
             SalaryMin: salaryMin,
             SalaryMax: salaryMax,
+            CompanyType: companyType,
             Level: level,
-            Industry: companyType,
-            PostedDate: DateTime.UtcNow,
-            ExpiryDate: DateTime.UtcNow.AddDays(30),
-            Status: JobPostingStatus.Active,
             MaxApplications: Math.Min(100, positionsNeeded * 20) // 20 applications per position
         );
     }
