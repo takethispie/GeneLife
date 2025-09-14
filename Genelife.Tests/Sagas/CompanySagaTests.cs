@@ -22,7 +22,6 @@ public class CompanySagaTests
     [Fact]
     public async Task CompanyCreated_ShouldInitializeSagaState()
     {
-        // Arrange
         var company = TestDataBuilder.CreateCompany();
 
         await using var provider = new ServiceCollection()
@@ -41,10 +40,7 @@ public class CompanySagaTests
 
         var sagaHarness = harness.GetSagaStateMachineHarness<CompanySaga, CompanySagaState>();
         var id = Guid.NewGuid();
-        // Act
         await harness.Bus.Publish(new CreateCompany(id, company));
-
-        // Assert
         (await harness.Consumed.Any<CreateCompany>()).Should().BeTrue();
         (await sagaHarness.Consumed.Any<CreateCompany>()).Should().BeTrue();
         (await sagaHarness.Created.Any()).Should().BeTrue();
@@ -53,7 +49,6 @@ public class CompanySagaTests
     [Fact]
     public async Task DayElapsed_ShouldBeConsumed()
     {
-        // Arrange
         var company = TestDataBuilder.CreateCompany();
 
         await using var provider = new ServiceCollection()
@@ -72,21 +67,17 @@ public class CompanySagaTests
 
         var sagaHarness = harness.GetSagaStateMachineHarness<CompanySaga, CompanySagaState>();
         var id = Guid.NewGuid();
-        // Create the saga first
         await harness.Bus.Publish(new CreateCompany(id, company));
-        await Task.Delay(100); // Wait for saga creation
+        await Task.Delay(100); 
 
-        // Act
         await harness.Bus.Publish(new DayElapsed());
 
-        // Assert
         (await harness.Consumed.Any<DayElapsed>()).Should().BeTrue();
     }
 
     [Fact]
     public async Task HireEmployee_ShouldBeConsumed()
     {
-        // Arrange
         var company = TestDataBuilder.CreateCompany();
         var humanId = Guid.NewGuid();
         var salary = 75000f;
@@ -107,14 +98,11 @@ public class CompanySagaTests
 
         var sagaHarness = harness.GetSagaStateMachineHarness<CompanySaga, CompanySagaState>();
         var id = Guid.NewGuid();
-        // Create the saga first
         await harness.Bus.Publish(new CreateCompany(id, company));
-        await Task.Delay(100); // Wait for saga creation
+        await Task.Delay(100);
 
-        // Act
         await harness.Bus.Publish(new EmployeeHired(id, humanId, salary));
 
-        // Assert
         (await harness.Consumed.Any<EmployeeHired>()).Should().BeTrue();
         (await sagaHarness.Consumed.Any<EmployeeHired>()).Should().BeTrue();
     }
@@ -122,7 +110,6 @@ public class CompanySagaTests
     [Fact]
     public async Task EmployeeProductivityUpdated_ShouldBeConsumed()
     {
-        // Arrange
         var company = TestDataBuilder.CreateCompany();
         var humanId = Guid.NewGuid();
         var productivityScore = 0.85f;
@@ -143,14 +130,11 @@ public class CompanySagaTests
 
         var sagaHarness = harness.GetSagaStateMachineHarness<CompanySaga, CompanySagaState>();
         var id = Guid.NewGuid();
-        // Create the saga first
         await harness.Bus.Publish(new CreateCompany(id, company));
-        await Task.Delay(100); // Wait for saga creation
+        await Task.Delay(100);
 
-        // Act
         await harness.Bus.Publish(new EmployeeProductivityUpdated(id, humanId, productivityScore));
 
-        // Assert
         (await harness.Consumed.Any<EmployeeProductivityUpdated>()).Should().BeTrue();
         (await sagaHarness.Consumed.Any<EmployeeProductivityUpdated>()).Should().BeTrue();
     }
@@ -158,7 +142,6 @@ public class CompanySagaTests
     [Fact]
     public async Task StartHiring_ShouldBeConsumed()
     {
-        // Arrange
         var company = TestDataBuilder.CreateCompany();
         var positionsNeeded = 3;
 
@@ -178,14 +161,11 @@ public class CompanySagaTests
 
         var sagaHarness = harness.GetSagaStateMachineHarness<CompanySaga, CompanySagaState>();
         var id = Guid.NewGuid();
-        // Create the saga first
         await harness.Bus.Publish(new CreateCompany(id, company));
-        await Task.Delay(100); // Wait for saga creation
+        await Task.Delay(100);
 
-        // Act
         await harness.Bus.Publish(new StartHiring(id, positionsNeeded));
 
-        // Assert
         (await harness.Consumed.Any<StartHiring>()).Should().BeTrue();
         (await sagaHarness.Consumed.Any<StartHiring>()).Should().BeTrue();
     }
@@ -193,7 +173,6 @@ public class CompanySagaTests
     [Fact]
     public async Task MultipleEvents_ShouldBeHandledInSequence()
     {
-        // Arrange
         var company = TestDataBuilder.CreateCompany();
         var humanId = Guid.NewGuid();
 
@@ -212,7 +191,7 @@ public class CompanySagaTests
         await harness.Start();
 
         var sagaHarness = harness.GetSagaStateMachineHarness<CompanySaga, CompanySagaState>();
-        var id = Guid.NewGuid();        // Act
+        var id = Guid.NewGuid();
         await harness.Bus.Publish(new CreateCompany(id, company));
         await Task.Delay(100);
 
@@ -224,7 +203,6 @@ public class CompanySagaTests
 
         await harness.Bus.Publish(new DayElapsed());
 
-        // Assert
         (await harness.Consumed.Any<CreateCompany>()).Should().BeTrue();
         (await harness.Consumed.Any<EmployeeHired>()).Should().BeTrue();
         (await harness.Consumed.Any<EmployeeProductivityUpdated>()).Should().BeTrue();

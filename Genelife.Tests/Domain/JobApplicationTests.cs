@@ -29,13 +29,8 @@ public class JobApplicationTests
     [Fact]
     public void JobApplication_ShouldAllowMultipleSkills()
     {
-        // Arrange
         var skills = new List<string> { "C#", ".NET", "SQL", "Azure", "Docker", "Kubernetes" };
-
-        // Act
         var application = TestDataBuilder.CreateJobApplication(skills: skills);
-
-        // Assert
         application.Skills.Should().HaveCount(6);
         application.Skills.Should().BeEquivalentTo(skills);
     }
@@ -47,10 +42,7 @@ public class JobApplicationTests
     [InlineData(40)]
     public void JobApplication_ShouldAcceptValidYearsOfExperience(int years)
     {
-        // Arrange & Act
         var application = TestDataBuilder.CreateJobApplication(yearsOfExperience: years);
-
-        // Assert
         application.YearsOfExperience.Should().Be(years);
     }
 
@@ -60,10 +52,7 @@ public class JobApplicationTests
     [InlineData(1.0)]
     public void JobApplication_ShouldAcceptValidMatchScores(float score)
     {
-        // Arrange & Act
         var application = TestDataBuilder.CreateJobApplication(matchScore: score);
-
-        // Assert
         application.MatchScore.Should().Be(score);
     }
 }

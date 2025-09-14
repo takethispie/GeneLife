@@ -97,7 +97,6 @@ public static class TestDataBuilder
 
     public static Employee CreateEmployee(
         Guid? humanId = null,
-        Guid? companyId = null,
         float? salary = null,
         DateTime? hireDate = null,
         EmploymentStatus? status = null,
@@ -105,7 +104,6 @@ public static class TestDataBuilder
     {
         return new Employee(
             humanId ?? Guid.NewGuid(),
-            companyId ?? Guid.NewGuid(),
             salary ?? Faker.Random.Float(30000, 150000),
             hireDate ?? Faker.Date.Past(5),
             status ?? EmploymentStatus.Active,

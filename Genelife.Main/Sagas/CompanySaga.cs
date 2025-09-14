@@ -110,7 +110,6 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
                 {
                     var employment = new Employee(
                         context.Message.HumanId,
-                        context.Message.CompanyId,
                         context.Message.Salary,
                         DateTime.UtcNow,
                         EmploymentStatus.Active

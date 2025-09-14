@@ -10,14 +10,9 @@ public class EmploymentTests
     [Fact]
     public void Employment_ShouldCreateWithDefaults()
     {
-        // Arrange
         var skills = new List<string> { "C#", ".NET" };
         var yearsOfExperience = 3;
-
-        // Act
         var employment = new Employment(skills, yearsOfExperience, Guid.Empty);
-
-        // Assert
         employment.Skills.Should().BeEquivalentTo(skills);
         employment.YearsOfExperience.Should().Be(yearsOfExperience);
         employment.CurrentEmployerId.Should().BeEmpty();
@@ -30,10 +25,7 @@ public class EmploymentTests
     [Fact]
     public void Employment_ShouldAllowEmptySkills()
     {
-        // Arrange & Act
         var employment = TestDataBuilder.CreateEmployment([], 0, Guid.Empty);
-
-        // Assert
         employment.Skills.Should().BeEmpty();
     }
 
@@ -44,17 +36,13 @@ public class EmploymentTests
     [InlineData(40)]
     public void Employment_ShouldAcceptValidYearsOfExperience(int years)
     {
-        // Arrange & Act
         var employment = TestDataBuilder.CreateEmployment([], years, Guid.Empty);
-
-        // Assert
         employment.YearsOfExperience.Should().Be(years);
     }
 
     [Fact]
     public void Employment_ShouldAllowNullOptionalFields()
     {
-        // Arrange & Act
         var employment = TestDataBuilder.CreateEmployment(
             [],
             0,
@@ -62,7 +50,6 @@ public class EmploymentTests
             currentSalary: null,
             lastJobSearchDate: null);
 
-        // Assert
         employment.CurrentEmployerId.Should().BeEmpty();
         employment.CurrentSalary.Should().BeNull();
         employment.LastJobSearchDate.Should().BeNull();
