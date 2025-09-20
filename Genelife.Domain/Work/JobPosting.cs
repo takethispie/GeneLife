@@ -1,3 +1,5 @@
+using Genelife.Domain.Work.Skills;
+
 namespace Genelife.Domain.Work;
 
 public record JobPosting(
@@ -7,5 +9,6 @@ public record JobPosting(
     float SalaryMax,
     CompanyType CompanyType,
     JobLevel Level,
+    SkillSet RequiredSkillSet,
     int MaxApplications = 50
 );

@@ -1,5 +1,6 @@
 using Genelife.Domain;
 using Genelife.Domain.Work;
+using Genelife.Domain.Work.Skills;
 
 namespace Genelife.Main.Usecases;
 
@@ -45,7 +46,6 @@ public class GenerateJobPosting
     {
         var titles = JobTitlesByType.GetValueOrDefault(companyType, JobTitlesByType[CompanyType.Services]);
         var title = titles[random.Next(titles.Count)];
-        var description = GenerateJobDescription(title, companyType, level);
         var (salaryMin, salaryMax) = GenerateSalaryRange(companyType, level);
         
         return new JobPosting(
@@ -55,60 +55,10 @@ public class GenerateJobPosting
             SalaryMax: salaryMax,
             CompanyType: companyType,
             Level: level,
-            MaxApplications: Math.Min(100, positionsNeeded * 20) // 20 applications per position
+            // TODO add real skillset requirements
+            new SkillSet(),
+            MaxApplications: Math.Min(100, positionsNeeded * 20)
         );
-    }
-    
-    private string GenerateJobDescription(string title, CompanyType companyType, JobLevel level)
-    {
-        var experienceText = level switch
-        {
-            JobLevel.Entry => "entry-level position perfect for recent graduates",
-            JobLevel.Junior => "junior role requiring 1-3 years of experience",
-            JobLevel.Mid => "mid-level position requiring 3-6 years of experience",
-            JobLevel.Senior => "senior role requiring 6+ years of experience",
-            JobLevel.Lead => "leadership position requiring 8+ years of experience",
-            JobLevel.Manager => "management role requiring 10+ years of experience",
-            JobLevel.Director => "director-level position requiring 12+ years of experience",
-            JobLevel.Executive => "executive position requiring 15+ years of experience",
-            _ => "position"
-        };
-        
-        var industryContext = companyType switch
-        {
-            CompanyType.Technology => "innovative technology company",
-            CompanyType.Manufacturing => "established manufacturing organization",
-            CompanyType.Services => "professional services firm",
-            CompanyType.Retail => "dynamic retail environment",
-            CompanyType.Healthcare => "healthcare organization",
-            _ => "growing company"
-        };
-        
-        return $"We are seeking a talented {title} to join our {industryContext}. " +
-               $"This is an {experienceText} offering excellent growth opportunities, " +
-               $"competitive compensation, and a collaborative work environment. " +
-               $"The successful candidate will contribute to our team's success and help drive our mission forward.";
-    }
-    
-    private List<string> GenerateRequirements(List<string> availableSkills, JobLevel level)
-    {
-        var numRequirements = level switch
-        {
-            JobLevel.Entry => random.Next(1, 3),
-            JobLevel.Junior => random.Next(3, 6),
-            JobLevel.Mid => random.Next(6, 8),
-            JobLevel.Senior => random.Next(8, 10),
-            JobLevel.Lead => random.Next(10, 12),
-            JobLevel.Manager => random.Next(6, 9),
-            JobLevel.Director => random.Next(5, 8),
-            JobLevel.Executive => random.Next(4, 7),
-            _ => 5
-        };
-        
-        return availableSkills
-            .OrderBy(x => random.Next())
-            .Take(numRequirements)
-            .ToList();
     }
     
     private (float min, float max) GenerateSalaryRange(CompanyType companyType, JobLevel level)

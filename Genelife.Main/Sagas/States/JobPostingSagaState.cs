@@ -8,7 +8,7 @@ public class JobPostingSagaState : SagaStateMachineInstance, ISagaVersion
 {
     public Guid CorrelationId { get; set; }
     public JobPosting JobPosting { get; set; } = null!;
-    public List<IdentifiedJobApplication> Applications { get; set; } = [];
+    public List<JobApplication> Applications { get; set; } = [];
     public string CurrentState { get; set; } = null!;
     public int Version { get; set; }
     public int DaysActive { get; set; }

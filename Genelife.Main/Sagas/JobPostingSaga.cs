@@ -16,6 +16,7 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
 {
     public State Active { get; set; } = null!;
     public State ReviewingApplications { get; set; } = null!;
+    public State AwaitingAnswer { get; set; } = null!;
     public State Filled { get; set; } = null!;
     public State Expired { get; set; } = null!;
 
@@ -23,19 +24,21 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
     public Event<JobApplicationSubmitted> ApplicationSubmitted { get; set; } = null!;
     public Event<DayElapsed> DayElapsed { get; set; } = null!;
     public Event<RemoveApplication> RemoveApplication { get; set; } = null!;
+    public Event<RecruitmentAccepted>  RecruitmentAccepted { get; set; } = null!;
+    public Event<RecruitmentRefused> RecruitmentRefused { get; set; } = null!;
 
     public JobPostingSaga()
     {
         InstanceState(x => x.CurrentState);
 
         Initially(
-            When(Created)
-                .Then(context => {
-                    context.Saga.JobPosting = context.Message.JobPosting;
-                    context.Saga.DaysActive = 0;
-                    Log.Information($"Job posting created: {context.Saga.JobPosting.Title} at {context.Saga.JobPosting.CompanyId}");
-                })
-                .TransitionTo(Active)
+        When(Created)
+            .Then(context => {
+                context.Saga.JobPosting = context.Message.JobPosting;
+                context.Saga.DaysActive = 0;
+                Log.Information($"Job posting created: {context.Saga.JobPosting.Title} at {context.Saga.JobPosting.CompanyId}");
+            })
+            .TransitionTo(Active)
         );
 
         // Configure event correlations
@@ -44,98 +47,91 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
         Event(() => RemoveApplication, e => e.CorrelateBy(saga => saga.JobPosting.CompanyId.ToString(), ctx => ctx.Message.CompanyId.ToString()));
         
         During(Active,
-            When(DayElapsed)
-                .Then(context =>
-                {
-                    context.Saga.DaysActive++;
-                    if (context.Saga.DaysActive > 5)
-                    {
-                        Log.Information($"Job posting: {context.Saga.JobPosting.Title} ended, reviewing applications");
-                        context.TransitionToState(ReviewingApplications);
-                        return;
-                    }
-                    
-                    context.TransitionToState(Active);
-                }),
+        When(DayElapsed)
+            .Then(context =>
+            {
+                context.Saga.DaysActive++;
+                if (context.Saga.DaysActive <= 5) return;
+                Log.Information($"Job posting: {context.Saga.JobPosting.Title} ended, reviewing applications");
+                context.TransitionToState(ReviewingApplications);
+            }).TransitionTo(Active),
 
-            When(ApplicationSubmitted)
-                .Then(context =>
-                {
-                    var application = context.Message.Application;
-                    var matchScore = new CalculateMatchScore().Execute(context.Saga.JobPosting, application);
-                    var updatedApplication = application with { MatchScore = matchScore };
-                    context.Saga.Applications.Add(new IdentifiedJobApplication(context.Message.CorrelationId, updatedApplication));
-                    Log.Information($"Application received for {context.Saga.JobPosting.Title} from {context.Message.Application.HumanId} (Match: {matchScore:F2})");
-                }),
+            When(ApplicationSubmitted).Then(context => {
+                var application = context.Message.Application;
+                var matchScore = new CalculateMatchScore().Execute(context.Saga.JobPosting, application);
+                context.Saga.Applications.Add(application with { MatchScore = matchScore });
+                Log.Information($"Application received for {context.Saga.JobPosting.Title} from {context.Message.Application.HumanId} (Match: {matchScore:F2})");
+            }).TransitionTo(Active),
             
             When(RemoveApplication).Then(bc => {
                 var id = bc.Message.CorrelationId;
-                bc.Saga.Applications = bc.Saga.Applications.Where(x => x.Id != id).ToList();
-                Log.Information($"{id} removed from application {bc.Saga.CorrelationId} after being hired elsewhere");
-            })
+                bc.Saga.Applications = bc.Saga.Applications.Where(x => x.HumanId != id).ToList();
+                Log.Information($"{id} removed from application {bc.Saga.CorrelationId}");
+            }).TransitionTo(Active)
         );
 
         During(ReviewingApplications,
-            When(DayElapsed)
-                .Then(context =>
-                {
-                    var pendingApplications = context.Saga.Applications
-                        .Where(a => a.Data.Status is ApplicationStatus.Submitted or ApplicationStatus.UnderReview)
-                        .ToList();
-                    
-                    if (pendingApplications.Count == 0)
-                    {
-                        context.TransitionToState(Filled);
-                        return;
-                    }
-                    
-                    IdentifiedJobApplication[] rankedApplications = [.. pendingApplications
-                        .OrderByDescending(app => app.Data.MatchScore)
-                        .ThenByDescending(app => app.Data.YearsOfExperience)
-                        .ThenBy(app => app.Data.RequestedSalary)];
-                    var topApplication = rankedApplications.FirstOrDefault();
-                    if (topApplication is { Data.MatchScore: >= 0.6f })
-                    {
-                        // Auto-accept top candidate if match score is high enough
-                        var salary = new CalculateOfferSalary().Execute(context.Saga.JobPosting, topApplication.Data);
-                        
-                        Log.Information($"Auto-accepting top candidate for {context.Saga.JobPosting.Title}: " +
-                                        $"{topApplication.Data.HumanId} (Score: {topApplication.Data.MatchScore:F2})");
-                        
-                        context.Publish(new EmployeeHired(
-                            context.Saga.JobPosting.CompanyId,
-                            topApplication.Data.HumanId,
-                            salary
-                        ));
-                        
-                        Log.Information($"Job filled: {context.Saga.JobPosting.Title} - Hired {topApplication.Data.HumanId} for {salary:C}");
-                        context.Saga.Applications = context.Saga.Applications.Where(a => a.Data.HumanId != topApplication.Data.HumanId).ToList();
-                        context.TransitionToState(Filled);
-                    }
-                    context.TransitionToState(Active);
-                }),
+            When(DayElapsed) .Then(context => {
+                if (context.Saga.DaysActive > 10) context.TransitionToState(Expired);
+                var pendingApplications = context.Saga.Applications;
+                if (pendingApplications.Count == 0) context.TransitionToState(Filled);
 
-            When(ApplicationSubmitted)
-                .Then(context =>
-                {
-                    var application = context.Message.Application;
-                    var matchScore = new CalculateMatchScore().Execute(context.Saga.JobPosting, application);
-                    Log.Information($"Late application received for {context.Saga.JobPosting.Title} from {context.Message.Application.HumanId} (Match: {matchScore:F2})");
-                })
+                JobApplication[] rankedApplications = [
+                    ..pendingApplications
+                        .OrderByDescending(app => app.MatchScore)
+                        .ThenByDescending(app => app.YearsOfExperience)
+                        .ThenBy(app => app.RequestedSalary)
+                ];
+                var topApplication = rankedApplications.FirstOrDefault();
+                if (topApplication is null) return;
+                if (topApplication is { MatchScore: >= 0.6f }) {
+                    var salary = new CalculateOfferSalary().Execute(context.Saga.JobPosting, topApplication);
+                    Log.Information($"sending offer to top candidate for {context.Saga.JobPosting.Title}: " +
+                                    $"{topApplication.HumanId} (Score: {topApplication.MatchScore:F2})");
+                    context.Publish(new Recruit(topApplication.HumanId, context.Saga.JobPosting, salary));
+                    context.TransitionToState(AwaitingAnswer);
+                }
+                else
+                    context.Saga.Applications = context.Saga.Applications
+                        .Where(x => x.HumanId != topApplication.HumanId).ToList();
+
+            }).TransitionTo(Active),
+            
+            When(ApplicationSubmitted) .Then(context => {
+                var application = context.Message.Application;
+                var matchScore = new CalculateMatchScore().Execute(context.Saga.JobPosting, application);
+                Log.Information($"Late application received for {context.Saga.JobPosting.Title} from {context.Message.Application.HumanId} (Match: {matchScore:F2})");
+                context.Saga.Applications.Add(context.Message.Application);
+            }).TransitionTo(Active)
+        );
+
+        During(AwaitingAnswer,
+            When(RecruitmentAccepted).Then(context => {
+                Log.Information($"Job filled: {context.Saga.JobPosting.Title} - Hired {context.Message.HumanId} for {context.Message.Salary:C}");
+                context.Publish(new EmployeeHired(
+                    context.Saga.JobPosting.CompanyId,
+                    context.Message.HumanId,
+                    context.Message.Salary
+                ));
+            }).TransitionTo(Filled),
+            
+            When(RecruitmentRefused).Then(bc => {
+                var id = bc.Message.HumanId;
+                bc.Saga.Applications = bc.Saga.Applications.Where(x => x.HumanId != id).ToList();
+                Log.Information($"{id} removed from application {bc.Saga.CorrelationId} after refusing recruitment proposal");
+            }).TransitionTo(ReviewingApplications)
         );
 
         During(Filled,
-            When(DayElapsed)
-                .Then(context => {
-                    Log.Information($"Job posting completed: {context.Saga.JobPosting.Title}");
-                }).Finalize()
+        When(DayElapsed).Then(context => {
+                Log.Information($"Job posting completed: {context.Saga.JobPosting.Title}");
+            }).Finalize()
         );
 
         During(Expired,
-            When(DayElapsed)
-                .Then(context => {
-                    Log.Information($"Job posting {context.Saga.CorrelationId} Deleted because it has expired");
-                }).Finalize()
+        When(DayElapsed).Then(context => {
+                Log.Information($"Job posting {context.Saga.CorrelationId} Deleted because it has expired");
+            }).Finalize()
         );
         
         SetCompletedWhenFinalized();

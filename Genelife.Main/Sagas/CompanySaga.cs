@@ -25,16 +25,16 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
         InstanceState(x => x.CurrentState);
 
         Initially(
-            When(Created)
-                .Then(context =>
-                {
-                    context.Saga.Company = context.Message.Company;
-                    context.Saga.DaysElapsedCount = 0;
-                    context.Saga.LastPayrollDate = DateTime.UtcNow;
-                    context.Saga.AverageProductivity = 1.0f;
-                    Log.Information($"Company {context.Saga.Company.Name} created with ID {context.Saga.CorrelationId}");
-                })
-                .TransitionTo(Active)
+        When(Created)
+            .Then(context =>
+            {
+                context.Saga.Company = context.Message.Company;
+                context.Saga.DaysElapsedCount = 0;
+                context.Saga.LastPayrollDate = DateTime.UtcNow;
+                context.Saga.AverageProductivity = 1.0f;
+                Log.Information($"Company {context.Saga.Company.Name} created with ID {context.Saga.CorrelationId}");
+            })
+            .TransitionTo(Active)
         );
 
         // Configure event correlations
@@ -47,8 +47,6 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
                 {
                     context.Saga.DaysElapsedCount++;
                     Log.Information($"Company {context.Saga.Company.Name}: Day {context.Saga.DaysElapsedCount} elapsed");
-
-                    // Check if payroll is due (every 30 days)
                     if (context.Saga.DaysElapsedCount >= 30)
                     {
                         Log.Information($"Company {context.Saga.Company.Name}: Payroll due, transitioning to Payroll state");
@@ -61,18 +59,12 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
                         if (context.Saga.Employees[i].Status == EmploymentStatus.Active)
                             context.Saga.Employees[i] = new UpdateEmployeeProductivity().Execute(context.Saga.Employees[i], new Random());
                     }
-                    
 
-                    // Daily work progress update
                     var (averageProductivity, revenueChange) = new UpdateCompanyProductivity().Execute(context.Saga.Company, context.Saga.Employees);
                     context.Saga.AverageProductivity = averageProductivity;
-
-                    // Update company revenue
                     var updatedCompany = context.Saga.Company with { Revenue = context.Saga.Company.Revenue + revenueChange };
                     context.Saga.Company = updatedCompany;
                     Log.Information($"Company {context.Saga.Company.Name}: Productivity {averageProductivity:F2}, Revenue change {revenueChange:C}");
-
-                    // Evaluate hiring needs
                     var (shouldHire, positionsNeeded) = new EvaluateHiring().Execute(context.Saga.Company, context.Saga.Employees, averageProductivity);
 
                     if (!shouldHire) {
@@ -114,10 +106,7 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
                         DateTime.UtcNow,
                         EmploymentStatus.Active
                     );
-
                     context.Saga.Employees.Add(employment);
-
-                    // Update company employee list
                     var updatedEmployeeIds = context.Saga.Company.EmployeeIds.ToList();
                     updatedEmployeeIds.Add(context.Message.HumanId);
                     context.Saga.Company = context.Saga.Company with { EmployeeIds = updatedEmployeeIds };
@@ -134,12 +123,7 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
                     var totalPayrollCost = totalPaid + totalTaxes;
                     var updatedCompany = context.Saga.Company with { Revenue = context.Saga.Company.Revenue - totalPayrollCost };
                     context.Saga.Company = updatedCompany;
-                    
-                    foreach (var salaryPayment in salaryPayments)
-                    {
-                        context.Publish(salaryPayment);
-                    }
-                    
+                    salaryPayments.ForEach(salaryPayment => context.Publish(salaryPayment));
                     context.Publish(new PayrollCompleted(context.Saga.CorrelationId, totalPaid, totalTaxes));
                     context.Saga.LastPayrollDate = DateTime.UtcNow;
                     Log.Information($"Company {context.Saga.Company.Name}: Payroll completed. Total paid: {totalPaid:C}, Taxes: {totalTaxes:C}");

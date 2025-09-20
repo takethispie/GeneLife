@@ -1,6 +1,7 @@
 using Bogus;
 using Genelife.Domain;
 using Genelife.Domain.Work;
+using Genelife.Domain.Work.Skills;
 
 namespace Genelife.Tests.TestData;
 
@@ -69,17 +70,24 @@ public static class TestDataBuilder
             maxSalary,
             industry ?? Faker.PickRandom<CompanyType>(),
             level ?? Faker.PickRandom<JobLevel>(),
+            new SkillSet() {
+                TechnicalSkills = {
+                    TechnicalSkill.Agile,
+                    TechnicalSkill.Angular,
+                    TechnicalSkill.CICD,
+                    TechnicalSkill.Git
+                }
+            },
             maxApplications ?? Faker.Random.Int(50, 200)
         );
     }
 
     public static JobApplication CreateJobApplication(
+        SkillSet skillSet,
         Guid? jobPostingId = null,
         Guid? humanId = null,
         DateTime? applicationDate = null,
-        ApplicationStatus? status = null,
         float? requestedSalary = null,
-        List<string>? skills = null,
         int? yearsOfExperience = null,
         float? matchScore = null)
     {
@@ -87,9 +95,15 @@ public static class TestDataBuilder
             jobPostingId ?? Guid.NewGuid(),
             humanId ?? Guid.NewGuid(),
             applicationDate ?? Faker.Date.Recent(7),
-            status ?? ApplicationStatus.Submitted,
             requestedSalary ?? Faker.Random.Float(40000, 120000),
-            skills ?? Faker.Make(5, () => Faker.Hacker.Noun()).ToList(),
+            new SkillSet() {
+                TechnicalSkills = {
+                    TechnicalSkill.Agile,
+                    TechnicalSkill.Angular,
+                    TechnicalSkill.CICD,
+                    TechnicalSkill.Git
+                }
+            },
             yearsOfExperience ?? Faker.Random.Int(0, 20),
             matchScore ?? Faker.Random.Float(0, 1)
         );

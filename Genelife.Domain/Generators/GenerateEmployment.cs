@@ -1,4 +1,5 @@
 using Genelife.Domain.Work;
+using Genelife.Domain.Work.Skills;
 
 namespace Genelife.Domain.Generators;
 
@@ -6,76 +7,36 @@ public class GenerateEmployment
 {
     private readonly Random random = new();
     
-    private static readonly List<string> CommonSkills = new()
-    {
-        "Communication", "Problem Solving", "Team Work", "Leadership",
-        "Time Management", "Critical Thinking", "Adaptability", "Creativity",
-        "Customer Service", "Project Management", "Data Analysis", "Research",
-        "Microsoft Office", "Email Management", "Presentation Skills", "Organization"
-    };
-    
-    private static readonly List<string> TechnicalSkills = new()
-    {
-        "C#", "JavaScript", "Python", "React", "Angular", "Docker", "Kubernetes",
-        "AWS", "Azure", "SQL", "NoSQL", "Git", "Agile", "Scrum", "REST APIs",
-        "Microservices", "CI/CD", "Unit Testing", "HTML", "CSS", "Node.js"
-    };
-    
-    private static readonly List<string> BusinessSkills = new()
-    {
-        "Excel", "PowerPoint", "CRM Software", "Business Analysis", "Negotiation",
-        "Strategic Planning", "Process Improvement", "Financial Analysis",
-        "Marketing", "Sales", "Accounting", "Budgeting", "Forecasting"
-    };
-    
-    private static readonly List<string> HealthcareSkills = new()
-    {
-        "Patient Care", "Medical Terminology", "HIPAA Compliance", "Electronic Health Records",
-        "Clinical Skills", "Medical Equipment", "Documentation", "Pharmacology",
-        "Vital Signs", "Medical Coding", "Insurance Processing"
-    };
-    
-    private static readonly List<string> ManufacturingSkills = new()
-    {
-        "Lean Manufacturing", "Six Sigma", "Quality Control", "Safety Protocols",
-        "Equipment Maintenance", "Process Improvement", "Inventory Management",
-        "CAD Software", "Statistical Analysis", "Machine Operation", "Welding"
-    };
-    
-    private static readonly List<string> RetailSkills = new()
-    {
-        "POS Systems", "Visual Merchandising", "Cash Handling", "Inventory Management",
-        "Loss Prevention", "Retail Software", "Product Knowledge", "Upselling",
-        "Store Operations", "Customer Relations"
-    };
-    
-    public Employment Execute(Human human)
+    public (SkillSet, int) Execute(Human human)
     {
         // Generate years of experience based on age
         var age = DateTime.Now.Year - human.Birthday.Year;
         var maxExperience = Math.Max(0, age - 18); // Assume work starts at 18
         var experience = random.Next(0, Math.Min(maxExperience + 1, 25)); // Cap at 25 years
 
-        return new Employment(
-            GenerateSkills(experience),
-            experience,
-            Guid.Empty,
-            Status: EmploymentStatus.Unemployed,
-            LastJobSearchDate: null, IsActivelyJobSeeking: false);
+        return (GenerateSkills(experience), experience);
     }
     
-    private List<string> GenerateSkills(int experience)
+    private SkillSet GenerateSkills(int experience)
     {
-        var skills = new List<string>();
+        var skillSet = new SkillSet();
         
         // Always add some common skills
-        var numCommonSkills = Math.Min(random.Next(3, 7), CommonSkills.Count);
-        skills.AddRange(CommonSkills.OrderBy(x => random.Next()).Take(numCommonSkills));
+        var commonSkills = SkillExtensions.GetAllValues<CommonSkill>();
+        var numCommonSkills = Math.Min(random.Next(3, 7), commonSkills.Length);
+        var selectedCommonSkills = commonSkills
+            .OrderBy(x => random.Next())
+            .Take(numCommonSkills)
+            .ToList();
+        skillSet.CommonSkills.AddRange(selectedCommonSkills);
         
-        var skillCategories = new List<List<string>>();
-        var allSpecializations = new List<List<string>>
+        var allSpecializations = new List<string>
         {
-            TechnicalSkills, BusinessSkills, HealthcareSkills, ManufacturingSkills, RetailSkills
+            "Technical",
+            "Business",
+            "Healthcare",
+            "Manufacturing",
+            "Retail"
         };
         
         var numSpecializations = experience < 2 ? 1 : random.Next(1, 3);
@@ -94,21 +55,62 @@ public class GenerateEmployment
                 _ => random.Next(4, 8)
             };
             
-            var specializedSkills = specialization
-                .OrderBy(x => random.Next())
-                .Take(Math.Min(numSpecializedSkills, specialization.Count))
-                .ToList();
-                
-            skills.AddRange(specializedSkills);
+            switch (specialization)
+            {
+                case "Technical":
+                    var technicalSkills = SkillExtensions.GetAllValues<TechnicalSkill>();
+                    var selectedTechnicalSkills = technicalSkills
+                        .OrderBy(x => random.Next())
+                        .Take(Math.Min(numSpecializedSkills, technicalSkills.Length))
+                        .ToList();
+                    skillSet.TechnicalSkills.AddRange(selectedTechnicalSkills);
+                    break;
+                    
+                case "Business":
+                    var businessSkills = SkillExtensions.GetAllValues<BusinessSkill>();
+                    var selectedBusinessSkills = businessSkills
+                        .OrderBy(x => random.Next())
+                        .Take(Math.Min(numSpecializedSkills, businessSkills.Length))
+                        .ToList();
+                    skillSet.BusinessSkills.AddRange(selectedBusinessSkills);
+                    break;
+                    
+                case "Healthcare":
+                    var healthcareSkills = SkillExtensions.GetAllValues<HealthcareSkill>();
+                    var selectedHealthcareSkills = healthcareSkills
+                        .OrderBy(x => random.Next())
+                        .Take(Math.Min(numSpecializedSkills, healthcareSkills.Length))
+                        .ToList();
+                    skillSet.HealthcareSkills.AddRange(selectedHealthcareSkills);
+                    break;
+                    
+                case "Manufacturing":
+                    var manufacturingSkills = SkillExtensions.GetAllValues<ManufacturingSkill>();
+                    var selectedManufacturingSkills = manufacturingSkills
+                        .OrderBy(x => random.Next())
+                        .Take(Math.Min(numSpecializedSkills, manufacturingSkills.Length))
+                        .ToList();
+                    skillSet.ManufacturingSkills.AddRange(selectedManufacturingSkills);
+                    break;
+                    
+                case "Retail":
+                    var retailSkills = SkillExtensions.GetAllValues<RetailSkill>();
+                    var selectedRetailSkills = retailSkills
+                        .OrderBy(x => random.Next())
+                        .Take(Math.Min(numSpecializedSkills, retailSkills.Length))
+                        .ToList();
+                    skillSet.RetailSkills.AddRange(selectedRetailSkills);
+                    break;
+            }
         }
         
-        return [.. skills.Distinct()];
+        return skillSet;
     }
     
-    public float GenerateDesiredSalary(Employment employmentProfile, JobPosting jobPosting)
+    public float GenerateDesiredSalary(int yearsOfExperience, JobPosting jobPosting)
     {
         // Base salary expectation on experience and job level
-        var experienceMultiplier = 1.0f + (employmentProfile.YearsOfExperience * 0.05); // 5% per year of experience
+        var experienceMultiplier = 1.0f + (yearsOfExperience * 0.05); // 5% per year of experience
         
         var baseSalary = jobPosting.Level switch
         {
