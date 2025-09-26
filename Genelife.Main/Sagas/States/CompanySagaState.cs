@@ -8,10 +8,8 @@ public class CompanySagaState : SagaStateMachineInstance, ISagaVersion
     public Guid CorrelationId { get; set; }
     public Company Company { get; set; } = null!;
     public List<Employee> Employees { get; set; } = [];
-    public int DaysElapsedCount { get; set; }
-    
-    public List<JobPosting> JobPostings { get; set; } = [];
-    public List<JobApplication> JobApplications { get; set; } = [];
+    public int DaysElapsedCount { get; set; } 
+    public int? PublishedJobPostings { get; set; } = null;
     public string CurrentState { get; set; }
     
     public int Version { get; set; }

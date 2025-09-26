@@ -38,6 +38,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
     public Event<SetHygiene>? SetHygiene { get; set; } = null;
     public Event<SetMoney>?  SetMoney { get; set; } = null;
     public Event<SetActivelySeekingJob> SetActivelySeekingJob { get; set; } = null!;
+    public Event<Recruit> ApplicationAccepted { get; set; } = null!;
 
     public HumanSaga()
     {
@@ -55,6 +56,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         Event(() => SalaryPaid, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.CorrelationId.ToString()));
         Event(() => JobPostingCreated, e => e.CorrelateBy(saga => "any", _ => "any"));
         Event(() => EmployeeHired, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.HumanId.ToString()));
+        Event(() => ApplicationAccepted, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.CorrelationId.ToString()));
         
         DuringAny(
             When(HourElapsed).Then(bc => {
@@ -83,18 +85,29 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                     Skills: bc.Saga.SkillSet,
                     YearsOfExperience: bc.Saga.YearsOfExperience
                 );
-                
                 var matchScore = new CalculateMatchScore().Execute(jobPosting, tempApplication);
                 if (matchScore < 0.3f) return;
-                
-                bc.Publish(new JobApplicationSubmitted(
-                    bc.Message.CorrelationId,
-                    tempApplication with { MatchScore = matchScore }
-                ));
-                
+                bc.Publish(new JobApplicationSubmitted(bc.Message.CorrelationId, tempApplication with { MatchScore = matchScore } ));
                 Log.Information($"{bc.Saga.Human.FirstName} {bc.Saga.Human.LastName} applied for {jobPosting.Title} " +
                     $"(Match Score: {matchScore:F2}, Desired Salary: {desiredSalary:C})");
             }),
+            
+            When(EmployeeHired).Then(bc => {
+                bc.Saga.HiringTimeOut = null;
+                Log.Information($"{bc.Saga.CorrelationId} finished hiring process into company {bc.Message.CompanyId}");
+            }),
+            
+            When(ApplicationAccepted).Then(bc => {
+                if (bc.Saga.EmployerId != Guid.Empty) {
+                    bc.Publish(new RecruitmentRefused(bc.Message.JobPostingId, bc.Saga.CorrelationId));
+                    return;
+                }
+                bc.Saga.EmployerId = bc.Message.JobPosting.CompanyId;
+                bc.Publish(new RecruitmentAccepted(bc.Message.JobPostingId, bc.Saga.CorrelationId, bc.Message.JobPosting.CompanyId, bc.Message.salary));
+                bc.Saga.HiringTimeOut = 6;
+            }),
+            
+            
 
             When(SetAge).Then(bc => bc.Saga.Human = new ChangeBirthday().Execute(bc.Saga.Human, bc.Message.Value)),
             When(SetEnergy).Then(bc => bc.Saga.Human = bc.Saga.Human with { Energy = bc.Message.Value }),
@@ -108,9 +121,12 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                                 $"and {bc.Saga.Human.Hygiene} hygiene " +
                                 $"and {bc.Saga.Human.Money} money "
                 );
-                if (bc.Saga.EmployerId != Guid.Empty) return;
-                //don't always go straight to jobseeking when unemployed
-                if (bc.Saga.SeekingJob || !(new Random().NextDouble() < 0.5)) return;
+                if(bc.Saga.HiringTimeOut is 0) {
+                    bc.Saga.EmployerId = Guid.Empty;
+                    bc.Saga.HiringTimeOut = null;
+                }
+                if(bc.Saga.HiringTimeOut is > 0) bc.Saga.HiringTimeOut--;
+                if (bc.Saga.EmployerId != Guid.Empty || bc.Saga.SeekingJob || new Random().NextDouble() < 0.5) return;
                 bc.Saga.SeekingJob = true;
                 Log.Information($"{bc.Saga.Human.FirstName} {bc.Saga.Human.LastName} started actively job seeking");
             })
@@ -118,7 +134,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         
         During(Idle, 
             When(UpdateTick).Then(bc => {
-                var activity = new ChooseActivity().Execute(bc.Saga.Human, bc.Message.Hour);
+                var activity = new ChooseActivity().Execute(bc.Saga.Human, bc.Message.Hour, bc.Saga.EmployerId != Guid.Empty);
                 var state = activity switch {
                     Eat => Eating,
                     Sleep => Sleeping,
