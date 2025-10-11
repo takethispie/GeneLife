@@ -7,6 +7,7 @@ using Genelife.Domain.Work;
 using Genelife.Main.Domain;
 using Genelife.Main.Sagas.States;
 using Genelife.Main.Usecases;
+using Genelife.Main.Usecases.Working;
 using MassTransit;
 using Serilog;
 
@@ -17,8 +18,6 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
     public State Active { get; set; } = null!;
     public State ReviewingApplications { get; set; } = null!;
     public State AwaitingAnswer { get; set; } = null!;
-    public State Filled { get; set; } = null!;
-    public State Expired { get; set; } = null!;
 
     public Event<CreateJobPosting> Created { get; set; } = null!;
     public Event<JobApplicationSubmitted> ApplicationSubmitted { get; set; } = null!;
@@ -50,7 +49,8 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
         When(DayElapsed).Then(context => {
             if (context.Saga.DaysActive <= 10) return;
             context.Publish(new JobPostingExpired(context.Saga.CorrelationId, context.Saga.JobPosting.CompanyId));
-            context.TransitionToState(Expired);
+            Log.Information($"Job posting completed: {context.Saga.JobPosting.Title}");
+            context.SetCompleted();
         }));
         
         During(Active,
@@ -58,7 +58,7 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
             .Then(context =>
             {
                 context.Saga.DaysActive++;
-                if (context.Saga is { DaysActive: <= 5, Applications.Count: < 5 }) return;
+                if (context.Saga is { DaysActive: <= 3, Applications.Count: < 1 }) return;
                 Log.Information($"Job posting: {context.Saga.JobPosting.Title} ended, reviewing applications");
                 context.TransitionToState(ReviewingApplications);
             }),
@@ -80,7 +80,10 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
         During(ReviewingApplications,
             When(DayElapsed) .Then(context => {
                 var pendingApplications = context.Saga.Applications;
-                if (pendingApplications.Count == 0) context.TransitionToState(Filled);
+                if (pendingApplications.Count == 0) {
+                    Log.Information($"0 Application received for {context.Saga.JobPosting.Title} closing posting");
+                    context.SetCompleted();
+                }
 
                 JobApplication[] rankedApplications = [
                     ..pendingApplications
@@ -119,25 +122,13 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                     context.Message.HumanId,
                     context.Message.Salary
                 ));
-            }).TransitionTo(Filled),
+            }).Finalize(),
             
             When(RecruitmentRefused).Then(bc => {
                 var id = bc.Message.HumanId;
                 bc.Saga.Applications = bc.Saga.Applications.Where(x => x.HumanId != id).ToList();
                 Log.Information($"{id} removed from application {bc.Saga.CorrelationId} after refusing recruitment proposal");
             }).TransitionTo(ReviewingApplications)
-        );
-
-        During(Filled,
-        When(DayElapsed).Then(context => {
-                Log.Information($"Job posting completed: {context.Saga.JobPosting.Title}");
-            }).Finalize()
-        );
-
-        During(Expired,
-        When(DayElapsed).Then(context => {
-                Log.Information($"Job posting {context.Saga.CorrelationId} Deleted because it has expired");
-            }).Finalize()
         );
         
         SetCompletedWhenFinalized();

@@ -1,8 +1,7 @@
-using Genelife.Domain;
 using Genelife.Domain.Work;
 using Genelife.Domain.Work.Skills;
 
-namespace Genelife.Main.Usecases;
+namespace Genelife.Main.Usecases.Working;
 
 public class GenerateJobPosting
 {

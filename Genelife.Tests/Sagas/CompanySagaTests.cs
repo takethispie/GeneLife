@@ -9,6 +9,7 @@ using Genelife.Main.Domain;
 using Genelife.Main.Sagas;
 using Genelife.Main.Sagas.States;
 using Genelife.Main.Usecases;
+using Genelife.Main.Usecases.Working;
 using Genelife.Tests.TestData;
 using MassTransit;
 using MassTransit.Testing;

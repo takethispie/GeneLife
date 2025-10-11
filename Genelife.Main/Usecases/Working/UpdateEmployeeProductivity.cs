@@ -1,6 +1,6 @@
 using Genelife.Domain.Work;
 
-namespace Genelife.Main.Usecases;
+namespace Genelife.Main.Usecases.Working;
 
 public class UpdateEmployeeProductivity {
     public Employee Execute(Employee employment, Random random)

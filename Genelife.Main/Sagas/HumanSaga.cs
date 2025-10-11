@@ -14,6 +14,7 @@ using Serilog;
 using Genelife.Domain.Generators;
 using Genelife.Domain.Work;
 using Genelife.Main.Sagas.States;
+using Genelife.Main.Usecases.Working;
 
 namespace Genelife.Main.Sagas;
 
@@ -94,6 +95,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             
             When(EmployeeHired).Then(bc => {
                 bc.Saga.HiringTimeOut = null;
+                bc.Saga.SeekingJob = false;
                 Log.Information($"{bc.Saga.CorrelationId} finished hiring process into company {bc.Message.CompanyId}");
             }),
             

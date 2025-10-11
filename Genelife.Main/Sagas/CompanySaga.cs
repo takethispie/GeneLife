@@ -7,6 +7,7 @@ using Genelife.Domain.Events.Jobs;
 using Genelife.Domain.Work;
 using Genelife.Main.Sagas.States;
 using Genelife.Main.Usecases;
+using Genelife.Main.Usecases.Working;
 using MassTransit;
 using Serilog;
 
@@ -74,12 +75,10 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
                 .Then(context =>
                 {
                     context.Saga.DaysElapsedCount++;
-                    Log.Information($"Company {context.Saga.Company.Name}: Day {context.Saga.DaysElapsedCount}");
                     if (context.Saga.DaysElapsedCount >= 30)
                     {
                         Log.Information($"Company {context.Saga.Company.Name}: Payroll due, transitioning to Payroll state");
                         context.TransitionToState(Payroll);
-                        return;
                     }
                     
                     for (var i = 0; i < context.Saga.Employees.Count; i++)
@@ -90,14 +89,11 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
 
                     var (averageProductivity, revenueChange) = new UpdateCompanyProductivity().Execute(context.Saga.Company, context.Saga.Employees);
                     context.Saga.AverageProductivity = averageProductivity;
-                    var updatedCompany = context.Saga.Company with { Revenue = context.Saga.Company.Revenue + revenueChange };
-                    context.Saga.Company = updatedCompany;
+                    context.Saga.Company = context.Saga.Company with { Revenue = context.Saga.Company.Revenue + revenueChange };
                     Log.Information($"Company {context.Saga.Company.Name}: Productivity {averageProductivity:F2}, Revenue change {revenueChange:C}");
-                    var (shouldHire, positionsNeeded) = new EvaluateHiring().Execute(context.Saga.Company, context.Saga.Employees, averageProductivity);
-
-                    if (!shouldHire || context.Saga.PublishedJobPostings is not null) {
+                    var positionsNeeded = new EvaluateHiring().Execute(context.Saga.Company, context.Saga.Employees, averageProductivity);
+                    if (positionsNeeded == 0 || context.Saga.PublishedJobPostings is not null) {
                         context.TransitionToState(Active);
-                        return;
                     }
                     
                     Log.Information($"Company {context.Saga.Company.Name}: Starting hiring for {positionsNeeded} positions");
