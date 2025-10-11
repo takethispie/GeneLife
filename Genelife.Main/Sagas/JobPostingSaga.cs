@@ -47,11 +47,17 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
         
         DuringAny(
         When(DayElapsed).Then(context => {
-            if (context.Saga.DaysActive <= 10) return;
-            context.Publish(new JobPostingExpired(context.Saga.CorrelationId, context.Saga.JobPosting.CompanyId));
-            Log.Information($"Job posting completed: {context.Saga.JobPosting.Title}");
-            context.SetCompleted();
-        }));
+                if (context.Saga.DaysActive <= 10) return;
+                context.Publish(new JobPostingExpired(context.Saga.CorrelationId, context.Saga.JobPosting.CompanyId));
+                Log.Information($"Job posting completed: {context.Saga.JobPosting.Title}");
+                context.SetCompleted();
+            }),
+            When(RecruitmentRefused).Then(bc => {
+                var id = bc.Message.HumanId;
+                bc.Saga.Applications = bc.Saga.Applications.Where(x => x.HumanId != id).ToList();
+                Log.Information($"{id} removed from application {bc.Saga.CorrelationId} after refusing recruitment proposal");
+            })
+        );
         
         During(Active,
         When(DayElapsed)
@@ -122,13 +128,7 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                     context.Message.HumanId,
                     context.Message.Salary
                 ));
-            }).Finalize(),
-            
-            When(RecruitmentRefused).Then(bc => {
-                var id = bc.Message.HumanId;
-                bc.Saga.Applications = bc.Saga.Applications.Where(x => x.HumanId != id).ToList();
-                Log.Information($"{id} removed from application {bc.Saga.CorrelationId} after refusing recruitment proposal");
-            }).TransitionTo(ReviewingApplications)
+            }).Finalize()
         );
         
         SetCompletedWhenFinalized();
