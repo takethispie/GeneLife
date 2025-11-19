@@ -1,10 +1,11 @@
+using Genelife.Domain.Work.Skills;
+
 namespace Genelife.API.DTOs;
 
 public record SubmitJobApplicationRequest(
+    SkillSet SkillSet,
     Guid JobPostingId,
     Guid HumanId,
-    List<string> Skills,
     int Experience,
-    decimal RequestedSalary,
-    string? CoverLetter = null
+    float RequestedSalary
 );

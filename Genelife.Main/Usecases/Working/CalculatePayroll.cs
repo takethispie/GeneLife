@@ -1,8 +1,7 @@
-using Genelife.Domain;
 using Genelife.Domain.Events.Company;
 using Genelife.Domain.Work;
 
-namespace Genelife.Main.Usecases;
+namespace Genelife.Main.Usecases.Working;
 
 public class CalculatePayroll
 {

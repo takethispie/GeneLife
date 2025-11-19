@@ -1,13 +1,13 @@
+using Genelife.Domain.Work.Skills;
+
 namespace Genelife.Domain.Work;
 
 public record JobApplication(
     Guid JobPostingId,
     Guid HumanId,
     DateTime ApplicationDate,
-    ApplicationStatus Status,
     float RequestedSalary,
-    string CoverLetter,
-    List<string> Skills,
+    SkillSet Skills,
     int YearsOfExperience,
     float MatchScore = 0.0f
 );

@@ -7,15 +7,12 @@ public class CompanySagaState : SagaStateMachineInstance, ISagaVersion
 {
     public Guid CorrelationId { get; set; }
     public Company Company { get; set; } = null!;
-    public List<Employee> Employees { get; set; } = new();
-    public int DaysElapsedCount { get; set; }
-    public PayrollState PayrollState { get; set; }
-    public HiringState HiringState { get; set; }
-    public WorkProgressState WorkProgressState { get; set; }
+    public List<Employee> Employees { get; set; } = [];
+    public int DaysElapsedCount { get; set; } 
+    public int? PublishedJobPostings { get; set; }
     public string CurrentState { get; set; }
     
     public int Version { get; set; }
     public DateTime LastPayrollDate { get; set; }
-    public int PositionsNeeded { get; set; }
     public float AverageProductivity { get; set; } = 1.0f;
 }

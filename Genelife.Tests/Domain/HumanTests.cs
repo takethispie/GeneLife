@@ -12,10 +12,7 @@ public class HumanTests
     [InlineData(100.0f)]
     public void Human_ShouldAcceptValidNeedValues(float needValue)
     {
-        // Arrange & Act
         var human = TestDataBuilder.CreateHuman(hunger: needValue, energy: needValue, hygiene: needValue);
-
-        // Assert
         human.Hunger.Should().Be(needValue);
         human.Energy.Should().Be(needValue);
         human.Hygiene.Should().Be(needValue);
@@ -27,10 +24,7 @@ public class HumanTests
     [InlineData(1000.0f)]
     public void Human_ShouldAcceptAnyMoneyValue(float money)
     {
-        // Arrange & Act
         var human = TestDataBuilder.CreateHuman(money: money);
-
-        // Assert
         human.Money.Should().Be(money);
     }
 }

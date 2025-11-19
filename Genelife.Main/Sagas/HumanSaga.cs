@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Genelife.Domain;
 using Genelife.Domain.Commands.Cheat;
 using Genelife.Domain.Events.Clock;
@@ -13,6 +14,7 @@ using Serilog;
 using Genelife.Domain.Generators;
 using Genelife.Domain.Work;
 using Genelife.Main.Sagas.States;
+using Genelife.Main.Usecases.Working;
 
 namespace Genelife.Main.Sagas;
 
@@ -31,13 +33,13 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
     public Event<SalaryPaid>? SalaryPaid { get; set; } = null;
     public Event<CreateJobPosting>? JobPostingCreated { get; set; } = null;
     public Event<EmployeeHired>? EmployeeHired { get; set; } = null;
-    public Event<ApplicationStatusChanged>? ApplicationStatusChanged { get; set; } = null;
     public Event<SetHunger>? SetHunger { get; set; } = null;
     public Event<SetAge>? SetAge { get; set; } = null;
     public Event<SetEnergy>? SetEnergy { get; set; } = null;
     public Event<SetHygiene>? SetHygiene { get; set; } = null;
     public Event<SetMoney>?  SetMoney { get; set; } = null;
     public Event<SetActivelySeekingJob> SetActivelySeekingJob { get; set; } = null!;
+    public Event<Recruit> ApplicationAccepted { get; set; } = null!;
 
     public HumanSaga()
     {
@@ -45,8 +47,8 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         Initially(When(Created).Then(bc => {
             // Store the human and generate employment profile
             bc.Saga.Human = bc.Message.Human;
-            bc.Saga.Employment = new GenerateEmployment().Execute(bc.Message.Human);
-            Log.Information($"Created human {bc.Saga.Human.FirstName} {bc.Saga.Human.LastName} with {bc.Saga.Employment.YearsOfExperience} years experience and {bc.Saga.Employment.Skills.Count} skills");
+            (bc.Saga.SkillSet, bc.Saga.YearsOfExperience) = new GenerateEmployment().Execute(bc.Message.Human);
+            Log.Information($"Created human {bc.Saga.Human.FirstName} {bc.Saga.Human.LastName} with {bc.Saga.YearsOfExperience} years experience and {bc.Saga.SkillSet.Count} skills");
         }).TransitionTo(Idle));
         
         Event(() => UpdateTick, e => e.CorrelateBy(saga => "any", _ => "any"));
@@ -55,109 +57,85 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         Event(() => SalaryPaid, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.CorrelationId.ToString()));
         Event(() => JobPostingCreated, e => e.CorrelateBy(saga => "any", _ => "any"));
         Event(() => EmployeeHired, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.HumanId.ToString()));
-        Event(() => ApplicationStatusChanged, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.HumanId.ToString()));
+        Event(() => ApplicationAccepted, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.CorrelationId.ToString()));
         
         DuringAny(
             When(HourElapsed).Then(bc => {
                 bc.Saga.Human = new UpdateNeeds().Execute(bc.Saga.Human);
             }),
+            
             When(SalaryPaid).Then(bc => {
                 var currentMoney = bc.Saga.Human.Money;
                 var newMoney = currentMoney + (float)bc.Message.Amount;
                 bc.Saga.Human = bc.Saga.Human with { Money = newMoney };
-                
                 Log.Information($"{bc.Saga.CorrelationId} received salary: {bc.Message.Amount:C} " +
                     $"(tax deducted: {bc.Message.TaxDeducted:C}). " +
                     $"Total money: {newMoney:F2}");
             }),
             
             When(JobPostingCreated).Then(bc => {
-                // Only apply if human is actively job seeking and has employment profile
-                if (bc.Saga.Employment?.IsActivelyJobSeeking != true) return;
+                if (bc.Saga.SeekingJob is not true) return;
                 var jobPosting = bc.Message.JobPosting;
-                var desiredSalary = new GenerateEmployment().GenerateDesiredSalary(bc.Saga.Employment, jobPosting);
+                var desiredSalary = new GenerateEmployment().GenerateDesiredSalary(bc.Saga.YearsOfExperience, jobPosting);
                 var tempApplication = new JobApplication(
                     JobPostingId: bc.Message.CorrelationId,
                     HumanId: bc.Saga.CorrelationId,
                     ApplicationDate: DateTime.UtcNow,
-                    Status: ApplicationStatus.Submitted,
                     RequestedSalary: desiredSalary,
-                    CoverLetter: "",
-                    Skills: bc.Saga.Employment.Skills,
-                    YearsOfExperience: bc.Saga.Employment.YearsOfExperience,
-                    MatchScore: 0f
+                    Skills: bc.Saga.SkillSet,
+                    YearsOfExperience: bc.Saga.YearsOfExperience
                 );
-                
                 var matchScore = new CalculateMatchScore().Execute(jobPosting, tempApplication);
                 if (matchScore < 0.3f) return;
-                
-                bc.Publish(new JobApplicationSubmitted(
-                    bc.Message.CorrelationId,
-                    bc.Saga.CorrelationId,
-                    tempApplication with { MatchScore = matchScore }
-                ));
-                
-                bc.Saga.Employment.SentApplicationCompanies.Add(jobPosting.CompanyId);
-                
-                // Update last job search date
-                bc.Saga.Employment = bc.Saga.Employment with { LastJobSearchDate = DateTime.UtcNow };
+                bc.Publish(new JobApplicationSubmitted(bc.Message.CorrelationId, tempApplication with { MatchScore = matchScore } ));
                 Log.Information($"{bc.Saga.Human.FirstName} {bc.Saga.Human.LastName} applied for {jobPosting.Title} " +
                     $"(Match Score: {matchScore:F2}, Desired Salary: {desiredSalary:C})");
             }),
             
             When(EmployeeHired).Then(bc => {
-                if (bc.Saga.Employment.Status is EmploymentStatus.Active 
-                    && bc.Saga.Employment.CurrentEmployerId != Guid.Empty) return;
-                
-                bc.Saga.Employment.SentApplicationCompanies.ForEach(companyId => {
-                    bc.Publish(new RemoveApplication(bc.Saga.CorrelationId, companyId));
-                });
-                bc.Saga.Employment = bc.Saga.Employment with
-                {
-                    Status = EmploymentStatus.Active,
-                    CurrentEmployerId = bc.Message.CompanyId,
-                    CurrentSalary = bc.Message.Salary,
-                    IsActivelyJobSeeking = false,
-                    SentApplicationCompanies = []
-                };
-                Log.Information($"{bc.Saga.Human.FirstName} {bc.Saga.Human.LastName} was hired by company {bc.Message.CompanyId} " +
-                    $"with salary {bc.Message.Salary:C}");
+                bc.Saga.HiringTimeOut = null;
+                bc.Saga.SeekingJob = false;
+                Log.Information($"{bc.Saga.CorrelationId} finished hiring process into company {bc.Message.CompanyId}");
             }),
             
-            When(ApplicationStatusChanged).Then(bc => {
-                var status = bc.Message.Status;
-                Log.Information($"{bc.Saga.Human.FirstName} {bc.Saga.Human.LastName} application status changed to {status}");
-                bc.Saga.Employment = bc.Saga.Employment with { IsActivelyJobSeeking = true };
+            When(ApplicationAccepted).Then(bc => {
+                if (bc.Saga.EmployerId != Guid.Empty) {
+                    bc.Publish(new RecruitmentRefused(bc.Message.JobPostingId, bc.Saga.CorrelationId));
+                    return;
+                }
+                bc.Saga.EmployerId = bc.Message.JobPosting.CompanyId;
+                bc.Publish(new RecruitmentAccepted(bc.Message.JobPostingId, bc.Saga.CorrelationId, bc.Message.JobPosting.CompanyId, bc.Message.salary));
+                bc.Saga.HiringTimeOut = 6;
             }),
+            
+            
+
             When(SetAge).Then(bc => bc.Saga.Human = new ChangeBirthday().Execute(bc.Saga.Human, bc.Message.Value)),
             When(SetEnergy).Then(bc => bc.Saga.Human = bc.Saga.Human with { Energy = bc.Message.Value }),
             When(SetHunger).Then(bc => bc.Saga.Human = bc.Saga.Human with { Hunger = bc.Message.Value }),
             When(SetHygiene).Then(bc => bc.Saga.Human = bc.Saga.Human with { Hygiene = bc.Message.Value }),
-            When(SetActivelySeekingJob).Then(bc => {
-                bc.Saga.Employment ??= new GenerateEmployment().Execute(bc.Saga.Human);
-                bc.Saga.Employment = bc.Saga.Employment with { IsActivelyJobSeeking = bc.Message.Value };
-            }),
+            When(SetActivelySeekingJob).Then(bc => bc.Saga.SeekingJob = bc.Message.Value),
             When(DayElapsed).Then(bc => {
                 Log.Information($"{bc.Saga.CorrelationId} " +
-                                $"needs: {bc.Saga.Human.Hunger} hunger " +
-                                $"and {bc.Saga.Human.Energy} energy " +
-                                $"and {bc.Saga.Human.Hygiene} hygiene " +
-                                $"and {bc.Saga.Human.Money} money "
+                    $"needs: {bc.Saga.Human.Hunger} hunger " +
+                    $"and {bc.Saga.Human.Energy} energy " +
+                    $"and {bc.Saga.Human.Hygiene} hygiene " +
+                    $"and {bc.Saga.Human.Money} money "
                 );
-                if (bc.Saga.Employment?.Status != EmploymentStatus.Unemployed) return;
-                //don't always go straight to jobseeking when unemployed
-                if (bc.Saga.Employment.IsActivelyJobSeeking || !(new Random().NextDouble() < 0.5)) return; 
-                bc.Saga.Employment = bc.Saga.Employment with { IsActivelyJobSeeking = true };
+                if(bc.Saga.HiringTimeOut is 0) {
+                    bc.Saga.EmployerId = Guid.Empty;
+                    bc.Saga.HiringTimeOut = null;
+                }
+                if(bc.Saga.HiringTimeOut is > 0) bc.Saga.HiringTimeOut--;
+                if (bc.Saga.EmployerId != Guid.Empty || bc.Saga.SeekingJob || new Random().NextDouble() < 0.5) return;
+                bc.Saga.SeekingJob = true;
                 Log.Information($"{bc.Saga.Human.FirstName} {bc.Saga.Human.LastName} started actively job seeking");
             })
         );
         
         During(Idle, 
             When(UpdateTick).Then(bc => {
-                
-                var activity = bc.Saga.Employment.CurrentSalary.HasValue ?
-                    new ChooseActivity().Execute(bc.Saga.Human, bc.Message.Hour, bc.Saga.Employment.CurrentSalary.Value)
-                    : new ChooseActivity().Execute(bc.Saga.Human, bc.Message.Hour);
+                var activity = new ChooseActivity().Execute(bc.Saga.Human, bc.Message.Hour, bc.Saga.EmployerId != Guid.Empty);
                 var state = activity switch {
                     Eat => Eating,
                     Sleep => Sleeping,

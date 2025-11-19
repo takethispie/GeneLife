@@ -1,7 +1,7 @@
-using Genelife.Domain;
 using Genelife.Domain.Work;
+using Genelife.Domain.Work.Skills;
 
-namespace Genelife.Main.Usecases;
+namespace Genelife.Main.Usecases.Working;
 
 public class CalculateMatchScore
 {
@@ -14,7 +14,7 @@ public class CalculateMatchScore
         score += experienceScore * 0.3f;
         
         // Skills matching (40% weight)
-        var skillsScore = CalculateSkillsScore(jobPosting.Requirements, application.Skills);
+        var skillsScore = CalculateSkillsScore(jobPosting.RequiredSkillSet, application.Skills);
         score += skillsScore * 0.4f;
         
         // Salary expectations (20% weight)
@@ -46,29 +46,18 @@ public class CalculateMatchScore
         
         if (yearsOfExperience >= requiredYears)
         {
-            // Bonus for more experience, but diminishing returns
             var bonus = Math.Min(0.2f, (yearsOfExperience - requiredYears) * 0.02f);
             return 1.0f + Convert.ToSingle(bonus);
         }
         
-        // Penalty for less experience
         var ratio = yearsOfExperience / Math.Max(1, requiredYears);
-        // Max 80% if no experience
         return ratio * 0.8f; 
     }
     
-    private float CalculateSkillsScore(List<string> requiredSkills, List<string> applicantSkills)
+    private float CalculateSkillsScore(SkillSet requiredSkills, SkillSet applicantSkills)
     {
         if (requiredSkills.Count == 0) return 1.0f;
-        
-        var matchedSkills = requiredSkills.Intersect(applicantSkills, StringComparer.OrdinalIgnoreCase).Count();
-        var baseScore = matchedSkills / requiredSkills.Count;
-        
-        // Bonus for additional skills
-        var extraSkills = applicantSkills.Except(requiredSkills, StringComparer.OrdinalIgnoreCase).Count();
-        var bonus = Math.Min(0.2f, extraSkills * 0.05f);
-        
-        return Convert.ToSingle(Math.Min(1.0f, baseScore + bonus));
+        return applicantSkills.HasMinimumRequirements(requiredSkills) ?  1.0f : 0.0f;
     }
     
     private float CalculateSalaryScore(float salaryMin, float salaryMax, float requestedSalary)

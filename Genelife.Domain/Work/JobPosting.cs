@@ -1,16 +1,14 @@
+using Genelife.Domain.Work.Skills;
+
 namespace Genelife.Domain.Work;
 
 public record JobPosting(
     Guid CompanyId,
     string Title,
-    string Description,
-    List<string> Requirements,
     float SalaryMin,
     float SalaryMax,
+    CompanyType CompanyType,
     JobLevel Level,
-    CompanyType Industry,
-    DateTime PostedDate,
-    DateTime? ExpiryDate,
-    JobPostingStatus Status,
-    int MaxApplications = 100
+    SkillSet RequiredSkillSet,
+    int MaxApplications = 50
 );

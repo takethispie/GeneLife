@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Genelife.Domain.Work.Skills;
 using Genelife.Tests.TestData;
 
 namespace Genelife.Tests.Domain;
@@ -8,36 +9,28 @@ public class JobApplicationTests
     [Fact]
     public void JobApplication_ShouldCreateWithDefaultMatchScore()
     {
-        // Arrange & Act
-        var application = TestDataBuilder.CreateJobApplication();
-
-        // Assert
+        var skillSet = new SkillSet();
+        var application = TestDataBuilder.CreateJobApplication(skillSet);
         application.MatchScore.Should().BeGreaterThanOrEqualTo(0.0f);
         application.MatchScore.Should().BeLessThanOrEqualTo(1.0f);
     }
 
     [Fact]
-    public void JobApplication_ShouldAllowEmptySkills()
-    {
-        // Arrange & Act
-        var application = TestDataBuilder.CreateJobApplication(skills: new List<string>());
-
-        // Assert
-        application.Skills.Should().BeEmpty();
-    }
-
-    [Fact]
     public void JobApplication_ShouldAllowMultipleSkills()
     {
-        // Arrange
-        var skills = new List<string> { "C#", ".NET", "SQL", "Azure", "Docker", "Kubernetes" };
-
-        // Act
-        var application = TestDataBuilder.CreateJobApplication(skills: skills);
-
-        // Assert
-        application.Skills.Should().HaveCount(6);
-        application.Skills.Should().BeEquivalentTo(skills);
+        var skillSet = new SkillSet() {
+            TechnicalSkills = {
+                TechnicalSkill.Agile,
+                TechnicalSkill.Angular,
+                TechnicalSkill.CICD,
+                TechnicalSkill.Git,
+                TechnicalSkill.CSharp,
+                TechnicalSkill.JavaScript
+            }
+        };
+        var application = TestDataBuilder.CreateJobApplication(skillSet);
+        application.Skills.Count.Should().Be(6);
+        application.Skills.Should().BeEquivalentTo(skillSet);
     }
 
     [Theory]
@@ -45,12 +38,9 @@ public class JobApplicationTests
     [InlineData(5)]
     [InlineData(20)]
     [InlineData(40)]
-    public void JobApplication_ShouldAcceptValidYearsOfExperience(int years)
-    {
-        // Arrange & Act
-        var application = TestDataBuilder.CreateJobApplication(yearsOfExperience: years);
-
-        // Assert
+    public void JobApplication_ShouldAcceptValidYearsOfExperience(int years) {
+        var skillSet = new SkillSet();
+        var application = TestDataBuilder.CreateJobApplication(skillSet, yearsOfExperience: years);
         application.YearsOfExperience.Should().Be(years);
     }
 
@@ -60,20 +50,8 @@ public class JobApplicationTests
     [InlineData(1.0)]
     public void JobApplication_ShouldAcceptValidMatchScores(float score)
     {
-        // Arrange & Act
-        var application = TestDataBuilder.CreateJobApplication(matchScore: score);
-
-        // Assert
+        var skillSet = new SkillSet();
+        var application = TestDataBuilder.CreateJobApplication(skillSet, matchScore: score);
         application.MatchScore.Should().Be(score);
-    }
-
-    [Fact]
-    public void JobApplication_ShouldAllowEmptyCoverLetter()
-    {
-        // Arrange & Act
-        var application = TestDataBuilder.CreateJobApplication(coverLetter: "");
-
-        // Assert
-        application.CoverLetter.Should().BeEmpty();
     }
 }

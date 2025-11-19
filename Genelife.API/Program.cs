@@ -10,6 +10,7 @@ using Genelife.Domain.Events.Living;
 using Genelife.Domain.Generators;
 using Genelife.Domain.Events.Company;
 using Genelife.API.DTOs;
+using Genelife.Domain.Events.Jobs;
 using Genelife.Domain.Work;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
@@ -133,7 +134,7 @@ app.MapPost("/create/company/{type}", async (CompanyType type, [FromServices] IP
 
 app.MapPost("/create/jobposting", async ([FromBody] JobPosting request, [FromServices] IPublishEndpoint endpoint) => {
     var id = Guid.NewGuid();
-    await endpoint.Publish(new CreateJobPosting(id, request.CompanyId, request));
+    await endpoint.Publish(new CreateJobPosting(id, request));
     return Results.Ok("Job posting created");
 })
 .WithName("create Job Posting")
@@ -142,13 +143,15 @@ app.MapPost("/create/jobposting", async ([FromBody] JobPosting request, [FromSer
 
 app.MapPost("/submit/application", async ([FromBody] SubmitJobApplicationRequest request, [FromServices] IPublishEndpoint endpoint) =>
 {
-    await endpoint.Publish(new SubmitJobApplication(
+    await endpoint.Publish(new JobApplicationSubmitted(
         request.JobPostingId,
-        request.HumanId,
-        request.RequestedSalary,
-        request.CoverLetter ?? "I am interested in this position.",
-        request.Skills,
-        request.Experience
+        new JobApplication(
+            request.JobPostingId,
+            request.HumanId,
+            DateTime.Now,
+            request.RequestedSalary,
+            request.SkillSet,
+            request.Experience)
     ));
     return Results.Ok("Application submitted");
 })
