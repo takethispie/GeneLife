@@ -33,7 +33,6 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
                 context.Saga.Company = context.Message.Company;
                 context.Saga.DaysElapsedCount = 0;
                 context.Saga.LastPayrollDate = DateTime.UtcNow;
-                context.Saga.AverageProductivity = 1.0f;
                 Log.Information($"Company {context.Saga.Company.Name} created with ID {context.Saga.CorrelationId}");
             })
             .TransitionTo(Active)
@@ -80,39 +79,15 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
                     ).ToList();
 
                     var (averageProductivity, revenueChange) = new UpdateCompanyProductivity().Execute(context.Saga.Company, context.Saga.Employees);
-                    context.Saga.AverageProductivity = averageProductivity;
-                    context.Saga.Company = context.Saga.Company with { Revenue = context.Saga.Company.Revenue + revenueChange };
+                    context.Saga.Company = context.Saga.Company with {
+                        Revenue = context.Saga.Company.Revenue + revenueChange,
+                        AverageProductivity = averageProductivity
+                    };
                     Log.Information($"Company {context.Saga.Company.Name}: Productivity {averageProductivity:F2}, Revenue change {revenueChange:C}");
-                    var positionsNeeded = new EvaluateHiring().Execute(context.Saga.Company, context.Saga.Employees, averageProductivity);
-                    if (positionsNeeded == 0 || context.Saga.PublishedJobPostings is not null) {
-                        context.TransitionToState(Active);
-                        return;
-                    }
-                    
-                    Log.Information($"Company {context.Saga.Company.Name}: Starting hiring for {positionsNeeded} positions");
-                    context.Saga.PublishedJobPostings = 0;
-                    for (var i = 0; i < positionsNeeded; i++)
-                    {
-                        var jobLevel = context.Saga.Employees.Count switch
-                        {
-                            < 5 => JobLevel.Entry,
-                            < 15 => JobLevel.Junior,
-                            < 30 => JobLevel.Mid,
-                            < 50 => JobLevel.Senior,
-                            _ => JobLevel.Lead
-                        };
-                            
-                        var jobPosting = new GenerateJobPosting().GenerateForCompany(
-                            context.Saga.CorrelationId, 
-                            context.Saga.Company.Type, 
-                            jobLevel, 
-                            1
-                        );
-                        var id = Guid.NewGuid();
-                        context.Publish(new CreateJobPosting(id, jobPosting));
-                        context.Saga.PublishedJobPostings++;
-                        Log.Information($"Company {context.Saga.Company.Name}: Created job posting for {jobPosting.Title} with salary range {jobPosting.SalaryMin:C} - {jobPosting.SalaryMax:C}");
-                    }
+                    var postings = new CreateJobPostingList()
+                        .Execute(context.Saga.Company, context.Saga.PublishedJobPostings, context.Saga.CorrelationId);
+                    postings.ForEach(posting => context.Publish(posting));
+                    if(postings.Count > 0) context.Saga.PublishedJobPostings = postings.Count;
                 })
         );
 

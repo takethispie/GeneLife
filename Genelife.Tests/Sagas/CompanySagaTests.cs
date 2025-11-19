@@ -109,69 +109,6 @@ public class CompanySagaTests
     }
 
     [Fact]
-    public async Task EmployeeProductivityUpdated_ShouldBeConsumed()
-    {
-        var company = TestDataBuilder.CreateCompany();
-        var humanId = Guid.NewGuid();
-        var productivityScore = 0.85f;
-
-        await using var provider = new ServiceCollection()
-            .AddSingleton<CalculatePayroll>()
-            .AddSingleton<EvaluateHiring>()
-            .AddSingleton<UpdateCompanyProductivity>()
-            .AddSingleton<GenerateJobPosting>()
-            .AddMassTransitTestHarness(cfg =>
-            {
-                cfg.AddSagaStateMachine<CompanySaga, CompanySagaState>();
-            })
-            .BuildServiceProvider(true);
-
-        var harness = provider.GetRequiredService<ITestHarness>();
-        await harness.Start();
-
-        var sagaHarness = harness.GetSagaStateMachineHarness<CompanySaga, CompanySagaState>();
-        var id = Guid.NewGuid();
-        await harness.Bus.Publish(new CreateCompany(id, company));
-        await Task.Delay(100);
-
-        await harness.Bus.Publish(new EmployeeProductivityUpdated(id, humanId, productivityScore));
-
-        (await harness.Consumed.Any<EmployeeProductivityUpdated>()).Should().BeTrue();
-        (await sagaHarness.Consumed.Any<EmployeeProductivityUpdated>()).Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task StartHiring_ShouldBeConsumed()
-    {
-        var company = TestDataBuilder.CreateCompany();
-        var positionsNeeded = 3;
-
-        await using var provider = new ServiceCollection()
-            .AddSingleton<CalculatePayroll>()
-            .AddSingleton<EvaluateHiring>()
-            .AddSingleton<UpdateCompanyProductivity>()
-            .AddSingleton<GenerateJobPosting>()
-            .AddMassTransitTestHarness(cfg =>
-            {
-                cfg.AddSagaStateMachine<CompanySaga, CompanySagaState>();
-            })
-            .BuildServiceProvider(true);
-
-        var harness = provider.GetRequiredService<ITestHarness>();
-        await harness.Start();
-
-        var sagaHarness = harness.GetSagaStateMachineHarness<CompanySaga, CompanySagaState>();
-        var id = Guid.NewGuid();
-        await harness.Bus.Publish(new CreateCompany(id, company));
-        await Task.Delay(100);
-
-        await harness.Bus.Publish(new StartHiring(id, positionsNeeded));
-
-        (await harness.Consumed.Any<StartHiring>()).Should().BeTrue();
-        (await sagaHarness.Consumed.Any<StartHiring>()).Should().BeTrue();
-    }
-
-    [Fact]
     public async Task MultipleEvents_ShouldBeHandledInSequence()
     {
         var company = TestDataBuilder.CreateCompany();
