@@ -68,7 +68,6 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                 var currentMoney = bc.Saga.Human.Money;
                 var newMoney = currentMoney + (float)bc.Message.Amount;
                 bc.Saga.Human = bc.Saga.Human with { Money = newMoney };
-                
                 Log.Information($"{bc.Saga.CorrelationId} received salary: {bc.Message.Amount:C} " +
                     $"(tax deducted: {bc.Message.TaxDeducted:C}). " +
                     $"Total money: {newMoney:F2}");
@@ -118,10 +117,10 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             When(SetActivelySeekingJob).Then(bc => bc.Saga.SeekingJob = bc.Message.Value),
             When(DayElapsed).Then(bc => {
                 Log.Information($"{bc.Saga.CorrelationId} " +
-                                $"needs: {bc.Saga.Human.Hunger} hunger " +
-                                $"and {bc.Saga.Human.Energy} energy " +
-                                $"and {bc.Saga.Human.Hygiene} hygiene " +
-                                $"and {bc.Saga.Human.Money} money "
+                    $"needs: {bc.Saga.Human.Hunger} hunger " +
+                    $"and {bc.Saga.Human.Energy} energy " +
+                    $"and {bc.Saga.Human.Hygiene} hygiene " +
+                    $"and {bc.Saga.Human.Money} money "
                 );
                 if(bc.Saga.HiringTimeOut is 0) {
                     bc.Saga.EmployerId = Guid.Empty;

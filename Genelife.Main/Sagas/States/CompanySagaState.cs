@@ -9,7 +9,7 @@ public class CompanySagaState : SagaStateMachineInstance, ISagaVersion
     public Company Company { get; set; } = null!;
     public List<Employee> Employees { get; set; } = [];
     public int DaysElapsedCount { get; set; } 
-    public int? PublishedJobPostings { get; set; } = null;
+    public int? PublishedJobPostings { get; set; }
     public string CurrentState { get; set; }
     
     public int Version { get; set; }

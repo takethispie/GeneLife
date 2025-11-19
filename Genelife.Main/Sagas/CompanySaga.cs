@@ -21,7 +21,6 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
     public Event<CreateCompany> Created { get; set; } = null!;
     public Event<DayElapsed> DayElapsed { get; set; } = null!;
     public Event<EmployeeHired> EmployeeHired { get; set; } = null!;
-    public Event<JobPostingExpired> JobPostingExpired { get; set; } = null!;
 
     public CompanySaga()
     {
@@ -39,18 +38,11 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
             })
             .TransitionTo(Active)
         );
-
-        // Configure event correlations
+        
         Event(() => DayElapsed, e => e.CorrelateBy(saga => "any", ctx => "any"));
         Event(() => EmployeeHired, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.CompanyId.ToString()));
-        Event(() => JobPostingExpired, e =>  e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.CompanyId.ToString()));
         
         DuringAny(
-            When(JobPostingExpired).Then(context => {
-                context.Saga.PublishedJobPostings--;
-                if (context.Saga.PublishedJobPostings == 0) context.Saga.PublishedJobPostings = null;
-            }),
-            
             When(EmployeeHired)
                 .Then(context =>
                 {
@@ -61,9 +53,9 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
                         EmploymentStatus.Active
                     );
                     context.Saga.Employees.Add(employment);
-                    var updatedEmployeeIds = context.Saga.Company.EmployeeIds.ToList();
-                    updatedEmployeeIds.Add(context.Message.HumanId);
-                    context.Saga.Company = context.Saga.Company with { EmployeeIds = updatedEmployeeIds };
+                    context.Saga.Company = context.Saga.Company with {
+                        EmployeeIds = context.Saga.Company.EmployeeIds.Append(context.Message.HumanId).ToList()
+                    };
                     context.Saga.PublishedJobPostings--;
                     if (context.Saga.PublishedJobPostings <= 0) context.Saga.PublishedJobPostings = null;
                     Log.Information($"Company {context.Saga.Company.Name}: Hired employee {context.Message.HumanId} with salary {context.Message.Salary:C}");
@@ -80,12 +72,12 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
                         Log.Information($"Company {context.Saga.Company.Name}: Payroll due, transitioning to Payroll state");
                         context.TransitionToState(Payroll);
                     }
-                    
-                    for (var i = 0; i < context.Saga.Employees.Count; i++)
-                    {
-                        if (context.Saga.Employees[i].Status == EmploymentStatus.Active)
-                            context.Saga.Employees[i] = new UpdateEmployeeProductivity().Execute(context.Saga.Employees[i], new Random());
-                    }
+
+                    context.Saga.Employees = context.Saga.Employees.Select(employee =>
+                        employee.Status == EmploymentStatus.Active 
+                            ? new UpdateEmployeeProductivity().Execute(employee, new Random())
+                            : employee
+                    ).ToList();
 
                     var (averageProductivity, revenueChange) = new UpdateCompanyProductivity().Execute(context.Saga.Company, context.Saga.Employees);
                     context.Saga.AverageProductivity = averageProductivity;
@@ -94,6 +86,7 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
                     var positionsNeeded = new EvaluateHiring().Execute(context.Saga.Company, context.Saga.Employees, averageProductivity);
                     if (positionsNeeded == 0 || context.Saga.PublishedJobPostings is not null) {
                         context.TransitionToState(Active);
+                        return;
                     }
                     
                     Log.Information($"Company {context.Saga.Company.Name}: Starting hiring for {positionsNeeded} positions");
@@ -130,8 +123,7 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
                     Log.Information($"Company {context.Saga.Company.Name}: Processing payroll");
                     var (totalPaid, totalTaxes, salaryPayments) = new CalculatePayroll().Execute(context.Saga.Company, context.Saga.Employees);
                     var totalPayrollCost = totalPaid + totalTaxes;
-                    var updatedCompany = context.Saga.Company with { Revenue = context.Saga.Company.Revenue - totalPayrollCost };
-                    context.Saga.Company = updatedCompany;
+                    context.Saga.Company = context.Saga.Company with { Revenue = context.Saga.Company.Revenue - totalPayrollCost };
                     salaryPayments.ForEach(salaryPayment => context.Publish(salaryPayment));
                     context.Publish(new PayrollCompleted(context.Saga.CorrelationId, totalPaid, totalTaxes));
                     context.Saga.LastPayrollDate = DateTime.UtcNow;
