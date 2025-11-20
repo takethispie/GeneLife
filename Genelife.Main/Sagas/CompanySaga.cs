@@ -72,10 +72,8 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
                         context.TransitionToState(Payroll);
                     }
 
-                    context.Saga.Employees = context.Saga.Employees.Select(employee =>
-                        employee.Status == EmploymentStatus.Active 
-                            ? new UpdateEmployeeProductivity().Execute(employee, new Random())
-                            : employee
+                    context.Saga.Employees = context.Saga.Employees.Select(employee => 
+                        new UpdateEmployeeProductivity().Execute(employee)
                     ).ToList();
 
                     var (averageProductivity, revenueChange) = new UpdateCompanyProductivity().Execute(context.Saga.Company, context.Saga.Employees);
@@ -84,8 +82,8 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
                         AverageProductivity = averageProductivity
                     };
                     Log.Information($"Company {context.Saga.Company.Name}: Productivity {averageProductivity:F2}, Revenue change {revenueChange:C}");
-                    var postings = new CreateJobPostingList()
-                        .Execute(context.Saga.Company, context.Saga.PublishedJobPostings, context.Saga.CorrelationId);
+                    var postings = 
+                        new CreateJobPostingList().Execute(context.Saga.Company, context.Saga.PublishedJobPostings, context.Saga.CorrelationId);
                     postings.ForEach(posting => context.Publish(posting));
                     if(postings.Count > 0) context.Saga.PublishedJobPostings = postings.Count;
                 })

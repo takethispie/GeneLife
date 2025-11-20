@@ -79,8 +79,7 @@ public static class CompanyGenerator
             TaxRate: taxRate,
             EmployeeIds: new List<Guid>(),
             Type: type,
-            MinEmployees: minEmployees,
-            MaxEmployees: maxEmployees
+            AverageProductivity: 0f
         );
     }
 }

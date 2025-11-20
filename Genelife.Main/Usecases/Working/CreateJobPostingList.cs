@@ -8,9 +8,8 @@ public class CreateJobPostingList {
     public List<CreateJobPosting> Execute(Company company, int? publishedJobPostings, Guid correlationId) {
         var postings = new List<CreateJobPosting>();
         var positionsNeeded = new EvaluateHiring().Execute(company);
-        if (positionsNeeded == 0 || publishedJobPostings is not null) {
+        if (positionsNeeded == 0 || publishedJobPostings is not null)
             return postings;
-        }
         for (var i = 0; i < positionsNeeded; i++) {
             var jobLevel = GetNeededRankAccordingToCompanySize(company.EmployeeIds.Count);
                             
@@ -28,7 +27,7 @@ public class CreateJobPostingList {
         return postings;
     }
     
-    public JobLevel GetNeededRankAccordingToCompanySize(int size) => size switch
+    private static JobLevel GetNeededRankAccordingToCompanySize(int size) => size switch
     {
         < 5 => JobLevel.Entry,
         < 15 => JobLevel.Junior,

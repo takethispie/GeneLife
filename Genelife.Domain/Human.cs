@@ -1,4 +1,4 @@
-using Genelife.Domain.Interfaces;
+using Genelife.Domain.Work.Skills;
 
 namespace Genelife.Domain;
 
@@ -7,6 +7,7 @@ public record Human(
     string LastName,
     DateTime Birthday,
     Sex Sex,
+    SkillSet SkillSet,
     float Money,
     float Hunger = 100,
     float Energy = 100,
