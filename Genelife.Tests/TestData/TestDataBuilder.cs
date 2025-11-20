@@ -24,6 +24,7 @@ public static class TestDataBuilder
             lastName ?? Faker.Name.LastName(),
             birthday ?? Faker.Date.Past(50, DateTime.Now.AddYears(-18)),
             sex ?? Faker.PickRandom<Sex>(),
+             new SkillSet(),
             money ?? Faker.Random.Float(0, 10000),
             hunger ?? Faker.Random.Float(0, 100),
             energy ?? Faker.Random.Float(0, 100),
@@ -46,8 +47,7 @@ public static class TestDataBuilder
             taxRate ?? Faker.Random.Float(0.15f, 0.35f),
             employeeIds ?? new List<Guid>(),
             type ?? Faker.PickRandom<CompanyType>(),
-            minEmployees ?? Faker.Random.Int(1, 10),
-            maxEmployees ?? Faker.Random.Int(20, 100)
+            Faker.Random.Float()
         );
     }
 

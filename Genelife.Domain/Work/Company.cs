@@ -6,6 +6,5 @@ public record Company(
     float TaxRate,
     List<Guid> EmployeeIds,
     CompanyType Type,
-    int MinEmployees = 5,
-    int MaxEmployees = 50
+    float AverageProductivity = 1.0F
 );

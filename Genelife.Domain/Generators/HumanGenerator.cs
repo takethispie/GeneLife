@@ -1,5 +1,6 @@
 using Bogus;
 using Bogus.DataSets;
+using Genelife.Domain.Work.Skills;
 
 namespace Genelife.Domain.Generators;
 
@@ -13,6 +14,7 @@ public static class HumanGenerator {
             nameGenerator.LastName(gender),
             DateTime.Now.AddYears(-age),
             sex,
+            new SkillSet(),
             20000
         );
     }
