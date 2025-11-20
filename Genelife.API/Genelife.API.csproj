@@ -22,5 +22,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Genelife.Domain\Genelife.Domain.csproj" />
+    <ProjectReference Include="..\Genelife.Life.Messages\Genelife.Life.Messages.csproj" />
+    <ProjectReference Include="..\Genelife.Life\Genelife.Life.csproj" />
+    <ProjectReference Include="..\Genelife.Work.Messages\Genelife.Work.Messages.csproj" />
+    <ProjectReference Include="..\Genelife.Work\Genelife.Work.csproj" />
   </ItemGroup>
 </Project>

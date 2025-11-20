@@ -7,9 +7,19 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Genelife.Domain", "Genelife
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Genelife.API", "Genelife.API\Genelife.API.csproj", "{E0C5AA39-14BF-4D34-9F66-4EEE055D6D81}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Genelife.Main", "Genelife.Main\Genelife.Main.csproj", "{64B8FFE6-95E8-40D7-AE5C-A1F85F8FE200}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Genelife.Life", "Genelife.Life\Genelife.Life.csproj", "{64B8FFE6-95E8-40D7-AE5C-A1F85F8FE200}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Genelife.Tests", "Genelife.Tests\Genelife.Tests.csproj", "{04FB1374-5000-4E7D-8482-FF618AAAB015}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Genelife.Life.Tests", "Genelife.Life.Tests\Genelife.Life.Tests.csproj", "{04FB1374-5000-4E7D-8482-FF618AAAB015}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Genelife.Work", "Genelife.Work\Genelife.Work.csproj", "{EF9CBA14-9CCC-4DFE-8885-75636416DFE4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Genelife.Work.Messages", "Genelife.Work.Messages\Genelife.Work.Messages.csproj", "{02BA7E23-89DD-4898-A3D2-9F4E242358A2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Genelife.Work.Tests", "Genelife.Work.Tests\Genelife.Work.Tests.csproj", "{B60B3D13-B976-4347-96CA-2D93D342558F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Genelife.Life.Messages", "Genelife.Life.Messages\Genelife.Life.Messages.csproj", "{2DC67B55-E4C3-41CB-A9EB-3126EA579CEE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Genelife.Global.Messages", "Genelife.Global.Messages\Genelife.Global.Messages.csproj", "{DAD0E99A-AC0D-4D4B-A712-49B6E0359D2B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +43,26 @@ Global
 		{04FB1374-5000-4E7D-8482-FF618AAAB015}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{04FB1374-5000-4E7D-8482-FF618AAAB015}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{04FB1374-5000-4E7D-8482-FF618AAAB015}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EF9CBA14-9CCC-4DFE-8885-75636416DFE4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EF9CBA14-9CCC-4DFE-8885-75636416DFE4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EF9CBA14-9CCC-4DFE-8885-75636416DFE4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EF9CBA14-9CCC-4DFE-8885-75636416DFE4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{02BA7E23-89DD-4898-A3D2-9F4E242358A2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{02BA7E23-89DD-4898-A3D2-9F4E242358A2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{02BA7E23-89DD-4898-A3D2-9F4E242358A2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{02BA7E23-89DD-4898-A3D2-9F4E242358A2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B60B3D13-B976-4347-96CA-2D93D342558F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B60B3D13-B976-4347-96CA-2D93D342558F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B60B3D13-B976-4347-96CA-2D93D342558F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B60B3D13-B976-4347-96CA-2D93D342558F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2DC67B55-E4C3-41CB-A9EB-3126EA579CEE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2DC67B55-E4C3-41CB-A9EB-3126EA579CEE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2DC67B55-E4C3-41CB-A9EB-3126EA579CEE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2DC67B55-E4C3-41CB-A9EB-3126EA579CEE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DAD0E99A-AC0D-4D4B-A712-49B6E0359D2B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DAD0E99A-AC0D-4D4B-A712-49B6E0359D2B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DAD0E99A-AC0D-4D4B-A712-49B6E0359D2B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DAD0E99A-AC0D-4D4B-A712-49B6E0359D2B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

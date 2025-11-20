@@ -20,7 +20,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: Dockerfile-api
+      dockerfile: Genelife.API/Dockerfile
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
     ports:
@@ -29,10 +29,10 @@ services:
       rabbitmq:
         condition: service_started
 
-  main:
+  life:
     build:
       context: .
-      dockerfile: Dockerfile-main
+      dockerfile: Genelife.Life/Dockerfile
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
     depends_on:

@@ -1,21 +1,19 @@
 using System.Reflection;
-using Genelife.Domain;
 using MassTransit;
 using Microsoft.AspNetCore.Mvc;
-using Genelife.Domain.Commands.Cheat;
-using Genelife.Domain.Commands.Clock;
-using Genelife.Domain.Commands.Company;
-using Genelife.Domain.Commands.Jobs;
-using Genelife.Domain.Events.Living;
-using Genelife.Domain.Generators;
-using Genelife.Domain.Events.Company;
 using Genelife.API.DTOs;
-using Genelife.Domain.Events.Jobs;
-using Genelife.Domain.Work;
+using Genelife.Global.Messages.Commands.Clock;
+using Genelife.Life.Generators;
+using Genelife.Life.Messages.Commands;
+using Genelife.Life.Messages.DTOs;
+using Genelife.Work.Generators;
+using Genelife.Work.Messages.Commands.Company;
+using Genelife.Work.Messages.Commands.Jobs;
+using Genelife.Work.Messages.DTOs;
+using Genelife.Work.Messages.Events.Jobs;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
-using CreateCompany = Genelife.Domain.Commands.Company.CreateCompany;
 
 static bool IsRunningInContainer() => bool.TryParse(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), out var inContainer) && inContainer;
 
