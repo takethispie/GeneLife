@@ -1,6 +1,5 @@
 using Bogus;
 using FluentAssertions;
-using Genelife.Domain;
 using Genelife.Life.Domain.Activities;
 using Genelife.Life.Tests.TestData;
 using Genelife.Life.Usecases;

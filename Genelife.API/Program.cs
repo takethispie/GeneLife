@@ -18,6 +18,7 @@ using MongoDB.Bson.Serialization.Serializers;
 static bool IsRunningInContainer() => bool.TryParse(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), out var inContainer) && inContainer;
 
 var builder = WebApplication.CreateBuilder(args);
+
 builder.Services.AddAuthorization();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -41,6 +42,7 @@ builder.Services.AddMassTransit(x => {
 });
 
 var app = builder.Build();
+
 app.UseSwagger();
 app.UseSwaggerUI();
 app.UseHttpsRedirection();

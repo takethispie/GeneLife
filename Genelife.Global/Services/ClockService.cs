@@ -1,9 +1,8 @@
 using System.Timers;
-using Genelife.Domain;
 using Genelife.Global.Messages.Events.Clock;
 using MassTransit;
 
-namespace Genelife.Life.Services;
+namespace Genelife.Global.Services;
 
 public class ClockService {
     private readonly System.Timers.Timer timer;

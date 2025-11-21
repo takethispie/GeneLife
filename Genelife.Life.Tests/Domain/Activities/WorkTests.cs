@@ -1,5 +1,5 @@
 using FluentAssertions;
-using Genelife.Domain;
+using Genelife.Life.Interfaces;
 using Genelife.Life.Tests.TestData;
 
 namespace Genelife.Life.Tests.Domain.Activities;
@@ -10,7 +10,7 @@ public class WorkTests
     public void Work_ShouldHaveCorrectTickDuration()
     {
         var work = new Life.Domain.Activities.Work();
-        work.TickDuration.Should().Be(Constants.TickPerHour * 6);
+        work.TickDuration.Should().Be(ILivingActivity.TickPerHour * 6);
     }
 
     [Fact]

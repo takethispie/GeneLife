@@ -1,5 +1,4 @@
 using FluentAssertions;
-using Genelife.Domain;
 using Genelife.Life.Tests.TestData;
 
 namespace Genelife.Life.Tests.Domain;

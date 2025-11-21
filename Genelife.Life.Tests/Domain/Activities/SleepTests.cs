@@ -1,7 +1,7 @@
 using FluentAssertions;
-using Genelife.Domain;
 using Genelife.Life.Domain;
 using Genelife.Life.Domain.Activities;
+using Genelife.Life.Interfaces;
 using Genelife.Life.Tests.TestData;
 
 namespace Genelife.Life.Tests.Domain.Activities;
@@ -15,7 +15,7 @@ public class SleepTests
         var sleep = new Sleep();
 
         // Assert
-        sleep.TickDuration.Should().Be(Constants.TickPerHour * 8);
+        sleep.TickDuration.Should().Be(ILivingActivity.TickPerHour * 8);
     }
 
     [Fact]

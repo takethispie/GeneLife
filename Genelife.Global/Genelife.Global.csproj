@@ -2,19 +2,15 @@
 
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
-        <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-        <UserSecretsId>dotnet-Genelife.Work-df7cf0e6-734d-4fbc-9094-8451a370be55</UserSecretsId>
-        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+        <Nullable>enable</Nullable>
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0"/>
         <PackageReference Include="MassTransit" Version="8.4.0" />
-        <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
         <PackageReference Include="MassTransit.MongoDb" Version="8.4.0" />
         <PackageReference Include="MassTransit.RabbitMQ" Version="8.4.0" />
-        <PackageReference Include="MassTransit.Abstractions" Version="8.4.0" />
-        <PackageReference Include="OneOf" Version="3.0.271" />
         <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.13.1" />
         <PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.13.1-beta.1" />
         <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.13.1" />
@@ -25,17 +21,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Content Include="..\.dockerignore">
-        <Link>.dockerignore</Link>
-      </Content>
-    </ItemGroup>
-
-    <ItemGroup>
       <ProjectReference Include="..\Genelife.Global.Messages\Genelife.Global.Messages.csproj" />
-      <ProjectReference Include="..\Genelife.Work.Messages\Genelife.Work.Messages.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="Domain\" />
     </ItemGroup>
 </Project>

@@ -1,9 +1,9 @@
 using Genelife.Global.Messages.Commands.Clock;
-using Genelife.Life.Services;
+using Genelife.Global.Services;
 using MassTransit;
 using Serilog;
 
-namespace Genelife.Life.Consumers;
+namespace Genelife.Global.Consumers;
 
 public class ClockConsumer(ClockService service) : IConsumer<StartClock>, IConsumer<SetClockSpeed>, IConsumer<StopClock>
 {

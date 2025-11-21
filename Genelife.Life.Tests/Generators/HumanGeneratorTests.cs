@@ -1,5 +1,4 @@
 using FluentAssertions;
-using Genelife.Domain;
 using Genelife.Life.Generators;
 using Genelife.Life.Messages.DTOs;
 

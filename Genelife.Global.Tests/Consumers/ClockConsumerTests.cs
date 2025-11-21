@@ -1,13 +1,14 @@
 using FluentAssertions;
+using Genelife.Global.Consumers;
 using Genelife.Global.Messages.Commands.Clock;
-using Genelife.Life.Consumers;
-using Genelife.Life.Services;
+using Genelife.Global.Services;
 using MassTransit;
 using MassTransit.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using Xunit;
 
-namespace Genelife.Life.Tests.Consumers;
+namespace Genelife.Global.Tests.Consumers;
 
 public class ClockConsumerTests
 {
@@ -56,7 +57,7 @@ public class ClockConsumerTests
         (await consumerHarness.Consumed.Any<StopClock>()).Should().BeTrue();
     }
 
-    [Theory]
+    [NUnit.Framework.Theory]
     [InlineData(100)]
     [InlineData(500)]
     [InlineData(1000)]

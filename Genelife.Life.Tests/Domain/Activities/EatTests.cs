@@ -1,7 +1,7 @@
 using FluentAssertions;
-using Genelife.Domain;
 using Genelife.Life.Domain;
 using Genelife.Life.Domain.Activities;
+using Genelife.Life.Interfaces;
 using Genelife.Life.Tests.TestData;
 
 namespace Genelife.Life.Tests.Domain.Activities;
@@ -15,7 +15,7 @@ public class EatTests
         var eat = new Eat();
 
         // Assert
-        eat.TickDuration.Should().Be(Constants.TickPerHour);
+        eat.TickDuration.Should().Be(ILivingActivity.TickPerHour);
     }
 
     [Fact]
