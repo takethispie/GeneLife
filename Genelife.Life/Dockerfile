@@ -13,7 +13,7 @@ COPY ./Genelife.Life.Messages ./Genelife.Life.Messages
 WORKDIR "/src/Genelife.Life.Messages"
 RUN dotnet build "./Genelife.Life.Messages.csproj" -c $BUILD_CONFIGURATION -o /app/build
  
-FROM build as depbuild
+FROM build AS depbuild
 WORKDIR /src
 COPY ["Genelife.Life/Genelife.Life.csproj", "Genelife.Life/"]
 RUN dotnet restore "./Genelife.Life/Genelife.Life.csproj"

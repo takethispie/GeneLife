@@ -22,6 +22,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddAuthorization();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddOpenApi();
 BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
 builder.Services.AddMassTransit(x => {
     x.SetKebabCaseEndpointNameFormatter();
@@ -51,13 +52,11 @@ app.UseAuthorization();
 app.MapGet("/healthcheck", (HttpContext httpContext) => Results.Ok()).WithName("healthcheck").WithOpenApi();
 
 
-app.MapPost("/create/human/{sex}", async (Sex sex, [FromServices] IPublishEndpoint endpoint) =>
-{
-    var guid = Guid.NewGuid();
-    await endpoint.Publish(new CreateHuman(guid, HumanGenerator.Build(sex)));
-})
-.WithName("create Human")
-.WithOpenApi();
+app.MapPost("/create/human/{sex}", async (Sex sex, [FromServices] IPublishEndpoint endpoint) => {
+        var guid = Guid.NewGuid();
+        await endpoint.Publish(new CreateHuman(guid, HumanGenerator.Build(sex)));
+    })
+    .WithName("create Human");
 
 
 app.MapPost("/create/human/{count}/{sex}", async (int count, Sex sex, [FromServices] IPublishEndpoint endpoint) =>
@@ -74,44 +73,38 @@ app.MapPost("/create/human/{count}/{sex}", async (int count, Sex sex, [FromServi
     
     return Results.Ok(new { CreatedCount = count, Humans = results });
 })
-.WithName("create Multiple Humans")
-.WithOpenApi();
+.WithName("create Multiple Humans");
 
 
 app.MapGet("/simulation/start", async ([FromServices] IPublishEndpoint endpoint) => {
     await endpoint.Publish(new StartClock());
 })
-.WithName("simulation Start")
-.WithOpenApi();
+.WithName("simulation Start");
 
 
 app.MapGet("/simulation/stop", async ([FromServices] IPublishEndpoint endpoint) => {
     await endpoint.Publish(new StopClock());
 })
-.WithName("simulation Stop")
-.WithOpenApi();
+.WithName("simulation Stop");
 
 
 app.MapGet("/simulation/setClockSpeed/{milliseconds}", async (int milliseconds, [FromServices] IPublishEndpoint endpoint) => {
     await endpoint.Publish(new SetClockSpeed(milliseconds));
 })
-.WithName("set Clock Speed")
-.WithOpenApi();
+.WithName("set Clock Speed");
 
 
 app.MapGet("/cheat/sethunger/{correlationId}/{value}", async (Guid correlationId, int value, [FromServices] IPublishEndpoint endpoint) =>
 {
     await endpoint.Publish(new SetHunger(correlationId, value));
 })
-.WithName("set Hunger")
-.WithOpenApi();
+.WithName("set Hunger");
 
 app.MapGet("/cheat/setage/{correlationId}/{value:int}", async (Guid correlationId, int value, [FromServices] IPublishEndpoint endpoint) =>
     {
         await endpoint.Publish(new SetHunger(correlationId, value));
     })
-    .WithName("set Age")
-    .WithOpenApi();
+    .WithName("set Age");
 
 
 app.MapPost("/create/company/{type}", async (CompanyType type, [FromServices] IPublishEndpoint endpoint) =>
@@ -128,8 +121,7 @@ app.MapPost("/create/company/{type}", async (CompanyType type, [FromServices] IP
     await endpoint.Publish(new CreateCompany(companyId, company));
     return Results.Ok(new { CompanyId = companyId, Company = company });
 })
-.WithName("create Company")
-.WithOpenApi();
+.WithName("create Company");
 
 
 app.MapPost("/create/jobposting", async ([FromBody] JobPosting request, [FromServices] IPublishEndpoint endpoint) => {
@@ -137,8 +129,7 @@ app.MapPost("/create/jobposting", async ([FromBody] JobPosting request, [FromSer
     await endpoint.Publish(new CreateJobPosting(id, request));
     return Results.Ok("Job posting created");
 })
-.WithName("create Job Posting")
-.WithOpenApi();
+.WithName("create Job Posting");
 
 
 app.MapPost("/submit/application", async ([FromBody] SubmitJobApplicationRequest request, [FromServices] IPublishEndpoint endpoint) =>
@@ -155,8 +146,7 @@ app.MapPost("/submit/application", async ([FromBody] SubmitJobApplicationRequest
     ));
     return Results.Ok("Application submitted");
 })
-.WithName("submit Job Application")
-.WithOpenApi();
+.WithName("submit Job Application");
 
 
 app.MapPost("/create/population/{humanCount}", async (int humanCount, [FromServices] IPublishEndpoint endpoint) =>
@@ -196,8 +186,6 @@ app.MapPost("/create/population/{humanCount}", async (int humanCount, [FromServi
         Details = results
     });
 })
-.WithName("create Population")
-.WithOpenApi();
-
+.WithName("create Population");
 
 app.Run();

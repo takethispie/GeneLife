@@ -5,13 +5,13 @@ using MassTransit;
 namespace Genelife.Global.Services;
 
 public class ClockService {
+    private readonly IServiceProvider _services;
     private readonly System.Timers.Timer timer;
-    private readonly IPublishEndpoint publishEndpoint;
     private int ticks;
     private TimeOnly timeOnly;
 
-    public ClockService(IPublishEndpoint endpoint) {
-        publishEndpoint = endpoint;
+    public ClockService(IServiceProvider services) {
+        _services = services;
         timer = new(1000);
         timer.Elapsed += OnTimedEvent;
         timer.AutoReset = true;
@@ -27,8 +27,9 @@ public class ClockService {
         timer.Enabled = false;
     }   
 
-    private async void OnTimedEvent(object source, ElapsedEventArgs e)
-    {
+    private async void OnTimedEvent(object source, ElapsedEventArgs e) {
+        using var scope = _services.CreateScope();
+        var publishEndpoint = scope.ServiceProvider.GetRequiredService<IPublishEndpoint>();
         await publishEndpoint.Publish(new Tick(timeOnly.Hour));
         ticks++;
         if(ticks < Constants.TickPerHour) return;
