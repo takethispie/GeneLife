@@ -1,0 +1,10 @@
+namespace Genelife.Work.Messages.DTOs;
+
+public record Employment(
+    List<string> Skills,
+    int YearsOfExperience,
+    Guid CurrentEmployerId,
+    float? CurrentSalary = null,
+    EmploymentStatus Status = EmploymentStatus.Unemployed,
+    DateTime? LastJobSearchDate = null,
+    bool IsActivelyJobSeeking = true);

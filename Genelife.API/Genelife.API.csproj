@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Bogus" Version="35.6.2" />
+    <PackageReference Include="Bogus" Version="35.6.5" />
     <PackageReference Include="MassTransit" Version="8.4.0" />
     <PackageReference Include="MassTransit.Abstractions" Version="8.4.0" />
     <PackageReference Include="MassTransit.MongoDb" Version="8.4.0" />
@@ -21,6 +21,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Genelife.Domain\Genelife.Domain.csproj" />
+    <ProjectReference Include="..\Genelife.Life.Messages\Genelife.Life.Messages.csproj" />
+    <ProjectReference Include="..\Genelife.Life\Genelife.Life.csproj" />
+    <ProjectReference Include="..\Genelife.Work.Messages\Genelife.Work.Messages.csproj" />
+    <ProjectReference Include="..\Genelife.Work\Genelife.Work.csproj" />
   </ItemGroup>
 </Project>
