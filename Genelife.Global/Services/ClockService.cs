@@ -9,6 +9,7 @@ public class ClockService {
     private readonly System.Timers.Timer timer;
     private int ticks;
     private TimeOnly timeOnly;
+    private DateOnly dateOnly;
 
     public ClockService(IServiceProvider services) {
         _services = services;
@@ -17,6 +18,8 @@ public class ClockService {
         timer.AutoReset = true;
         ticks = 0;
         timeOnly = new(0, 0);
+        dateOnly = new(1, 1, 1);
+        
     }
 
     public void Start() {
@@ -42,7 +45,7 @@ public class ClockService {
                 break;
             case 0:
                 Console.WriteLine("1 day went by");
-                await publishEndpoint.Publish(new DayElapsed());
+                await publishEndpoint.Publish(new DayElapsed(dateOnly));
                 break;
         }
     }

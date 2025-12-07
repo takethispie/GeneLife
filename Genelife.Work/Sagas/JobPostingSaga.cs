@@ -48,10 +48,7 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                 Log.Information($"{id} removed from application {bc.Saga.CorrelationId} after refusing recruitment proposal");
                 bc.TransitionToState(ReviewingApplications);
             }),
-            When(DayElapsed)
-                .Then(context => {
-                    context.Saga.DaysActive++;
-                })
+            When(DayElapsed).Then(context => context.Saga.DaysActive++)
         );
         
         During(Active,

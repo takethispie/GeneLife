@@ -1,3 +1,3 @@
 namespace Genelife.Global.Messages.Events.Clock;
 
-public record DayElapsed();
+public record DayElapsed(DateOnly DateOnly);

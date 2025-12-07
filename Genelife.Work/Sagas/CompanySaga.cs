@@ -12,7 +12,6 @@ namespace Genelife.Work.Sagas;
 public class CompanySaga : MassTransitStateMachine<CompanySagaState>
 {
     public State Active { get; set; } = null!;
-    public State Payroll { get; set; } = null!;
 
     public Event<CreateCompany> Created { get; set; } = null!;
     public Event<DayElapsed> DayElapsed { get; set; } = null!;
@@ -64,8 +63,15 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
                     context.Saga.DaysElapsedCount++;
                     if (context.Saga.DaysElapsedCount >= 30)
                     {
-                        Log.Information($"Company {context.Saga.Company.Name}: Payroll due, transitioning to Payroll state");
-                        context.TransitionToState(Payroll);
+                        Log.Information($"Company {context.Saga.Company.Name}: Processing payroll");
+                        var (totalPaid, totalTaxes, salaryPayments) = new CalculatePayroll().Execute(context.Saga.Company, context.Saga.Employees);
+                        var totalPayrollCost = totalPaid + totalTaxes;
+                        context.Saga.Company = context.Saga.Company with { Revenue = context.Saga.Company.Revenue - totalPayrollCost };
+                        salaryPayments.ForEach(salaryPayment => context.Publish(salaryPayment));
+                        context.Publish(new PayrollCompleted(context.Saga.CorrelationId, totalPaid, totalTaxes));
+                        context.Saga.LastPayrollDate = DateTime.UtcNow;
+                        Log.Information($"Company {context.Saga.Company.Name}: Payroll completed. Total paid: {totalPaid:C}, Taxes: {totalTaxes:C}");
+                        context.Saga.DaysElapsedCount = 0;
                     }
 
                     context.Saga.Employees = context.Saga.Employees.Select(employee => 
@@ -82,22 +88,6 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
                         new CreateJobPostingList().Execute(context.Saga.Company, context.Saga.PublishedJobPostings, context.Saga.CorrelationId);
                     postings.ForEach(posting => context.Publish(posting));
                     if(postings.Count > 0) context.Saga.PublishedJobPostings = postings.Count;
-                })
-        );
-
-        During(Payroll,
-            When(DayElapsed)
-                .Then(context =>
-                {
-                    Log.Information($"Company {context.Saga.Company.Name}: Processing payroll");
-                    var (totalPaid, totalTaxes, salaryPayments) = new CalculatePayroll().Execute(context.Saga.Company, context.Saga.Employees);
-                    var totalPayrollCost = totalPaid + totalTaxes;
-                    context.Saga.Company = context.Saga.Company with { Revenue = context.Saga.Company.Revenue - totalPayrollCost };
-                    salaryPayments.ForEach(salaryPayment => context.Publish(salaryPayment));
-                    context.Publish(new PayrollCompleted(context.Saga.CorrelationId, totalPaid, totalTaxes));
-                    context.Saga.LastPayrollDate = DateTime.UtcNow;
-                    Log.Information($"Company {context.Saga.Company.Name}: Payroll completed. Total paid: {totalPaid:C}, Taxes: {totalTaxes:C}");
-                    context.TransitionToState(Active);
                 })
         );
     }

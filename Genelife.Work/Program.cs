@@ -58,6 +58,11 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
                     r.Connection = "mongodb://root:example@mongo:27017/";
                     r.DatabaseName = "maindb";
                 });
+                x.AddSagaStateMachine<WorkerSaga, WorkerSagaState>(so => so.UseConcurrentMessageLimit(1)).MongoDbRepository(r =>
+                {
+                    r.Connection = "mongodb://root:example@mongo:27017/";
+                    r.DatabaseName = "maindb";
+                });
                 x.AddSagas(entryAssembly);
                 x.AddActivities(entryAssembly);
 
@@ -83,7 +88,7 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
                 ).WithTracing(b => b
                     .AddSource("MassTransit")
                     .SetResourceBuilder(ResourceBuilder.CreateDefault()
-                        .AddService("Main")
+                        .AddService("Worker")
                         .AddTelemetrySdk()
                         .AddEnvironmentVariableDetector()
                     )

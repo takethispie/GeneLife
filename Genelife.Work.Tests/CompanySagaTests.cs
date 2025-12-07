@@ -65,7 +65,7 @@ public class CompanySagaTests
         await harness.Bus.Publish(new CreateCompany(id, company));
         await Task.Delay(100); 
 
-        await harness.Bus.Publish(new DayElapsed());
+        await harness.Bus.Publish(new DayElapsed(new DateOnly(1, 1, 1)));
 
         (await harness.Consumed.Any<DayElapsed>()).Should().BeTrue();
     }
@@ -133,7 +133,7 @@ public class CompanySagaTests
         await harness.Bus.Publish(new EmployeeProductivityUpdated(id, humanId, 0.9f));
         await Task.Delay(100);
 
-        await harness.Bus.Publish(new DayElapsed());
+        await harness.Bus.Publish(new DayElapsed(new  DateOnly(1, 1, 1)));
 
         (await harness.Consumed.Any<CreateCompany>()).Should().BeTrue();
         (await harness.Consumed.Any<EmployeeHired>()).Should().BeTrue();
