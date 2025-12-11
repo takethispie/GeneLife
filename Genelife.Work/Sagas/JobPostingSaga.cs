@@ -52,9 +52,7 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
         );
         
         During(Active,
-        When(DayElapsed)
-            .Then(context =>
-            {
+        When(DayElapsed) .Then(context => {
                 if (context.Saga is { DaysActive: <= 3, Applications.Count: < 1 }) return;
                 Log.Information($"Job posting: {context.Saga.JobPosting.Title} ended, reviewing applications");
                 context.TransitionToState(ReviewingApplications);

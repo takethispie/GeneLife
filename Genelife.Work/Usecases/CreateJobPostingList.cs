@@ -8,7 +8,7 @@ public class CreateJobPostingList {
     public List<CreateJobPosting> Execute(Company company, int? publishedJobPostings, Guid correlationId) {
         var postings = new List<CreateJobPosting>();
         var positionsNeeded = new EvaluateHiring().Execute(company);
-        if (positionsNeeded == 0 || publishedJobPostings is not null)
+        if (positionsNeeded == 0 || publishedJobPostings is > 0)
             return postings;
         for (var i = 0; i < positionsNeeded; i++) {
             var jobLevel = GetNeededRankAccordingToCompanySize(company.EmployeeIds.Count);

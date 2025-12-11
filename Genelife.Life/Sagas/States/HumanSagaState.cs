@@ -8,7 +8,6 @@ public class HumanSagaState : SagaStateMachineInstance, ISagaVersion
 {
     public Guid CorrelationId { get; set; }
     public Human Human { get; set; } = null!;
-    public SkillSet SkillSet { get; set; } = new();
     public ILivingActivity? Activity { get; set; }
     public string CurrentState { get; set; } = null!;
     public int Version { get; set; }
