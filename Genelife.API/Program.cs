@@ -177,10 +177,13 @@ app.MapPost("/create/population/{humanCount}", async (int humanCount, [FromServi
         await endpoint.Publish(new CreateCompany(id, company));
         results.Companies.Add(new { CompanyId = id, Company = company });
     }
+    
+    await endpoint.Publish(new SetClockSpeed(100));
+    await endpoint.Publish(new StartClock());
 
     return Results.Ok(new
     {
-        Message = $"Created {humanCount} humans and {companyTypes.Length} companies",
+        Message = $"Created {humanCount} humans and {companyTypes.Length} companies, set clock speed to 100ms, started simulation",
         CreatedHumans = humanCount,
         CreatedCompanies = companyTypes.Length,
         Details = results

@@ -8,6 +8,8 @@ using Serilog;
 using Serilog.Sinks.Grafana.Loki;
 using System.Reflection;
 using Automatonymous;
+using Genelife.Life.Domain.Activities;
+using Genelife.Life.Interfaces;
 using Genelife.Life.Sagas;
 using Genelife.Life.Sagas.States;
 using MongoDB.Bson;
@@ -43,6 +45,10 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
         .ConfigureServices((hostContext, services) => {
             BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
             BsonSerializer.RegisterSerializer(new ObjectSerializer(ObjectSerializer.AllAllowedTypes));
+            BsonClassMap.RegisterClassMap<Sleep>();
+            BsonClassMap.RegisterClassMap<Eat>();
+            BsonClassMap.RegisterClassMap<Work>();
+            BsonClassMap.RegisterClassMap<Shower>();
             services.AddMassTransit(x =>
             {
                 x.SetKebabCaseEndpointNameFormatter();
@@ -79,7 +85,7 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
                 ).WithTracing(b => b
                     .AddSource("MassTransit")
                     .SetResourceBuilder(ResourceBuilder.CreateDefault()
-                        .AddService("Main")
+                        .AddService("Life")
                         .AddTelemetrySdk()
                         .AddEnvironmentVariableDetector()
                     )

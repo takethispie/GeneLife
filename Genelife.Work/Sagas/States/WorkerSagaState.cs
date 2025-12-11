@@ -11,4 +11,7 @@ public record WorkerSagaState() : SagaStateMachineInstance, ISagaVersion {
     public int YearsOfExperience { get; set; }
     public SkillSet SkillSet { get; set; }
     public string FirstName { get; set; }
+    public Guid HumanId { get; set; }
+    public int? HiringTimeOut { get; set; }
+    public Guid EmployerId { get; set; }
 }
