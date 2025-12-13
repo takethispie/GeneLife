@@ -53,7 +53,6 @@ public class WorkerSaga : MassTransitStateMachine<WorkerSagaState>
         );
         
         During(LookingForJob,
-            
             When(DayElapsed).Then(bc => {
                 if(bc.Saga.HiringTimeOut is 0) {
                     bc.Saga.EmployerId = Guid.Empty;
