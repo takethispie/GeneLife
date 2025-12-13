@@ -1,4 +1,6 @@
 using System.Reflection;
+using Genelife.Global.Sagas;
+using Genelife.Global.Sagas.States;
 using Genelife.Global.Services;
 using MassTransit;
 using MongoDB.Bson;
@@ -46,20 +48,21 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
 
                 x.SetKebabCaseEndpointNameFormatter();
 
-                // By default, sagas are in-memory, but should be changed to a durable
-                // saga repository.
-                x.SetInMemorySagaRepositoryProvider();
-
                 var entryAssembly = Assembly.GetEntryAssembly();
 
                 x.AddConsumers(entryAssembly);
                 x.AddSagaStateMachines(entryAssembly);
-                x.AddSagas(entryAssembly);
+                x.AddSagaStateMachine<HouseSaga, HouseSagaState>(so => so.UseConcurrentMessageLimit(1)).MongoDbRepository(r =>
+                {
+                    r.Connection = "mongodb://root:example@mongo:27017/";
+                    r.DatabaseName = "maindb";
+                });
                 x.AddActivities(entryAssembly);
 
                 x.UsingRabbitMq((context, cfg) => {
                     cfg.UseDelayedMessageScheduler();
-
+                    if (IsRunningInContainer())
+                        cfg.Host("rabbitmq");
                     cfg.ConfigureEndpoints(context);
                 });
             });
@@ -78,7 +81,7 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
                 ).WithTracing(b => b
                     .AddSource("MassTransit")
                     .SetResourceBuilder(ResourceBuilder.CreateDefault()
-                        .AddService("Main")
+                        .AddService("Global")
                         .AddTelemetrySdk()
                         .AddEnvironmentVariableDetector()
                     )
