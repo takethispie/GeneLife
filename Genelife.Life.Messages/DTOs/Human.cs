@@ -6,6 +6,7 @@ public record Human(
     DateTime Birthday,
     Sex Sex,
     SkillSet SkillSet,
+    Position Position,
     float Money,
     float Hunger = 100,
     float Energy = 100,
