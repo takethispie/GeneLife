@@ -1,3 +1,4 @@
+using System.Numerics;
 using Bogus.DataSets;
 using Genelife.Life.Messages.DTOs;
 
@@ -14,6 +15,7 @@ public static class HumanGenerator {
             DateTime.Now.AddYears(-age),
             sex,
             new SkillSet(),
+            new Position(Vector3.Zero, ""),
             20000
         );
     }
