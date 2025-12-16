@@ -38,8 +38,8 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
 
         // Configure event correlations
         Event(() => DayElapsed, e => e.CorrelateBy(saga => "any", ctx => "any"));
-        Event(() => ApplicationSubmitted, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.CorrelationId.ToString()));
-        Event(() => RemoveApplication, e => e.CorrelateBy(saga => saga.JobPosting.CompanyId.ToString(), ctx => ctx.Message.CompanyId.ToString()));
+        Event(() => ApplicationSubmitted, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
+        Event(() => RemoveApplication, e => e.CorrelateById(saga => saga.JobPosting.CompanyId, ctx => ctx.Message.CompanyId));
         
         DuringAny(
             When(RecruitmentRefused).Then(bc => {

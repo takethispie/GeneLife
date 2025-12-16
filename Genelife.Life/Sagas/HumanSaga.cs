@@ -1,13 +1,17 @@
+using Genelife.Global.Messages.Commands.Locomotion;
 using Genelife.Global.Messages.Events.Clock;
+using Genelife.Global.Messages.Events.Locomotion;
 using Genelife.Life.Domain.Activities;
+using Genelife.Life.Domain.Address;
 using Genelife.Life.Messages.Commands;
+using Genelife.Life.Messages.DTOs;
 using Genelife.Life.Sagas.States;
 using Genelife.Life.Usecases;
 using Genelife.Work.Messages.Commands.Worker;
-using Genelife.Work.Messages.DTOs.Skills;
 using Genelife.Work.Messages.Events.Company;
 using MassTransit;
 using Serilog;
+using SkillSet = Genelife.Work.Messages.DTOs.Skills.SkillSet;
 
 namespace Genelife.Life.Sagas;
 
@@ -30,6 +34,9 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
     public Event<SetEnergy>? SetEnergy { get; set; } = null;
     public Event<SetHygiene>? SetHygiene { get; set; } = null;
     public Event<SetMoney>?  SetMoney { get; set; } = null;
+    public Event<Arrived>? Arrived { get; set; } = null;
+    public Event<AddHomeAddress>? AddHomeAddress { get; set; } = null;
+    public Event<AddWorkAddress>? AddWorkAddress { get; set; } = null;
     
 
     public HumanSaga()
@@ -50,8 +57,11 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         Event(() => UpdateTick, e => e.CorrelateBy(saga => "any", _ => "any"));
         Event(() => DayElapsed, e => e.CorrelateBy(saga => "any", _ => "any"));
         Event(() => HourElapsed, e => e.CorrelateBy(saga => "any", _ => "any"));
-        Event(() => SalaryPaid, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.CorrelationId.ToString()));
-        Event(() => EmployeeHired, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.HumanId.ToString()));
+        Event(() => SalaryPaid, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
+        Event(() => EmployeeHired, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.HumanId));
+        Event(() => Arrived, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
+        Event(() => AddHomeAddress, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
+        Event(() => AddWorkAddress, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
         
         DuringAny(
             When(HourElapsed).Then(bc => {
@@ -79,6 +89,25 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                     $"and {bc.Saga.Human.Hygiene} hygiene " +
                     $"and {bc.Saga.Human.Money} money "
                 );
+            }),
+            When(Arrived).Then(bc => bc.Saga.Human = bc.Saga.Human with { Position = new Position(bc.Message.Location, bc.Message.LocationName) }),
+            When(AddHomeAddress).Then(bc =>
+                {
+                    var entry = new AddressEntry(
+                        new Position(bc.Message.Location, "Home"),
+                        AddressType.Home,
+                        Guid.Empty
+                    );
+                    bc.Saga.AddressBook.Add(entry);
+            }),
+            When(AddWorkAddress).Then(bc =>
+            {
+                var entry = new AddressEntry(
+                    new Position(bc.Message.Location, "Work"),
+                    AddressType.Office,
+                    bc.Message.OfficeId
+                );
+                bc.Saga.AddressBook.Add(entry);
             })
         );
         
@@ -96,6 +125,13 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                 else {
                     bc.Saga.Activity = activity;
                     bc.Saga.Human = activity.Apply(bc.Saga.Human);
+                    if (activity is Domain.Activities.Work)
+                    {
+                        var workAddress = bc.Saga.AddressBook.AllOfAddressType(AddressType.Office).FirstOrDefault();
+                        //TODO use fallback system-wide event
+                        if(workAddress is null) throw new ArgumentNullException(nameof(workAddress));
+                        bc.Publish(new GoToWork(bc.Saga.CorrelationId, workAddress.EntityId));
+                    }
                 }
                 bc.TransitionToState(state);
             })
@@ -108,10 +144,17 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                     return;
                 }
                 Log.Information($"{bc.Saga.CorrelationId} has finished {bc.Saga.CurrentState}");
+                if (bc.Saga.Activity is Domain.Activities.Work { GoHomeWhenFinished: true })
+                {
+                    var workAddress = bc.Saga.AddressBook.AllOfAddressType(AddressType.Office).FirstOrDefault();
+                    //TODO use fallback system-wide event
+                    if(workAddress is null) throw new ArgumentNullException(nameof(workAddress));
+                    bc.Publish(new GoHome(workAddress.EntityId, bc.Saga.CorrelationId));
+                }
                 bc.Saga.Activity = null;
                 bc.TransitionToState(Idle);
             }),
-            When(DayElapsed).Then(_ => {})
+            Ignore(DayElapsed)
         );
     }
 }

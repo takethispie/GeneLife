@@ -42,21 +42,27 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
         .ConfigureServices((hostContext, services) => {
             BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
             BsonSerializer.RegisterSerializer(new ObjectSerializer(ObjectSerializer.AllAllowedTypes));
+            
             services.AddSingleton<ClockService>();
+            
             services.AddMassTransit(x => {
                 x.AddDelayedMessageScheduler();
-
                 x.SetKebabCaseEndpointNameFormatter();
 
                 var entryAssembly = Assembly.GetEntryAssembly();
 
                 x.AddConsumers(entryAssembly);
-                x.AddSagaStateMachines(entryAssembly);
                 x.AddSagaStateMachine<HouseSaga, HouseSagaState>(so => so.UseConcurrentMessageLimit(1)).MongoDbRepository(r =>
                 {
                     r.Connection = "mongodb://root:example@mongo:27017/";
                     r.DatabaseName = "maindb";
                 });
+                x.AddSagaStateMachine<OfficeSaga, OfficeSagaState>(so => so.UseConcurrentMessageLimit(1)).MongoDbRepository(r =>
+                {
+                    r.Connection = "mongodb://root:example@mongo:27017/";
+                    r.DatabaseName = "maindb";
+                });
+                x.AddSagas(entryAssembly);
                 x.AddActivities(entryAssembly);
 
                 x.UsingRabbitMq((context, cfg) => {
