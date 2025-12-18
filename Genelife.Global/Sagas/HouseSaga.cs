@@ -36,6 +36,7 @@ public class HouseSaga : MassTransitStateMachine<HouseSagaState> {
         
         During(Active,
             When(HumanEntered).Then(bc => {
+                Log.Information($"Human {bc.Message.HumanId} is home");
                 bc.Saga.Occupants = bc.Saga.Occupants.Exists(occupant => occupant == bc.Message.HumanId)
                     ? bc.Saga.Occupants
                     : [..bc.Saga.Occupants, bc.Message.HumanId];
@@ -43,6 +44,7 @@ public class HouseSaga : MassTransitStateMachine<HouseSagaState> {
             }),
             
             When(HumanLeft).Then(bc => {
+                Log.Information($"Human {bc.Message.HumanId} is leaving home");
                 bc.Saga.Occupants = bc.Saga.Occupants.Exists(occupant => occupant == bc.Message.HumanId)
                     ? bc.Saga.Occupants
                     : [..bc.Saga.Occupants, bc.Message.HumanId];

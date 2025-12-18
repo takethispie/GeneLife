@@ -42,6 +42,7 @@ public class OfficeSaga : MassTransitStateMachine<OfficeSagaState> {
         
         During(Active,
             When(HumanEntered).Then(bc => {
+                Log.Information($"Human {bc.Message.HumanId} is at {bc.Saga.OwningCompanyId} office");
                 bc.Saga.Occupants = bc.Saga.Occupants.Exists(occupant => occupant == bc.Message.HumanId)
                     ? bc.Saga.Occupants
                     : [..bc.Saga.Occupants, bc.Message.HumanId];
@@ -52,6 +53,7 @@ public class OfficeSaga : MassTransitStateMachine<OfficeSagaState> {
                 bc.Saga.Occupants = bc.Saga.Occupants.Exists(occupant => occupant == bc.Message.HumanId)
                     ? bc.Saga.Occupants
                     : [..bc.Saga.Occupants, bc.Message.HumanId];
+                Log.Information($"Human {bc.Message.HumanId} is leaving {bc.Saga.OwningCompanyId} office");
             })
         );
     }
