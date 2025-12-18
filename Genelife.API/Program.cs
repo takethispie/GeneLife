@@ -3,6 +3,7 @@ using System.Numerics;
 using MassTransit;
 using Microsoft.AspNetCore.Mvc;
 using Genelife.API.DTOs;
+using Genelife.API.Serializers;
 using Genelife.Global.Messages.Commands.Clock;
 using Genelife.Global.Messages.Events.Buildings;
 using Genelife.Life.Generators;
@@ -26,6 +27,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddOpenApi();
 BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
+BsonSerializer.RegisterSerializer(typeof(Vector3), new Vector3Serializer());
 builder.Services.AddMassTransit(x => {
     x.SetKebabCaseEndpointNameFormatter();
     x.SetInMemorySagaRepositoryProvider();
