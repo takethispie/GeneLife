@@ -49,7 +49,8 @@ public class WorkerSaga : MassTransitStateMachine<WorkerSagaState>
                 if (bc.Saga.EmployerId != Guid.Empty || new Random().NextDouble() < 0.5) return;
                 bc.TransitionToState(LookingForJob);
                 Log.Information($"{bc.Saga.FirstName} {bc.Saga.LastName} started actively job seeking");
-            })
+            }),
+            Ignore(JobPostingCreated)
         );
         
         During(LookingForJob,
@@ -97,7 +98,9 @@ public class WorkerSaga : MassTransitStateMachine<WorkerSagaState>
         );
         
         During(Working,
-            When(DayElapsed).Then(bc => {})
+            When(DayElapsed).Then(bc => {}),
+            When(ApplicationAccepted).Then(bc => bc.Publish(new RecruitmentRefused(bc.Message.JobPostingId, bc.Saga.CorrelationId))),
+            Ignore(JobPostingCreated)
         );
     }
 }

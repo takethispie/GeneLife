@@ -8,13 +8,9 @@ using Serilog;
 using Serilog.Sinks.Grafana.Loki;
 using System.Reflection;
 using Automatonymous;
-using Genelife.Life.Domain.Activities;
-using Genelife.Life.Interfaces;
+using Genelife.Life.Configuration;
 using Genelife.Life.Sagas;
 using Genelife.Life.Sagas.States;
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization;
-using MongoDB.Bson.Serialization.Serializers;
 
 static bool IsRunningInContainer() => bool.TryParse(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), out var inContainer) && inContainer;
 
@@ -43,12 +39,8 @@ CreateHostBuilder(args).Build().Run();
 static IHostBuilder CreateHostBuilder(string[] args) =>
     Host.CreateDefaultBuilder(args)
         .ConfigureServices((hostContext, services) => {
-            BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
-            BsonSerializer.RegisterSerializer(new ObjectSerializer(ObjectSerializer.AllAllowedTypes));
-            BsonClassMap.RegisterClassMap<Sleep>();
-            BsonClassMap.RegisterClassMap<Eat>();
-            BsonClassMap.RegisterClassMap<Work>();
-            BsonClassMap.RegisterClassMap<Shower>();
+            // Configure MongoDB BSON serialization for polymorphic types
+            MongoDbConfiguration.Configure();
             services.AddMassTransit(x =>
             {
                 x.SetKebabCaseEndpointNameFormatter();
