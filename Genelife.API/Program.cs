@@ -238,7 +238,7 @@ app.MapPost("/create/population/{humanCount}", async (int humanCount, [FromServi
         });
     }
 
-    var companyTypes = Enum.GetValues<CompanyType>();
+    var companyTypes = Enum.GetValues<CompanyType>().Shuffle().Take(2).ToArray();
     foreach (var companyType in companyTypes)
     {
         var company = CompanyGenerator.Generate(companyType);

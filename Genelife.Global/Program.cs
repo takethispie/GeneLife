@@ -1,4 +1,6 @@
+using System.Numerics;
 using System.Reflection;
+using Genelife.Global.Infrastructure.Serializers;
 using Genelife.Global.Sagas;
 using Genelife.Global.Sagas.States;
 using Genelife.Global.Services;
@@ -42,14 +44,12 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
         .ConfigureServices((hostContext, services) => {
             BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
             BsonSerializer.RegisterSerializer(new ObjectSerializer(ObjectSerializer.AllAllowedTypes));
-            
+            BsonSerializer.RegisterSerializer(typeof(Vector3), new Vector3Serializer());
             services.AddSingleton<ClockService>();
             
             services.AddMassTransit(x => {
-                x.AddDelayedMessageScheduler();
-                x.SetKebabCaseEndpointNameFormatter();
-
                 var entryAssembly = Assembly.GetEntryAssembly();
+                x.SetKebabCaseEndpointNameFormatter();
 
                 x.AddConsumers(entryAssembly);
                 x.AddSagaStateMachine<HouseSaga, HouseSagaState>(so => so.UseConcurrentMessageLimit(1)).MongoDbRepository(r =>
@@ -66,7 +66,6 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
                 x.AddActivities(entryAssembly);
 
                 x.UsingRabbitMq((context, cfg) => {
-                    cfg.UseDelayedMessageScheduler();
                     if (IsRunningInContainer())
                         cfg.Host("rabbitmq");
                     cfg.ConfigureEndpoints(context);

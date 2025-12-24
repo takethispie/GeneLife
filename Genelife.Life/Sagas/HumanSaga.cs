@@ -111,7 +111,8 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                     bc.Message.OfficeId
                 );
                 bc.Saga.AddressBook.Add(entry);
-            })
+            }),
+            When(EmployeeHired).Then(bc => bc.Saga.HasJob = true)
         );
 
         During(Idle,

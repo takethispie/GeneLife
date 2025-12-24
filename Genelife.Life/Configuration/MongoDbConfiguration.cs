@@ -1,58 +1,39 @@
+using System.Numerics;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using Genelife.Life.Interfaces;
 using Genelife.Life.Domain.Activities;
+using Genelife.Life.Infrastructure.Serializers;
 
 namespace Genelife.Life.Configuration;
 
-/// <summary>
-/// Configures MongoDB BSON serialization for the Life domain
-/// </summary>
 public static class MongoDbConfiguration
 {
-    private static bool _isConfigured = false;
-    private static readonly object _lock = new object();
-
-    /// <summary>
-    /// Configures MongoDB BSON serialization settings
-    /// This method is idempotent and can be called multiple times safely
-    /// </summary>
+    private static bool isConfigured;
+    private static readonly Lock @lock = new();
+    
     public static void Configure()
     {
-        if (_isConfigured)
-            return;
-
-        lock (_lock)
+        lock (@lock)
         {
-            if (_isConfigured)
+            if (isConfigured)
                 return;
 
             ConfigureBasicSerializers();
             ConfigureLivingActivityPolymorphism();
             
-            _isConfigured = true;
+            isConfigured = true;
         }
     }
 
     private static void ConfigureBasicSerializers()
     {
-        // Configure GUID serialization to use standard representation (only if not already registered)
-        if (!BsonSerializer.SerializerRegistry.GetSerializer<Guid>().GetType().Name.Contains("GuidSerializer"))
-        {
-            try
-            {
-                BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
-            }
-            catch (BsonSerializationException)
-            {
-                // Serializer already registered, ignore
-            }
-        }
-        
-        // Allow object serialization for flexible document structure (only if not already registered)
+        if (BsonSerializer.SerializerRegistry.GetSerializer<Guid>().GetType().Name.Contains("GuidSerializer")) return;
         try
         {
+            BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
+            BsonSerializer.RegisterSerializer(typeof(Vector3), new Vector3Serializer());
             BsonSerializer.RegisterSerializer(new ObjectSerializer(ObjectSerializer.AllAllowedTypes));
         }
         catch (BsonSerializationException)
@@ -63,8 +44,6 @@ public static class MongoDbConfiguration
 
     private static void ConfigureLivingActivityPolymorphism()
     {
-        // Register all concrete implementations with their discriminators
-        // MongoDB will automatically handle polymorphism when these are registered
         RegisterActivityType<Sleep>("Sleep");
         RegisterActivityType<Eat>("Eat");
         RegisterActivityType<Genelife.Life.Domain.Activities.Work>("Work");
@@ -80,14 +59,11 @@ public static class MongoDbConfiguration
             {
                 cm.SetDiscriminator(discriminator);
                 cm.AutoMap();
-                cm.SetIgnoreExtraElements(true); // Ignore unknown fields for forward compatibility
+                cm.SetIgnoreExtraElements(true);
             });
         }
     }
-
-    /// <summary>
-    /// Gets all registered activity discriminators for debugging purposes
-    /// </summary>
+    
     public static IReadOnlyDictionary<string, Type> GetRegisteredActivityTypes()
     {
         return new Dictionary<string, Type>
