@@ -28,4 +28,8 @@
     <ProjectReference Include="..\Genelife.Life.Messages\Genelife.Life.Messages.csproj" />
     <ProjectReference Include="..\Genelife.Work.Messages\Genelife.Work.Messages.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Infrastructure\" />
+  </ItemGroup>
 </Project>

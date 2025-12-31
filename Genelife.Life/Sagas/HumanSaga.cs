@@ -1,3 +1,4 @@
+using System.Numerics;
 using Genelife.Global.Messages.Commands.Locomotion;
 using Genelife.Global.Messages.Events.Clock;
 using Genelife.Global.Messages.Events.Locomotion;
@@ -92,7 +93,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             }),
             When(Arrived).Then(bc => bc.Saga.Human = bc.Saga.Human with
             {
-                Position = new Position(bc.Message.Location, bc.Message.LocationName)
+                Position = new Position(new Vector3(bc.Message.X, bc.Message.Y, bc.Message.Z), bc.Message.LocationName)
             }),
             When(AddHomeAddress).Then(bc =>
             {
@@ -180,6 +181,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             .FirstOrDefault(x => x.Position.LocationLabel == "Home");
         if (homeAddress is null) 
             throw new AddressNotFoundException(nameof(homeAddress));
-        endpoint.Publish(new Arrived(correlationId, homeAddress.Position.Location, "Home"));
+        var pos = homeAddress.Position.Location;
+        endpoint.Publish(new Arrived(correlationId, pos.X, pos.Y, pos.Z, "Home"));
     }
 }

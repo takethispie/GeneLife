@@ -3,4 +3,4 @@ using MassTransit;
 
 namespace Genelife.Global.Messages.Events.Locomotion;
 
-public record Arrived(Guid CorrelationId, Vector3 Location, string LocationName) : CorrelatedBy<Guid>;
+public record Arrived(Guid CorrelationId, float X, float Y, float Z, string LocationName) : CorrelatedBy<Guid>;

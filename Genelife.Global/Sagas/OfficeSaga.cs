@@ -1,4 +1,5 @@
-﻿using Genelife.Global.Extensions;
+﻿using System.Numerics;
+using Genelife.Global.Extensions;
 using Genelife.Global.Messages.Commands.Locomotion;
 using Genelife.Global.Messages.Events.Buildings;
 using Genelife.Global.Messages.Events.Locomotion;
@@ -34,7 +35,7 @@ public class OfficeSaga : MassTransitStateMachine<OfficeSagaState> {
         );
         
         Initially(When(Created).Then(bc => {
-            bc.Saga.Location = bc.Message.Location;
+            bc.Saga.Location = new Vector3(bc.Message.X, bc.Message.Y, bc.Message.Z);
             bc.Saga.Name = bc.Message.Name;
             bc.Saga.OwningCompanyId = bc.Message.OwningCompanyId;
             Log.Information($"Created office {bc.Saga.CorrelationId} at {bc.Saga.Location.ToString()}");
@@ -46,7 +47,8 @@ public class OfficeSaga : MassTransitStateMachine<OfficeSagaState> {
                 bc.Saga.Occupants = bc.Saga.Occupants.Exists(occupant => occupant == bc.Message.HumanId)
                     ? bc.Saga.Occupants
                     : [..bc.Saga.Occupants, bc.Message.HumanId];
-                bc.Publish(new Arrived(bc.Message.HumanId,  bc.Saga.Location, "Work"));
+                var pos = bc.Saga.Location;
+                bc.Publish(new Arrived(bc.Message.HumanId,  pos.X, pos.Y, pos.Z, "Work"));
             }),
             
             When(HumanLeft).Then(bc => {

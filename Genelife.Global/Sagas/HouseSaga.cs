@@ -1,3 +1,4 @@
+using System.Numerics;
 using Genelife.Global.Extensions;
 using Genelife.Global.Messages.Commands.Locomotion;
 using Genelife.Global.Messages.Events.Buildings;
@@ -27,8 +28,9 @@ public class HouseSaga : MassTransitStateMachine<HouseSagaState> {
             )
         );
         
-        Initially(When(Created).Then(bc => {
-            bc.Saga.Location = bc.Message.Location;
+        Initially(When(Created).Then(bc =>
+        {
+            bc.Saga.Location = new Vector3(bc.Message.X, bc.Message.Y, bc.Message.Z);
             if(bc.Message.Owners is not null)
                 bc.Saga.Owners = bc.Message.Owners;
             Log.Information($"Created house {bc.Saga.CorrelationId} at {bc.Saga.Location.ToString()}");
@@ -40,7 +42,8 @@ public class HouseSaga : MassTransitStateMachine<HouseSagaState> {
                 bc.Saga.Occupants = bc.Saga.Occupants.Exists(occupant => occupant == bc.Message.HumanId)
                     ? bc.Saga.Occupants
                     : [..bc.Saga.Occupants, bc.Message.HumanId];
-                bc.Publish(new Arrived(bc.Message.HumanId,  bc.Saga.Location, "Home"));
+                var pos = bc.Saga.Location;
+                bc.Publish(new Arrived(bc.Message.HumanId,  pos.X, pos.Y, pos.Z, "Home"));
             }),
             
             When(HumanLeft).Then(bc => {

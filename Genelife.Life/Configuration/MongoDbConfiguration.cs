@@ -4,7 +4,6 @@ using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using Genelife.Life.Interfaces;
 using Genelife.Life.Domain.Activities;
-using Genelife.Life.Infrastructure.Serializers;
 
 namespace Genelife.Life.Configuration;
 
@@ -29,12 +28,11 @@ public static class MongoDbConfiguration
 
     private static void ConfigureBasicSerializers()
     {
+        BsonSerializer.RegisterSerializer(new ObjectSerializer(ObjectSerializer.AllAllowedTypes));
         if (BsonSerializer.SerializerRegistry.GetSerializer<Guid>().GetType().Name.Contains("GuidSerializer")) return;
         try
         {
             BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
-            BsonSerializer.RegisterSerializer(typeof(Vector3), new Vector3Serializer());
-            BsonSerializer.RegisterSerializer(new ObjectSerializer(ObjectSerializer.AllAllowedTypes));
         }
         catch (BsonSerializationException)
         {
@@ -46,7 +44,7 @@ public static class MongoDbConfiguration
     {
         RegisterActivityType<Sleep>("Sleep");
         RegisterActivityType<Eat>("Eat");
-        RegisterActivityType<Genelife.Life.Domain.Activities.Work>("Work");
+        RegisterActivityType<Domain.Activities.Work>("Work");
         RegisterActivityType<Shower>("Shower");
         RegisterActivityType<Idle>("Idle");
     }

@@ -3,7 +3,6 @@ using System.Numerics;
 using MassTransit;
 using Microsoft.AspNetCore.Mvc;
 using Genelife.API.DTOs;
-using Genelife.API.Serializers;
 using Genelife.Global.Messages.Commands.Clock;
 using Genelife.Global.Messages.Events.Buildings;
 using Genelife.Life.Generators;
@@ -27,7 +26,6 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddOpenApi();
 BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
-BsonSerializer.RegisterSerializer(typeof(Vector3), new Vector3Serializer());
 builder.Services.AddMassTransit(x => {
     x.SetKebabCaseEndpointNameFormatter();
     x.SetInMemorySagaRepositoryProvider();
@@ -53,7 +51,7 @@ app.UseSwaggerUI();
 app.UseHttpsRedirection();
 app.UseAuthorization();
 
-app.MapGet("/healthcheck", (HttpContext httpContext) => Results.Ok()).WithName("healthcheck").WithOpenApi();
+app.MapGet("/healthcheck", (HttpContext _) => Results.Ok()).WithName("healthcheck");
 
 
 app.MapPost("/create/human/{sex}", async (Sex sex, [FromServices] IPublishEndpoint endpoint) => {
@@ -163,14 +161,16 @@ app.MapPost("/create/house", async ([FromBody] CreateHouseRequest request, [From
 
     await endpoint.Publish(new HouseBuilt(
         request.HumanId,
-        request.Location,
+        request.Location.X,
+        request.Location.Y,
+        request.Location.Z,
         owners
     ));
     
     return Results.Ok(new {
         Message = "House created successfully",
-        HumanId = request.HumanId,
-        Location = request.Location,
+        request.HumanId,
+        request.Location,
         Owners = owners
     });
 })
@@ -183,7 +183,9 @@ app.MapPost("/create/office", async ([FromBody] CreateOfficeRequest request, [Fr
     
     await endpoint.Publish(new OfficeCreated(
         officeId,
-        request.Location,
+        request.Location.X,
+        request.Location.Y,
+        request.Location.Z,
         request.Name,
         request.OwningCompanyId
     ));
@@ -191,9 +193,9 @@ app.MapPost("/create/office", async ([FromBody] CreateOfficeRequest request, [Fr
     return Results.Ok(new {
         Message = "Office created successfully",
         OfficeId = officeId,
-        Name = request.Name,
-        Location = request.Location,
-        OwningCompanyId = request.OwningCompanyId
+        request.Name,
+        request.Location,
+        request.OwningCompanyId
     });
 })
 .WithName("create Office");
@@ -227,8 +229,10 @@ app.MapPost("/create/population/{humanCount}", async (int humanCount, [FromServi
         
         await endpoint.Publish(new HouseBuilt(
             humanId,
-            houseLocation,
-            new List<Guid> { humanId }
+            houseLocation.X,
+            houseLocation.Y,
+            houseLocation.Z,
+            [humanId]
         ));
         
         results.Houses.Add(new {
@@ -257,7 +261,9 @@ app.MapPost("/create/population/{humanCount}", async (int humanCount, [FromServi
         var officeId = Guid.NewGuid();
         await endpoint.Publish(new OfficeCreated(
             officeId,
-            officeLocation,
+            officeLocation.X,
+            officeLocation.Y,
+            officeLocation.Z,
             $"{company.Name} Headquarters",
             companyId
         ));

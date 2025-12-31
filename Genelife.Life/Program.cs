@@ -1,5 +1,4 @@
 using MassTransit;
-using MassTransit.Monitoring;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -7,7 +6,6 @@ using OpenTelemetry.Trace;
 using Serilog;
 using Serilog.Sinks.Grafana.Loki;
 using System.Reflection;
-using Automatonymous;
 using Genelife.Life.Configuration;
 using Genelife.Life.Sagas;
 using Genelife.Life.Sagas.States;
@@ -39,7 +37,6 @@ CreateHostBuilder(args).Build().Run();
 static IHostBuilder CreateHostBuilder(string[] args) =>
     Host.CreateDefaultBuilder(args)
         .ConfigureServices((hostContext, services) => {
-            // Configure MongoDB BSON serialization for polymorphic types
             MongoDbConfiguration.Configure();
             services.AddMassTransit(x =>
             {
