@@ -101,10 +101,10 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
 
         During(AwaitingAnswer,
             When(RecruitmentAccepted).Then(context => {
-                Log.Information($"Job filled: {context.Saga.JobPosting.Title} - Hired {context.Message.HumanId} for {context.Message.Salary:C}");
+                Log.Information($"Job filled: {context.Saga.JobPosting.Title} - Hired {context.Message.WorkerId} for {context.Message.Salary:C}");
                 context.Publish(new EmployeeHired(
                     context.Saga.JobPosting.CompanyId,
-                    context.Message.HumanId,
+                    context.Message.WorkerId,
                     context.Message.Salary
                 ));
             }).Finalize()

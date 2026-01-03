@@ -1,3 +1,4 @@
+using Genelife.Global.Messages.Commands;
 using Genelife.Global.Messages.Events.Clock;
 using Genelife.Work.Messages.Commands.Company;
 using Genelife.Work.Messages.DTOs;

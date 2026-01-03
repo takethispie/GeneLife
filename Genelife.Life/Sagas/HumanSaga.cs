@@ -1,4 +1,5 @@
 using System.Numerics;
+using Genelife.Global.Messages.Commands;
 using Genelife.Global.Messages.Commands.Locomotion;
 using Genelife.Global.Messages.Events.Clock;
 using Genelife.Global.Messages.Events.Locomotion;
@@ -30,7 +31,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
     public Event<DayElapsed>? DayElapsed { get; set; } = null;
     public Event<HourElapsed>? HourElapsed { get; set; } = null;
     public Event<SalaryPaid>? SalaryPaid { get; set; } = null;
-    public Event<EmployeeHired>? EmployeeHired { get; set; } = null;
+    public Event<SetJobStatus>?  JobStatusChanged { get; set; } = null;
     public Event<SetHunger>? SetHunger { get; set; } = null;
     public Event<SetAge>? SetAge { get; set; } = null;
     public Event<SetEnergy>? SetEnergy { get; set; } = null;
@@ -61,7 +62,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         Event(() => DayElapsed, e => e.CorrelateBy(saga => "any", _ => "any"));
         Event(() => HourElapsed, e => e.CorrelateBy(saga => "any", _ => "any"));
         Event(() => SalaryPaid, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
-        Event(() => EmployeeHired, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.HumanId));
+        Event(() => JobStatusChanged, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
         Event(() => Arrived, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
         Event(() => AddHomeAddress, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
         Event(() => AddWorkAddress, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
@@ -85,10 +86,10 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             When(DayElapsed).Then(bc =>
             {
                 Log.Information($"{bc.Saga.CorrelationId} " +
-                                $"needs: {bc.Saga.Human.Hunger} hunger " +
-                                $"and {bc.Saga.Human.Energy} energy " +
-                                $"and {bc.Saga.Human.Hygiene} hygiene " +
-                                $"and {bc.Saga.Human.Money} money "
+                                $"needs: {Math.Round(bc.Saga.Human.Hunger)} hunger " +
+                                $" {Math.Round(bc.Saga.Human.Energy)} energy " +
+                                $" {Math.Round(bc.Saga.Human.Hygiene)} hygiene " +
+                                $" {bc.Saga.Human.Money} money "
                 );
             }),
             When(Arrived).Then(bc => bc.Saga.Human = bc.Saga.Human with
@@ -113,7 +114,14 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                 );
                 bc.Saga.AddressBook.Add(entry);
             }),
-            When(EmployeeHired).Then(bc => bc.Saga.HasJob = true)
+            When(JobStatusChanged).Then(bc =>
+            {
+                var message =  bc.Message.Hasjob 
+                    ? "Work activity added to possible activities" 
+                    : "Work activity removed from possible activities";
+                Log.Information($"{bc.Saga.CorrelationId} has {message}");
+                bc.Saga.HasJob = bc.Message.Hasjob;
+            })
         );
 
         During(Idle,
