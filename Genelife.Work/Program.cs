@@ -1,3 +1,4 @@
+using System.Numerics;
 using MassTransit;
 using MassTransit.Monitoring;
 using OpenTelemetry.Exporter;
@@ -7,6 +8,7 @@ using OpenTelemetry.Trace;
 using Serilog;
 using Serilog.Sinks.Grafana.Loki;
 using System.Reflection;
+using Genelife.Work.Infrastructure.Serializers;
 using Genelife.Work.Sagas;
 using Genelife.Work.Sagas.States;
 using MongoDB.Bson;
@@ -42,6 +44,7 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
         .ConfigureServices((hostContext, services) => {
             BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
             BsonSerializer.RegisterSerializer(new ObjectSerializer(ObjectSerializer.AllAllowedTypes));
+            BsonSerializer.RegisterSerializer(typeof(Vector3),new Vector3Serializer());
             services.AddMassTransit(x =>
             {
                 x.SetKebabCaseEndpointNameFormatter();

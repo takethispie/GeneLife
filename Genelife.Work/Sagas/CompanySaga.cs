@@ -1,3 +1,4 @@
+using Genelife.Global.Messages.Commands;
 using Genelife.Global.Messages.Events.Clock;
 using Genelife.Work.Messages.Commands.Company;
 using Genelife.Work.Messages.DTOs;
@@ -35,8 +36,8 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
         );
         
         Event(() => DayElapsed, e => e.CorrelateBy(saga => "any", ctx => "any"));
-        Event(() => EmployeeHired, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.CompanyId.ToString()));
-        Event(() => JobPostingExpired, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.CompanyId.ToString()));
+        Event(() => EmployeeHired, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CompanyId));
+        Event(() => JobPostingExpired, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CompanyId));
         
         DuringAny(
             When(EmployeeHired) .Then(context => {

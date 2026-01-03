@@ -5,7 +5,7 @@ using Genelife.Life.Messages.DTOs;
 namespace Genelife.Life.Usecases;
 
 public class ChooseActivity {
-    public ILivingActivity? Execute(Human human, int hour, bool works) {
+    public ILivingActivity Execute(Human human, int hour, bool works) {
         List<(float val, string name)> actions = [];
         if (hour is >= 22 or <= 1 && human.Energy < 25) 
             actions.Add((human.Energy, "Energy"));
@@ -16,14 +16,14 @@ public class ChooseActivity {
         if(hour is > 7 and < 18 && human.Energy > 50 && works)
             actions.Add((human.Energy, "Work"));
         
-        if (actions.Count == 0) return null;
+        if (actions.Count == 0) return new Idle();
         
         return actions.OrderBy(x => x.val).First().name switch {
             "Energy" => new Sleep(),
             "Hygiene" => new Shower(),
             "Hunger" => new Eat(),
             "Work" => new Domain.Activities.Work(),
-            _ => null
+            _ => new Idle()
         };
     }
 }

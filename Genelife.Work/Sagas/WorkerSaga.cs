@@ -1,3 +1,4 @@
+using Genelife.Global.Messages.Commands;
 using Genelife.Global.Messages.Events.Clock;
 using Genelife.Work.Generators;
 using Genelife.Work.Messages.Commands.Jobs;
@@ -49,7 +50,8 @@ public class WorkerSaga : MassTransitStateMachine<WorkerSagaState>
                 if (bc.Saga.EmployerId != Guid.Empty || new Random().NextDouble() < 0.5) return;
                 bc.TransitionToState(LookingForJob);
                 Log.Information($"{bc.Saga.FirstName} {bc.Saga.LastName} started actively job seeking");
-            })
+            }),
+            Ignore(JobPostingCreated)
         );
         
         During(LookingForJob,
@@ -81,6 +83,7 @@ public class WorkerSaga : MassTransitStateMachine<WorkerSagaState>
             
             When(EmployeeHired).Then(bc => {
                 bc.Saga.HiringTimeOut = null;
+                bc.Publish(new SetJobStatus(bc.Saga.HumanId, true));
                 Log.Information($"{bc.Saga.CorrelationId} finished hiring process into company {bc.Message.CompanyId}");
                 bc.TransitionToState(Working);
             }),
@@ -97,7 +100,9 @@ public class WorkerSaga : MassTransitStateMachine<WorkerSagaState>
         );
         
         During(Working,
-            When(DayElapsed).Then(bc => {})
+            When(DayElapsed).Then(bc => {}),
+            When(ApplicationAccepted).Then(bc => bc.Publish(new RecruitmentRefused(bc.Message.JobPostingId, bc.Saga.CorrelationId))),
+            Ignore(JobPostingCreated)
         );
     }
 }
