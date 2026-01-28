@@ -42,17 +42,17 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
         DuringAny(
             When(EmployeeHired) .Then(context => {
                     var employment = new Employee(
-                        context.Message.HumanId,
+                        context.Message.WorkerId,
                         context.Message.Salary,
                         DateTime.UtcNow,
                         EmploymentStatus.Active
                     );
                     context.Saga.Employees.Add(employment);
                     context.Saga.Company = context.Saga.Company with {
-                        EmployeeIds = context.Saga.Company.EmployeeIds.Append(context.Message.HumanId).ToList()
+                        EmployeeIds = context.Saga.Company.EmployeeIds.Append(context.Message.WorkerId).ToList()
                     };
                     context.Saga.PublishedJobPostings--;
-                    Log.Information($"Company {context.Saga.Company.Name}: Hired employee {context.Message.HumanId} with salary {context.Message.Salary:C}");
+                    Log.Information($"Company {context.Saga.Company.Name}: Hired employee {context.Message.WorkerId} with salary {context.Message.Salary:C}");
             }),
             
             When(JobPostingExpired) .Then(bc => bc.Saga.PublishedJobPostings--)

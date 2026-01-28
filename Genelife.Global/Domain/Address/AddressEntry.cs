@@ -1,5 +1,5 @@
-﻿using Genelife.Life.Messages.DTOs;
+﻿using Genelife.Global.Messages.DTOs;
 
-namespace Genelife.Life.Domain.Address;
+namespace Genelife.Global.Domain.Address;
 
 public record AddressEntry(Position Position, AddressType AddressType, Guid EntityId);

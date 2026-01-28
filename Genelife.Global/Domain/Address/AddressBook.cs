@@ -1,4 +1,4 @@
-﻿namespace Genelife.Life.Domain.Address;
+﻿namespace Genelife.Global.Domain.Address;
 
 public class AddressBook
 {

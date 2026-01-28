@@ -1,5 +1,5 @@
 namespace Genelife.Life.Messages.DTOs;
 
-public class SkillSet {
+public class LifeSkillSet {
     
 }

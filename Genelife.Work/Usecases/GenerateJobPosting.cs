@@ -46,7 +46,7 @@ public class GenerateJobPosting
         var titles = JobTitlesByType.GetValueOrDefault(companyType, JobTitlesByType[CompanyType.Services]);
         var title = titles[random.Next(titles.Count)];
         var (salaryMin, salaryMax) = GenerateSalaryRange(companyType, level);
-        
+
         return new JobPosting(
             CompanyId: companyId,
             Title: title,
@@ -56,6 +56,7 @@ public class GenerateJobPosting
             Level: level,
             // TODO add real skillset requirements
             new SkillSet(),
+            Guid.Empty,
             MaxApplications: Math.Min(100, positionsNeeded * 20)
         );
     }

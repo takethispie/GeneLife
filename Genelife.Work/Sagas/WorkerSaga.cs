@@ -40,7 +40,7 @@ public class WorkerSaga : MassTransitStateMachine<WorkerSagaState>
                 .TransitionTo(Unemployed)
         );
         
-        Event(() => EmployeeHired, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.HumanId.ToString()));
+        Event(() => EmployeeHired, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.WorkerId.ToString()));
         Event(() => ApplicationAccepted, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.CorrelationId.ToString()));
         Event(() => DayElapsed, e => e.CorrelateBy(saga => "any", _ => "any"));
         Event(() => JobPostingCreated, e => e.CorrelateBy(saga => "any", _ => "any"));

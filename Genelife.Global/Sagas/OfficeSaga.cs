@@ -1,6 +1,4 @@
 ﻿using System.Numerics;
-using Genelife.Global.Extensions;
-using Genelife.Global.Messages.Commands.Locomotion;
 using Genelife.Global.Messages.Events.Buildings;
 using Genelife.Global.Messages.Events.Locomotion;
 using Genelife.Global.Sagas.States;
@@ -14,23 +12,23 @@ public class OfficeSaga : MassTransitStateMachine<OfficeSagaState> {
     public State Active { get; set; } = null!;
 
     public Event<OfficeCreated> Created { get; set; } = null!;
-    public Event<GoToWork> HumanEntered { get; set; } = null!;
-    public Event<LeaveWork> HumanLeft { get; set; } = null!;
+    public Event<EnteredWork> HumanEntered { get; set; } = null!;
+    public Event<LeftWork> HumanLeft { get; set; } = null!;
 
     public OfficeSaga() {
         InstanceState(x => x.CurrentState);
         
         Event(() => HumanEntered,
             e => e.CorrelateById(
-                saga => saga.OwningCompanyId, 
-                ctx => ctx.Message.OwningCompanyId
+                saga => saga.CorrelationId, 
+                ctx => ctx.Message.CorrelationId
             )
         );
         
         Event(() => HumanLeft,
             e => e.CorrelateById(
-                saga => saga.OwningCompanyId, 
-                ctx => ctx.Message.OwningCompanyId
+                saga => saga.CorrelationId, 
+                ctx => ctx.Message.CorrelationId
             )
         );
         
@@ -43,19 +41,19 @@ public class OfficeSaga : MassTransitStateMachine<OfficeSagaState> {
         
         During(Active,
             When(HumanEntered).Then(bc => {
-                Log.Information($"Human {bc.Message.HumanId} is at {bc.Saga.OwningCompanyId} office");
-                bc.Saga.Occupants = bc.Saga.Occupants.Exists(occupant => occupant == bc.Message.HumanId)
+                Log.Information($"Human {bc.Message.BeingId} is at {bc.Saga.OwningCompanyId} office");
+                bc.Saga.Occupants = bc.Saga.Occupants.Exists(occupant => occupant == bc.Message.BeingId)
                     ? bc.Saga.Occupants
-                    : [..bc.Saga.Occupants, bc.Message.HumanId];
+                    : [..bc.Saga.Occupants, bc.Message.BeingId];
                 var pos = bc.Saga.Location;
-                bc.Publish(new Arrived(bc.Message.HumanId,  pos.X, pos.Y, pos.Z, "Work"));
+                bc.Publish(new Arrived(bc.Message.BeingId,  pos.X, pos.Y, pos.Z, "Work"));
             }),
             
             When(HumanLeft).Then(bc => {
-                bc.Saga.Occupants = bc.Saga.Occupants.Exists(occupant => occupant == bc.Message.HumanId)
+                bc.Saga.Occupants = bc.Saga.Occupants.Exists(occupant => occupant == bc.Message.BeingId)
                     ? bc.Saga.Occupants
-                    : [..bc.Saga.Occupants, bc.Message.HumanId];
-                Log.Information($"Human {bc.Message.HumanId} is leaving {bc.Saga.OwningCompanyId} office");
+                    : [..bc.Saga.Occupants, bc.Message.BeingId];
+                Log.Information($"Human {bc.Message.BeingId} is leaving {bc.Saga.OwningCompanyId} office");
             })
         );
     }

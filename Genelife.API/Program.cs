@@ -11,7 +11,9 @@ using Genelife.Life.Messages.DTOs;
 using Genelife.Work.Generators;
 using Genelife.Work.Messages.Commands.Company;
 using Genelife.Work.Messages.Commands.Jobs;
+using Genelife.Work.Messages.Commands.Worker;
 using Genelife.Work.Messages.DTOs;
+using Genelife.Work.Messages.DTOs.Skills;
 using Genelife.Work.Messages.Events.Jobs;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
@@ -220,6 +222,13 @@ app.MapPost("/create/population/{humanCount}", async (int humanCount, [FromServi
         
         await endpoint.Publish(new CreateHuman(humanId, human));
         results.Humans.Add(new { HumanId = humanId, Human = human });
+        await endpoint.Publish(new CreateWorker(
+            Guid.NewGuid(),
+            humanId,
+            human.FirstName,
+            human.LastName,
+            new SkillSet())
+        );
 
         var houseLocation = new Vector3(
             Random.Shared.NextSingle() * 1000 - 500,
@@ -250,9 +259,7 @@ app.MapPost("/create/population/{humanCount}", async (int humanCount, [FromServi
         await endpoint.Publish(new CreateCompany(companyId, company));
         results.Companies.Add(new { CompanyId = companyId, Company = company });
 
-        // Create an office for each company at a random location
         var officeLocation = new Vector3(
-            // X: -400 to 400 (closer to center for business district)
             Random.Shared.NextSingle() * 800 - 400, 
             Random.Shared.NextSingle() * 800 - 400,
             0

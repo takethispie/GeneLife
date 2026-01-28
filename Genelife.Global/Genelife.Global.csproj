@@ -23,4 +23,8 @@
     <ItemGroup>
       <ProjectReference Include="..\Genelife.Global.Messages\Genelife.Global.Messages.csproj" />
     </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Domain\" />
+    </ItemGroup>
 </Project>

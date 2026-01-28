@@ -23,7 +23,7 @@ public static class TestDataBuilder
             lastName ?? Faker.Name.LastName(),
             birthday ?? Faker.Date.Past(50, DateTime.Now.AddYears(-18)),
             sex ?? Faker.PickRandom<Sex>(),
-             new SkillSet(),
+             new LifeSkillSet(),
             new Position(Vector3.Zero, ""),
             money ?? Faker.Random.Float(0, 10000),
             hunger ?? Faker.Random.Float(0, 100),

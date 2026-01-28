@@ -1,3 +1,3 @@
 ﻿namespace Genelife.Global.Messages.Commands.Locomotion;
 
-public record LeaveWork(Guid HumanId, Guid  OwningCompanyId);
+public record LeaveWork(Guid HumanId);

@@ -5,7 +5,7 @@ public record Human(
     string LastName,
     DateTime Birthday,
     Sex Sex,
-    SkillSet SkillSet,
+    LifeSkillSet LifeSkillSet,
     Position Position,
     float Money,
     float Hunger = 100,
