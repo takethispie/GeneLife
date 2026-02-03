@@ -1,3 +1,5 @@
-﻿namespace Genelife.Global.Messages.Commands.Locomotion;
+﻿using MassTransit;
 
-public record LeaveWork(Guid HumanId);
+namespace Genelife.Global.Messages.Commands.Locomotion;
+
+public record LeaveWork(Guid CorrelationId) : CorrelatedBy<Guid>;

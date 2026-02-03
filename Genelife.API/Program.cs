@@ -3,6 +3,7 @@ using System.Numerics;
 using MassTransit;
 using Microsoft.AspNetCore.Mvc;
 using Genelife.API.DTOs;
+using Genelife.Global.Messages.Commands;
 using Genelife.Global.Messages.Commands.Clock;
 using Genelife.Global.Messages.Events.Buildings;
 using Genelife.Life.Generators;
@@ -111,7 +112,7 @@ app.MapGet("/cheat/setage/{correlationId}/{value:int}", async (Guid correlationI
     .WithName("set Age");
 
 
-app.MapPost("/create/company/{type}", async (CompanyType type, [FromServices] IPublishEndpoint endpoint) =>
+app.MapPost("/create/company/{type}", async (CompanyType type, Guid officeId, [FromServices] IPublishEndpoint endpoint) =>
 {
     var companyId = Guid.NewGuid();
     var company = new Company(
@@ -122,7 +123,7 @@ app.MapPost("/create/company/{type}", async (CompanyType type, [FromServices] IP
         EmployeeIds: []
     );
 
-    await endpoint.Publish(new CreateCompany(companyId, company));
+    await endpoint.Publish(new CreateCompany(companyId, company, officeId));
     return Results.Ok(new { CompanyId = companyId, Company = company });
 })
 .WithName("create Company");
@@ -229,7 +230,7 @@ app.MapPost("/create/population/{humanCount}", async (int humanCount, [FromServi
             human.LastName,
             new SkillSet())
         );
-
+        await endpoint.Publish(new CreateBeingLocation(Guid.NewGuid(), humanId, 0, 0, 0));
         var houseLocation = new Vector3(
             Random.Shared.NextSingle() * 1000 - 500,
             Random.Shared.NextSingle() * 1000 - 500,
@@ -256,8 +257,6 @@ app.MapPost("/create/population/{humanCount}", async (int humanCount, [FromServi
     {
         var company = CompanyGenerator.Generate(companyType);
         var companyId = Guid.NewGuid();
-        await endpoint.Publish(new CreateCompany(companyId, company));
-        results.Companies.Add(new { CompanyId = companyId, Company = company });
 
         var officeLocation = new Vector3(
             Random.Shared.NextSingle() * 800 - 400, 
@@ -274,6 +273,9 @@ app.MapPost("/create/population/{humanCount}", async (int humanCount, [FromServi
             $"{company.Name} Headquarters",
             companyId
         ));
+        
+        await endpoint.Publish(new CreateCompany(companyId, company, officeId));
+        results.Companies.Add(new { CompanyId = companyId, Company = company });
         
         results.Offices.Add(new {
             OfficeId = officeId,

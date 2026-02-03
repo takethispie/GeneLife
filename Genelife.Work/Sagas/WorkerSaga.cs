@@ -1,3 +1,4 @@
+using System.Numerics;
 using Genelife.Global.Messages.Commands;
 using Genelife.Global.Messages.Events.Clock;
 using Genelife.Work.Generators;
@@ -84,6 +85,7 @@ public class WorkerSaga : MassTransitStateMachine<WorkerSagaState>
             When(EmployeeHired).Then(bc => {
                 bc.Saga.HiringTimeOut = null;
                 bc.Publish(new SetJobStatus(bc.Saga.HumanId, true));
+                bc.Publish(new SetWorkAddress(bc.Saga.HumanId, bc.Message.OfficeId));
                 Log.Information($"{bc.Saga.CorrelationId} finished hiring process into company {bc.Message.CompanyId}");
                 bc.TransitionToState(Working);
             }),

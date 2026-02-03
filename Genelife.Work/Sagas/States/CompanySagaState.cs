@@ -14,4 +14,5 @@ public class CompanySagaState : SagaStateMachineInstance, ISagaVersion
     
     public int Version { get; set; }
     public DateTime LastPayrollDate { get; set; }
+    public Guid OfficeId { get; set; }
 }

@@ -105,7 +105,8 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                 context.Publish(new EmployeeHired(
                     context.Saga.JobPosting.CompanyId,
                     context.Message.WorkerId,
-                    context.Message.Salary
+                    context.Message.Salary,
+                    context.Saga.JobPosting.OfficeId
                 ));
             }).Finalize()
         );

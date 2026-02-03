@@ -84,7 +84,12 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
                     };
                     Log.Information($"Company {context.Saga.Company.Name}: Productivity {averageProductivity:F2}, Revenue change {revenueChange:C}");
                     var postings = 
-                        new CreateJobPostingList().Execute(context.Saga.Company, context.Saga.PublishedJobPostings, context.Saga.CorrelationId);
+                        new CreateJobPostingList().Execute(
+                            context.Saga.Company, 
+                            context.Saga.PublishedJobPostings, 
+                            context.Saga.CorrelationId, 
+                            context.Saga.OfficeId
+                        );
                     postings.ForEach(posting => context.Publish(posting));
                     if(postings.Count > 0) context.Saga.PublishedJobPostings = postings.Count;
             })

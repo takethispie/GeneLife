@@ -5,7 +5,7 @@ using Serilog;
 namespace Genelife.Work.Usecases;
 
 public class CreateJobPostingList {
-    public List<CreateJobPosting> Execute(Company company, int? publishedJobPostings, Guid correlationId) {
+    public List<CreateJobPosting> Execute(Company company, int? publishedJobPostings, Guid correlationId, Guid officeId) {
         var postings = new List<CreateJobPosting>();
         var positionsNeeded = new EvaluateHiring().Execute(company);
         if (positionsNeeded == 0 || publishedJobPostings is > 0)
@@ -17,7 +17,8 @@ public class CreateJobPostingList {
                 correlationId, 
                 company.Type, 
                 jobLevel, 
-                1
+                1,
+                officeId
             );
             
             var id = Guid.NewGuid();

@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using Genelife.Global.Domain.Address;
 using Genelife.Global.Domain.Exceptions;
+using Genelife.Global.Interfaces;
 using Genelife.Global.Messages.Commands;
 using Genelife.Global.Messages.Commands.Locomotion;
 using Genelife.Global.Messages.DTOs;
@@ -12,10 +13,11 @@ namespace Genelife.Global.Sagas;
 
 public class BeingSaga : MassTransitStateMachine<BeingSagaState>
 {
+    private readonly IHouseRepository houseRepository;
     public State Active { get; set; } = null!;
     
-    public Event<AddHomeAddress> AddHomeAddress { get; set; } = null!;
-    public Event<AddWorkAddress> AddWorkAddress { get; set; } = null!;
+    public Event<SetHomeAddress> AddHomeAddress { get; set; } = null!;
+    public Event<SetWorkAddress> AddWorkAddress { get; set; } = null!;
     public Event<LeaveWork> LeaveWork { get; set; } = null!;
     public Event<LeaveHome> LeaveHome { get; set; } = null!;
     public Event<GoToWork> GoToWork { get; set; } = null!;
@@ -23,8 +25,9 @@ public class BeingSaga : MassTransitStateMachine<BeingSagaState>
     public Event<CreateBeingLocation> CreateBeingLocation { get; set; } = null!;    
     public Event<Arrived> Arrived { get; set; } = null!;
     
-    public BeingSaga()
+    public BeingSaga(IHouseRepository houseRepository, IOfficeRepository  officeRepository)
     {
+        this.houseRepository = houseRepository;
         InstanceState(x => x.CurrentState);
         Initially(
             When(CreateBeingLocation).Then(bc =>
@@ -35,24 +38,30 @@ public class BeingSaga : MassTransitStateMachine<BeingSagaState>
                 bc.Saga.AddressBook =  new AddressBook();
             }).TransitionTo(Active)
         );
-        Event(() => AddHomeAddress, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
-        Event(() => AddWorkAddress, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
+        Event(() => AddHomeAddress, e => e.CorrelateById(saga => saga.HumanId, ctx => ctx.Message.HumanId));
+        Event(() => AddWorkAddress, e => e.CorrelateById(saga => saga.HumanId, ctx => ctx.Message.HumanId));
         Event(() => Arrived, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
-
+        Event(() => LeaveHome, e => e.CorrelateById(saga => saga.HumanId, ctx => ctx.Message.CorrelationId));
+        Event(() => LeaveWork, e => e.CorrelateById(saga => saga.HumanId, ctx => ctx.Message.CorrelationId));
+        Event(() => GoHome, e => e.CorrelateById(saga => saga.HumanId, ctx => ctx.Message.CorrelationId));
+        Event(() => GoToWork, e => e.CorrelateById(saga => saga.HumanId, ctx => ctx.Message.CorrelationId));
+        
         During(Active,
-            When(AddHomeAddress).Then(bc =>
+            When(AddHomeAddress).Then(async bc =>
             {
+                var location = await houseRepository.GetHousePosition(bc.Message.HomeId);
                 var entry = new AddressEntry(
-                    new Position(bc.Message.Location, "Home"),
+                    new Position(location, "Home"),
                     AddressType.Home,
                     Guid.Empty
                 );
                 bc.Saga.AddressBook.Add(entry);
             }),
-            When(AddWorkAddress).Then(bc =>
+            When(AddWorkAddress).Then(async bc =>
             {
+                var location = await officeRepository.GetOfficePosition(bc.Message.OfficeId);
                 var entry = new AddressEntry(
-                    new Position(bc.Message.Location, "Work"),
+                    new Position(location, "Work"),
                     AddressType.Office,
                     bc.Message.OfficeId
                 );
