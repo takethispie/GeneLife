@@ -59,11 +59,6 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
                     r.Connection = "mongodb://root:example@mongo:27017/";
                     r.DatabaseName = "maindb";
                 });
-                x.AddSagaStateMachine<BeingSaga, BeingSagaState>(so => so.UseConcurrentMessageLimit(1)).MongoDbRepository(r =>
-                {
-                    r.Connection = "mongodb://root:example@mongo:27017/";
-                    r.DatabaseName = "maindb";
-                });
                 x.AddSagas(entryAssembly);
                 x.AddActivities(entryAssembly);
 

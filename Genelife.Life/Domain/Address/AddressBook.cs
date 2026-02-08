@@ -1,4 +1,4 @@
-﻿namespace Genelife.Global.Domain.Address;
+﻿namespace Genelife.Life.Domain.Address;
 
 public class AddressBook
 {
@@ -7,7 +7,7 @@ public class AddressBook
     public void Add(AddressEntry entry)
     {
         //TODO checks for type that should have only one address (like own home)
-        if (adresses.Any(address => address.Position == entry.Position)) return;
+        if (adresses.Any(address => address.EntityId == entry.EntityId)) return;
         adresses.Add(entry);
     }
     

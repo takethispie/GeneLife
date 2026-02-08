@@ -6,3 +6,4 @@ bin
 *DotSettings.user
 /Genelife.Web/client-app/package-lock.json
 launchsettings.json
+.VSCodeCounter

@@ -1,6 +1,7 @@
 using System.Numerics;
 using Genelife.Global.Messages.Commands;
 using Genelife.Global.Messages.Events.Clock;
+using Genelife.Life.Messages.Commands;
 using Genelife.Work.Generators;
 using Genelife.Work.Messages.Commands.Jobs;
 using Genelife.Work.Messages.Commands.Worker;

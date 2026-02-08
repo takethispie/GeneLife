@@ -1,5 +1,4 @@
 using System.Numerics;
-using Genelife.Global.Extensions;
 using Genelife.Global.Messages.Commands.Locomotion;
 using Genelife.Global.Messages.Events.Buildings;
 using Genelife.Global.Messages.Events.Locomotion;
@@ -20,7 +19,8 @@ public class HouseSaga : MassTransitStateMachine<HouseSagaState> {
     public HouseSaga() {
         InstanceState(x => x.CurrentState);
         
-        Event(() => HumanEntered, e => e.CorrelateById(x => x.Message.CorrelationId));
+        Event(() => HumanEntered, 
+            e => e.CorrelateById(x => x.Message.CorrelationId));
         Event(() => HumanLeft,
             e => e.CorrelateById(
                 saga => saga.CorrelationId, 

@@ -1,4 +1,4 @@
-﻿namespace Genelife.Global.Domain.Address;
+﻿namespace Genelife.Life.Domain.Address;
 
 public enum AddressType
 {

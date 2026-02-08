@@ -230,23 +230,26 @@ app.MapPost("/create/population/{humanCount}", async (int humanCount, [FromServi
             human.LastName,
             new SkillSet())
         );
-        await endpoint.Publish(new CreateBeingLocation(Guid.NewGuid(), humanId, 0, 0, 0));
+        
         var houseLocation = new Vector3(
             Random.Shared.NextSingle() * 1000 - 500,
             Random.Shared.NextSingle() * 1000 - 500,
             0
         );
         
+        var houseId  = Guid.NewGuid();
         await endpoint.Publish(new HouseBuilt(
-            humanId,
+            houseId,
             houseLocation.X,
             houseLocation.Y,
             houseLocation.Z,
             [humanId]
         ));
+
+        await endpoint.Publish(new SetHomeAddress(humanId, houseId));
         
         results.Houses.Add(new {
-            HumanId = humanId,
+            HouseId = houseId,
             Location = houseLocation,
             Owners = new List<Guid> { humanId }
         });
