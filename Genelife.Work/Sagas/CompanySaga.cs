@@ -1,5 +1,7 @@
 using Genelife.Global.Messages.Commands;
+using Genelife.Global.Messages.Events;
 using Genelife.Global.Messages.Events.Clock;
+using Genelife.Global.Messages.Events.Locomotion;
 using Genelife.Work.Messages.Commands.Company;
 using Genelife.Work.Messages.DTOs;
 using Genelife.Work.Messages.Events.Company;
@@ -19,6 +21,8 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
     public Event<DayElapsed> DayElapsed { get; set; } = null!;
     public Event<EmployeeHired> EmployeeHired { get; set; } = null!;
     public Event<JobPostingExpired> JobPostingExpired { get; set; } = null!;
+    public Event<EnteredWork> HumanEntered { get; set; } = null!;
+    public Event<LeftWork> HumanLeft { get; set; } = null!;
 
     public CompanySaga()
     {
@@ -38,6 +42,19 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
         Event(() => DayElapsed, e => e.CorrelateBy(saga => "any", ctx => "any"));
         Event(() => EmployeeHired, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CompanyId));
         Event(() => JobPostingExpired, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CompanyId));
+        Event(() => HumanEntered,
+            e => e.CorrelateById(
+                saga => saga.CorrelationId, 
+                ctx => ctx.Message.CorrelationId
+            )
+        );
+        
+        Event(() => HumanLeft,
+            e => e.CorrelateById(
+                saga => saga.CorrelationId, 
+                ctx => ctx.Message.CorrelationId
+            )
+        );
         
         DuringAny(
             When(EmployeeHired) .Then(context => {
@@ -54,7 +71,20 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
                     context.Saga.PublishedJobPostings--;
                     Log.Information($"Company {context.Saga.Company.Name}: Hired employee {context.Message.WorkerId} with salary {context.Message.Salary:C}");
             }),
-            
+            When(HumanEntered).Then(bc => {
+                Log.Information($"Human {bc.Message.BeingId} is at {bc.Saga.CorrelationId} office");
+                bc.Saga.Occupants = bc.Saga.Occupants.Exists(occupant => occupant == bc.Message.BeingId)
+                    ? bc.Saga.Occupants
+                    : [..bc.Saga.Occupants, bc.Message.BeingId];
+                var pos = bc.Saga.Location;
+                bc.Publish(new Arrived(bc.Message.BeingId,  pos.X, pos.Y, pos.Z, "Work"));
+            }),
+            When(HumanLeft).Then(bc => {
+                bc.Saga.Occupants = bc.Saga.Occupants.Exists(occupant => occupant == bc.Message.BeingId)
+                    ? bc.Saga.Occupants
+                    : [..bc.Saga.Occupants, bc.Message.BeingId];
+                Log.Information($"Human {bc.Message.BeingId} is leaving {bc.Saga.CorrelationId} office");
+            }),
             When(JobPostingExpired) .Then(bc => bc.Saga.PublishedJobPostings--)
         );
         
@@ -88,7 +118,8 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
                             context.Saga.Company, 
                             context.Saga.PublishedJobPostings, 
                             context.Saga.CorrelationId, 
-                            context.Saga.OfficeId
+                            context.Saga.OfficeId,
+                            context.Saga.OfficeLocation
                         );
                     postings.ForEach(posting => context.Publish(posting));
                     if(postings.Count > 0) context.Saga.PublishedJobPostings = postings.Count;

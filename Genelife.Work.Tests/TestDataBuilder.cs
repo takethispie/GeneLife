@@ -57,6 +57,7 @@ public static class TestDataBuilder
                 }
             },
             Guid.Empty,
+            new OfficeLocation(0, 0, 0),
             maxApplications ?? Faker.Random.Int(50, 200)
         );
     }

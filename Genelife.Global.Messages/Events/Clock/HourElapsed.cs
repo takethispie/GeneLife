@@ -1,3 +1,4 @@
-namespace Genelife.Global.Messages.Events.Clock;
-
-public record HourElapsed();
+namespace Genelife.Global.Messages.Events.Clock
+{
+    public record HourElapsed();
+}

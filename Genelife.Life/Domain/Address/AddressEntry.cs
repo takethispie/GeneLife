@@ -1,3 +1,5 @@
-﻿namespace Genelife.Life.Domain.Address;
+﻿using Genelife.Work.Messages.Events.Company;
 
-public record AddressEntry(AddressType AddressType, Guid EntityId);
+namespace Genelife.Life.Domain.Address;
+
+public record AddressEntry(AddressType AddressType, Guid EntityId, AddressCoordinates Coordinates);

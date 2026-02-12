@@ -15,7 +15,7 @@ public static class HumanGenerator {
             DateTime.Now.AddYears(-age),
             sex,
             new LifeSkillSet(),
-            new Position(Vector3.Zero, ""),
+            new Coordinates(0, 0, 0),
             20000
         );
     }

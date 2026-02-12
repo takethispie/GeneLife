@@ -1,6 +1,5 @@
-﻿using System.Numerics;
-using MassTransit;
+﻿using MassTransit;
 
-namespace Genelife.Global.Messages.Events.Locomotion;
+namespace Genelife.Global.Messages.Events;
 
 public record Arrived(Guid CorrelationId, float X, float Y, float Z, string LocationName) : CorrelatedBy<Guid>;

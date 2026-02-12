@@ -122,8 +122,14 @@ app.MapPost("/create/company/{type}", async (CompanyType type, Guid officeId, [F
         TaxRate: 0.25f,
         EmployeeIds: []
     );
+    
+    var officeLocation = new Vector3(
+        Random.Shared.NextSingle() * 800 - 400, 
+        Random.Shared.NextSingle() * 800 - 400,
+        0
+    );
 
-    await endpoint.Publish(new CreateCompany(companyId, company, officeId));
+    await endpoint.Publish(new CreateCompany(companyId, company, officeId, officeLocation.X, officeLocation.Y, officeLocation.Z));
     return Results.Ok(new { CompanyId = companyId, Company = company });
 })
 .WithName("create Company");
@@ -180,30 +186,6 @@ app.MapPost("/create/house", async ([FromBody] CreateHouseRequest request, [From
 .WithName("create House");
 
 
-app.MapPost("/create/office", async ([FromBody] CreateOfficeRequest request, [FromServices] IPublishEndpoint endpoint) =>
-{
-    var officeId = Guid.NewGuid();
-    
-    await endpoint.Publish(new OfficeCreated(
-        officeId,
-        request.Location.X,
-        request.Location.Y,
-        request.Location.Z,
-        request.Name,
-        request.OwningCompanyId
-    ));
-    
-    return Results.Ok(new {
-        Message = "Office created successfully",
-        OfficeId = officeId,
-        request.Name,
-        request.Location,
-        request.OwningCompanyId
-    });
-})
-.WithName("create Office");
-
-
 app.MapPost("/create/population/{humanCount}", async (int humanCount, [FromServices] IPublishEndpoint endpoint) =>
 {
     var results = new
@@ -246,7 +228,12 @@ app.MapPost("/create/population/{humanCount}", async (int humanCount, [FromServi
             [humanId]
         ));
 
-        await endpoint.Publish(new SetHomeAddress(humanId, houseId));
+        var coords = new Coordinates(
+            houseLocation.X,
+            houseLocation.Y,
+            houseLocation.Z
+        );
+        await endpoint.Publish(new SetHomeAddress(humanId, houseId, coords));
         
         results.Houses.Add(new {
             HouseId = houseId,
@@ -268,16 +255,7 @@ app.MapPost("/create/population/{humanCount}", async (int humanCount, [FromServi
         );
         
         var officeId = Guid.NewGuid();
-        await endpoint.Publish(new OfficeCreated(
-            officeId,
-            officeLocation.X,
-            officeLocation.Y,
-            officeLocation.Z,
-            $"{company.Name} Headquarters",
-            companyId
-        ));
-        
-        await endpoint.Publish(new CreateCompany(companyId, company, officeId));
+        await endpoint.Publish(new CreateCompany(companyId, company, officeId, officeLocation.X, officeLocation.Y, officeLocation.Z));
         results.Companies.Add(new { CompanyId = companyId, Company = company });
         
         results.Offices.Add(new {

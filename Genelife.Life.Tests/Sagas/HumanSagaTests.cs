@@ -6,6 +6,7 @@ using Genelife.Life.Sagas.States;
 using Genelife.Life.Tests.TestData;
 using Genelife.Life.Usecases;
 using Genelife.Work.Generators;
+using Genelife.Work.Messages.DTOs;
 using Genelife.Work.Messages.Events.Company;
 using Genelife.Work.Usecases;
 using MassTransit;
@@ -144,7 +145,7 @@ public class HumanSagaTests
         await Task.Delay(100); // Wait for saga creation
 
         // Act
-        await harness.Bus.Publish(new EmployeeHired(companyId, humanId, salary, Guid.NewGuid()));
+        await harness.Bus.Publish(new EmployeeHired(companyId, humanId, salary, Guid.NewGuid(), new OfficeLocation(0, 0, 0)));
 
         // Assert
         (await harness.Consumed.Any<EmployeeHired>()).Should().BeTrue();

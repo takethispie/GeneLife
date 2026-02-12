@@ -1,7 +1,7 @@
 using System.Numerics;
 using Genelife.Global.Messages.Commands.Locomotion;
+using Genelife.Global.Messages.Events;
 using Genelife.Global.Messages.Events.Buildings;
-using Genelife.Global.Messages.Events.Locomotion;
 using Genelife.Global.Sagas.States;
 using MassTransit;
 using Serilog;

@@ -11,5 +11,6 @@ public record JobPosting(
     JobLevel Level,
     SkillSet RequiredSkillSet,
     Guid OfficeId,
+    OfficeLocation OfficeLocation,
     int MaxApplications = 50
 );

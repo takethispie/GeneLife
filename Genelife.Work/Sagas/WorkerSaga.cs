@@ -86,7 +86,7 @@ public class WorkerSaga : MassTransitStateMachine<WorkerSagaState>
             When(EmployeeHired).Then(bc => {
                 bc.Saga.HiringTimeOut = null;
                 bc.Publish(new SetJobStatus(bc.Saga.HumanId, true));
-                bc.Publish(new SetWorkAddress(bc.Saga.HumanId, bc.Message.OfficeId));
+                bc.Publish(new SetWorkAddress(bc.Saga.HumanId, bc.Message.OfficeId, bc.Message.OfficeLocation));
                 Log.Information($"{bc.Saga.CorrelationId} finished hiring process into company {bc.Message.CompanyId}");
                 bc.TransitionToState(Working);
             }),

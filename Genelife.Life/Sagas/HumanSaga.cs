@@ -1,6 +1,7 @@
 using System.Numerics;
 using Genelife.Global.Messages.Commands.Locomotion;
 using Genelife.Global.Messages.DTOs;
+using Genelife.Global.Messages.Events;
 using Genelife.Global.Messages.Events.Clock;
 using Genelife.Global.Messages.Events.Locomotion;
 using Genelife.Life.Domain.Activities;
@@ -50,6 +51,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         Initially(When(Created).Then(bc =>
         {
             bc.Saga.Human = bc.Message.Human;
+            bc.Saga.AddressBook = new AddressBook();
             Log.Information($"Created human {bc.Saga.Human.FirstName} {bc.Saga.Human.LastName} ");
         }).TransitionTo(Idle));
 
@@ -102,11 +104,23 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             }),
             When(AddHomeAddress).Then(bc =>
             {
-                bc.Saga.AddressBook.Add(new AddressEntry(AddressType.Home, bc.Message.HomeId));
+                Log.Information($"home address added for human {bc.Saga.CorrelationId}");
+                var coordinates = new AddressCoordinates(
+                    bc.Message.Coordinates.X,  
+                    bc.Message.Coordinates.Y, 
+                    bc.Message.Coordinates.Z
+                );
+                bc.Saga.AddressBook.Add(new AddressEntry(AddressType.Home, bc.Message.HomeId, coordinates));
             }),
             When(AddWorkAddress).Then(bc =>
             {
-                bc.Saga.AddressBook.Add(new AddressEntry(AddressType.Office, bc.Message.OfficeId));
+                Log.Information($"work address added for human {bc.Saga.CorrelationId}");
+                var coordinates = new AddressCoordinates(
+                    bc.Message.OfficeLocation.X,  
+                    bc.Message.OfficeLocation.Y, 
+                    bc.Message.OfficeLocation.Z
+                );
+                bc.Saga.AddressBook.Add(new AddressEntry(AddressType.Office, bc.Message.OfficeId, coordinates));
             }),
             When(Arrived) .Then(bc => bc.Saga.Position =
                 new Position(
@@ -165,6 +179,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         if (workAddress is null) 
             throw new AddressNotFoundException(nameof(workAddress));
         bc.Publish(new EnteredWork(bc.Saga.CorrelationId, workAddress.EntityId));
+        Log.Information($"{bc.Saga.CorrelationId} is going to work at {workAddress.EntityId}");
     }
 
     private static void OnLeaveWork(BehaviorContext<HumanSagaState, LeaveWork> bc)
@@ -175,6 +190,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             throw new AddressNotFoundException(nameof(workAddress));
         bc.Publish(new LeftWork(workAddress.EntityId, bc.Saga.CorrelationId));
         OnGoHome(bc.Saga.AddressBook, bc, bc.Saga.CorrelationId);
+        Log.Information($"{bc.Saga.CorrelationId} is leaving work at {workAddress.EntityId}");
     }
 
     private static void OnGoHome(AddressBook addressBook, IPublishEndpoint endpoint, Guid correlationId)
