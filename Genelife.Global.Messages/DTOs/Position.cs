@@ -2,4 +2,4 @@
 
 namespace Genelife.Global.Messages.DTOs;
 
-public record Position(Vector3 Location, string? LocationLabel);
+public record Position(float X, float Y, float Z);

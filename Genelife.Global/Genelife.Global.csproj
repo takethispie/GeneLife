@@ -22,6 +22,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Genelife.Global.Messages\Genelife.Global.Messages.csproj" />
+      <ProjectReference Include="..\Genelife.Life.Messages\Genelife.Life.Messages.csproj" />
     </ItemGroup>
 
     <ItemGroup>

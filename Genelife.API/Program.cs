@@ -3,7 +3,6 @@ using System.Numerics;
 using MassTransit;
 using Microsoft.AspNetCore.Mvc;
 using Genelife.API.DTOs;
-using Genelife.Global.Messages.Commands;
 using Genelife.Global.Messages.Commands.Clock;
 using Genelife.Global.Messages.Events.Buildings;
 using Genelife.Life.Generators;
@@ -233,11 +232,10 @@ app.MapPost("/create/population/{humanCount}", async (int humanCount, [FromServi
             houseLocation.Y,
             houseLocation.Z
         );
-        await endpoint.Publish(new SetHomeAddress(humanId, houseId, coords));
         
         results.Houses.Add(new {
             HouseId = houseId,
-            Location = houseLocation,
+            Location = coords,
             Owners = new List<Guid> { humanId }
         });
     }

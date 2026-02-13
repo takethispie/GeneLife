@@ -122,12 +122,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                 );
                 bc.Saga.AddressBook.Add(new AddressEntry(AddressType.Office, bc.Message.OfficeId, coordinates));
             }),
-            When(Arrived) .Then(bc => bc.Saga.Position =
-                new Position(
-                    new Vector3(bc.Message.X, bc.Message.Y, bc.Message.Z), 
-                    bc.Message.LocationName
-                )
-            ),
+            When(Arrived) .Then(bc => bc.Saga.Position = new Position(bc.Message.X, bc.Message.Y, bc.Message.Z)),
             When(GoToWork).Then(OnGoToWork),
             When(LeaveWork).Then(OnLeaveWork),
             When(GoHome).Then(bc => OnGoHome(bc.Saga.AddressBook, bc, bc.Saga.CorrelationId))
@@ -178,6 +173,12 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         //TODO use fallback system-wide event with just the human correlationId and no target office
         if (workAddress is null) 
             throw new AddressNotFoundException(nameof(workAddress));
+        var homeAddress = bc.Saga.AddressBook
+            .AllOfAddressType(AddressType.Home)
+            .FirstOrDefault();
+        if (homeAddress is null) 
+            throw new AddressNotFoundException(nameof(homeAddress));
+        bc.Publish(new LeaveHome(homeAddress.EntityId, bc.Saga.CorrelationId));
         bc.Publish(new EnteredWork(bc.Saga.CorrelationId, workAddress.EntityId));
         Log.Information($"{bc.Saga.CorrelationId} is going to work at {workAddress.EntityId}");
     }

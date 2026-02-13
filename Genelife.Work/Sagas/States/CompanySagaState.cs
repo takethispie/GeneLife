@@ -17,6 +17,5 @@ public class CompanySagaState : SagaStateMachineInstance, ISagaVersion
     public DateTime LastPayrollDate { get; set; }
     public Guid OfficeId { get; set; }
     public List<Guid> Occupants { get; set; } = [];
-    public Vector3 Location { get; set; } = Vector3.Zero;
     public OfficeLocation OfficeLocation { get; set; } = new(0, 0, 0);
 }

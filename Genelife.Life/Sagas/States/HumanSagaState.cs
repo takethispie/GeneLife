@@ -13,7 +13,7 @@ public class HumanSagaState : SagaStateMachineInstance, ISagaVersion
     public Human Human { get; set; } = null!;
     public ILivingActivity Activity { get; set; } = new Idle();
     public AddressBook AddressBook { get; set; } = null!;
-    public Position Position { get; set; } = null!;
+    public Position Position { get; set; } = new (0, 0, 0);
     public string CurrentState { get; set; } = null!;
     public int Version { get; set; }
     public bool HasJob { get; set; }

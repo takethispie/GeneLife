@@ -34,6 +34,9 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
                 context.Saga.Company = context.Message.Company;
                 context.Saga.DaysElapsedCount = 0;
                 context.Saga.LastPayrollDate = DateTime.UtcNow;
+                context.Saga.OfficeId = context.Message.MainOfficeId;
+                context.Saga.OfficeLocation = 
+                    new OfficeLocation(context.Message.X, context.Message.Y, context.Message.Z);
                 Log.Information($"Company {context.Saga.Company.Name} created with ID {context.Saga.CorrelationId}");
             })
             .TransitionTo(Active)
@@ -76,7 +79,7 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
                 bc.Saga.Occupants = bc.Saga.Occupants.Exists(occupant => occupant == bc.Message.BeingId)
                     ? bc.Saga.Occupants
                     : [..bc.Saga.Occupants, bc.Message.BeingId];
-                var pos = bc.Saga.Location;
+                var pos = bc.Saga.OfficeLocation;
                 bc.Publish(new Arrived(bc.Message.BeingId,  pos.X, pos.Y, pos.Z, "Work"));
             }),
             When(HumanLeft).Then(bc => {
