@@ -41,12 +41,13 @@ public class GenerateJobPosting
         }
     };
     
-    public JobPosting GenerateForCompany(Guid companyId, CompanyType companyType, JobLevel level, int positionsNeeded)
+    public JobPosting GenerateForCompany(Guid companyId, CompanyType companyType, JobLevel level, int positionsNeeded,
+        Guid officeId, OfficeLocation officeLocation)
     {
         var titles = JobTitlesByType.GetValueOrDefault(companyType, JobTitlesByType[CompanyType.Services]);
         var title = titles[random.Next(titles.Count)];
         var (salaryMin, salaryMax) = GenerateSalaryRange(companyType, level);
-        
+
         return new JobPosting(
             CompanyId: companyId,
             Title: title,
@@ -56,6 +57,8 @@ public class GenerateJobPosting
             Level: level,
             // TODO add real skillset requirements
             new SkillSet(),
+            officeId,
+            officeLocation,
             MaxApplications: Math.Min(100, positionsNeeded * 20)
         );
     }

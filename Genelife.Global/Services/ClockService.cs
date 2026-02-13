@@ -14,7 +14,7 @@ public class ClockService {
     public ClockService(IServiceProvider services) {
         _services = services;
         timer = new(1000);
-        timer.Elapsed += OnTimedEvent;
+        timer.Elapsed += OnTimedEvent!;
         timer.AutoReset = true;
         ticks = 0;
         timeOnly = new(0, 0);

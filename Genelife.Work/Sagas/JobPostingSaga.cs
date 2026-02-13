@@ -38,15 +38,14 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
 
         // Configure event correlations
         Event(() => DayElapsed, e => e.CorrelateBy(saga => "any", ctx => "any"));
-        Event(() => ApplicationSubmitted, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.CorrelationId.ToString()));
-        Event(() => RemoveApplication, e => e.CorrelateBy(saga => saga.JobPosting.CompanyId.ToString(), ctx => ctx.Message.CompanyId.ToString()));
+        Event(() => ApplicationSubmitted, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
+        Event(() => RemoveApplication, e => e.CorrelateById(saga => saga.JobPosting.CompanyId, ctx => ctx.Message.CompanyId));
         
         DuringAny(
             When(RecruitmentRefused).Then(bc => {
                 var id = bc.Message.HumanId;
                 bc.Saga.Applications = bc.Saga.Applications.Where(x => x.HumanId != id).ToList();
                 Log.Information($"{id} removed from application {bc.Saga.CorrelationId} after refusing recruitment proposal");
-                bc.TransitionToState(ReviewingApplications);
             }),
             When(DayElapsed).Then(context => context.Saga.DaysActive++)
         );
@@ -102,11 +101,13 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
 
         During(AwaitingAnswer,
             When(RecruitmentAccepted).Then(context => {
-                Log.Information($"Job filled: {context.Saga.JobPosting.Title} - Hired {context.Message.HumanId} for {context.Message.Salary:C}");
+                Log.Information($"Job filled: {context.Saga.JobPosting.Title} - Hired {context.Message.WorkerId} for {context.Message.Salary:C}");
                 context.Publish(new EmployeeHired(
                     context.Saga.JobPosting.CompanyId,
-                    context.Message.HumanId,
-                    context.Message.Salary
+                    context.Message.WorkerId,
+                    context.Message.Salary,
+                    context.Saga.JobPosting.OfficeId,
+                    context.Saga.JobPosting.OfficeLocation
                 ));
             }).Finalize()
         );

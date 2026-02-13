@@ -21,6 +21,7 @@ public class ActivityExtensionsTests
     private class UnknownActivity : ILivingActivity
     {
         public int TickDuration { get; set; } = 1;
+        public bool GoHomeWhenFinished => false;
         public Human Apply(Human being) => being;
     }
 }

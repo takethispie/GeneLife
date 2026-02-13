@@ -1,15 +1,19 @@
 using System.Reflection;
+using System.Numerics;
 using MassTransit;
 using Microsoft.AspNetCore.Mvc;
 using Genelife.API.DTOs;
 using Genelife.Global.Messages.Commands.Clock;
+using Genelife.Global.Messages.Events.Buildings;
 using Genelife.Life.Generators;
 using Genelife.Life.Messages.Commands;
 using Genelife.Life.Messages.DTOs;
 using Genelife.Work.Generators;
 using Genelife.Work.Messages.Commands.Company;
 using Genelife.Work.Messages.Commands.Jobs;
+using Genelife.Work.Messages.Commands.Worker;
 using Genelife.Work.Messages.DTOs;
+using Genelife.Work.Messages.DTOs.Skills;
 using Genelife.Work.Messages.Events.Jobs;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
@@ -49,7 +53,7 @@ app.UseSwaggerUI();
 app.UseHttpsRedirection();
 app.UseAuthorization();
 
-app.MapGet("/healthcheck", (HttpContext httpContext) => Results.Ok()).WithName("healthcheck").WithOpenApi();
+app.MapGet("/healthcheck", (HttpContext _) => Results.Ok()).WithName("healthcheck");
 
 
 app.MapPost("/create/human/{sex}", async (Sex sex, [FromServices] IPublishEndpoint endpoint) => {
@@ -107,7 +111,7 @@ app.MapGet("/cheat/setage/{correlationId}/{value:int}", async (Guid correlationI
     .WithName("set Age");
 
 
-app.MapPost("/create/company/{type}", async (CompanyType type, [FromServices] IPublishEndpoint endpoint) =>
+app.MapPost("/create/company/{type}", async (CompanyType type, Guid officeId, [FromServices] IPublishEndpoint endpoint) =>
 {
     var companyId = Guid.NewGuid();
     var company = new Company(
@@ -117,8 +121,14 @@ app.MapPost("/create/company/{type}", async (CompanyType type, [FromServices] IP
         TaxRate: 0.25f,
         EmployeeIds: []
     );
+    
+    var officeLocation = new Vector3(
+        Random.Shared.NextSingle() * 800 - 400, 
+        Random.Shared.NextSingle() * 800 - 400,
+        0
+    );
 
-    await endpoint.Publish(new CreateCompany(companyId, company));
+    await endpoint.Publish(new CreateCompany(companyId, company, officeId, officeLocation.X, officeLocation.Y, officeLocation.Z));
     return Results.Ok(new { CompanyId = companyId, Company = company });
 })
 .WithName("create Company");
@@ -149,15 +159,43 @@ app.MapPost("/submit/application", async ([FromBody] SubmitJobApplicationRequest
 .WithName("submit Job Application");
 
 
+app.MapPost("/create/house", async ([FromBody] CreateHouseRequest request, [FromServices] IPublishEndpoint endpoint) =>
+{
+    var owners = new List<Guid> { request.HumanId };
+    if (request.AdditionalOwners != null)
+    {
+        owners.AddRange(request.AdditionalOwners);
+    }
+
+    await endpoint.Publish(new HouseBuilt(
+        request.HumanId,
+        request.Location.X,
+        request.Location.Y,
+        request.Location.Z,
+        owners
+    ));
+    
+    return Results.Ok(new {
+        Message = "House created successfully",
+        request.HumanId,
+        request.Location,
+        Owners = owners
+    });
+})
+.WithName("create House");
+
+
 app.MapPost("/create/population/{humanCount}", async (int humanCount, [FromServices] IPublishEndpoint endpoint) =>
 {
     var results = new
     {
         Humans = new List<object>(),
-        Companies = new List<object>()
+        Companies = new List<object>(),
+        Houses = new List<object>(),
+        Offices = new List<object>()
     };
 
-    // Create humans with random sex distribution
+    // Create humans with random sex distribution and houses for them
     for (int i = 0; i < humanCount; i++)
     {
         var sex = Random.Shared.Next(2) == 0 ? Sex.Male : Sex.Female;
@@ -166,16 +204,64 @@ app.MapPost("/create/population/{humanCount}", async (int humanCount, [FromServi
         
         await endpoint.Publish(new CreateHuman(humanId, human));
         results.Humans.Add(new { HumanId = humanId, Human = human });
+        await endpoint.Publish(new CreateWorker(
+            Guid.NewGuid(),
+            humanId,
+            human.FirstName,
+            human.LastName,
+            new SkillSet())
+        );
+        
+        var houseLocation = new Vector3(
+            Random.Shared.NextSingle() * 1000 - 500,
+            Random.Shared.NextSingle() * 1000 - 500,
+            0
+        );
+        
+        var houseId  = Guid.NewGuid();
+        await endpoint.Publish(new HouseBuilt(
+            houseId,
+            houseLocation.X,
+            houseLocation.Y,
+            houseLocation.Z,
+            [humanId]
+        ));
+
+        var coords = new Coordinates(
+            houseLocation.X,
+            houseLocation.Y,
+            houseLocation.Z
+        );
+        
+        results.Houses.Add(new {
+            HouseId = houseId,
+            Location = coords,
+            Owners = new List<Guid> { humanId }
+        });
     }
 
-    // Create companies of different types (one of each type)
-    var companyTypes = Enum.GetValues<CompanyType>();
+    var companyTypes = Enum.GetValues<CompanyType>().Shuffle().Take(2).ToArray();
     foreach (var companyType in companyTypes)
     {
         var company = CompanyGenerator.Generate(companyType);
-        var id = Guid.NewGuid();
-        await endpoint.Publish(new CreateCompany(id, company));
-        results.Companies.Add(new { CompanyId = id, Company = company });
+        var companyId = Guid.NewGuid();
+
+        var officeLocation = new Vector3(
+            Random.Shared.NextSingle() * 800 - 400, 
+            Random.Shared.NextSingle() * 800 - 400,
+            0
+        );
+        
+        var officeId = Guid.NewGuid();
+        await endpoint.Publish(new CreateCompany(companyId, company, officeId, officeLocation.X, officeLocation.Y, officeLocation.Z));
+        results.Companies.Add(new { CompanyId = companyId, Company = company });
+        
+        results.Offices.Add(new {
+            OfficeId = officeId,
+            CompanyId = companyId,
+            Name = $"{company.Name} Headquarters",
+            Location = officeLocation
+        });
     }
     
     await endpoint.Publish(new SetClockSpeed(100));
@@ -183,9 +269,11 @@ app.MapPost("/create/population/{humanCount}", async (int humanCount, [FromServi
 
     return Results.Ok(new
     {
-        Message = $"Created {humanCount} humans and {companyTypes.Length} companies, set clock speed to 100ms, started simulation",
+        Message = $"Created {humanCount} humans with houses, {companyTypes.Length} companies with offices, set clock speed to 100ms, started simulation",
         CreatedHumans = humanCount,
         CreatedCompanies = companyTypes.Length,
+        CreatedHouses = humanCount,
+        CreatedOffices = companyTypes.Length,
         Details = results
     });
 })

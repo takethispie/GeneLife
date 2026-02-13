@@ -38,7 +38,7 @@ public static class TestDataBuilder
     {
         var minSalary = salaryMin ?? Faker.Random.Float(30000, 80000);
         var maxSalary = salaryMax ?? minSalary + Faker.Random.Float(10000, 50000);
-        
+
         return new JobPosting(
             companyId ?? Guid.NewGuid(),
             title ?? Faker.Name.JobTitle(),
@@ -46,14 +46,18 @@ public static class TestDataBuilder
             maxSalary,
             industry ?? Faker.PickRandom<CompanyType>(),
             level ?? Faker.PickRandom<JobLevel>(),
-            new SkillSet() {
-                TechnicalSkills = {
+            new SkillSet()
+            {
+                TechnicalSkills =
+                {
                     TechnicalSkill.Agile,
                     TechnicalSkill.Angular,
                     TechnicalSkill.CICD,
                     TechnicalSkill.Git
                 }
             },
+            Guid.Empty,
+            new OfficeLocation(0, 0, 0),
             maxApplications ?? Faker.Random.Int(50, 200)
         );
     }

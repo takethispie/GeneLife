@@ -14,8 +14,8 @@ public static class HumanGenerator {
             nameGenerator.LastName(gender),
             DateTime.Now.AddYears(-age),
             sex,
-            new SkillSet(),
-            new Position(Vector3.Zero, ""),
+            new LifeSkillSet(),
+            new Coordinates(0, 0, 0),
             20000
         );
     }

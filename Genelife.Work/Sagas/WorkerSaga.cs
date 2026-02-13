@@ -1,4 +1,7 @@
+using System.Numerics;
+using Genelife.Global.Messages.Commands;
 using Genelife.Global.Messages.Events.Clock;
+using Genelife.Life.Messages.Commands;
 using Genelife.Work.Generators;
 using Genelife.Work.Messages.Commands.Jobs;
 using Genelife.Work.Messages.Commands.Worker;
@@ -39,7 +42,7 @@ public class WorkerSaga : MassTransitStateMachine<WorkerSagaState>
                 .TransitionTo(Unemployed)
         );
         
-        Event(() => EmployeeHired, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.HumanId.ToString()));
+        Event(() => EmployeeHired, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.WorkerId.ToString()));
         Event(() => ApplicationAccepted, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.CorrelationId.ToString()));
         Event(() => DayElapsed, e => e.CorrelateBy(saga => "any", _ => "any"));
         Event(() => JobPostingCreated, e => e.CorrelateBy(saga => "any", _ => "any"));
@@ -49,7 +52,8 @@ public class WorkerSaga : MassTransitStateMachine<WorkerSagaState>
                 if (bc.Saga.EmployerId != Guid.Empty || new Random().NextDouble() < 0.5) return;
                 bc.TransitionToState(LookingForJob);
                 Log.Information($"{bc.Saga.FirstName} {bc.Saga.LastName} started actively job seeking");
-            })
+            }),
+            Ignore(JobPostingCreated)
         );
         
         During(LookingForJob,
@@ -81,6 +85,8 @@ public class WorkerSaga : MassTransitStateMachine<WorkerSagaState>
             
             When(EmployeeHired).Then(bc => {
                 bc.Saga.HiringTimeOut = null;
+                bc.Publish(new SetJobStatus(bc.Saga.HumanId, true));
+                bc.Publish(new SetWorkAddress(bc.Saga.HumanId, bc.Message.OfficeId, bc.Message.OfficeLocation));
                 Log.Information($"{bc.Saga.CorrelationId} finished hiring process into company {bc.Message.CompanyId}");
                 bc.TransitionToState(Working);
             }),
@@ -97,7 +103,9 @@ public class WorkerSaga : MassTransitStateMachine<WorkerSagaState>
         );
         
         During(Working,
-            When(DayElapsed).Then(bc => {})
+            When(DayElapsed).Then(bc => {}),
+            When(ApplicationAccepted).Then(bc => bc.Publish(new RecruitmentRefused(bc.Message.JobPostingId, bc.Saga.CorrelationId))),
+            Ignore(JobPostingCreated)
         );
     }
 }
