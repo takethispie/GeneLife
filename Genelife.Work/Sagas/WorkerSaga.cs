@@ -27,6 +27,7 @@ public class WorkerSaga : MassTransitStateMachine<WorkerSagaState>
     public Event<Recruit> ApplicationAccepted { get; set; } = null!;
     public Event<EmployeeHired> EmployeeHired { get; set; } = null!;
     public Event<DayElapsed> DayElapsed { get; set; } = null!;
+    public Event<SalaryPaid>? SalaryPaid { get; set; } = null;
 
     public WorkerSaga()
     {
@@ -46,6 +47,7 @@ public class WorkerSaga : MassTransitStateMachine<WorkerSagaState>
         Event(() => ApplicationAccepted, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.CorrelationId.ToString()));
         Event(() => DayElapsed, e => e.CorrelateBy(saga => "any", _ => "any"));
         Event(() => JobPostingCreated, e => e.CorrelateBy(saga => "any", _ => "any"));
+        Event(() => SalaryPaid, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
         
         During(Unemployed, 
             When(DayElapsed).Then(bc => {
@@ -106,6 +108,17 @@ public class WorkerSaga : MassTransitStateMachine<WorkerSagaState>
             When(DayElapsed).Then(bc => {}),
             When(ApplicationAccepted).Then(bc => bc.Publish(new RecruitmentRefused(bc.Message.JobPostingId, bc.Saga.CorrelationId))),
             Ignore(JobPostingCreated)
+        );
+        
+        DuringAny(
+            When(SalaryPaid).Then(bc =>
+            {
+                var newMoney = bc.Message.Amount;
+                Log.Information($"{bc.Saga.CorrelationId} received salary: {bc.Message.Amount:C} " +
+                                $"(tax deducted: {bc.Message.TaxDeducted:C}). " +
+                                $"Total money: {newMoney:F2}");
+                bc.Publish(new AddMoney(bc.Saga.HumanId, newMoney));
+            })
         );
     }
 }

@@ -28,7 +28,6 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
     public Event<Tick>? UpdateTick { get; set; } = null;
     public Event<DayElapsed>? DayElapsed { get; set; } = null;
     public Event<HourElapsed>? HourElapsed { get; set; } = null;
-    public Event<SalaryPaid>? SalaryPaid { get; set; } = null;
     public Event<SetJobStatus>?  JobStatusChanged { get; set; } = null;
     public Event<SetHunger>? SetHunger { get; set; } = null;
     public Event<SetAge>? SetAge { get; set; } = null;
@@ -42,6 +41,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
     public Event<LeaveHome> LeaveHome { get; set; } = null!;
     public Event<GoToWork> GoToWork { get; set; } = null!;
     public Event<GoHome> GoHome { get; set; } = null!;
+    public Event<AddMoney>? AddMoney { get; set; } = null;
 
 
 
@@ -58,7 +58,6 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         Event(() => UpdateTick, e => e.CorrelateBy(saga => "any", _ => "any"));
         Event(() => DayElapsed, e => e.CorrelateBy(saga => "any", _ => "any"));
         Event(() => HourElapsed, e => e.CorrelateBy(saga => "any", _ => "any"));
-        Event(() => SalaryPaid, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
         Event(() => JobStatusChanged, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
         Event(() => Arrived, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
         Event(() => AddHomeAddress, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
@@ -68,18 +67,9 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         Event(() => LeaveWork, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
         Event(() => GoHome, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
         Event(() => GoToWork, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
-
+        Event(() => AddMoney, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
         DuringAny(
             When(HourElapsed).Then(bc => { bc.Saga.Human = new UpdateNeeds().Execute(bc.Saga.Human); }),
-            When(SalaryPaid).Then(bc =>
-            {
-                var currentMoney = bc.Saga.Human.Money;
-                var newMoney = currentMoney + bc.Message.Amount;
-                bc.Saga.Human = bc.Saga.Human with { Money = newMoney };
-                Log.Information($"{bc.Saga.CorrelationId} received salary: {bc.Message.Amount:C} " +
-                                $"(tax deducted: {bc.Message.TaxDeducted:C}). " +
-                                $"Total money: {newMoney:F2}");
-            }),
             When(SetAge).Then(bc => bc.Saga.Human = new ChangeBirthday().Execute(bc.Saga.Human, bc.Message.Value)),
             When(SetEnergy).Then(bc => bc.Saga.Human = bc.Saga.Human with { Energy = bc.Message.Value }),
             When(SetHunger).Then(bc => bc.Saga.Human = bc.Saga.Human with { Hunger = bc.Message.Value }),
@@ -96,8 +86,8 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             }),
             When(JobStatusChanged).Then(bc =>
             {
-                var message =  bc.Message.Hasjob 
-                    ? "Work activity added to possible activities" 
+                var message = bc.Message.Hasjob
+                    ? "Work activity added to possible activities"
                     : "Work activity removed from possible activities";
                 Log.Information($"{bc.Saga.CorrelationId} has {message}");
                 bc.Saga.HasJob = bc.Message.Hasjob;
@@ -106,8 +96,8 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             {
                 Log.Information($"home address added for human {bc.Saga.CorrelationId}");
                 var coordinates = new AddressCoordinates(
-                    bc.Message.Coordinates.X,  
-                    bc.Message.Coordinates.Y, 
+                    bc.Message.Coordinates.X,
+                    bc.Message.Coordinates.Y,
                     bc.Message.Coordinates.Z
                 );
                 bc.Saga.AddressBook.Add(new AddressEntry(AddressType.Home, bc.Message.HomeId, coordinates));
@@ -116,16 +106,18 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             {
                 Log.Information($"work address added for human {bc.Saga.CorrelationId}");
                 var coordinates = new AddressCoordinates(
-                    bc.Message.OfficeLocation.X,  
-                    bc.Message.OfficeLocation.Y, 
+                    bc.Message.OfficeLocation.X,
+                    bc.Message.OfficeLocation.Y,
                     bc.Message.OfficeLocation.Z
                 );
                 bc.Saga.AddressBook.Add(new AddressEntry(AddressType.Office, bc.Message.OfficeId, coordinates));
             }),
-            When(Arrived) .Then(bc => bc.Saga.Position = new Position(bc.Message.X, bc.Message.Y, bc.Message.Z)),
+            When(Arrived).Then(bc => bc.Saga.Position = new Position(bc.Message.X, bc.Message.Y, bc.Message.Z)),
             When(GoToWork).Then(OnGoToWork),
             When(LeaveWork).Then(OnLeaveWork),
-            When(GoHome).Then(bc => OnGoHome(bc.Saga.AddressBook, bc, bc.Saga.CorrelationId))
+            When(GoHome).Then(bc => OnGoHome(bc.Saga.AddressBook, bc, bc.Saga.CorrelationId)),
+            When(AddMoney)
+                .Then(bc => bc.Saga.Human = bc.Saga.Human with {Money = bc.Saga.Human.Money + bc.Message.Amount })
         );
 
         During(Idle,
