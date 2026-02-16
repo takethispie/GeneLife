@@ -58,8 +58,8 @@ public static class CompanyGenerator
             CompanyType.Healthcare => Random.Next(60000, 250000),
             _ => Random.Next(30000, 100000)
         };
-        
-        var taxRate = Convert.ToSingle(Random.NextDouble() * 0.15 + 0.15); // 15% to 30%
+
+        var taxRate = Convert.ToSingle(Random.NextDouble() * 0.15 + 0.10);
         
         var minEmployees = type switch
         {
@@ -67,7 +67,6 @@ public static class CompanyGenerator
             CompanyType.Manufacturing => Random.Next(5, 12),
             CompanyType.Services => Random.Next(2, 6),
             CompanyType.Retail => Random.Next(4, 10),
-            CompanyType.Healthcare => Random.Next(3, 8),
             _ => Random.Next(3, 8)
         };
         

@@ -1,8 +1,10 @@
 using System.Numerics;
+using Genelife.Global.Messages.Commands.Grocery;
 using Genelife.Global.Messages.Commands.Locomotion;
 using Genelife.Global.Messages.DTOs;
 using Genelife.Global.Messages.Events;
 using Genelife.Global.Messages.Events.Clock;
+using Genelife.Global.Messages.Events.Grocery;
 using Genelife.Global.Messages.Events.Locomotion;
 using Genelife.Life.Domain.Activities;
 using Genelife.Life.Domain.Address;
@@ -22,7 +24,9 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
     public State? Working { get; set; } = null;
     public State? Sleeping { get; set; } = null!;
     public State? Eating { get; set; } = null!;
+    public State? Drinking { get; set; } = null!;
     public State? Showering { get; set; } = null!;
+    public State? Shopping { get; set; } = null!;
 
     public Event<CreateHuman>? Created { get; set; } = null;
     public Event<Tick>? UpdateTick { get; set; } = null;
@@ -42,6 +46,10 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
     public Event<GoToWork> GoToWork { get; set; } = null!;
     public Event<GoHome> GoHome { get; set; } = null!;
     public Event<AddMoney>? AddMoney { get; set; } = null;
+    public Event<FoodPurchased>? FoodPurchased { get; set; } = null;
+    public Event<DrinkPurchased>? DrinkPurchased { get; set; } = null;
+    public Event<EnteredGroceryStore>? EnteredGroceryStore { get; set; } = null;
+    public Event<LeftGroceryStore>? LeftGroceryStore { get; set; } = null;
 
 
 
@@ -68,6 +76,10 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         Event(() => GoHome, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
         Event(() => GoToWork, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
         Event(() => AddMoney, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
+        Event(() => FoodPurchased, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.HumanId));
+        Event(() => DrinkPurchased, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.HumanId));
+        Event(() => EnteredGroceryStore, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.HumanId));
+        Event(() => LeftGroceryStore, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.HumanId));
         DuringAny(
             When(HourElapsed).Then(bc => { bc.Saga.Human = new UpdateNeeds().Execute(bc.Saga.Human); }),
             When(SetAge).Then(bc => bc.Saga.Human = new ChangeBirthday().Execute(bc.Saga.Human, bc.Message.Value)),
@@ -117,30 +129,107 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             When(LeaveWork).Then(OnLeaveWork),
             When(GoHome).Then(bc => OnGoHome(bc.Saga.AddressBook, bc, bc.Saga.CorrelationId)),
             When(AddMoney)
-                .Then(bc => bc.Saga.Human = bc.Saga.Human with {Money = bc.Saga.Human.Money + bc.Message.Amount })
+                .Then(bc => bc.Saga.Human = bc.Saga.Human with {Money = bc.Saga.Human.Money + bc.Message.Amount }),
+            When(FoodPurchased).Then(bc =>
+            {
+                bc.Saga.FoodCount++;
+                Log.Information("Human {HumanId} purchased food. Total food items: {FoodCount}",
+                    bc.Saga.CorrelationId, bc.Saga.FoodCount);
+            }),
+            When(DrinkPurchased).Then(bc =>
+            {
+                bc.Saga.DrinkCount++;
+                Log.Information("Human {HumanId} purchased drink. Total drink items: {DrinkCount}",
+                    bc.Saga.CorrelationId, bc.Saga.DrinkCount);
+            })
         );
 
         During(Idle,
             When(UpdateTick).Then(bc =>
             {
                 var activity = new ChooseActivity().Execute(bc.Saga.Human, bc.Message.Hour, bc.Saga.HasJob);
+                
+                // Check if we need to go shopping first
+                if (activity is Eat && bc.Saga.FoodCount <= 0)
+                {
+                    // Go to grocery store to buy food
+                    var storeAddress = bc.Saga.AddressBook.AllOfAddressType(AddressType.Store).FirstOrDefault();
+                    if (storeAddress != null)
+                    {
+                        bc.Publish(new GoToGroceryStore(bc.Saga.CorrelationId, storeAddress.EntityId));
+                        bc.TransitionToState(Shopping);
+                        return;
+                    }
+                }
+                
+                if (activity is Drink && bc.Saga.DrinkCount <= 0)
+                {
+                    // Go to grocery store to buy drinks
+                    var storeAddress = bc.Saga.AddressBook.AllOfAddressType(AddressType.Store).FirstOrDefault();
+                    if (storeAddress != null)
+                    {
+                        bc.Publish(new GoToGroceryStore(bc.Saga.CorrelationId, storeAddress.EntityId));
+                        bc.TransitionToState(Shopping);
+                        return;
+                    }
+                }
+                
                 var state = activity switch
                 {
                     Eat => Eating,
+                    Drink => Drinking,
                     Sleep => Sleeping,
                     Shower => Showering,
                     Domain.Activities.Work => Working,
                     _ => Idle
                 };
+                
                 bc.Saga.Activity = activity;
-                bc.Saga.Human = activity.Apply(bc.Saga.Human);
+                
+                // Consume inventory when eating or drinking
+                if (activity is Eat && bc.Saga.FoodCount > 0)
+                {
+                    bc.Saga.FoodCount--;
+                    bc.Saga.Human = activity.Apply(bc.Saga.Human);
+                    Log.Information("Human {HumanId} consumed food. Remaining food: {FoodCount}",
+                        bc.Saga.CorrelationId, bc.Saga.FoodCount);
+                }
+                else if (activity is Drink && bc.Saga.DrinkCount > 0)
+                {
+                    bc.Saga.DrinkCount--;
+                    bc.Saga.Human = activity.Apply(bc.Saga.Human);
+                    Log.Information("Human {HumanId} consumed drink. Remaining drinks: {DrinkCount}",
+                        bc.Saga.CorrelationId, bc.Saga.DrinkCount);
+                }
+                else if (activity is not Eat and not Drink)
+                {
+                    bc.Saga.Human = activity.Apply(bc.Saga.Human);
+                }
+                
                 if (activity is Domain.Activities.Work)
                     bc.Publish(new GoToWork(bc.Saga.CorrelationId));
+                    
                 bc.TransitionToState(state);
             })
         );
 
-        During(Eating, Sleeping, Showering, Working,
+        During(Eating, Drinking, Sleeping, Showering,
+            When(UpdateTick).Then(bc =>
+            {
+                if (bc.Saga.Activity.TickDuration > 0)
+                {
+                    bc.Saga.Activity.TickDuration -= 1;
+                    return;
+                }
+
+                Log.Information($"{bc.Saga.CorrelationId} has finished {bc.Saga.CurrentState}");
+                bc.Saga.Activity = new Idle();
+                bc.TransitionToState(Idle);
+            }),
+            Ignore(DayElapsed)
+        );
+
+        During(Working,
             When(UpdateTick).Then(bc =>
             {
                 if (bc.Saga.Activity.TickDuration > 0)
@@ -156,6 +245,30 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                 bc.TransitionToState(Idle);
             }),
             Ignore(DayElapsed)
+        );
+
+        During(Shopping,
+            When(EnteredGroceryStore).Then(bc =>
+            {
+                // Automatically buy food and drinks when entering grocery store
+                if (bc.Saga.FoodCount <= 0)
+                {
+                    bc.Publish(new BuyFood(bc.Saga.CorrelationId, bc.Message.GroceryStoreId));
+                }
+                if (bc.Saga.DrinkCount <= 0)
+                {
+                    bc.Publish(new BuyDrink(bc.Saga.CorrelationId, bc.Message.GroceryStoreId));
+                }
+                
+                // Leave the grocery store after purchasing
+                bc.Publish(new LeaveGroceryStore(bc.Saga.CorrelationId, bc.Message.GroceryStoreId));
+            }),
+            When(LeftGroceryStore).Then(bc =>
+            {
+                Log.Information("Human {HumanId} finished shopping and left grocery store", bc.Saga.CorrelationId);
+                bc.Saga.Activity = new Idle();
+                bc.TransitionToState(Idle);
+            })
         );
     }
 

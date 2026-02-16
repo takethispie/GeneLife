@@ -4,6 +4,7 @@ using MassTransit;
 using Microsoft.AspNetCore.Mvc;
 using Genelife.API.DTOs;
 using Genelife.Global.Messages.Commands.Clock;
+using Genelife.Global.Messages.Commands.Grocery;
 using Genelife.Global.Messages.Events.Buildings;
 using Genelife.Life.Generators;
 using Genelife.Life.Messages.Commands;
@@ -184,6 +185,28 @@ app.MapPost("/create/house", async ([FromBody] CreateHouseRequest request, [From
 })
 .WithName("create House");
 
+app.MapPost("/create/grocery-store", async ([FromBody] CreateGroceryStoreRequest request, [FromServices] IPublishEndpoint endpoint) =>
+{
+    var groceryStoreId = Guid.NewGuid();
+    
+    await endpoint.Publish(new GroceryStoreBuilt(
+        groceryStoreId,
+        request.X,
+        request.Y,
+        request.Z,
+        request.Name,
+        request.FoodPrice,
+        request.DrinkPrice
+    ));
+    
+    return Results.Ok(new {
+        Message = "Grocery store created successfully",
+        GroceryStoreId = groceryStoreId,
+        Name = request.Name,
+        Location = new { request.X, request.Y, request.Z }
+    });
+})
+.WithName("create GroceryStore");
 
 app.MapPost("/create/population/{humanCount}", async (int humanCount, [FromServices] IPublishEndpoint endpoint) =>
 {
@@ -278,5 +301,29 @@ app.MapPost("/create/population/{humanCount}", async (int humanCount, [FromServi
     });
 })
 .WithName("create Population");
+
+app.MapPost("/grocery/{groceryStoreId}/buy/food/{humanId}", async (Guid groceryStoreId, Guid humanId, [FromServices] IPublishEndpoint endpoint) =>
+{
+    await endpoint.Publish(new BuyFood(humanId, groceryStoreId));
+    
+    return Results.Ok(new {
+        Message = "Food purchase initiated",
+        HumanId = humanId,
+        GroceryStoreId = groceryStoreId
+    });
+})
+.WithName("buy Food");
+
+app.MapPost("/grocery/{groceryStoreId}/buy/drink/{humanId}", async (Guid groceryStoreId, Guid humanId, [FromServices] IPublishEndpoint endpoint) =>
+{
+    await endpoint.Publish(new BuyDrink(humanId, groceryStoreId));
+    
+    return Results.Ok(new {
+        Message = "Drink purchase initiated",
+        HumanId = humanId,
+        GroceryStoreId = groceryStoreId
+    });
+})
+.WithName("buy Drink");
 
 app.Run();

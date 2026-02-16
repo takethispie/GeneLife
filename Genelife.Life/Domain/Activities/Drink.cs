@@ -3,11 +3,11 @@ using Genelife.Life.Messages.DTOs;
 
 namespace Genelife.Life.Domain.Activities;
 
-public class Eat : ILivingActivity {
+public class Drink : ILivingActivity {
     
     public int TickDuration { get; set; } = ILivingActivity.TickPerHour;
     public bool GoHomeWhenFinished => false;
-    public bool RequiresFood { get; set; } = true;
+    public bool RequiresDrink { get; set; } = true;
 
-    public Human Apply(Human being) => being with { Hunger = 100 };
+    public Human Apply(Human being) => being with { Thirst = 100 };
 }
