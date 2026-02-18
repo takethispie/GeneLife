@@ -31,7 +31,7 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
             .Then(context => {
                 context.Saga.JobPosting = context.Message.JobPosting;
                 context.Saga.DaysActive = 0;
-                Log.Information($"Job posting created: {context.Saga.JobPosting.Title} at {context.Saga.JobPosting.CompanyId}");
+                Log.Information("Job posting created: {JobPostingTitle} at {JobPostingCompanyId}", context.Saga.JobPosting.Title, context.Saga.JobPosting.CompanyId);
             })
             .TransitionTo(Active)
         );
@@ -45,7 +45,7 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
             When(RecruitmentRefused).Then(bc => {
                 var id = bc.Message.HumanId;
                 bc.Saga.Applications = bc.Saga.Applications.Where(x => x.HumanId != id).ToList();
-                Log.Information($"{id} removed from application {bc.Saga.CorrelationId} after refusing recruitment proposal");
+                Log.Information("{Guid} removed from application {SagaCorrelationId} after refusing recruitment proposal", id, bc.Saga.CorrelationId);
             }),
             When(DayElapsed).Then(context => context.Saga.DaysActive++)
         );
@@ -53,7 +53,7 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
         During(Active,
         When(DayElapsed) .Then(context => {
                 if (context.Saga is { DaysActive: <= 3, Applications.Count: < 1 }) return;
-                Log.Information($"Job posting: {context.Saga.JobPosting.Title} ended, reviewing applications");
+                Log.Information("Job posting: {JobPostingTitle} ended, reviewing applications", context.Saga.JobPosting.Title);
                 context.TransitionToState(ReviewingApplications);
             }),
 
@@ -61,13 +61,13 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                 var application = context.Message.Application;
                 var matchScore = new CalculateMatchScore().Execute(context.Saga.JobPosting, application);
                 context.Saga.Applications.Add(application with { MatchScore = matchScore });
-                Log.Information($"Application received for {context.Saga.JobPosting.Title} from {context.Message.Application.HumanId} (Match: {matchScore:F2})");
+                Log.Information("Application received for {JobPostingTitle} from {ApplicationHumanId} (Match: {MatchScore:F2})", context.Saga.JobPosting.Title, context.Message.Application.HumanId, matchScore);
             }).TransitionTo(Active),
             
             When(RemoveApplication).Then(bc => {
                 var id = bc.Message.CorrelationId;
                 bc.Saga.Applications = bc.Saga.Applications.Where(x => x.HumanId != id).ToList();
-                Log.Information($"{id} removed from application {bc.Saga.CorrelationId}");
+                Log.Information("{Guid} removed from application {SagaCorrelationId}", id, bc.Saga.CorrelationId);
             }).TransitionTo(Active)
         );
 
@@ -75,7 +75,7 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
             When(DayElapsed) .Then(context => {
                 var pendingApplications = context.Saga.Applications;
                 if (pendingApplications.Count == 0) {
-                    Log.Information($"0 Application received for {context.Saga.JobPosting.Title} closing posting");
+                    Log.Information("0 Application received for {JobPostingTitle} closing posting", context.Saga.JobPosting.Title);
                     context.Publish(
                         new JobPostingExpired(context.Saga.CorrelationId, context.Saga.JobPosting.CompanyId));
                     context.SetCompleted();
@@ -101,7 +101,7 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
 
         During(AwaitingAnswer,
             When(RecruitmentAccepted).Then(context => {
-                Log.Information($"Job filled: {context.Saga.JobPosting.Title} - Hired {context.Message.WorkerId} for {context.Message.Salary:C}");
+                Log.Information("Job filled: {JobPostingTitle} - Hired {MessageWorkerId} for {MessageSalary:C}", context.Saga.JobPosting.Title, context.Message.WorkerId, context.Message.Salary);
                 context.Publish(new EmployeeHired(
                     context.Saga.JobPosting.CompanyId,
                     context.Message.WorkerId,
