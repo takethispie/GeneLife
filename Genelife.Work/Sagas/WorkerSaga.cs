@@ -1,5 +1,3 @@
-using System.Numerics;
-using Genelife.Global.Messages.Commands;
 using Genelife.Global.Messages.Events.Clock;
 using Genelife.Life.Messages.Commands;
 using Genelife.Work.Generators;
@@ -53,7 +51,7 @@ public class WorkerSaga : MassTransitStateMachine<WorkerSagaState>
             When(DayElapsed).Then(bc => {
                 if (bc.Saga.EmployerId != Guid.Empty || new Random().NextDouble() < 0.5) return;
                 bc.TransitionToState(LookingForJob);
-                Log.Information($"{bc.Saga.FirstName} {bc.Saga.LastName} started actively job seeking");
+                Log.Information("{SagaFirstName} {SagaLastName} started actively job seeking", bc.Saga.FirstName, bc.Saga.LastName);
             }),
             Ignore(JobPostingCreated)
         );
@@ -89,7 +87,7 @@ public class WorkerSaga : MassTransitStateMachine<WorkerSagaState>
                 bc.Saga.HiringTimeOut = null;
                 bc.Publish(new SetJobStatus(bc.Saga.HumanId, true));
                 bc.Publish(new SetWorkAddress(bc.Saga.HumanId, bc.Message.OfficeId, bc.Message.OfficeLocation));
-                Log.Information($"{bc.Saga.CorrelationId} finished hiring process into company {bc.Message.CompanyId}");
+                Log.Information("{SagaCorrelationId} finished hiring process into company {MessageCompanyId}", bc.Saga.CorrelationId, bc.Message.CompanyId);
                 bc.TransitionToState(Working);
             }),
                 

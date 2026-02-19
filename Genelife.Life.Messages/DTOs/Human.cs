@@ -10,5 +10,6 @@ public record Human(
     float Money,
     float Hunger = 100,
     float Energy = 100,
-    float Hygiene = 100
+    float Hygiene = 100,
+    float Thirst = 100
 );

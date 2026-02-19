@@ -49,12 +49,12 @@ public class HouseSaga : MassTransitStateMachine<HouseSagaState> {
                     ));
                 });
             }
-            Log.Information($"Created house {bc.Saga.CorrelationId} at {bc.Saga.Position}");
+            Log.Information("Created house {SagaCorrelationId} at {SagaPosition}", bc.Saga.CorrelationId, bc.Saga.Position);
         }).TransitionTo(Active));
         
         During(Active,
             When(HumanEntered).Then(bc => {
-                Log.Information($"Human {bc.Message.HumanId} is home");
+                Log.Information("Human {MessageHumanId} is home", bc.Message.HumanId);
                 bc.Saga.Occupants = bc.Saga.Occupants.Exists(occupant => occupant == bc.Message.HumanId)
                     ? bc.Saga.Occupants
                     : [..bc.Saga.Occupants, bc.Message.HumanId];
@@ -63,7 +63,7 @@ public class HouseSaga : MassTransitStateMachine<HouseSagaState> {
             }),
             
             When(HumanLeft).Then(bc => {
-                Log.Information($"Human {bc.Message.HumanId} is leaving home");
+                Log.Information("Human {MessageHumanId} is leaving home", bc.Message.HumanId);
                 bc.Saga.Occupants = bc.Saga.Occupants.Exists(occupant => occupant == bc.Message.HumanId)
                     ? bc.Saga.Occupants
                     : [..bc.Saga.Occupants, bc.Message.HumanId];

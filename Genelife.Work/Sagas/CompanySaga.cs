@@ -37,7 +37,7 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
                 context.Saga.OfficeId = context.Message.MainOfficeId;
                 context.Saga.OfficeLocation = 
                     new OfficeLocation(context.Message.X, context.Message.Y, context.Message.Z);
-                Log.Information($"Company {context.Saga.Company.Name} created with ID {context.Saga.CorrelationId}");
+                Log.Information("Company {CompanyName} created with ID {SagaCorrelationId}", context.Saga.Company.Name, context.Saga.CorrelationId);
             })
             .TransitionTo(Active)
         );
@@ -72,10 +72,10 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
                         EmployeeIds = context.Saga.Company.EmployeeIds.Append(context.Message.WorkerId).ToList()
                     };
                     context.Saga.PublishedJobPostings--;
-                    Log.Information($"Company {context.Saga.Company.Name}: Hired employee {context.Message.WorkerId} with salary {context.Message.Salary:C}");
+                    Log.Information("Company {CompanyName}: Hired employee {MessageWorkerId} with salary {MessageSalary:C}", context.Saga.Company.Name, context.Message.WorkerId, context.Message.Salary);
             }),
             When(HumanEntered).Then(bc => {
-                Log.Information($"Human {bc.Message.BeingId} is at {bc.Saga.CorrelationId} office");
+                Log.Information("Human {MessageBeingId} is at {SagaCorrelationId} office", bc.Message.BeingId, bc.Saga.CorrelationId);
                 bc.Saga.Occupants = bc.Saga.Occupants.Exists(occupant => occupant == bc.Message.BeingId)
                     ? bc.Saga.Occupants
                     : [..bc.Saga.Occupants, bc.Message.BeingId];
@@ -86,7 +86,7 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
                 bc.Saga.Occupants = bc.Saga.Occupants.Exists(occupant => occupant == bc.Message.BeingId)
                     ? bc.Saga.Occupants
                     : [..bc.Saga.Occupants, bc.Message.BeingId];
-                Log.Information($"Human {bc.Message.BeingId} is leaving {bc.Saga.CorrelationId} office");
+                Log.Information("Human {MessageBeingId} is leaving {SagaCorrelationId} office", bc.Message.BeingId, bc.Saga.CorrelationId);
             }),
             When(JobPostingExpired) .Then(bc => bc.Saga.PublishedJobPostings--)
         );
@@ -95,14 +95,14 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
             When(DayElapsed) .Then(context => {
                     context.Saga.DaysElapsedCount++;
                     if (context.Saga.DaysElapsedCount >= 30) {
-                        Log.Information($"Company {context.Saga.Company.Name}: Processing payroll");
+                        Log.Information("Company {CompanyName}: Processing payroll", context.Saga.Company.Name);
                         var (totalPaid, totalTaxes, salaryPayments) = new CalculatePayroll().Execute(context.Saga.Company, context.Saga.Employees);
                         var totalPayrollCost = totalPaid + totalTaxes;
                         context.Saga.Company = context.Saga.Company with { Revenue = context.Saga.Company.Revenue - totalPayrollCost };
                         salaryPayments.ForEach(salaryPayment => context.Publish(salaryPayment));
                         context.Publish(new PayrollCompleted(context.Saga.CorrelationId, totalPaid, totalTaxes));
                         context.Saga.LastPayrollDate = DateTime.UtcNow;
-                        Log.Information($"Company {context.Saga.Company.Name}: Payroll completed. Total paid: {totalPaid:C}, Taxes: {totalTaxes:C}");
+                        Log.Information("Company {CompanyName}: Payroll completed. Total paid: {TotalPaid:C}, Taxes: {TotalTaxes:C}", context.Saga.Company.Name, totalPaid, totalTaxes);
                         context.Saga.DaysElapsedCount = 0;
                     }
 
@@ -115,7 +115,7 @@ public class CompanySaga : MassTransitStateMachine<CompanySagaState>
                         Revenue = context.Saga.Company.Revenue + revenueChange,
                         AverageProductivity = averageProductivity
                     };
-                    Log.Information($"Company {context.Saga.Company.Name}: Productivity {averageProductivity:F2}, Revenue change {revenueChange:C}");
+                    Log.Information("Company {CompanyName}: Productivity {AverageProductivity:F2}, Revenue change {RevenueChange:C}", context.Saga.Company.Name, averageProductivity, revenueChange);
                     var postings = 
                         new CreateJobPostingList().Execute(
                             context.Saga.Company, 

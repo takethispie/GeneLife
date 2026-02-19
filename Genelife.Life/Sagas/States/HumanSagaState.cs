@@ -17,4 +17,6 @@ public class HumanSagaState : SagaStateMachineInstance, ISagaVersion
     public string CurrentState { get; set; } = null!;
     public int Version { get; set; }
     public bool HasJob { get; set; }
+    public int FoodCount { get; set; } = 0;
+    public int DrinkCount { get; set; } = 0;
 }

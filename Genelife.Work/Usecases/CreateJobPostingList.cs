@@ -24,7 +24,7 @@ public class CreateJobPostingList {
             
             var id = Guid.NewGuid();
             postings.Add(new CreateJobPosting(id, jobPosting));
-            Log.Information($"Company {company.Name}: Created job posting for {jobPosting.Title} with salary range {jobPosting.SalaryMin:C} - {jobPosting.SalaryMax:C}");
+            Log.Information("Company {CompanyName}: Created job posting for {JobPostingTitle} with salary range {JobPostingSalaryMin:C} - {JobPostingSalaryMax:C}", company.Name, jobPosting.Title, jobPosting.SalaryMin, jobPosting.SalaryMax);
         }
         return postings;
     }

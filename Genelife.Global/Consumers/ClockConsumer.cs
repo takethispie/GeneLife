@@ -16,7 +16,7 @@ public class ClockConsumer(ClockService service) : IConsumer<StartClock>, IConsu
 
     public Task Consume(ConsumeContext<SetClockSpeed> context)
     {
-        Log.Information($"Set clock speed to {context.Message.Milliseconds} ms");
+        Log.Information("Set clock speed to {MessageMilliseconds} ms", context.Message.Milliseconds);
         service.SetSpeed(context.Message.Milliseconds);
         return Task.CompletedTask;
     }
