@@ -2,7 +2,7 @@ using MassTransit;
 
 namespace Genelife.Life.Messages.Commands;
 
-public record SetGroceryStoreAddress(
+public record AddGroceryStoreAddress(
     Guid CorrelationId,
     Guid GroceryStoreId,
     float X,

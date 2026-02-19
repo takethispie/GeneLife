@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using Bogus.DataSets;
 using Genelife.Global.Messages.Commands.Clock;
 using Genelife.Global.Messages.Events.Buildings;
 using Genelife.Life.Generators;
@@ -25,8 +26,13 @@ public static class GenerationEndpointsExtension
         Humans = new List<object>(),
         Companies = new List<object>(),
         Houses = new List<object>(),
-        Offices = new List<object>()
+        Offices = new List<object>(),
+        GroceryStore = new List<object>(),
     };
+    
+    var groceryId = Guid.NewGuid();
+    await endpoint.Publish(new GroceryStoreBuilt(groceryId, 300, 300, 300, "intermarche"));
+    results.GroceryStore.Add(new { Id = groceryId, Name = "intermache" });
 
     // Create humans with random sex distribution and houses for them
     for (int i = 0; i < humanCount; i++)
@@ -99,6 +105,10 @@ public static class GenerationEndpointsExtension
     
     await endpoint.Publish(new SetClockSpeed(100));
     await endpoint.Publish(new StartClock());
+    
+    groceryId = Guid.NewGuid();
+    await endpoint.Publish(new GroceryStoreBuilt(groceryId, 300, 300, 300, "carrefour"));
+    results.GroceryStore.Add(new { Id = groceryId, Name = "carrefour" });
 
     return Results.Ok(new
     {

@@ -52,7 +52,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
     public Event<EnteredGroceryStore>? EnteredGroceryStore { get; set; } = null;
     public Event<LeftGroceryStore>? LeftGroceryStore { get; set; } = null;
     public Event<GroceryStoreAddressAnnounced>? GroceryStoreAddressAnnounced { get; set; } = null;
-    public Event<SetGroceryStoreAddress>? AddGroceryStoreAddress { get; set; } = null;
+    public Event<AddGroceryStoreAddress>? AddGroceryStoreAddress { get; set; } = null;
 
 
 

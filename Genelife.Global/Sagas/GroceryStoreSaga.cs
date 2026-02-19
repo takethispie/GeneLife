@@ -106,7 +106,7 @@ public class GroceryStoreSaga : MassTransitStateMachine<GroceryStoreSagaState>
             }),
             When(DiscoverGroceryStores).Then(bc =>
             {
-                bc.Publish(new SetGroceryStoreAddress(
+                bc.Publish(new AddGroceryStoreAddress(
                     bc.Message.HumanId,
                     bc.Saga.CorrelationId,
                     bc.Saga.Position.X,
