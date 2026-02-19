@@ -19,6 +19,7 @@ public class GroceryStoreSaga : MassTransitStateMachine<GroceryStoreSagaState>
     public Event<LeaveGroceryStore> CustomerLeft { get; set; } = null!;
     public Event<BuyFood> BuyFood { get; set; } = null!;
     public Event<BuyDrink> BuyDrink { get; set; } = null!;
+    public Event<DiscoverGroceryStores> DiscoverGroceryStores { get; set; } = null!;
 
     public GroceryStoreSaga()
     {
@@ -47,6 +48,9 @@ public class GroceryStoreSaga : MassTransitStateMachine<GroceryStoreSagaState>
                 ctx => ctx.Message.GroceryStoreId
             )
         );
+        Event(() => DiscoverGroceryStores,
+            e => e.CorrelateBy(saga => "any", _ => "any")
+        );
 
         Initially(When(Created).Then(bc =>
         {
@@ -55,7 +59,10 @@ public class GroceryStoreSaga : MassTransitStateMachine<GroceryStoreSagaState>
             bc.Saga.DrinkPrice = bc.Message.DrinkPrice;
             bc.Saga.IsOpen = true;
             bc.Saga.Revenue = 0;
-            
+            bc.Publish(new GroceryStoreAddressAnnounced(
+                bc.Saga.CorrelationId,
+                bc.Message.X, bc.Message.Y, bc.Message.Z
+            ));
             Log.Information("Grocery store {Name} created at position ({X}, {Y}, {Z}) with food price {FoodPrice:C} and drink price {DrinkPrice:C}",
                 bc.Message.Name, bc.Message.X, bc.Message.Y, bc.Message.Z, bc.Message.FoodPrice, bc.Message.DrinkPrice);
         }).TransitionTo(Active));
@@ -96,6 +103,18 @@ public class GroceryStoreSaga : MassTransitStateMachine<GroceryStoreSagaState>
                 bc.Publish(new DrinkPurchased(bc.Message.CorrelationId, bc.Saga.CorrelationId, bc.Saga.DrinkPrice));
                 Log.Information("Customer {CustomerId} bought drink for {Price:C} at grocery store {StoreId}",
                     bc.Message.CorrelationId, price, bc.Saga.CorrelationId);
+            }),
+            When(DiscoverGroceryStores).Then(bc =>
+            {
+                bc.Publish(new SetGroceryStoreAddress(
+                    bc.Message.HumanId,
+                    bc.Saga.CorrelationId,
+                    bc.Saga.Position.X,
+                    bc.Saga.Position.Y,
+                    bc.Saga.Position.Z
+                ));
+                Log.Information("Grocery store {StoreId} responded to discovery request from human {HumanId}",
+                    bc.Saga.CorrelationId, bc.Message.HumanId);
             })
         );
     }

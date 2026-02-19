@@ -1,4 +1,6 @@
-﻿namespace Genelife.Life.Domain.Address;
+﻿using System.Numerics;
+
+namespace Genelife.Life.Domain.Address;
 
 public class AddressBook
 {
@@ -16,4 +18,13 @@ public class AddressBook
     public bool Exists(AddressEntry entry) => Addresses.Any(ad => ad == entry);
     
     public IEnumerable<AddressEntry> AllOfAddressType(AddressType addressType) => Addresses.Where(ad => ad.AddressType == addressType);
+
+    public AddressEntry? NearestOfAddressType(AddressType addressType, float x, float y, float z)
+    {
+        var origin = new Vector3(x, y, z);
+        return Addresses
+            .Where(ad => ad.AddressType == addressType)
+            .OrderBy(ad => Vector3.Distance(origin, new Vector3(ad.Coordinates.X, ad.Coordinates.Y, ad.Coordinates.Z)))
+            .FirstOrDefault();
+    }
 }

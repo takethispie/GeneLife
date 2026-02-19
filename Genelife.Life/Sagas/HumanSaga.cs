@@ -3,6 +3,7 @@ using Genelife.Global.Messages.Commands.Grocery;
 using Genelife.Global.Messages.Commands.Locomotion;
 using Genelife.Global.Messages.DTOs;
 using Genelife.Global.Messages.Events;
+using Genelife.Global.Messages.Events.Buildings;
 using Genelife.Global.Messages.Events.Clock;
 using Genelife.Global.Messages.Events.Grocery;
 using Genelife.Global.Messages.Events.Locomotion;
@@ -50,6 +51,8 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
     public Event<DrinkPurchased>? DrinkPurchased { get; set; } = null;
     public Event<EnteredGroceryStore>? EnteredGroceryStore { get; set; } = null;
     public Event<LeftGroceryStore>? LeftGroceryStore { get; set; } = null;
+    public Event<GroceryStoreAddressAnnounced>? GroceryStoreAddressAnnounced { get; set; } = null;
+    public Event<SetGroceryStoreAddress>? AddGroceryStoreAddress { get; set; } = null;
 
 
 
@@ -61,6 +64,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             bc.Saga.Human = bc.Message.Human;
             bc.Saga.AddressBook = new AddressBook();
             Log.Information("Created human {HumanFirstName} {HumanLastName} ", bc.Saga.Human.FirstName, bc.Saga.Human.LastName);
+            bc.Publish(new DiscoverGroceryStores(bc.Saga.CorrelationId));
         }).TransitionTo(Idle));
 
         Event(() => UpdateTick, e => e.CorrelateBy(saga => "any", _ => "any"));
@@ -80,6 +84,8 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         Event(() => DrinkPurchased, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
         Event(() => EnteredGroceryStore, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
         Event(() => LeftGroceryStore, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
+        Event(() => GroceryStoreAddressAnnounced, e => e.CorrelateBy(saga => "any", _ => "any"));
+        Event(() => AddGroceryStoreAddress, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
         DuringAny(
             When(HourElapsed).Then(bc => { bc.Saga.Human = new UpdateNeeds().Execute(bc.Saga.Human); }),
             When(SetAge).Then(bc => bc.Saga.Human = new ChangeBirthday().Execute(bc.Saga.Human, bc.Message.Value)),
@@ -141,6 +147,20 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                 bc.Saga.DrinkCount++;
                 Log.Information("Human {HumanId} purchased drink. Total drink items: {DrinkCount}",
                     bc.Saga.CorrelationId, bc.Saga.DrinkCount);
+            }),
+            When(GroceryStoreAddressAnnounced).Then(bc =>
+            {
+                var coordinates = new AddressCoordinates(bc.Message.X, bc.Message.Y, bc.Message.Z);
+                bc.Saga.AddressBook.Add(new AddressEntry(AddressType.Store, bc.Message.GroceryStoreId, coordinates));
+                Log.Information("Human {HumanId} learned about grocery store {StoreId} via announcement",
+                    bc.Saga.CorrelationId, bc.Message.GroceryStoreId);
+            }),
+            When(AddGroceryStoreAddress).Then(bc =>
+            {
+                var coordinates = new AddressCoordinates(bc.Message.X, bc.Message.Y, bc.Message.Z);
+                bc.Saga.AddressBook.Add(new AddressEntry(AddressType.Store, bc.Message.GroceryStoreId, coordinates));
+                Log.Information("Human {HumanId} learned about grocery store {StoreId} via discovery",
+                    bc.Saga.CorrelationId, bc.Message.GroceryStoreId);
             })
         );
 
@@ -153,7 +173,10 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                     case Eat when bc.Saga.FoodCount <= 0:
                     case Drink when bc.Saga.DrinkCount <= 0:
                     {
-                        var storeAddress = bc.Saga.AddressBook.AllOfAddressType(AddressType.Store).FirstOrDefault();
+                        var storeAddress = bc.Saga.AddressBook.NearestOfAddressType(
+                            AddressType.Store,
+                            bc.Saga.Position.X, bc.Saga.Position.Y, bc.Saga.Position.Z
+                        );
                         if (storeAddress != null)
                         {
                             bc.Publish(new GoToGroceryStore(bc.Saga.CorrelationId, storeAddress.EntityId));
