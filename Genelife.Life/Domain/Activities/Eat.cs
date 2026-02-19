@@ -7,7 +7,6 @@ public class Eat : ILivingActivity {
     
     public int TickDuration { get; set; } = ILivingActivity.TickPerHour;
     public bool GoHomeWhenFinished => false;
-    public bool RequiresFood { get; set; } = true;
 
     public Human Apply(Human being) => being with { Hunger = 100 };
 }

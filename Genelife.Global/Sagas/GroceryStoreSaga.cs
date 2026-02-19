@@ -63,59 +63,39 @@ public class GroceryStoreSaga : MassTransitStateMachine<GroceryStoreSagaState>
         During(Active,
             When(CustomerEntered).Then(bc =>
             {
-                if (!bc.Saga.Customers.Contains(bc.Message.CorrelationId))
-                {
-                    bc.Saga.Customers.Add(bc.Message.CorrelationId);
-                    bc.Publish(new EnteredGroceryStore(bc.Message.CorrelationId, bc.Saga.CorrelationId));
-                    
-                    Log.Information("Customer {CustomerId} entered grocery store {StoreId}",
-                        bc.Message.CorrelationId, bc.Saga.CorrelationId);
-                }
+                if (bc.Saga.Customers.Contains(bc.Message.CorrelationId)) return;
+                bc.Saga.Customers.Add(bc.Message.CorrelationId);
+                bc.Publish(new EnteredGroceryStore(bc.Message.CorrelationId, bc.Saga.CorrelationId));
+                Log.Information("Customer {CustomerId} entered grocery store {StoreId}",
+                    bc.Message.CorrelationId, bc.Saga.CorrelationId);
             }),
             When(CustomerLeft).Then(bc =>
             {
-                if (bc.Saga.Customers.Contains(bc.Message.CorrelationId))
-                {
-                    bc.Saga.Customers.Remove(bc.Message.CorrelationId);
-                    bc.Publish(new LeftGroceryStore(bc.Message.CorrelationId, bc.Saga.CorrelationId));
-                    
-                    Log.Information("Customer {CustomerId} left grocery store {StoreId}",
-                        bc.Message.CorrelationId, bc.Saga.CorrelationId);
-                }
+                if (!bc.Saga.Customers.Contains(bc.Message.CorrelationId)) return;
+                bc.Saga.Customers.Remove(bc.Message.CorrelationId);
+                bc.Publish(new LeftGroceryStore(bc.Message.CorrelationId, bc.Saga.CorrelationId));
+                Log.Information("Customer {CustomerId} left grocery store {StoreId}",
+                    bc.Message.CorrelationId, bc.Saga.CorrelationId);
             }),
             When(BuyFood).Then(bc =>
             {
-                if (bc.Saga.Customers.Contains(bc.Message.CorrelationId))
-                {
-                    var price = (float)bc.Saga.FoodPrice;
-                    bc.Saga.Revenue += bc.Saga.FoodPrice;
-                    
-                    // Deduct money from the human (negative amount to subtract)
-                    bc.Publish(new AddMoney(bc.Message.CorrelationId, -price));
-                    
-                    // Publish food purchased event for inventory tracking
-                    bc.Publish(new FoodPurchased(bc.Message.CorrelationId, bc.Saga.CorrelationId, bc.Saga.FoodPrice));
-                    
-                    Log.Information("Customer {CustomerId} bought food for {Price:C} at grocery store {StoreId}",
-                        bc.Message.CorrelationId, price, bc.Saga.CorrelationId);
-                }
+                if (!bc.Saga.Customers.Contains(bc.Message.CorrelationId)) return;
+                var price = (float)bc.Saga.FoodPrice;
+                bc.Saga.Revenue += bc.Saga.FoodPrice;
+                bc.Publish(new AddMoney(bc.Message.CorrelationId, -price));
+                bc.Publish(new FoodPurchased(bc.Message.CorrelationId, bc.Saga.CorrelationId, bc.Saga.FoodPrice));
+                Log.Information("Customer {CustomerId} bought food for {Price:C} at grocery store {StoreId}",
+                    bc.Message.CorrelationId, price, bc.Saga.CorrelationId);
             }),
             When(BuyDrink).Then(bc =>
             {
-                if (bc.Saga.Customers.Contains(bc.Message.CorrelationId))
-                {
-                    var price = (float)bc.Saga.DrinkPrice;
-                    bc.Saga.Revenue += bc.Saga.DrinkPrice;
-                    
-                    // Deduct money from the human (negative amount to subtract)
-                    bc.Publish(new AddMoney(bc.Message.CorrelationId, -price));
-                    
-                    // Publish drink purchased event for inventory tracking
-                    bc.Publish(new DrinkPurchased(bc.Message.CorrelationId, bc.Saga.CorrelationId, bc.Saga.DrinkPrice));
-                    
-                    Log.Information("Customer {CustomerId} bought drink for {Price:C} at grocery store {StoreId}",
-                        bc.Message.CorrelationId, price, bc.Saga.CorrelationId);
-                }
+                if (!bc.Saga.Customers.Contains(bc.Message.CorrelationId)) return;
+                var price = (float)bc.Saga.DrinkPrice;
+                bc.Saga.Revenue += bc.Saga.DrinkPrice;
+                bc.Publish(new AddMoney(bc.Message.CorrelationId, -price));
+                bc.Publish(new DrinkPurchased(bc.Message.CorrelationId, bc.Saga.CorrelationId, bc.Saga.DrinkPrice));
+                Log.Information("Customer {CustomerId} bought drink for {Price:C} at grocery store {StoreId}",
+                    bc.Message.CorrelationId, price, bc.Saga.CorrelationId);
             })
         );
     }

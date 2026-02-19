@@ -1,3 +1,5 @@
+using MassTransit;
+
 namespace Genelife.Global.Messages.Events.Buildings;
 
 public record GroceryStoreBuilt(
@@ -6,6 +8,6 @@ public record GroceryStoreBuilt(
     float Y,
     float Z,
     string Name,
-    decimal FoodPrice = 5.00m,
-    decimal DrinkPrice = 3.00m
-);
+    int FoodPrice = 5,
+    int DrinkPrice = 3
+) : CorrelatedBy<Guid>;

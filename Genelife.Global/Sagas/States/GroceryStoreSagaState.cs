@@ -8,8 +8,8 @@ public class GroceryStoreSagaState : SagaStateMachineInstance, ISagaVersion
     public Guid CorrelationId { get; set; }
     public Position Position { get; set; } = new(0, 0, 0);
     public List<Guid> Customers { get; set; } = [];
-    public decimal FoodPrice { get; set; } = 5.00m;
-    public decimal DrinkPrice { get; set; } = 3.00m;
+    public int FoodPrice { get; set; } = 5;
+    public int DrinkPrice { get; set; } = 3;
     public decimal Revenue { get; set; } = 0;
     public bool IsOpen { get; set; } = true;
     public int Version { get; set; }

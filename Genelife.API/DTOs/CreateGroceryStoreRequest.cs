@@ -5,6 +5,6 @@ public record CreateGroceryStoreRequest(
     float X,
     float Y,
     float Z,
-    decimal FoodPrice = 5.00m,
-    decimal DrinkPrice = 3.00m
+    int FoodPrice = 5,
+    int DrinkPrice = 3
 );
