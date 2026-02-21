@@ -92,7 +92,7 @@ public static class GenerationEndpointsExtension
         );
         
         var officeId = Guid.NewGuid();
-        await endpoint.Publish(new CreateCompany(companyId, company, officeId, officeLocation.X, officeLocation.Y, officeLocation.Z));
+        await endpoint.Publish(new CreateCompany(companyId, company, officeLocation.X, officeLocation.Y, officeLocation.Z));
         results.Companies.Add(new { CompanyId = companyId, Company = company });
         
         results.Offices.Add(new {

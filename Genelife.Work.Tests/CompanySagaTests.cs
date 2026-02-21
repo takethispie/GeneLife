@@ -42,7 +42,7 @@ public class CompanySagaTests
             Random.Shared.NextSingle() * 800 - 400,
             0
         );
-        await harness.Bus.Publish(new CreateCompany(id, company, Guid.NewGuid(), officeLocation.X, officeLocation.Y, officeLocation.Z));
+        await harness.Bus.Publish(new CreateCompany(id, company, officeLocation.X, officeLocation.Y, officeLocation.Z));
         (await harness.Consumed.Any<CreateCompany>()).Should().BeTrue();
         (await sagaHarness.Consumed.Any<CreateCompany>()).Should().BeTrue();
         (await sagaHarness.Created.Any()).Should().BeTrue();
@@ -74,7 +74,7 @@ public class CompanySagaTests
             Random.Shared.NextSingle() * 800 - 400,
             0
         );
-        await harness.Bus.Publish(new CreateCompany(id, company, Guid.NewGuid(), officeLocation.X, officeLocation.Y, officeLocation.Z));
+        await harness.Bus.Publish(new CreateCompany(id, company, officeLocation.X, officeLocation.Y, officeLocation.Z));
         await Task.Delay(100); 
 
         await harness.Bus.Publish(new DayElapsed(new DateOnly(1, 1, 1)));
@@ -110,10 +110,10 @@ public class CompanySagaTests
             Random.Shared.NextSingle() * 800 - 400,
             0
         );
-        await harness.Bus.Publish(new CreateCompany(id, company, Guid.NewGuid(), officeLocation.X, officeLocation.Y, officeLocation.Z));
+        await harness.Bus.Publish(new CreateCompany(id, company, officeLocation.X, officeLocation.Y, officeLocation.Z));
         await Task.Delay(100);
 
-        await harness.Bus.Publish(new EmployeeHired(id, humanId, salary, Guid.NewGuid(), new OfficeLocation(0, 0, 0)));
+        await harness.Bus.Publish(new EmployeeHired(id, humanId, salary, new OfficeLocation(0, 0, 0)));
 
         (await harness.Consumed.Any<EmployeeHired>()).Should().BeTrue();
         (await sagaHarness.Consumed.Any<EmployeeHired>()).Should().BeTrue();
@@ -146,10 +146,10 @@ public class CompanySagaTests
             Random.Shared.NextSingle() * 800 - 400,
             0
         );
-        await harness.Bus.Publish(new CreateCompany(id, company, Guid.NewGuid(), officeLocation.X, officeLocation.Y, officeLocation.Z));
+        await harness.Bus.Publish(new CreateCompany(id, company, officeLocation.X, officeLocation.Y, officeLocation.Z));
         await Task.Delay(100);
 
-        await harness.Bus.Publish(new EmployeeHired(id, humanId, 75000f, Guid.NewGuid(), new OfficeLocation(0, 0, 0)));
+        await harness.Bus.Publish(new EmployeeHired(id, humanId, 75000f, new OfficeLocation(0, 0, 0)));
         await Task.Delay(100);
 
         await harness.Bus.Publish(new EmployeeProductivityUpdated(id, humanId, 0.9f));

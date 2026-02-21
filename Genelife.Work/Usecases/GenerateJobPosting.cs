@@ -41,8 +41,7 @@ public class GenerateJobPosting
         }
     };
     
-    public JobPosting GenerateForCompany(Guid companyId, CompanyType companyType, JobLevel level, int positionsNeeded,
-        Guid officeId, OfficeLocation officeLocation)
+    public JobPosting GenerateForCompany(Guid companyId, CompanyType companyType, JobLevel level, int positionsNeeded, OfficeLocation officeLocation)
     {
         var titles = JobTitlesByType.GetValueOrDefault(companyType, JobTitlesByType[CompanyType.Services]);
         var title = titles[random.Next(titles.Count)];
@@ -57,7 +56,6 @@ public class GenerateJobPosting
             Level: level,
             // TODO add real skillset requirements
             new SkillSet(),
-            officeId,
             officeLocation,
             MaxApplications: Math.Min(100, positionsNeeded * 20)
         );

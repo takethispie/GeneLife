@@ -29,7 +29,6 @@ public class CompanySaga :
     public int? PublishedJobPostings { get; set; }
     public int Version { get; set; }
     public DateTime LastPayrollDate { get; set; }
-    public Guid OfficeId { get; set; }
     public List<Guid> Occupants { get; set; } = [];
     public OfficeLocation OfficeLocation { get; set; } = new(0, 0, 0);
 
@@ -40,7 +39,6 @@ public class CompanySaga :
         Company = context.Message.Company;
         DaysElapsedCount = 0;
         LastPayrollDate = DateTime.UtcNow;
-        OfficeId = context.Message.MainOfficeId;
         OfficeLocation = new OfficeLocation(context.Message.X, context.Message.Y, context.Message.Z);
         Log.Information("Company {CompanyName} created with ID {SagaCorrelationId}", Company.Name, CorrelationId);
         await Task.CompletedTask;
@@ -104,9 +102,7 @@ public class CompanySaga :
             DaysElapsedCount = 0;
         }
 
-        Employees = Employees.Select(employee =>
-            new UpdateEmployeeProductivity().Execute(employee)
-        ).ToList();
+        Employees = Employees.Select(employee => new UpdateEmployeeProductivity().Execute(employee)).ToList();
 
         var (averageProductivity, revenueChange) = new UpdateCompanyProductivity().Execute(Company, Employees);
         Company = Company with {
@@ -120,7 +116,6 @@ public class CompanySaga :
                 Company,
                 PublishedJobPostings,
                 CorrelationId,
-                OfficeId,
                 OfficeLocation
             );
         foreach (var posting in postings)

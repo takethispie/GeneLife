@@ -30,7 +30,7 @@ public static class CompanyEndpointsExtension
                     0
                 );
 
-                await endpoint.Publish(new CreateCompany(companyId, company, officeId, officeLocation.X, officeLocation.Y, officeLocation.Z));
+                await endpoint.Publish(new CreateCompany(companyId, company, officeLocation.X, officeLocation.Y, officeLocation.Z));
                 return Results.Ok(new { CompanyId = companyId, Company = company });
             })
             .WithName("create Company");

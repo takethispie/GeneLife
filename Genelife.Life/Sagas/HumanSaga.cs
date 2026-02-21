@@ -274,8 +274,8 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             {
                 Log.Information("Human {HumanId} finished shopping and left grocery store", bc.Saga.CorrelationId);
                 bc.Saga.Activity = new Idle();
-                bc.TransitionToState(Idle);
-            })
+            }).TransitionTo(Idle),
+            Ignore(UpdateTick)
         );
     }
 
@@ -291,7 +291,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         if (homeAddress is null) 
             throw new AddressNotFoundException(nameof(homeAddress));
         bc.Publish(new LeaveHome(homeAddress.EntityId, bc.Saga.CorrelationId));
-        bc.Publish(new EnteredWork(bc.Saga.CorrelationId, workAddress.EntityId));
+        bc.Publish(new EnteredWork(workAddress.EntityId, bc.Saga.CorrelationId));
         Log.Information("{SagaCorrelationId} is going to work at {WorkAddressEntityId}", bc.Saga.CorrelationId, workAddress.EntityId);
     }
 

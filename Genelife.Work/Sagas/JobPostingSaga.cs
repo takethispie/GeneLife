@@ -77,7 +77,7 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                 if (pendingApplications.Count == 0) {
                     Log.Information("0 Application received for {JobPostingTitle} closing posting", context.Saga.JobPosting.Title);
                     context.Publish(
-                        new JobPostingExpired(context.Saga.CorrelationId, context.Saga.JobPosting.CompanyId));
+                        new JobPostingExpired(context.Saga.JobPosting.CompanyId, context.Saga.CorrelationId));
                     context.SetCompleted();
                 }
 
@@ -106,7 +106,6 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                     context.Saga.JobPosting.CompanyId,
                     context.Message.WorkerId,
                     context.Message.Salary,
-                    context.Saga.JobPosting.OfficeId,
                     context.Saga.JobPosting.OfficeLocation
                 ));
             }).Finalize()

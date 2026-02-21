@@ -7,6 +7,5 @@ public record EmployeeHired(
     Guid CorrelationId, 
     Guid WorkerId, 
     float Salary, 
-    Guid OfficeId, 
     OfficeLocation OfficeLocation
 ) : CorrelatedBy<Guid>;

@@ -10,7 +10,6 @@ public record JobPosting(
     CompanyType CompanyType,
     JobLevel Level,
     SkillSet RequiredSkillSet,
-    Guid OfficeId,
     OfficeLocation OfficeLocation,
     int MaxApplications = 50
 );

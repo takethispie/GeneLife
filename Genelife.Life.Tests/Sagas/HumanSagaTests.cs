@@ -145,7 +145,7 @@ public class HumanSagaTests
         await Task.Delay(100); // Wait for saga creation
 
         // Act
-        await harness.Bus.Publish(new EmployeeHired(companyId, humanId, salary, Guid.NewGuid(), new OfficeLocation(0, 0, 0)));
+        await harness.Bus.Publish(new EmployeeHired(companyId, humanId, salary, new OfficeLocation(0, 0, 0)));
 
         // Assert
         (await harness.Consumed.Any<EmployeeHired>()).Should().BeTrue();
