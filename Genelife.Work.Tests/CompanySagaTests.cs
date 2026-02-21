@@ -28,14 +28,14 @@ public class CompanySagaTests
             .AddSingleton<GenerateJobPosting>()
             .AddMassTransitTestHarness(cfg =>
             {
-                cfg.AddSagaStateMachine<CompanySaga, CompanySagaState>();
+                cfg.AddSaga<CompanySaga>();
             })
             .BuildServiceProvider(true);
 
         var harness = provider.GetRequiredService<ITestHarness>();
         await harness.Start();
 
-        var sagaHarness = harness.GetSagaStateMachineHarness<CompanySaga, CompanySagaState>();
+        var sagaHarness = harness.GetSagaHarness<CompanySaga>();
         var id = Guid.NewGuid();
         var officeLocation = new Vector3(
             Random.Shared.NextSingle() * 800 - 400, 
@@ -60,14 +60,14 @@ public class CompanySagaTests
             .AddSingleton<GenerateJobPosting>()
             .AddMassTransitTestHarness(cfg =>
             {
-                cfg.AddSagaStateMachine<CompanySaga, CompanySagaState>();
+                cfg.AddSaga<CompanySaga>();
             })
             .BuildServiceProvider(true);
 
         var harness = provider.GetRequiredService<ITestHarness>();
         await harness.Start();
 
-        var sagaHarness = harness.GetSagaStateMachineHarness<CompanySaga, CompanySagaState>();
+        var sagaHarness = harness.GetSagaHarness<CompanySaga>();
         var id = Guid.NewGuid();
         var officeLocation = new Vector3(
             Random.Shared.NextSingle() * 800 - 400, 
@@ -96,14 +96,14 @@ public class CompanySagaTests
             .AddSingleton<GenerateJobPosting>()
             .AddMassTransitTestHarness(cfg =>
             {
-                cfg.AddSagaStateMachine<CompanySaga, CompanySagaState>();
+                cfg.AddSaga<CompanySaga>();
             })
             .BuildServiceProvider(true);
 
         var harness = provider.GetRequiredService<ITestHarness>();
         await harness.Start();
 
-        var sagaHarness = harness.GetSagaStateMachineHarness<CompanySaga, CompanySagaState>();
+        var sagaHarness = harness.GetSagaHarness<CompanySaga>();
         var id = Guid.NewGuid();
         var officeLocation = new Vector3(
             Random.Shared.NextSingle() * 800 - 400, 
@@ -132,14 +132,14 @@ public class CompanySagaTests
             .AddSingleton<GenerateJobPosting>()
             .AddMassTransitTestHarness(cfg =>
             {
-                cfg.AddSagaStateMachine<CompanySaga, CompanySagaState>();
+                cfg.AddSaga<CompanySaga>();
             })
             .BuildServiceProvider(true);
 
         var harness = provider.GetRequiredService<ITestHarness>();
         await harness.Start();
 
-        var sagaHarness = harness.GetSagaStateMachineHarness<CompanySaga, CompanySagaState>();
+        var sagaHarness = harness.GetSagaHarness<CompanySaga>();
         var id = Guid.NewGuid();
         var officeLocation = new Vector3(
             Random.Shared.NextSingle() * 800 - 400, 
