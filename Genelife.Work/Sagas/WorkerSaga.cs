@@ -37,8 +37,7 @@ public class WorkerSaga : MassTransitStateMachine<WorkerSagaState>
                     context.Saga.SkillSet = context.Message.SkillSet;
                     context.Saga.FirstName = context.Message.Firstname;
                     context.Saga.LastName = context.Message.Lastname;
-            })
-                .TransitionTo(Unemployed)
+            }).TransitionTo(Unemployed)
         );
         
         Event(() => EmployeeHired, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.WorkerId.ToString()));
@@ -87,9 +86,8 @@ public class WorkerSaga : MassTransitStateMachine<WorkerSagaState>
                 bc.Saga.HiringTimeOut = null;
                 bc.Publish(new SetJobStatus(bc.Saga.HumanId, true));
                 bc.Publish(new SetWorkAddress(bc.Saga.HumanId, bc.Message.OfficeId, bc.Message.OfficeLocation));
-                Log.Information("{SagaCorrelationId} finished hiring process into company {MessageCompanyId}", bc.Saga.CorrelationId, bc.Message.CompanyId);
-                bc.TransitionToState(Working);
-            }),
+                Log.Information("{SagaCorrelationId} finished hiring process into company {MessageCompanyId}", bc.Saga.CorrelationId, bc.Message.CorrelationId);
+            }).TransitionTo(Working),
                 
             When(ApplicationAccepted).Then(bc => {
                     if (bc.Saga.EmployerId != Guid.Empty) {
@@ -103,12 +101,9 @@ public class WorkerSaga : MassTransitStateMachine<WorkerSagaState>
         );
         
         During(Working,
-            When(DayElapsed).Then(bc => {}),
             When(ApplicationAccepted).Then(bc => bc.Publish(new RecruitmentRefused(bc.Message.JobPostingId, bc.Saga.CorrelationId))),
-            Ignore(JobPostingCreated)
-        );
-        
-        DuringAny(
+            Ignore(JobPostingCreated),
+            Ignore(DayElapsed),
             When(SalaryPaid).Then(bc =>
             {
                 var newMoney = bc.Message.Amount;
