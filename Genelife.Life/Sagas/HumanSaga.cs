@@ -179,7 +179,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                         );
                         if (storeAddress != null)
                         {
-                            bc.Publish(new GoToGroceryStore(bc.Saga.CorrelationId, storeAddress.EntityId));
+                            bc.Publish(new GoToGroceryStore(storeAddress.EntityId, bc.Saga.CorrelationId));
                             bc.TransitionToState(Shopping);
                             return;
                         }
