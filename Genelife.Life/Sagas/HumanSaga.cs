@@ -13,7 +13,6 @@ using Genelife.Life.Domain.Exceptions;
 using Genelife.Life.Messages.Commands;
 using Genelife.Life.Sagas.States;
 using Genelife.Life.Usecases;
-using Genelife.Work.Messages.Events.Company;
 using MassTransit;
 using Serilog;
 
@@ -86,6 +85,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         Event(() => LeftGroceryStore, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
         Event(() => GroceryStoreAddressAnnounced, e => e.CorrelateBy(saga => "any", _ => "any"));
         Event(() => AddGroceryStoreAddress, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
+        
         DuringAny(
             When(HourElapsed).Then(bc => { bc.Saga.Human = new UpdateNeeds().Execute(bc.Saga.Human); }),
             When(SetAge).Then(bc => bc.Saga.Human = new ChangeBirthday().Execute(bc.Saga.Human, bc.Message.Value)),
@@ -265,10 +265,10 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             When(EnteredGroceryStore).Then(bc =>
             {
                 if (bc.Saga.FoodCount <= 0)
-                    bc.Publish(new BuyFood(bc.Saga.CorrelationId, bc.Message.GroceryStoreId));
+                    bc.Publish(new BuyFood(bc.Message.GroceryStoreId, bc.Saga.CorrelationId));
                 if (bc.Saga.DrinkCount <= 0)
-                    bc.Publish(new BuyDrink(bc.Saga.CorrelationId, bc.Message.GroceryStoreId));
-                bc.Publish(new LeaveGroceryStore(bc.Saga.CorrelationId, bc.Message.GroceryStoreId));
+                    bc.Publish(new BuyDrink(bc.Message.GroceryStoreId, bc.Saga.CorrelationId));
+                bc.Publish(new LeaveGroceryStore(bc.Message.GroceryStoreId, bc.Saga.CorrelationId));
             }),
             When(LeftGroceryStore).Then(bc =>
             {

@@ -1,6 +1,8 @@
+using MassTransit;
+
 namespace Genelife.Global.Messages.Commands.Locomotion;
 
 public record LeaveGroceryStore(
     Guid CorrelationId,
-    Guid GroceryStoreId
-);
+    Guid HumanId
+) : CorrelatedBy<Guid>;
