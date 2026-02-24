@@ -1,6 +1,5 @@
 using System.Reflection;
 using Genelife.Global.Sagas;
-using Genelife.Global.Sagas.States;
 using Genelife.Global.Services;
 using MassTransit;
 using MongoDB.Bson;
@@ -49,7 +48,7 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
                 x.SetKebabCaseEndpointNameFormatter();
 
                 x.AddConsumers(entryAssembly);
-                x.AddSagaStateMachine<HouseSaga, HouseSagaState>(so => so.UseConcurrentMessageLimit(1)).MongoDbRepository(r =>
+                x.AddSaga<HouseSaga>(so => so.UseConcurrentMessageLimit(1)).MongoDbRepository(r =>
                 {
                     r.Connection = "mongodb://root:example@mongo:27017/";
                     r.DatabaseName = "maindb";

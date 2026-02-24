@@ -1,9 +1,8 @@
-using System.Numerics;
 using Genelife.Global.Messages.Commands.Locomotion;
+using Genelife.Global.Messages.DTOs;
 using Genelife.Global.Messages.Events;
 using Genelife.Global.Messages.Events.Buildings;
 using Genelife.Global.Messages.Events.Locomotion;
-using Genelife.Global.Sagas.States;
 using Genelife.Life.Messages.Commands;
 using Genelife.Life.Messages.DTOs;
 using MassTransit;
@@ -11,64 +10,49 @@ using Serilog;
 
 namespace Genelife.Global.Sagas;
 
-public class HouseSaga : MassTransitStateMachine<HouseSagaState> {
+public class HouseSaga :
+    ISaga,
+    ISagaVersion,
+    InitiatedBy<HouseBuilt>,
+    Orchestrates<GoHome>,
+    Orchestrates<LeaveHome>
+{
+    public Guid CorrelationId { get; set; }
+    public Position Position { get; set; } = new(0, 0, 0);
+    public List<Guid> Owners { get; set; } = [];
+    public List<Guid> Occupants { get; set; } = [];
+    public int Version { get; set; }
 
-    public State Active { get; set; } = null!;
-
-    public Event<HouseBuilt> Created { get; set; } = null!;
-    public Event<GoHome> HumanEntered { get; set; } = null!;
-    public Event<LeaveHome> HumanLeft { get; set; } = null!;
-
-    public HouseSaga() {
-        InstanceState(x => x.CurrentState);
-        
-        Event(() => HumanEntered, 
-            e => e.CorrelateById(
-                saga => saga.CorrelationId, 
-                x => x.Message.CorrelationId)
-        );
-        Event(() => HumanLeft,
-            e => e.CorrelateById(
-                saga => saga.CorrelationId,
-                ctx => ctx.Message.CorrelationId
-            )
-        );
-        
-        Initially(When(Created).Then(bc =>
+    public async Task Consume(ConsumeContext<HouseBuilt> context)
+    {
+        Position = new(context.Message.X, context.Message.Y, context.Message.Z);
+        if (context.Message.Owners is not null)
         {
-            bc.Saga.Position = new (bc.Message.X, bc.Message.Y, bc.Message.Z);
-            if (bc.Message.Owners is not null)
+            Owners = context.Message.Owners;
+            foreach (var owner in context.Message.Owners)
             {
-                bc.Saga.Owners = bc.Message.Owners;
-                bc.Message.Owners.ForEach(owner =>
-                {
-                    bc.Publish(new SetHomeAddress(
-                        owner, 
-                        bc.Saga.CorrelationId, 
-                        new Coordinates(bc.Message.X, bc.Message.Y, bc.Message.Z)
-                    ));
-                });
+                await context.Publish(new SetHomeAddress(
+                    owner,
+                    CorrelationId,
+                    new Coordinates(context.Message.X, context.Message.Y, context.Message.Z)
+                ));
             }
-            Log.Information("Created house {SagaCorrelationId} at {SagaPosition}", bc.Saga.CorrelationId, bc.Saga.Position);
-        }).TransitionTo(Active));
-        
-        During(Active,
-            When(HumanEntered).Then(bc => {
-                Log.Information("Human {MessageHumanId} is home", bc.Message.HumanId);
-                bc.Saga.Occupants = bc.Saga.Occupants.Exists(occupant => occupant == bc.Message.HumanId)
-                    ? bc.Saga.Occupants
-                    : [..bc.Saga.Occupants, bc.Message.HumanId];
-                var pos = bc.Saga.Position;
-                bc.Publish(new Arrived(bc.Message.HumanId,  pos.X, pos.Y, pos.Z, "Home"));
-            }),
-            
-            When(HumanLeft).Then(bc => {
-                Log.Information("Human {MessageHumanId} is leaving home", bc.Message.HumanId);
-                bc.Saga.Occupants = bc.Saga.Occupants.Exists(occupant => occupant == bc.Message.HumanId)
-                    ? bc.Saga.Occupants
-                    : [..bc.Saga.Occupants, bc.Message.HumanId];
-                bc.Publish(new LeftHome(bc.Saga.CorrelationId,  bc.Message.HumanId));
-            })
-        );
+        }
+        Log.Information("Created house {CorrelationId} at {Position}", CorrelationId, Position);
+    }
+
+    public async Task Consume(ConsumeContext<GoHome> context)
+    {
+        if (!Occupants.Contains(context.Message.HumanId))
+            Occupants.Add(context.Message.HumanId);
+        Log.Information("Human {HumanId} is home", context.Message.HumanId);
+        await context.Publish(new Arrived(context.Message.HumanId, Position.X, Position.Y, Position.Z, "Home"));
+    }
+
+    public async Task Consume(ConsumeContext<LeaveHome> context)
+    {
+        Occupants.Remove(context.Message.HumanId);
+        Log.Information("Human {HumanId} is leaving home", context.Message.HumanId);
+        await context.Publish(new LeftHome(CorrelationId, context.Message.HumanId));
     }
 }
