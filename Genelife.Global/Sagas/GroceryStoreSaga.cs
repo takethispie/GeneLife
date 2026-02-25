@@ -19,6 +19,7 @@ public class GroceryStoreSaga :
     Orchestrates<LeaveGroceryStore>,
     Orchestrates<BuyFood>,
     Orchestrates<BuyDrink>,
+    Orchestrates<AddRevenue>,
     Observes<DiscoverGroceryStores, GroceryStoreSaga>
 {
     public Guid CorrelationId { get; set; }
@@ -68,23 +69,21 @@ public class GroceryStoreSaga :
     public async Task Consume(ConsumeContext<BuyFood> context)
     {
         if (!Customers.Contains(context.Message.HumanId)) return;
-        var price = (float)FoodPrice;
-        Revenue += FoodPrice;
-        await context.Publish(new AddMoney(context.Message.HumanId, -price));
         await context.Publish(new FoodPurchased(context.Message.HumanId, CorrelationId, FoodPrice));
-        Log.Information("Customer {CustomerId} bought food for {Price:C} at grocery store {StoreId}",
-            context.Message.HumanId, price, CorrelationId);
     }
 
     public async Task Consume(ConsumeContext<BuyDrink> context)
     {
         if (!Customers.Contains(context.Message.HumanId)) return;
-        var price = (float)DrinkPrice;
-        Revenue += DrinkPrice;
-        await context.Publish(new AddMoney(context.Message.HumanId, -price));
         await context.Publish(new DrinkPurchased(context.Message.HumanId, CorrelationId, DrinkPrice));
-        Log.Information("Customer {CustomerId} bought drink for {Price:C} at grocery store {StoreId}",
-            context.Message.HumanId, price, CorrelationId);
+    }
+
+    public Task Consume(ConsumeContext<AddRevenue> context)
+    {
+        Revenue += context.Message.Amount;
+        Log.Information("Grocery store {StoreId} received revenue of {Amount:C}, total revenue: {Revenue:C}",
+            CorrelationId, context.Message.Amount, Revenue);
+        return Task.CompletedTask;
     }
 
     public async Task Consume(ConsumeContext<DiscoverGroceryStores> context)

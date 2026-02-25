@@ -51,18 +51,24 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
                 var entryAssembly = Assembly.GetEntryAssembly();
 
                 x.AddConsumers(entryAssembly);
-                x.AddSaga<CompanySaga>(so => so.UseConcurrentMessageLimit(1)).MongoDbRepository(r =>
-                {
+                x.AddSaga<CompanySaga>(so => {
+                    so.UseConcurrentMessageLimit(1);
+                    so.UsePartitioner(8, ctx => ctx.CorrelationId ?? Guid.Empty);
+                }).MongoDbRepository(r => {
                     r.Connection = "mongodb://root:example@mongo:27017/";
                     r.DatabaseName = "maindb";
                 });
-                x.AddSagaStateMachine<JobPostingSaga, JobPostingSagaState>(so => so.UseConcurrentMessageLimit(1)).MongoDbRepository(r =>
-                {
+                x.AddSagaStateMachine<JobPostingSaga, JobPostingSagaState>(so => {
+                    so.UseConcurrentMessageLimit(1);
+                    so.UsePartitioner(8, ctx => ctx.CorrelationId ?? Guid.Empty);
+                }).MongoDbRepository(r => {
                     r.Connection = "mongodb://root:example@mongo:27017/";
                     r.DatabaseName = "maindb";
                 });
-                x.AddSagaStateMachine<WorkerSaga, WorkerSagaState>(so => so.UseConcurrentMessageLimit(1)).MongoDbRepository(r =>
-                {
+                x.AddSagaStateMachine<WorkerSaga, WorkerSagaState>(so => {
+                    so.UseConcurrentMessageLimit(1);
+                    so.UsePartitioner(8, ctx => ctx.CorrelationId ?? Guid.Empty);
+                }).MongoDbRepository(r => {
                     r.Connection = "mongodb://root:example@mongo:27017/";
                     r.DatabaseName = "maindb";
                 });
@@ -73,6 +79,13 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
                 {
                     if (IsRunningInContainer())
                         cfg.Host("rabbitmq");
+                    cfg.UseMessageRetry(r => r.Exponential(
+                        retryLimit: 5,
+                        minInterval: TimeSpan.FromMilliseconds(100),
+                        maxInterval: TimeSpan.FromSeconds(5),
+                        intervalDelta: TimeSpan.FromMilliseconds(200)
+                    ));
+                    cfg.UseInMemoryOutbox(context);
                     cfg.ConfigureEndpoints(context);
                 });
             });
