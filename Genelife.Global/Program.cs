@@ -1,5 +1,4 @@
 using System.Reflection;
-using Genelife.Global.Sagas;
 using Genelife.Global.Services;
 using MassTransit;
 using MongoDB.Bson;
@@ -48,26 +47,13 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
                 x.SetKebabCaseEndpointNameFormatter();
 
                 x.AddConsumers(entryAssembly);
-                x.AddSaga<HouseSaga>(so => {
-                    so.UseConcurrentMessageLimit(1);
-                    so.UsePartitioner(8, ctx => ctx.CorrelationId ?? Guid.Empty);
-                }).MongoDbRepository(r => {
-                    r.Connection = "mongodb://root:example@mongo:27017/";
-                    r.DatabaseName = "maindb";
-                });
-                x.AddSaga<GroceryStoreSaga>(so => {
-                    so.UseConcurrentMessageLimit(1);
-                    so.UsePartitioner(8, ctx => ctx.CorrelationId ?? Guid.Empty);
-                }).MongoDbRepository(r => {
-                    r.Connection = "mongodb://root:example@mongo:27017/";
-                    r.DatabaseName = "maindb";
-                });
                 x.AddSagas(entryAssembly);
                 x.AddActivities(entryAssembly);
 
                 x.UsingRabbitMq((context, cfg) => {
                     if (IsRunningInContainer())
                         cfg.Host("rabbitmq");
+                    cfg.UseDelayedRedelivery(r => r.Interval(2, TimeSpan.FromSeconds(1)));
                     cfg.UseMessageRetry(r => r.Exponential(
                         retryLimit: 5,
                         minInterval: TimeSpan.FromMilliseconds(100),

@@ -1,4 +1,4 @@
-namespace Genelife.Global.Messages.Events.Buildings;
+namespace Genelife.Life.Messages.Events.Buildings;
 
 public record GroceryStoreAddressAnnounced(
     Guid GroceryStoreId,

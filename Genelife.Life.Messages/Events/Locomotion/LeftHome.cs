@@ -1,5 +1,5 @@
 ﻿using MassTransit;
 
-namespace Genelife.Global.Messages.Events.Locomotion;
+namespace Genelife.Life.Messages.Events.Locomotion;
 
 public record LeftHome(Guid CorrelationId, Guid HumanId) : CorrelatedBy<Guid>;

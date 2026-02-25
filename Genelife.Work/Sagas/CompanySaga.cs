@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
-using Genelife.Global.Messages.Events;
 using Genelife.Global.Messages.Events.Clock;
-using Genelife.Global.Messages.Events.Locomotion;
+using Genelife.Life.Messages.Events;
+using Genelife.Life.Messages.Events.Locomotion;
 using Genelife.Work.Messages.Commands.Company;
 using Genelife.Work.Messages.DTOs;
 using Genelife.Work.Messages.Events.Company;

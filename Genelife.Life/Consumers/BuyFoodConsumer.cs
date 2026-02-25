@@ -1,9 +1,9 @@
-using Genelife.Global.Messages.Events.Grocery;
 using Genelife.Life.Messages.Commands;
+using Genelife.Life.Messages.Events.Grocery;
 using MassTransit;
 using Serilog;
 
-namespace Genelife.Global.Consumers;
+namespace Genelife.Life.Consumers;
 
 public class BuyFoodConsumer : IConsumer<FoodPurchased>
 {

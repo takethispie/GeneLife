@@ -1,15 +1,15 @@
 using System.Linq.Expressions;
-using Genelife.Global.Messages.Commands.Grocery;
-using Genelife.Global.Messages.Commands.Locomotion;
 using Genelife.Global.Messages.DTOs;
-using Genelife.Global.Messages.Events.Buildings;
-using Genelife.Global.Messages.Events.Grocery;
-using Genelife.Global.Messages.Events.Locomotion;
 using Genelife.Life.Messages.Commands;
+using Genelife.Life.Messages.Commands.Grocery;
+using Genelife.Life.Messages.Commands.Locomotion;
+using Genelife.Life.Messages.Events.Buildings;
+using Genelife.Life.Messages.Events.Grocery;
+using Genelife.Life.Messages.Events.Locomotion;
 using MassTransit;
 using Serilog;
 
-namespace Genelife.Global.Sagas;
+namespace Genelife.Life.Sagas;
 
 public class GroceryStoreSaga :
     ISaga,

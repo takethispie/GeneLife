@@ -1,6 +1,6 @@
 using MassTransit;
 
-namespace Genelife.Global.Messages.Events.Buildings;
+namespace Genelife.Life.Messages.Events.Buildings;
 
 public record GroceryStoreBuilt(
     Guid CorrelationId,

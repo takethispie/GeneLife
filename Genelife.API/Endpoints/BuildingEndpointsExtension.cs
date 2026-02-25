@@ -1,5 +1,5 @@
 ﻿using Genelife.API.DTOs;
-using Genelife.Global.Messages.Events.Buildings;
+using Genelife.Life.Messages.Events.Buildings;
 using MassTransit;
 using Microsoft.AspNetCore.Mvc;
 

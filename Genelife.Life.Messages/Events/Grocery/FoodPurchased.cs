@@ -1,6 +1,6 @@
 using MassTransit;
 
-namespace Genelife.Global.Messages.Events.Grocery;
+namespace Genelife.Life.Messages.Events.Grocery;
 
 public record FoodPurchased(Guid HumanId, Guid GroceryStoreId, decimal Price) : CorrelatedBy<Guid>
 {
