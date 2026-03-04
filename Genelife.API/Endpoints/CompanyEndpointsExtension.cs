@@ -1,9 +1,9 @@
 ﻿using System.Numerics;
 using Genelife.API.DTOs;
-using Genelife.Work.Messages.Commands.Company;
-using Genelife.Work.Messages.Commands.Jobs;
-using Genelife.Work.Messages.DTOs;
-using Genelife.Work.Messages.Events.Jobs;
+using Genelife.Domain;
+using Genelife.Messages.Commands.Company;
+using Genelife.Messages.Commands.Jobs;
+using Genelife.Messages.Events.Jobs;
 using MassTransit;
 using Microsoft.AspNetCore.Mvc;
 

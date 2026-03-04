@@ -1,4 +1,4 @@
-﻿using Genelife.Global.Messages.Commands.Clock;
+﻿using Genelife.Messages.Commands.Clock;
 using MassTransit;
 using Microsoft.AspNetCore.Mvc;
 
