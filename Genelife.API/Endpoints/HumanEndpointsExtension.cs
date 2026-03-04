@@ -1,6 +1,6 @@
-﻿using Genelife.Life.Generators;
-using Genelife.Life.Messages.Commands;
-using Genelife.Life.Messages.DTOs;
+﻿using Genelife.Application.Generators;
+using Genelife.Domain;
+using Genelife.Messages.Commands;
 using MassTransit;
 using Microsoft.AspNetCore.Mvc;
 

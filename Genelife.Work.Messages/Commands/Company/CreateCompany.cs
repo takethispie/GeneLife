@@ -1,5 +1,0 @@
-using MassTransit;
-
-namespace Genelife.Work.Messages.Commands.Company;
-
-public record CreateCompany(Guid CorrelationId, DTOs.Company Company, float X, float Y, float Z) : CorrelatedBy<Guid>;

@@ -1,14 +1,12 @@
 ﻿using System.Numerics;
-using Genelife.Global.Messages.Commands.Clock;
-using Genelife.Life.Generators;
-using Genelife.Life.Messages.Commands;
-using Genelife.Life.Messages.DTOs;
-using Genelife.Life.Messages.Events.Buildings;
-using Genelife.Work.Generators;
-using Genelife.Work.Messages.Commands.Company;
-using Genelife.Work.Messages.Commands.Worker;
-using Genelife.Work.Messages.DTOs;
-using Genelife.Work.Messages.DTOs.Skills;
+using Genelife.Application.Generators;
+using Genelife.Domain;
+using Genelife.Domain.Skills;
+using Genelife.Messages.Commands;
+using Genelife.Messages.Commands.Clock;
+using Genelife.Messages.Commands.Company;
+using Genelife.Messages.Commands.Worker;
+using Genelife.Messages.Events.Buildings;
 using MassTransit;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,7 +16,7 @@ public static class GenerationEndpointsExtension
 {
     public static void UseGenerationEndpoints(this WebApplication app)
     {
-        app.MapPost("/create/population/{humanCount}", async (int humanCount, [FromServices] IPublishEndpoint endpoint) =>
+        app.MapPost("/create/population/{humanCount}/{clockSpeedInMs}", async (int humanCount, int clockSpeedInMs, [FromServices] IPublishEndpoint endpoint) =>
 {
     var results = new
     {
@@ -102,7 +100,7 @@ public static class GenerationEndpointsExtension
         });
     }
     
-    await endpoint.Publish(new SetClockSpeed(100));
+    await endpoint.Publish(new SetClockSpeed(clockSpeedInMs));
     await endpoint.Publish(new StartClock());
     
     groceryId = Guid.NewGuid();

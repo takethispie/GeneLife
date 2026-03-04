@@ -1,0 +1,56 @@
+using System.Timers;
+using Genelife.Messages.Events.Clock;
+using MassTransit;
+
+namespace Genelife.Application.Services;
+
+public class ClockService {
+    private readonly IServiceProvider _services;
+    private readonly System.Timers.Timer timer;
+    private int ticks;
+    private TimeOnly timeOnly;
+    private DateOnly dateOnly;
+
+    public ClockService(IServiceProvider services) {
+        _services = services;
+        timer = new(1000);
+        timer.Elapsed += OnTimedEvent!;
+        timer.AutoReset = true;
+        ticks = 0;
+        timeOnly = new(0, 0);
+        dateOnly = new(1, 1, 1);
+        
+    }
+
+    public void Start() {
+        timer.Enabled = true;
+    }
+
+    public void Stop() {
+        timer.Enabled = false;
+    }   
+
+    private async void OnTimedEvent(object source, ElapsedEventArgs e) {
+        using var scope = _services.CreateScope();
+        var publishEndpoint = scope.ServiceProvider.GetRequiredService<IPublishEndpoint>();
+        await publishEndpoint.Publish(new Tick(timeOnly.Hour));
+        ticks++;
+        if(ticks < Constants.TickPerHour) return;
+        ticks = 0;
+        await publishEndpoint.Publish(new HourElapsed());
+        timeOnly = timeOnly.AddHours(1);
+        switch (timeOnly.Hour) {
+            case 12:
+                Console.WriteLine("Noon of current day");
+                break;
+            case 0:
+                Console.WriteLine("1 day went by");
+                await publishEndpoint.Publish(new DayElapsed(dateOnly));
+                break;
+        }
+    }
+
+    public void SetSpeed(int milliseconds) {
+        timer.Interval = milliseconds >= 100 ? milliseconds : 1000;
+    }
+}

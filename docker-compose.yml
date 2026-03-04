@@ -29,30 +29,10 @@ services:
       rabbitmq:
         condition: service_started
 
-  life:
+  core:
     build:
       context: .
-      dockerfile: Genelife.Life/Dockerfile
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-    depends_on:
-      rabbitmq:
-        condition: service_started
-        
-  work:
-    build:
-      context: .
-      dockerfile: Genelife.Work/Dockerfile
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-    depends_on:
-      rabbitmq:
-        condition: service_started
-        
-  global-service:
-    build:
-      context: .
-      dockerfile: Genelife.Global/Dockerfile
+      dockerfile: Genelife.Application/Dockerfile
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
     depends_on:
