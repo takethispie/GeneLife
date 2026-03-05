@@ -80,8 +80,6 @@ public class UpdateNeedsTests
 
 public class ChooseActivityTests
 {
-    private readonly ChooseActivity chooseActivity = new();
-
     [Theory]
     [InlineData(22)]
     [InlineData(23)]
@@ -90,7 +88,7 @@ public class ChooseActivityTests
     public void Execute_ShouldChooseSleepAtNightTime(int hour)
     {
         var human = TestDataBuilder.CreateHuman(energy: 10.0f, hunger: 50.0f, hygiene: 50.0f);
-        var activity = chooseActivity.Execute(human, hour, true);
+        var activity = human.SelectNextActivity(hour, true);
         activity.Should().BeOfType<Sleep>();
     }
 
@@ -103,7 +101,7 @@ public class ChooseActivityTests
     public void Execute_ShouldChooseShowerDuringHygieneHours(int hour)
     {
         var human = TestDataBuilder.CreateHuman(energy: 80.0f, hunger: 80.0f, hygiene: 10.0f);
-        var activity = chooseActivity.Execute(human, hour, true);
+        var activity = human.SelectNextActivity(hour, true);
         activity.Should().BeOfType<Shower>();
     }
 
@@ -115,7 +113,7 @@ public class ChooseActivityTests
     public void Execute_ShouldChooseEatDuringMealHours(int hour)
     {
         var human = TestDataBuilder.CreateHuman(energy: 80.0f, hunger: 10.0f, hygiene: 80.0f);
-        var activity = chooseActivity.Execute(human, hour, true);
+        var activity = human.SelectNextActivity(hour, true);
         activity.Should().BeOfType<Eat>();
     }
 
@@ -123,7 +121,7 @@ public class ChooseActivityTests
     public void Execute_ShouldChooseLowestNeedActivity()
     {
         var human = TestDataBuilder.CreateHuman(energy: 5.0f, hunger: 50.0f, hygiene: 50.0f);
-        var activity = chooseActivity.Execute(human, 22, true);
+        var activity = human.SelectNextActivity(22, true);
         activity.Should().BeOfType<Sleep>();
     }
 
@@ -131,7 +129,7 @@ public class ChooseActivityTests
     public void Execute_ShouldChooseHygieneWhenLowest()
     {
         var human = TestDataBuilder.CreateHuman(energy: 80.0f, hunger: 80.0f, hygiene: 5.0f);
-        var activity = chooseActivity.Execute(human, 7, true);
+        var activity = human.SelectNextActivity(7, true);
         activity.Should().BeOfType<Shower>();
     }
 
@@ -139,7 +137,7 @@ public class ChooseActivityTests
     public void Execute_ShouldChooseHungerWhenLowest()
     {
         var human = TestDataBuilder.CreateHuman(energy: 80.0f, hunger: 5.0f, hygiene: 80.0f);
-        var activity = chooseActivity.Execute(human, 13, true);
+        var activity = human.SelectNextActivity(13, true);
         activity.Should().BeOfType<Eat>();
     }
 
@@ -153,7 +151,7 @@ public class ChooseActivityTests
     public void Execute_ShouldReturnNullDuringWorkHours(int hour)
     {
         var human = TestDataBuilder.CreateHuman(energy: 50.0f, hunger: 50.0f, hygiene: 50.0f);
-        var activity = chooseActivity.Execute(human, hour, true);
+        var activity = human.SelectNextActivity(hour, true);
         activity.Should().BeNull();
     }
 
@@ -161,7 +159,7 @@ public class ChooseActivityTests
     public void Execute_ShouldPrioritizeBasedOnNeedLevel()
     {
         var human = TestDataBuilder.CreateHuman(energy: 30.0f, hunger: 10.0f, hygiene: 40.0f);
-        var activity = chooseActivity.Execute(human, 19, true);
+        var activity = human.SelectNextActivity(19, true);
         activity.Should().BeOfType<Eat>();
     }
 
@@ -169,7 +167,7 @@ public class ChooseActivityTests
     public void Execute_ShouldHandleEqualNeeds()
     {
         var human = TestDataBuilder.CreateHuman(energy: 50.0f, hunger: 30.0f, hygiene: 30.0f);
-        var activity = chooseActivity.Execute(human, 20, true);
+        var activity = human.SelectNextActivity(20, true);
         activity.Should().NotBeNull();
         activity.Should().Match(x => x.GetType() == typeof(Eat) || x.GetType() == typeof(Shower));
     }
@@ -182,7 +180,7 @@ public class ChooseActivityTests
     public void Execute_ShouldReturnNullDuringEarlyMorning(int hour)
     {
         var human = TestDataBuilder.CreateHuman(energy: 50.0f, hunger: 50.0f, hygiene: 50.0f);
-        var activity = chooseActivity.Execute(human, hour, true);
+        var activity = human.SelectNextActivity(hour, true);
         activity.Should().BeNull();
     }
 
@@ -190,7 +188,7 @@ public class ChooseActivityTests
     public void Execute_ShouldHandleExtremeNeedValues()
     {
         var human = TestDataBuilder.CreateHuman(energy: 0.0f, hunger: 0.0f, hygiene: 0.0f);
-        var activity = chooseActivity.Execute(human, 22, true);
+        var activity = human.SelectNextActivity(22, true);
         activity.Should().BeOfType<Sleep>();
     }
 }

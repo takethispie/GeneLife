@@ -12,7 +12,7 @@ public class CreateJobPostingList {
         if (positionsNeeded == 0 || publishedJobPostings is > 0)
             return postings;
         for (var i = 0; i < positionsNeeded; i++) {
-            var jobLevel = GetNeededRankAccordingToCompanySize(company.EmployeeIds.Count);
+            var jobLevel = GetNeededRankAccordingToCompanySize(company.Employees.Count);
                             
             var jobPosting = new GenerateJobPosting().GenerateForCompany(
                 correlationId, 

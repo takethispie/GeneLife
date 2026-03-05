@@ -61,25 +61,7 @@ public static class CompanyGenerator
         };
 
         var taxRate = Convert.ToSingle(random.NextDouble() * 0.15 + 0.10);
-        
-        var minEmployees = type switch
-        {
-            CompanyType.Technology => random.Next(3, 8),
-            CompanyType.Manufacturing => random.Next(5, 12),
-            CompanyType.Services => random.Next(2, 6),
-            CompanyType.Retail => random.Next(4, 10),
-            _ => random.Next(3, 8)
-        };
-        
-        var maxEmployees = minEmployees + random.Next(10, 30);
-        
-        return new Company(
-            Name: name,
-            Revenue: baseRevenue,
-            TaxRate: taxRate,
-            EmployeeIds: new List<Guid>(),
-            Type: type,
-            AverageProductivity: 0f
-        );
+        var company = new Company(Guid.NewGuid(), name, baseRevenue, taxRate, type);
+        return company;
     }
 }

@@ -22,9 +22,7 @@ public class CompanySagaTests
         var company = TestDataBuilder.CreateCompany();
 
         await using var provider = new ServiceCollection()
-            .AddSingleton<CalculatePayroll>()
             .AddSingleton<EvaluateHiring>()
-            .AddSingleton<UpdateCompanyProductivity>()
             .AddSingleton<GenerateJobPosting>()
             .AddMassTransitTestHarness(cfg => { cfg.AddSaga<CompanySaga>(); })
             .BuildServiceProvider(true);
@@ -51,9 +49,7 @@ public class CompanySagaTests
         var company = TestDataBuilder.CreateCompany();
 
         await using var provider = new ServiceCollection()
-            .AddSingleton<CalculatePayroll>()
             .AddSingleton<EvaluateHiring>()
-            .AddSingleton<UpdateCompanyProductivity>()
             .AddSingleton<GenerateJobPosting>()
             .AddMassTransitTestHarness(cfg => { cfg.AddSaga<CompanySaga>(); })
             .BuildServiceProvider(true);
@@ -84,9 +80,7 @@ public class CompanySagaTests
         var salary = 75000f;
 
         await using var provider = new ServiceCollection()
-            .AddSingleton<CalculatePayroll>()
             .AddSingleton<EvaluateHiring>()
-            .AddSingleton<UpdateCompanyProductivity>()
             .AddSingleton<GenerateJobPosting>()
             .AddMassTransitTestHarness(cfg => { cfg.AddSaga<CompanySaga>(); })
             .BuildServiceProvider(true);
@@ -117,9 +111,7 @@ public class CompanySagaTests
         var humanId = Guid.NewGuid();
 
         await using var provider = new ServiceCollection()
-            .AddSingleton<CalculatePayroll>()
             .AddSingleton<EvaluateHiring>()
-            .AddSingleton<UpdateCompanyProductivity>()
             .AddSingleton<GenerateJobPosting>()
             .AddMassTransitTestHarness(cfg => { cfg.AddSaga<CompanySaga>(); })
             .BuildServiceProvider(true);

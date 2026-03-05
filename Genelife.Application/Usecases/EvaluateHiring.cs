@@ -6,7 +6,7 @@ namespace Genelife.Application.Usecases;
 public class EvaluateHiring
 {
     public int Execute(Company company) {
-        var activeEmployeesCount = company.EmployeeIds.Count;
+        var activeEmployeesCount = company.Employees.Count;
         var maxHire =  (activeEmployeesCount, company.Revenue, company.AverageProductivity) switch {
             (< 5, _, _) => 5 - activeEmployeesCount,
             (< 50, _, < 0.7f) or (< 50, > 50000, _)  => 

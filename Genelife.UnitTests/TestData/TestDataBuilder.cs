@@ -12,6 +12,7 @@ public static class TestDataBuilder
     private static readonly Faker faker = new();
 
     public static Person CreateHuman(
+        Guid? id = null,
         string? firstName = null,
         string? lastName = null,
         DateTime? birthday = null,
@@ -22,6 +23,7 @@ public static class TestDataBuilder
         float? hygiene = null)
     {
         return new Person(
+            id ?? Guid.NewGuid(),
             firstName ?? faker.Name.FirstName(),
             lastName ?? faker.Name.LastName(),
             birthday ?? faker.Date.Past(50, DateTime.Now.AddYears(-18)),
@@ -36,6 +38,7 @@ public static class TestDataBuilder
     }
 
     public static Company CreateCompany(
+        Guid? companyId = null,
         string? name = null,
         float? revenue = null,
         float? taxRate = null,
@@ -45,12 +48,11 @@ public static class TestDataBuilder
         int? maxEmployees = null)
     {
         return new Company(
+            companyId  ?? Guid.NewGuid(),
             name ?? faker.Company.CompanyName(),
             revenue ?? faker.Random.Float(100000f, 10000000f),
             taxRate ?? faker.Random.Float(0.15f, 0.35f),
-            employeeIds ?? new List<Guid>(),
-            type ?? faker.PickRandom<CompanyType>(),
-            faker.Random.Float()
+            type ?? faker.PickRandom<CompanyType>()
         );
     }
 

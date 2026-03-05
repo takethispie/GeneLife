@@ -1,10 +1,12 @@
 using Genelife.Domain.Activities;
 using Genelife.Domain.Activities.Interfaces;
+using Genelife.Domain.Address;
 using Genelife.Domain.CheatCodes;
 
 namespace Genelife.Domain.Human;
 
 public sealed class Person(
+    Guid Id,
     string firstName,
     string lastName,
     DateTime birthday,
@@ -18,6 +20,7 @@ public sealed class Person(
     float thirst = 100
 )
 {
+    public Guid Id { get; init; } = Id;
     public string FirstName { get; private set; } = firstName;
     public string LastName { get; private set; } = lastName;
     public DateTime Birthday { get; private set; } = birthday;
@@ -29,6 +32,7 @@ public sealed class Person(
     public float Energy { get; private set; } = energy;
     public float Hygiene { get; private set; } = hygiene;
     public float Thirst { get; private set; } = thirst;
+    public AddressBook  AddressBook { get; } = new AddressBook();
 
     public void Do(IBeingActivity activity)
     {
@@ -52,23 +56,23 @@ public sealed class Person(
                 Birthday = DateTime.Now.AddYears(-changeBirthday.NewAge);
                 break;
             
-            case SetThirst changeThirst:
+            case ChangeThirst changeThirst:
                 Thirst = changeThirst.Value;
                 break;
             
-            case SetHunger changeHunger:
+            case ChangeHunger changeHunger:
                 Hunger = changeHunger.Value;
                 break;
             
-            case SetEnergy changeEnergy:
+            case ChangeEnergy changeEnergy:
                 Energy = changeEnergy.Value;
                 break;
             
-            case SetHygiene changeHygiene:
+            case ChangeHygiene changeHygiene:
                 Hygiene = changeHygiene.Value;
                 break;
             
-            case SetMoney changeMoney:
+            case ChangeMoney changeMoney:
                 Money = changeMoney.Value;
                 break;
         }
@@ -79,6 +83,31 @@ public sealed class Person(
         Hunger = Decay(Hunger, 0.05f);
         Energy = Decay(Energy, 0.03f);
         Hygiene = Decay(Hygiene, 0.04f);
+    }
+    
+    public IBeingActivity SelectNextActivity(int hour, bool works) {
+        List<(float val, string name)> actions = [];
+        if (hour is >= 22 or <= 1 && Energy < 25)
+            actions.Add((Energy, "Energy"));
+        if(hour is > 5 and < 8 or > 18 and < 22 && Hygiene < 25)
+            actions.Add((Hygiene, "Hygiene"));
+        if(hour is > 12 and < 14 or > 18 and < 22 && Hunger < 30)
+            actions.Add((Hunger, "Hunger"));
+        if(hour is > 10 and < 16 or > 19 and < 23 && Thirst < 30)
+            actions.Add((Thirst, "Thirst"));
+        if(hour is > 7 and < 18 && Energy > 50 && works)
+            actions.Add((Energy, "Work"));
+        
+        if (actions.Count == 0) return new Idle();
+        
+        return actions.OrderBy(x => x.val).First().name switch {
+            "Energy" => new Sleep(),
+            "Hygiene" => new Activities.Shower(),
+            "Hunger" => new Eat(),
+            "Thirst" => new Drink(),
+            "Work" => new Activities.Work(),
+            _ => new Idle()
+        };
     }
     
     private static float Decay(float value, float decayRate) => Modify(value, -decayRate * 60);

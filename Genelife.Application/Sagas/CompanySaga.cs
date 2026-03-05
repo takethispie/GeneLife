@@ -25,7 +25,6 @@ public class CompanySaga :
 {
     public Guid CorrelationId { get; set; }
     public Company Company { get; set; } = null!;
-    public List<Employee> Employees { get; set; } = [];
     public int DaysElapsedCount { get; set; }
     public int? PublishedJobPostings { get; set; }
     public int Version { get; set; }
@@ -53,10 +52,7 @@ public class CompanySaga :
             DateTime.UtcNow,
             EmploymentStatus.Active
         );
-        Employees.Add(employment);
-        Company = Company with {
-            EmployeeIds = Company.EmployeeIds.Append(context.Message.WorkerId).ToList()
-        };
+        Company.AddEmployee(employment);
         PublishedJobPostings--;
         Log.Information("Company {CompanyName}: Hired employee {MessageWorkerId} with salary {MessageSalary:C}", Company.Name, context.Message.WorkerId, context.Message.Salary);
         await Task.CompletedTask;
@@ -92,25 +88,23 @@ public class CompanySaga :
         DaysElapsedCount++;
         if (DaysElapsedCount >= 30) {
             Log.Information("Company {CompanyName}: Processing payroll", Company.Name);
-            var (totalPaid, totalTaxes, salaryPayments) = new CalculatePayroll().Execute(Company, Employees);
-            var totalPayrollCost = totalPaid + totalTaxes;
-            Company = Company with { Revenue = Company.Revenue - totalPayrollCost };
-            foreach (var salaryPayment in salaryPayments)
-                await context.Publish(salaryPayment);
-            await context.Publish(new PayrollCompleted(CorrelationId, totalPaid, totalTaxes));
+            Company.CalculatePayroll();
+            //foreach (var salaryPayment in salaryPayments)
+                //await context.Publish(salaryPayment);
+            //await context.Publish(new PayrollCompleted(CorrelationId, totalPaid, totalTaxes));
             LastPayrollDate = DateTime.UtcNow;
-            Log.Information("Company {CompanyName}: Payroll completed. Total paid: {TotalPaid:C}, Taxes: {TotalTaxes:C}", Company.Name, totalPaid, totalTaxes);
+            Log.Information("Company {CompanyName}: Payroll completed.", Company.Name);
             DaysElapsedCount = 0;
         }
 
-        Employees = Employees.Select(employee => new UpdateEmployeeProductivity().Execute(employee)).ToList();
-
-        var (averageProductivity, revenueChange) = new UpdateCompanyProductivity().Execute(Company, Employees);
-        Company = Company with {
-            Revenue = Company.Revenue + revenueChange,
-            AverageProductivity = averageProductivity
-        };
-        Log.Information("Company {CompanyName}: Productivity {AverageProductivity:F2}, Revenue change {RevenueChange:C}", Company.Name, averageProductivity, revenueChange);
+        Company.Employees.ForEach(employee => employee.CalculateProductivity());
+        Company.CalculateProductivity();
+        Log.Information(
+            "Company {CompanyName}: Productivity {AverageProductivity:F2}, New Revenue {RevenueChange:C}",
+            Company.Name, 
+            Company.AverageProductivity, 
+            Company.Revenue
+        );
 
         var postings =
             new CreateJobPostingList().Execute(

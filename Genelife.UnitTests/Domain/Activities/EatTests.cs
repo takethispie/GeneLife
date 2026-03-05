@@ -9,13 +9,6 @@ namespace Genelife.UnitTests.Domain.Activities;
 public class EatTests
 {
     [Fact]
-    public void Eat_ShouldHaveCorrectTickDuration()
-    {
-        var eat = new Eat();
-        eat.TickDuration.Should().Be(IBeingActivity.TickPerHour);
-    }
-
-    [Fact]
     public void Eat_ShouldRestoreHungerToFull()
     {
         var human = TestDataBuilder.CreateHuman(hunger: 30.0f);

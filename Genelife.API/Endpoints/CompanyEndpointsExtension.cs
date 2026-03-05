@@ -18,11 +18,11 @@ public static class CompanyEndpointsExtension
             {
                 var companyId = Guid.NewGuid();
                 var company = new Company(
-                    Name: $"{type} Corp {Random.Shared.Next(1000, 9999)}",
-                    Type: type,
-                    Revenue: 50000 + Random.Shared.NextSingle() * 100000,
-                    TaxRate: 0.25f,
-                    EmployeeIds: []
+                    Guid.NewGuid(),
+                    name: $"{type} Corp {Random.Shared.Next(1000, 9999)}",
+                    revenue: 50000 + Random.Shared.NextSingle() * 100000,
+                    taxRate: 0.25f,
+                    type: type
                 );
     
                 var officeLocation = new Vector3(

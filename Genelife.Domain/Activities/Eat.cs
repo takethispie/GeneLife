@@ -5,5 +5,5 @@ namespace Genelife.Domain.Activities;
 
 public class Eat : IBeingActivity {
     
-    public int TickDuration { get; set; } = IBeingActivity.TickPerHour;
+    public TimeSpan Duration { get; set; } = TimeSpan.FromHours(1);
 }

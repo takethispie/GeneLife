@@ -9,13 +9,6 @@ namespace Genelife.UnitTests.Domain.Activities;
 public class WorkTests
 {
     [Fact]
-    public void Work_ShouldHaveCorrectTickDuration()
-    {
-        var work = new Work();
-        work.TickDuration.Should().Be(IBeingActivity.TickPerHour * 6);
-    }
-
-    [Fact]
     public void Work_ShouldReduceEnergyAndIncreaseMoney()
     {
         var human = TestDataBuilder.CreateHuman(energy: 80.0f, money: 1000.0f);

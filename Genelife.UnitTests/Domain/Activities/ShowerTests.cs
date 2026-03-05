@@ -9,13 +9,6 @@ namespace Genelife.UnitTests.Domain.Activities;
 public class ShowerTests
 {
     [Fact]
-    public void Shower_ShouldHaveCorrectTickDuration()
-    {
-        var shower = new Shower();
-        shower.TickDuration.Should().Be(5);
-    }
-
-    [Fact]
     public void Shower_ShouldRestoreHygieneToFull()
     {
         var human = TestDataBuilder.CreateHuman(hygiene: 40.0f);

@@ -3,5 +3,5 @@ using Genelife.Domain.Activities.Interfaces;
 namespace Genelife.Domain.Human.Activities;
 
 public class Shower : IBeingActivity {
-    public int TickDuration { get; set; } = IBeingActivity.TickPerHour / 2;
+    public TimeSpan Duration { get; set; } = TimeSpan.FromMinutes(30);
 }

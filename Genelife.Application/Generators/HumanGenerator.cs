@@ -11,6 +11,7 @@ public static class HumanGenerator {
         var gender = sex == Sex.Male ? Name.Gender.Male : Name.Gender.Female;
         
         return new(
+            Guid.NewGuid(),
             nameGenerator.FirstName(gender),
             nameGenerator.LastName(gender),
             DateTime.Now.AddYears(-age),

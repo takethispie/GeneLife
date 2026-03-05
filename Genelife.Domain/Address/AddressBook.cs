@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using Genelife.Domain.Address.Exceptions;
 
 namespace Genelife.Domain.Address;
 
@@ -26,5 +27,17 @@ public class AddressBook
             .Where(ad => ad.AddressType == addressType)
             .OrderBy(ad => Vector3.Distance(origin, new Vector3(ad.Coordinates.X, ad.Coordinates.Y, ad.Coordinates.Z)))
             .FirstOrDefault();
+    }
+    
+    public AddressEntry GetHomeAddress()
+    {
+        var homeAddress = AllOfAddressType(AddressType.Home).FirstOrDefault();
+        return homeAddress is null ? throw new AddressNotFoundException(nameof(homeAddress)) : homeAddress;
+    }
+    
+    public AddressEntry GetWorkAddress()
+    {
+        var officeAddress = AllOfAddressType(AddressType.Office).FirstOrDefault();
+        return officeAddress is null ? throw new AddressNotFoundException(nameof(officeAddress)) : officeAddress;
     }
 }

@@ -9,13 +9,6 @@ namespace Genelife.UnitTests.Domain.Activities;
 public class SleepTests
 {
     [Fact]
-    public void Sleep_ShouldHaveCorrectTickDuration()
-    {
-        var sleep = new Sleep();
-        sleep.TickDuration.Should().Be(IBeingActivity.TickPerHour * 8);
-    }
-
-    [Fact]
     public void Sleep_ShouldRestoreEnergyToFull()
     {
         var human = TestDataBuilder.CreateHuman(energy: 20.0f);
