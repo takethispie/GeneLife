@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using Genelife.Application.Usecases;
 using Genelife.Domain;
+using Genelife.Domain.Work;
 using Genelife.Messages.Commands.Company;
 using Genelife.Messages.Events;
 using Genelife.Messages.Events.Clock;

@@ -3,6 +3,7 @@ using FluentAssertions;
 using Genelife.Application.Sagas;
 using Genelife.Application.Usecases;
 using Genelife.Domain;
+using Genelife.Domain.Work;
 using Genelife.Messages.Events.Clock;
 using Genelife.Messages.Events.Company;
 using Genelife.UnitTests.TestData;

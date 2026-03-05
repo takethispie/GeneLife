@@ -1,7 +1,7 @@
 using Genelife.Domain;
 using Genelife.Domain.Activities;
+using Genelife.Domain.Activities.Interfaces;
 using Genelife.Domain.Address;
-using Genelife.Domain.Interfaces;
 using MassTransit;
 using Position = Genelife.Domain.Position;
 

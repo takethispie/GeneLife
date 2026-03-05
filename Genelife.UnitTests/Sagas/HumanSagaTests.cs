@@ -4,6 +4,7 @@ using Genelife.Application.Sagas;
 using Genelife.Application.Sagas.States;
 using Genelife.Application.Usecases;
 using Genelife.Domain;
+using Genelife.Domain.Work;
 using Genelife.Messages.Commands;
 using Genelife.Messages.Events.Clock;
 using Genelife.Messages.Events.Company;

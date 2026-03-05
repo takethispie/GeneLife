@@ -1,5 +1,6 @@
 using Genelife.Domain;
-using Genelife.Domain.Skills;
+using Genelife.Domain.Work;
+using Genelife.Domain.Work.Skills;
 
 namespace Genelife.Application.Usecases;
 

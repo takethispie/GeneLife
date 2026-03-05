@@ -3,7 +3,7 @@ using Genelife.Application.Usecases;
 using Genelife.Domain;
 using Genelife.Domain.Activities;
 using Genelife.Domain.Address;
-using Genelife.Domain.Exceptions;
+using Genelife.Domain.Address.Exceptions;
 using Genelife.Messages.Commands;
 using Genelife.Messages.Commands.Grocery;
 using Genelife.Messages.Commands.Locomotion;

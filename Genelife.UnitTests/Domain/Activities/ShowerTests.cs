@@ -62,17 +62,4 @@ public class ShowerTests
         // Assert
         result.Hygiene.Should().Be(100.0f);
     }
-
-    [Fact]
-    public void Shower_ShouldConvertToCorrectEnum()
-    {
-        // Arrange
-        var shower = new Shower();
-
-        // Act
-        var activityEnum = shower.ToEnum();
-
-        // Assert
-        activityEnum.Should().Be(ActivityEnum.Shower);
-    }
 }

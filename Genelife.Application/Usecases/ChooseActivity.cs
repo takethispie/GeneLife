@@ -1,6 +1,6 @@
 using Genelife.Domain;
 using Genelife.Domain.Activities;
-using Genelife.Domain.Interfaces;
+using Genelife.Domain.Activities.Interfaces;
 
 namespace Genelife.Application.Usecases;
 

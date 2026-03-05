@@ -1,4 +1,4 @@
-namespace Genelife.Domain.Skills;
+namespace Genelife.Domain.Work.Skills;
 
 public enum ManufacturingSkill
 {

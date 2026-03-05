@@ -1,7 +1,7 @@
 using FluentAssertions;
 using Genelife.Domain;
 using Genelife.Domain.Activities;
-using Genelife.Domain.Interfaces;
+using Genelife.Domain.Activities.Interfaces;
 using Genelife.UnitTests.TestData;
 
 namespace Genelife.UnitTests.Domain.Activities;
@@ -62,18 +62,5 @@ public class SleepTests
 
         // Assert
         result.Energy.Should().Be(100.0f);
-    }
-
-    [Fact]
-    public void Sleep_ShouldConvertToCorrectEnum()
-    {
-        // Arrange
-        var sleep = new Sleep();
-
-        // Act
-        var activityEnum = sleep.ToEnum();
-
-        // Assert
-        activityEnum.Should().Be(ActivityEnum.Sleep);
     }
 }

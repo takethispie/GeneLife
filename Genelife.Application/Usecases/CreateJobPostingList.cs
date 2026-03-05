@@ -1,4 +1,5 @@
 using Genelife.Domain;
+using Genelife.Domain.Work;
 using Genelife.Messages.Commands.Jobs;
 using Serilog;
 

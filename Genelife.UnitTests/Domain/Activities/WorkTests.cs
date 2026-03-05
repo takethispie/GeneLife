@@ -1,6 +1,6 @@
 using FluentAssertions;
 using Genelife.Domain.Activities;
-using Genelife.Domain.Interfaces;
+using Genelife.Domain.Activities.Interfaces;
 using Genelife.UnitTests.TestData;
 
 namespace Genelife.UnitTests.Domain.Activities;

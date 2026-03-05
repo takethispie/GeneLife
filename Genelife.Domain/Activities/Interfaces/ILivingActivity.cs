@@ -1,4 +1,4 @@
-namespace Genelife.Domain.Interfaces;
+namespace Genelife.Domain.Activities.Interfaces;
 
 public interface ILivingActivity {
     public int TickDuration { get; set; }

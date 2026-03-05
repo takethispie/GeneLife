@@ -1,7 +1,8 @@
 ﻿using System.Numerics;
 using Genelife.Application.Generators;
 using Genelife.Domain;
-using Genelife.Domain.Skills;
+using Genelife.Domain.Work;
+using Genelife.Domain.Work.Skills;
 using Genelife.Messages.Commands;
 using Genelife.Messages.Commands.Clock;
 using Genelife.Messages.Commands.Company;

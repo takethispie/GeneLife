@@ -1,5 +1,5 @@
 using FluentAssertions;
-using Genelife.Domain.Skills;
+using Genelife.Domain.Work.Skills;
 using Genelife.UnitTests.TestData;
 
 namespace Genelife.UnitTests;

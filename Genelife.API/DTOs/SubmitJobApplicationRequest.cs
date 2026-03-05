@@ -1,5 +1,5 @@
 
-using Genelife.Domain.Skills;
+using Genelife.Domain.Work.Skills;
 
 namespace Genelife.API.DTOs;
 

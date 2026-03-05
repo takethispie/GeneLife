@@ -1,6 +1,6 @@
-using Genelife.Domain.Skills;
+using Genelife.Domain.Work.Skills;
 
-namespace Genelife.Domain;
+namespace Genelife.Domain.Work;
 
 public record JobPosting(
     Guid CompanyId,

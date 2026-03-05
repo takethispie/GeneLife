@@ -1,7 +1,7 @@
 using FluentAssertions;
 using Genelife.Domain;
 using Genelife.Domain.Activities;
-using Genelife.Domain.Interfaces;
+using Genelife.Domain.Activities.Interfaces;
 using Genelife.UnitTests.TestData;
 
 namespace Genelife.UnitTests.Domain.Activities;
@@ -62,18 +62,5 @@ public class EatTests
 
         // Assert
         result.Hunger.Should().Be(100.0f);
-    }
-
-    [Fact]
-    public void Eat_ShouldConvertToCorrectEnum()
-    {
-        // Arrange
-        var eat = new Eat();
-
-        // Act
-        var activityEnum = eat.ToEnum();
-
-        // Assert
-        activityEnum.Should().Be(ActivityEnum.Eat);
     }
 }

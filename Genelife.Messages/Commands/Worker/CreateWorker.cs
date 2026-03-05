@@ -1,4 +1,4 @@
-using Genelife.Domain.Skills;
+using Genelife.Domain.Work.Skills;
 using MassTransit;
 
 namespace Genelife.Messages.Commands.Worker;

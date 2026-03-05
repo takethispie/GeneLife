@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using Genelife.API.DTOs;
 using Genelife.Domain;
+using Genelife.Domain.Work;
 using Genelife.Messages.Commands.Company;
 using Genelife.Messages.Commands.Jobs;
 using Genelife.Messages.Events.Jobs;

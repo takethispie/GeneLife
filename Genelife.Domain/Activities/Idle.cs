@@ -1,4 +1,4 @@
-﻿using Genelife.Domain.Interfaces;
+﻿using Genelife.Domain.Activities.Interfaces;
 
 namespace Genelife.Domain.Activities;
 
