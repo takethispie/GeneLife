@@ -1,9 +1,10 @@
 ﻿using System.Numerics;
 using Genelife.API.DTOs;
-using Genelife.Work.Messages.Commands.Company;
-using Genelife.Work.Messages.Commands.Jobs;
-using Genelife.Work.Messages.DTOs;
-using Genelife.Work.Messages.Events.Jobs;
+using Genelife.Domain;
+using Genelife.Domain.Work;
+using Genelife.Messages.Commands.Company;
+using Genelife.Messages.Commands.Jobs;
+using Genelife.Messages.Events.Jobs;
 using MassTransit;
 using Microsoft.AspNetCore.Mvc;
 
@@ -30,7 +31,7 @@ public static class CompanyEndpointsExtension
                     0
                 );
 
-                await endpoint.Publish(new CreateCompany(companyId, company, officeId, officeLocation.X, officeLocation.Y, officeLocation.Z));
+                await endpoint.Publish(new CreateCompany(companyId, company, officeLocation.X, officeLocation.Y, officeLocation.Z));
                 return Results.Ok(new { CompanyId = companyId, Company = company });
             })
             .WithName("create Company");

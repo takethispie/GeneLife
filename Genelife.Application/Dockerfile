@@ -1,0 +1,35 @@
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
+USER app
+WORKDIR /app
+EXPOSE 8080
+EXPOSE 8081
+ 
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+ARG BUILD_CONFIGURATION=Release
+WORKDIR /src
+COPY ["/Genelife.Domain/Genelife.Domain.csproj", "Genelife.Domain/Genelife.Domain.csproj"]
+RUN dotnet restore "./Genelife.Domain/Genelife.Domain.csproj"
+COPY ./Genelife.Domain ./Genelife.Domain
+WORKDIR /src
+COPY ["/Genelife.Messages/Genelife.Messages.csproj", "Genelife.Messages/Genelife.Messages.csproj"]
+RUN dotnet restore "./Genelife.Messages/Genelife.Messages.csproj"
+COPY ./Genelife.Messages ./Genelife.Messages
+WORKDIR "/src/Genelife.Messages"
+RUN dotnet build "./Genelife.Messages.csproj" -c $BUILD_CONFIGURATION -o /app/build
+ 
+FROM build AS depbuild
+WORKDIR /src
+COPY ["Genelife.Application/Genelife.Application.csproj", "Genelife.Application/"]
+RUN dotnet restore "./Genelife.Application/Genelife.Application.csproj"
+COPY ./Genelife.Application ./Genelife.Application
+WORKDIR "/src/Genelife.Application"
+RUN dotnet build "./Genelife.Application.csproj" -c $BUILD_CONFIGURATION -o /app/build
+ 
+FROM depbuild AS publish
+ARG BUILD_CONFIGURATION=Release
+RUN dotnet publish "./Genelife.Application.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+ 
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+ENTRYPOINT ["dotnet", "Genelife.Application.dll"]
