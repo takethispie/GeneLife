@@ -10,6 +10,7 @@ using Genelife.Application.Sagas;
 using Genelife.Application.Sagas.States;
 using Genelife.Application.Services;
 using Genelife.Domain.Activities;
+using Genelife.Domain.Human.Activities;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;

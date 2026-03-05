@@ -24,7 +24,6 @@ public class HumanSagaTests
         var human = TestDataBuilder.CreateHuman();
 
         await using var provider = new ServiceCollection()
-            .AddSingleton<UpdateNeeds>()
             .AddSingleton<ChooseActivity>()
             .AddMassTransitTestHarness(cfg => { cfg.AddSagaStateMachine<HumanSaga, HumanSagaState>(); })
             .BuildServiceProvider(true);
@@ -52,7 +51,6 @@ public class HumanSagaTests
         var human = TestDataBuilder.CreateHuman();
 
         await using var provider = new ServiceCollection()
-            .AddSingleton<UpdateNeeds>()
             .AddSingleton<ChooseActivity>()
             .AddSingleton<GenerateEmployment>()
             .AddSingleton<CalculateMatchScore>()
@@ -83,7 +81,6 @@ public class HumanSagaTests
         var humanId = NewId.NextGuid();
 
         await using var provider = new ServiceCollection()
-            .AddSingleton<UpdateNeeds>()
             .AddSingleton<ChooseActivity>()
             .AddSingleton<GenerateEmployment>()
             .AddSingleton<CalculateMatchScore>()
@@ -116,7 +113,6 @@ public class HumanSagaTests
         var salary = 75000f;
 
         await using var provider = new ServiceCollection()
-            .AddSingleton<UpdateNeeds>()
             .AddSingleton<ChooseActivity>()
             .AddSingleton<GenerateEmployment>()
             .AddSingleton<CalculateMatchScore>()
@@ -147,7 +143,6 @@ public class HumanSagaTests
         var human = TestDataBuilder.CreateHuman();
 
         await using var provider = new ServiceCollection()
-            .AddSingleton<UpdateNeeds>()
             .AddSingleton<ChooseActivity>()
             .AddSingleton<GenerateEmployment>()
             .AddSingleton<CalculateMatchScore>()

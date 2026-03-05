@@ -32,19 +32,19 @@ public static class SkillExtensions
         TechnicalSkill.Angular => "Angular",
         TechnicalSkill.Docker => "Docker",
         TechnicalSkill.Kubernetes => "Kubernetes",
-        TechnicalSkill.AWS => "AWS",
+        TechnicalSkill.Aws => "AWS",
         TechnicalSkill.Azure => "Azure",
-        TechnicalSkill.SQL => "SQL",
-        TechnicalSkill.NoSQL => "NoSQL",
+        TechnicalSkill.Sql => "SQL",
+        TechnicalSkill.NoSql => "NoSQL",
         TechnicalSkill.Git => "Git",
         TechnicalSkill.Agile => "Agile",
         TechnicalSkill.Scrum => "Scrum",
-        TechnicalSkill.RestAPIs => "REST APIs",
+        TechnicalSkill.RestApIs => "REST APIs",
         TechnicalSkill.Microservices => "Microservices",
-        TechnicalSkill.CICD => "CI/CD",
+        TechnicalSkill.Cicd => "CI/CD",
         TechnicalSkill.UnitTesting => "Unit Testing",
-        TechnicalSkill.HTML => "HTML",
-        TechnicalSkill.CSS => "CSS",
+        TechnicalSkill.Html => "HTML",
+        TechnicalSkill.Css => "CSS",
         TechnicalSkill.NodeJs => "Node.js",
         _ => skill.ToString()
     };
@@ -53,7 +53,7 @@ public static class SkillExtensions
     {
         BusinessSkill.Excel => "Excel",
         BusinessSkill.PowerPoint => "PowerPoint",
-        BusinessSkill.CRMSoftware => "CRM Software",
+        BusinessSkill.CrmSoftware => "CRM Software",
         BusinessSkill.BusinessAnalysis => "Business Analysis",
         BusinessSkill.Negotiation => "Negotiation",
         BusinessSkill.StrategicPlanning => "Strategic Planning",
@@ -71,7 +71,7 @@ public static class SkillExtensions
     {
         HealthcareSkill.PatientCare => "Patient Care",
         HealthcareSkill.MedicalTerminology => "Medical Terminology",
-        HealthcareSkill.HIPAACompliance => "HIPAA Compliance",
+        HealthcareSkill.HipaaCompliance => "HIPAA Compliance",
         HealthcareSkill.ElectronicHealthRecords => "Electronic Health Records",
         HealthcareSkill.ClinicalSkills => "Clinical Skills",
         HealthcareSkill.MedicalEquipment => "Medical Equipment",
@@ -92,7 +92,7 @@ public static class SkillExtensions
         ManufacturingSkill.EquipmentMaintenance => "Equipment Maintenance",
         ManufacturingSkill.ProcessImprovement => "Process Improvement",
         ManufacturingSkill.InventoryManagement => "Inventory Management",
-        ManufacturingSkill.CADSoftware => "CAD Software",
+        ManufacturingSkill.CadSoftware => "CAD Software",
         ManufacturingSkill.StatisticalAnalysis => "Statistical Analysis",
         ManufacturingSkill.MachineOperation => "Machine Operation",
         ManufacturingSkill.Welding => "Welding",
@@ -101,7 +101,7 @@ public static class SkillExtensions
 
     public static string ToDisplayString(this RetailSkill skill) => skill switch
     {
-        RetailSkill.POSSystems => "POS Systems",
+        RetailSkill.PosSystems => "POS Systems",
         RetailSkill.VisualMerchandising => "Visual Merchandising",
         RetailSkill.CashHandling => "Cash Handling",
         RetailSkill.InventoryManagement => "Inventory Management",

@@ -33,7 +33,7 @@ public class HouseSaga :
                 await context.Publish(new SetHomeAddress(
                     owner,
                     CorrelationId,
-                    new Coordinates(context.Message.X, context.Message.Y, context.Message.Z)
+                    new Position(context.Message.X, context.Message.Y, context.Message.Z)
                 ));
             }
         }

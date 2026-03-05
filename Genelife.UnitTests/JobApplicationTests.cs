@@ -22,7 +22,7 @@ public class JobApplicationTests
             TechnicalSkills = {
                 TechnicalSkill.Agile,
                 TechnicalSkill.Angular,
-                TechnicalSkill.CICD,
+                TechnicalSkill.Cicd,
                 TechnicalSkill.Git,
                 TechnicalSkill.CSharp,
                 TechnicalSkill.JavaScript

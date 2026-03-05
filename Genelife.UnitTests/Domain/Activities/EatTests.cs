@@ -11,56 +11,44 @@ public class EatTests
     [Fact]
     public void Eat_ShouldHaveCorrectTickDuration()
     {
-        // Arrange & Act
         var eat = new Eat();
-
-        // Assert
-        eat.TickDuration.Should().Be(ILivingActivity.TickPerHour);
+        eat.TickDuration.Should().Be(IBeingActivity.TickPerHour);
     }
 
     [Fact]
     public void Eat_ShouldRestoreHungerToFull()
     {
-        // Arrange
         var human = TestDataBuilder.CreateHuman(hunger: 30.0f);
         var eat = new Eat();
 
-        // Act
-        var result = eat.Apply(human);
+        human.Do(eat);
 
-        // Assert
-        result.Hunger.Should().Be(100.0f);
-        result.FirstName.Should().Be(human.FirstName); // Other properties unchanged
-        result.Energy.Should().Be(human.Energy);
-        result.Hygiene.Should().Be(human.Hygiene);
-        result.Money.Should().Be(human.Money);
+        human.Hunger.Should().Be(100.0f);
+        human.FirstName.Should().Be(human.FirstName);
+        human.Energy.Should().Be(human.Energy);
+        human.Hygiene.Should().Be(human.Hygiene);
+        human.Money.Should().Be(human.Money);
     }
 
     [Fact]
     public void Eat_ShouldWorkWithZeroHunger()
     {
-        // Arrange
         var human = TestDataBuilder.CreateHuman(hunger: 0.0f);
         var eat = new Eat();
 
-        // Act
-        var result = eat.Apply(human);
+        human.Do(eat);
 
-        // Assert
-        result.Hunger.Should().Be(100.0f);
+        human.Hunger.Should().Be(100.0f);
     }
 
     [Fact]
     public void Eat_ShouldWorkWithFullHunger()
     {
-        // Arrange
         var human = TestDataBuilder.CreateHuman(hunger: 50.0f);
         var eat = new Eat();
 
-        // Act
-        var result = eat.Apply(human);
+        human.Do(eat);
 
-        // Assert
-        result.Hunger.Should().Be(100.0f);
+        human.Hunger.Should().Be(100.0f);
     }
 }

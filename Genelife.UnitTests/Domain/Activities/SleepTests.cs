@@ -11,56 +11,44 @@ public class SleepTests
     [Fact]
     public void Sleep_ShouldHaveCorrectTickDuration()
     {
-        // Arrange & Act
         var sleep = new Sleep();
-
-        // Assert
-        sleep.TickDuration.Should().Be(ILivingActivity.TickPerHour * 8);
+        sleep.TickDuration.Should().Be(IBeingActivity.TickPerHour * 8);
     }
 
     [Fact]
     public void Sleep_ShouldRestoreEnergyToFull()
     {
-        // Arrange
         var human = TestDataBuilder.CreateHuman(energy: 20.0f);
         var sleep = new Sleep();
 
-        // Act
-        var result = sleep.Apply(human);
+        human.Do(sleep);
 
-        // Assert
-        result.Energy.Should().Be(100.0f);
-        result.FirstName.Should().Be(human.FirstName); // Other properties unchanged
-        result.Hunger.Should().Be(human.Hunger);
-        result.Hygiene.Should().Be(human.Hygiene);
-        result.Money.Should().Be(human.Money);
+        human.Energy.Should().Be(100.0f);
+        human.FirstName.Should().Be(human.FirstName);
+        human.Hunger.Should().Be(human.Hunger);
+        human.Hygiene.Should().Be(human.Hygiene);
+        human.Money.Should().Be(human.Money);
     }
 
     [Fact]
     public void Sleep_ShouldWorkWithZeroEnergy()
     {
-        // Arrange
         var human = TestDataBuilder.CreateHuman(energy: 0.0f);
         var sleep = new Sleep();
 
-        // Act
-        var result = sleep.Apply(human);
+        human.Do(sleep);
 
-        // Assert
-        result.Energy.Should().Be(100.0f);
+        human.Energy.Should().Be(100.0f);
     }
 
     [Fact]
     public void Sleep_ShouldWorkWithFullEnergy()
     {
-        // Arrange
         var human = TestDataBuilder.CreateHuman(energy: 100.0f);
         var sleep = new Sleep();
 
-        // Act
-        var result = sleep.Apply(human);
+        human.Do(sleep);
 
-        // Assert
-        result.Energy.Should().Be(100.0f);
+        human.Energy.Should().Be(100.0f);
     }
 }

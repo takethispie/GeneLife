@@ -4,6 +4,8 @@ using Genelife.Domain;
 using Genelife.Domain.Activities;
 using Genelife.Domain.Address;
 using Genelife.Domain.Address.Exceptions;
+using Genelife.Domain.CheatCodes;
+using Genelife.Domain.Human.Activities;
 using Genelife.Messages.Commands;
 using Genelife.Messages.Commands.Grocery;
 using Genelife.Messages.Commands.Locomotion;
@@ -14,6 +16,10 @@ using Genelife.Messages.Events.Grocery;
 using Genelife.Messages.Events.Locomotion;
 using MassTransit;
 using Serilog;
+using SetEnergy = Genelife.Domain.CheatCodes.SetEnergy;
+using SetHunger = Genelife.Domain.CheatCodes.SetHunger;
+using SetHygiene = Genelife.Domain.CheatCodes.SetHygiene;
+using SetMoney = Genelife.Domain.CheatCodes.SetMoney;
 
 namespace Genelife.Application.Sagas;
 
@@ -59,9 +65,9 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         InstanceState(x => x.CurrentState);
         Initially(When(Created).Then(bc =>
         {
-            bc.Saga.Human = bc.Message.Human;
+            bc.Saga.Person = bc.Message.Person;
             bc.Saga.AddressBook = new AddressBook();
-            Log.Information("Created human {HumanFirstName} {HumanLastName} ", bc.Saga.Human.FirstName, bc.Saga.Human.LastName);
+            Log.Information("Created human {HumanFirstName} {HumanLastName} ", bc.Saga.Person.FirstName, bc.Saga.Person.LastName);
             bc.Publish(new DiscoverGroceryStores(bc.Saga.CorrelationId));
         }).TransitionTo(Idle));
         
@@ -86,19 +92,19 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         Event(() => AddGroceryStoreAddress, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
         
         DuringAny(
-            When(HourElapsed).Then(bc => { bc.Saga.Human = new UpdateNeeds().Execute(bc.Saga.Human); }),
-            When(SetAge).Then(bc => bc.Saga.Human = new ChangeBirthday().Execute(bc.Saga.Human, bc.Message.Value)),
-            When(SetEnergy).Then(bc => bc.Saga.Human = bc.Saga.Human with { Energy = bc.Message.Value }),
-            When(SetHunger).Then(bc => bc.Saga.Human = bc.Saga.Human with { Hunger = bc.Message.Value }),
-            When(SetHygiene).Then(bc => bc.Saga.Human = bc.Saga.Human with { Hygiene = bc.Message.Value }),
-            When(SetMoney).Then(bc => bc.Saga.Human = bc.Saga.Human with { Money = bc.Message.Value }),
+            When(HourElapsed).Then(bc => bc.Saga.Person.Update()),
+            When(SetAge).Then(bc => bc.Saga.Person.Execute(new ChangeBirthday(bc.Message.Value))),
+            When(SetEnergy).Then(bc => bc.Saga.Person.Execute(new SetEnergy(bc.Message.Value))),
+            When(SetHunger).Then(bc => bc.Saga.Person.Execute(new SetHunger(bc.Message.Value))),
+            When(SetHygiene).Then(bc => bc.Saga.Person.Execute(new SetHygiene(bc.Message.Value))),
+            When(SetMoney).Then(bc => bc.Saga.Person.Execute(new SetMoney(bc.Message.Value))),
             When(DayElapsed).Then(bc =>
             {
                 Log.Information($"{bc.Saga.CorrelationId} " +
-                                $"needs: {Math.Round(bc.Saga.Human.Hunger)} hunger " +
-                                $" {Math.Round(bc.Saga.Human.Energy)} energy " +
-                                $" {Math.Round(bc.Saga.Human.Hygiene)} hygiene " +
-                                $" {bc.Saga.Human.Money} money "
+                                $"needs: {Math.Round(bc.Saga.Person.Hunger)} hunger " +
+                                $" {Math.Round(bc.Saga.Person.Energy)} energy " +
+                                $" {Math.Round(bc.Saga.Person.Hygiene)} hygiene " +
+                                $" {bc.Saga.Person.Money} money "
                 );
             }),
             When(JobStatusChanged).Then(bc =>
@@ -133,8 +139,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             When(GoToWork).Then(OnGoToWork),
             When(LeaveWork).Then(OnLeaveWork),
             When(GoHome).Then(bc => OnGoHome(bc.Saga.AddressBook, bc, bc.Saga.CorrelationId)),
-            When(AddMoney)
-                .Then(bc => bc.Saga.Human = bc.Saga.Human with {Money = bc.Saga.Human.Money + bc.Message.Amount }),
+            When(AddMoney) .Then(bc => bc.Saga.Person.Money += bc.Message.Amount),
             When(FoodPurchased).Then(bc =>
             {
                 bc.Saga.FoodCount++;
@@ -166,7 +171,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         During(Idle, 
             When(UpdateTick).Then(bc =>
             {
-                var activity = new ChooseActivity().Execute(bc.Saga.Human, bc.Message.Hour, bc.Saga.HasJob);
+                var activity = new ChooseActivity().Execute(bc.Saga.Person, bc.Message.Hour, bc.Saga.HasJob);
                 switch (activity)
                 {
                     case Eat when bc.Saga.FoodCount <= 0:
@@ -192,7 +197,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                     Drink => Drinking,
                     Sleep => Sleeping,
                     Shower => Showering,
-                    Domain.Activities.Work => Working,
+                    Work => Working,
                     _ => Idle
                 };
                 bc.Saga.Activity = activity;
@@ -201,25 +206,25 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                 {
                     case Eat when bc.Saga.FoodCount > 0:
                         bc.Saga.FoodCount--;
-                        bc.Saga.Human = activity.Apply(bc.Saga.Human);
+                        bc.Saga.Person.Do(activity);
                         Log.Information("Human {HumanId} consumed food. Remaining food: {FoodCount}",
                             bc.Saga.CorrelationId, bc.Saga.FoodCount);
                         break;
                     
                     case Drink when bc.Saga.DrinkCount > 0:
                         bc.Saga.DrinkCount--;
-                        bc.Saga.Human = activity.Apply(bc.Saga.Human);
+                        bc.Saga.Person.Do(activity);
                         Log.Information("Human {HumanId} consumed drink. Remaining drinks: {DrinkCount}",
                             bc.Saga.CorrelationId, bc.Saga.DrinkCount);
                         break;
                     
                     default:
                         if (activity is not Eat and not Drink)
-                            bc.Saga.Human = activity.Apply(bc.Saga.Human);
+                            bc.Saga.Person.Do(activity);
                         break;
                 }
                 
-                if (activity is Domain.Activities.Work)
+                if (activity is Work)
                     bc.Publish(new GoToWork(bc.Saga.CorrelationId));
                     
                 bc.TransitionToState(state);
@@ -252,7 +257,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                 }
 
                 Log.Information("{SagaCorrelationId} has finished {SagaCurrentState}", bc.Saga.CorrelationId, bc.Saga.CurrentState);
-                if (bc.Saga.Activity is Domain.Activities.Work { GoHomeWhenFinished: true })
+                if (bc.Saga.Activity is Work)
                     bc.Publish(new LeaveWork(bc.Saga.CorrelationId));
                 bc.Saga.Activity = new Idle();
                 bc.TransitionToState(Idle);

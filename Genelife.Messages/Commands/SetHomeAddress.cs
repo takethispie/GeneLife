@@ -3,4 +3,4 @@ using MassTransit;
 
 namespace Genelife.Messages.Commands;
 
-public record SetHomeAddress(Guid CorrelationId, Guid HomeId, Coordinates Coordinates) : CorrelatedBy<Guid>;
+public record SetHomeAddress(Guid CorrelationId, Guid HomeId, Position Coordinates) : CorrelatedBy<Guid>;

@@ -4,7 +4,7 @@ public enum BusinessSkill
 {
     Excel,
     PowerPoint,
-    CRMSoftware,
+    CrmSoftware,
     BusinessAnalysis,
     Negotiation,
     StrategicPlanning,

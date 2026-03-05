@@ -1,15 +1,17 @@
 using Bogus;
 using Genelife.Domain;
+using Genelife.Domain.Human;
 using Genelife.Domain.Work;
 using Genelife.Domain.Work.Skills;
+using Person = Genelife.Domain.Human.Person;
 
 namespace Genelife.UnitTests.TestData;
 
 public static class TestDataBuilder
 {
-    private static readonly Faker Faker = new();
+    private static readonly Faker faker = new();
 
-    public static Human CreateHuman(
+    public static Person CreateHuman(
         string? firstName = null,
         string? lastName = null,
         DateTime? birthday = null,
@@ -19,17 +21,17 @@ public static class TestDataBuilder
         float? energy = null,
         float? hygiene = null)
     {
-        return new Human(
-            firstName ?? Faker.Name.FirstName(),
-            lastName ?? Faker.Name.LastName(),
-            birthday ?? Faker.Date.Past(50, DateTime.Now.AddYears(-18)),
-            sex ?? Faker.PickRandom<Sex>(),
+        return new Person(
+            firstName ?? faker.Name.FirstName(),
+            lastName ?? faker.Name.LastName(),
+            birthday ?? faker.Date.Past(50, DateTime.Now.AddYears(-18)),
+            sex ?? faker.PickRandom<Sex>(),
             new LifeSkillSet(),
-            new Coordinates(0, 0, 0),
-            money ?? Faker.Random.Float(0, 10000),
-            hunger ?? Faker.Random.Float(0, 100),
-            energy ?? Faker.Random.Float(0, 100),
-            hygiene ?? Faker.Random.Float(0, 100)
+            new Position(0, 0, 0),
+            money ?? faker.Random.Float(0, 10000),
+            hunger ?? faker.Random.Float(0, 100),
+            energy ?? faker.Random.Float(0, 100),
+            hygiene ?? faker.Random.Float(0, 100)
         );
     }
 
@@ -43,12 +45,12 @@ public static class TestDataBuilder
         int? maxEmployees = null)
     {
         return new Company(
-            name ?? Faker.Company.CompanyName(),
-            revenue ?? Faker.Random.Float(100000f, 10000000f),
-            taxRate ?? Faker.Random.Float(0.15f, 0.35f),
+            name ?? faker.Company.CompanyName(),
+            revenue ?? faker.Random.Float(100000f, 10000000f),
+            taxRate ?? faker.Random.Float(0.15f, 0.35f),
             employeeIds ?? new List<Guid>(),
-            type ?? Faker.PickRandom<CompanyType>(),
-            Faker.Random.Float()
+            type ?? faker.PickRandom<CompanyType>(),
+            faker.Random.Float()
         );
     }
 
@@ -61,28 +63,28 @@ public static class TestDataBuilder
         CompanyType? industry = null,
         int? maxApplications = null)
     {
-        var minSalary = salaryMin ?? Faker.Random.Float(30000, 80000);
-        var maxSalary = salaryMax ?? minSalary + Faker.Random.Float(10000, 50000);
+        var minSalary = salaryMin ?? faker.Random.Float(30000, 80000);
+        var maxSalary = salaryMax ?? minSalary + faker.Random.Float(10000, 50000);
 
         return new JobPosting(
             companyId ?? Guid.NewGuid(),
-            title ?? Faker.Name.JobTitle(),
+            title ?? faker.Name.JobTitle(),
             minSalary,
             maxSalary,
-            industry ?? Faker.PickRandom<CompanyType>(),
-            level ?? Faker.PickRandom<JobLevel>(),
+            industry ?? faker.PickRandom<CompanyType>(),
+            level ?? faker.PickRandom<JobLevel>(),
             new SkillSet()
             {
                 TechnicalSkills =
                 {
                     TechnicalSkill.Agile,
                     TechnicalSkill.Angular,
-                    TechnicalSkill.CICD,
+                    TechnicalSkill.Cicd,
                     TechnicalSkill.Git
                 }
             },
             new OfficeLocation(0, 0, 0),
-            maxApplications ?? Faker.Random.Int(50, 200)
+            maxApplications ?? faker.Random.Int(50, 200)
         );
     }
 
@@ -98,20 +100,20 @@ public static class TestDataBuilder
         return new JobApplication(
             jobPostingId ?? Guid.NewGuid(),
             humanId ?? Guid.NewGuid(),
-            applicationDate ?? Faker.Date.Recent(7),
-            requestedSalary ?? Faker.Random.Float(40000, 120000),
+            applicationDate ?? faker.Date.Recent(7),
+            requestedSalary ?? faker.Random.Float(40000, 120000),
             new SkillSet()
             {
                 TechnicalSkills =
                 {
                     TechnicalSkill.Agile,
                     TechnicalSkill.Angular,
-                    TechnicalSkill.CICD,
+                    TechnicalSkill.Cicd,
                     TechnicalSkill.Git
                 }
             },
-            yearsOfExperience ?? Faker.Random.Int(0, 20),
-            matchScore ?? Faker.Random.Float(0, 1)
+            yearsOfExperience ?? faker.Random.Int(0, 20),
+            matchScore ?? faker.Random.Float(0, 1)
         );
     }
 
@@ -124,10 +126,10 @@ public static class TestDataBuilder
     {
         return new Employee(
             humanId ?? Guid.NewGuid(),
-            salary ?? Faker.Random.Float(30000, 150000),
-            hireDate ?? Faker.Date.Past(5),
+            salary ?? faker.Random.Float(30000, 150000),
+            hireDate ?? faker.Date.Past(5),
             status ?? EmploymentStatus.Active,
-            productivityScore ?? Faker.Random.Float(0.5f, 1.5f)
+            productivityScore ?? faker.Random.Float(0.5f, 1.5f)
         );
     }
 
@@ -141,8 +143,8 @@ public static class TestDataBuilder
         bool? isActivelyJobSeeking = null)
     {
         return new Employment(
-            skills ?? Faker.Make(5, () => Faker.Hacker.Noun()).ToList(),
-            yearsOfExperience ?? Faker.Random.Int(0, 20),
+            skills ?? faker.Make(5, () => faker.Hacker.Noun()).ToList(),
+            yearsOfExperience ?? faker.Random.Int(0, 20),
             currentEmployerId,
             currentSalary,
             employmentStatus ?? EmploymentStatus.Unemployed,

@@ -3,7 +3,7 @@ using Genelife.UnitTests.TestData;
 
 namespace Genelife.UnitTests.Domain;
 
-public class HumanTests
+public class PersonTests
 {
     [Theory]
     [InlineData(0.0f)]

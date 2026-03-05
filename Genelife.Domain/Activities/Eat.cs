@@ -1,11 +1,9 @@
 using Genelife.Domain.Activities.Interfaces;
+using Genelife.Domain.Human;
 
 namespace Genelife.Domain.Activities;
 
-public class Eat : ILivingActivity {
+public class Eat : IBeingActivity {
     
-    public int TickDuration { get; set; } = ILivingActivity.TickPerHour;
-    public bool GoHomeWhenFinished => false;
-
-    public Human Apply(Human being) => being with { Hunger = 100 };
+    public int TickDuration { get; set; } = IBeingActivity.TickPerHour;
 }

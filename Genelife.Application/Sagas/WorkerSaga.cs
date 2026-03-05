@@ -96,7 +96,7 @@ public class WorkerSaga : MassTransitStateMachine<WorkerSagaState>
                         return;
                     }
                     bc.Saga.EmployerId = bc.Message.JobPosting.CompanyId;
-                    bc.Publish(new RecruitmentAccepted(bc.Message.JobPostingId, bc.Saga.CorrelationId, bc.Message.JobPosting.CompanyId, bc.Message.salary));
+                    bc.Publish(new RecruitmentAccepted(bc.Message.JobPostingId, bc.Saga.CorrelationId, bc.Message.JobPosting.CompanyId, bc.Message.Salary));
                     bc.Saga.HiringTimeOut = 6;
             })
         );

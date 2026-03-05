@@ -8,7 +8,7 @@ public class GenerateJobPosting
 {
     private readonly Random random = new();
     
-    private static readonly Dictionary<CompanyType, List<string>> JobTitlesByType = new()
+    private static readonly Dictionary<CompanyType, List<string>> jobTitlesByType = new()
     {
         [CompanyType.Technology] = new List<string>
         {
@@ -44,7 +44,7 @@ public class GenerateJobPosting
     
     public JobPosting GenerateForCompany(Guid companyId, CompanyType companyType, JobLevel level, int positionsNeeded, OfficeLocation officeLocation)
     {
-        var titles = JobTitlesByType.GetValueOrDefault(companyType, JobTitlesByType[CompanyType.Services]);
+        var titles = jobTitlesByType.GetValueOrDefault(companyType, jobTitlesByType[CompanyType.Services]);
         var title = titles[random.Next(titles.Count)];
         var (salaryMin, salaryMax) = GenerateSalaryRange(companyType, level);
 

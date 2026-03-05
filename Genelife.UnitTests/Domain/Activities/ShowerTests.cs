@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Genelife.Domain;
 using Genelife.Domain.Activities;
+using Genelife.Domain.Human.Activities;
 using Genelife.UnitTests.TestData;
 
 namespace Genelife.UnitTests.Domain.Activities;
@@ -10,56 +11,44 @@ public class ShowerTests
     [Fact]
     public void Shower_ShouldHaveCorrectTickDuration()
     {
-        // Arrange & Act
         var shower = new Shower();
-
-        // Assert
         shower.TickDuration.Should().Be(5);
     }
 
     [Fact]
     public void Shower_ShouldRestoreHygieneToFull()
     {
-        // Arrange
         var human = TestDataBuilder.CreateHuman(hygiene: 40.0f);
         var shower = new Shower();
 
-        // Act
-        var result = shower.Apply(human);
+        human.Do(shower);
 
-        // Assert
-        result.Hygiene.Should().Be(100.0f);
-        result.FirstName.Should().Be(human.FirstName); // Other properties unchanged
-        result.Hunger.Should().Be(human.Hunger);
-        result.Energy.Should().Be(human.Energy);
-        result.Money.Should().Be(human.Money);
+        human.Hygiene.Should().Be(100.0f);
+        human.FirstName.Should().Be(human.FirstName);
+        human.Hunger.Should().Be(human.Hunger);
+        human.Energy.Should().Be(human.Energy);
+        human.Money.Should().Be(human.Money);
     }
 
     [Fact]
     public void Shower_ShouldWorkWithZeroHygiene()
     {
-        // Arrange
         var human = TestDataBuilder.CreateHuman(hygiene: 0.0f);
         var shower = new Shower();
 
-        // Act
-        var result = shower.Apply(human);
+        human.Do(shower);
 
-        // Assert
-        result.Hygiene.Should().Be(100.0f);
+        human.Hygiene.Should().Be(100.0f);
     }
 
     [Fact]
     public void Shower_ShouldWorkWithFullHygiene()
     {
-        // Arrange
         var human = TestDataBuilder.CreateHuman(hygiene: 100.0f);
         var shower = new Shower();
 
-        // Act
-        var result = shower.Apply(human);
+        human.Do(shower);
 
-        // Assert
-        result.Hygiene.Should().Be(100.0f);
+        human.Hygiene.Should().Be(100.0f);
     }
 }

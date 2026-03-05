@@ -64,7 +64,7 @@ public static class GenerationEndpointsExtension
             [humanId]
         ));
 
-        var coords = new Coordinates(
+        var coords = new Position(
             houseLocation.X,
             houseLocation.Y,
             houseLocation.Z

@@ -9,7 +9,7 @@ public enum ManufacturingSkill
     EquipmentMaintenance,
     ProcessImprovement,
     InventoryManagement,
-    CADSoftware,
+    CadSoftware,
     StatisticalAnalysis,
     MachineOperation,
     Welding
