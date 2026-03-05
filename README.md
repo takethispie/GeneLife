@@ -1,7 +1,6 @@
 # GeneLife
 
-NPC population simulation based on a microservice architecture
-using masstransit, mongodb and rabbitmq
+NPC population simulation
 
 ## Implemented Feature
 - Very basic human eat-shower-sleep cycle

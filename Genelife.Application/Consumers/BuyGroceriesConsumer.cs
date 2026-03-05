@@ -5,8 +5,21 @@ using Serilog;
 
 namespace Genelife.Application.Consumers;
 
-public class BuyDrinkConsumer : IConsumer<DrinkPurchased>
+public class BuyGroceriesConsumer : IConsumer<FoodPurchased>, IConsumer<DrinkPurchased>
 {
+    public async Task Consume(ConsumeContext<FoodPurchased> context)
+    {
+        var humanId = context.Message.HumanId;
+        var storeId = context.Message.GroceryStoreId;
+        var price = context.Message.Price;
+
+        await context.Publish(new AddMoney(humanId, -(float)price));
+        await context.Publish(new AddRevenue(storeId, price));
+
+        Log.Information("Customer {CustomerId} bought food for {Price:C} at grocery store {StoreId}",
+            humanId, price, storeId);
+    }
+    
     public async Task Consume(ConsumeContext<DrinkPurchased> context)
     {
         var humanId = context.Message.CorrelationId;
