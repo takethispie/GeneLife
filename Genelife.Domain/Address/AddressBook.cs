@@ -40,4 +40,22 @@ public class AddressBook
         var officeAddress = AllOfAddressType(AddressType.Office).FirstOrDefault();
         return officeAddress is null ? throw new AddressNotFoundException(nameof(officeAddress)) : officeAddress;
     }
+
+    public void AddWorkAddress(float x, float y, float z, Guid id)
+    {
+        var coordinates = new AddressCoordinates(x, y, z);
+        Add(new AddressEntry(AddressType.Store, id, coordinates));
+    }
+    
+    public void AddHomeAddress(float x, float y, float z, Guid id)
+    {
+        var coordinates = new AddressCoordinates(x, y, z);
+        Add(new AddressEntry(AddressType.Home, id, coordinates));
+    }
+
+    public void AddGroceryStore(float x, float y, float z, Guid id)
+    {
+        var coordinates = new AddressCoordinates(x, y, z);
+        Add(new AddressEntry(AddressType.Store, id, coordinates));
+    }
 }

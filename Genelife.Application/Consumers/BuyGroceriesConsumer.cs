@@ -14,8 +14,6 @@ public class BuyGroceriesConsumer : IConsumer<FoodPurchased>, IConsumer<DrinkPur
         var price = context.Message.Price;
 
         await context.Publish(new AddMoney(humanId, -(float)price));
-        await context.Publish(new AddRevenue(storeId, price));
-
         Log.Information("Customer {CustomerId} bought food for {Price:C} at grocery store {StoreId}",
             humanId, price, storeId);
     }
@@ -27,8 +25,6 @@ public class BuyGroceriesConsumer : IConsumer<FoodPurchased>, IConsumer<DrinkPur
         var price = context.Message.Price;
 
         await context.Publish(new AddMoney(humanId, -(float)price));
-        await context.Publish(new AddRevenue(storeId, price));
-
         Log.Information("Customer {CustomerId} bought drink for {Price:C} at grocery store {StoreId}",
             humanId, price, storeId);
     }

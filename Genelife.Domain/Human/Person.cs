@@ -2,11 +2,12 @@ using Genelife.Domain.Activities;
 using Genelife.Domain.Activities.Interfaces;
 using Genelife.Domain.Address;
 using Genelife.Domain.CheatCodes;
+using OneOf;
 
 namespace Genelife.Domain.Human;
 
 public sealed class Person(
-    Guid Id,
+    Guid id,
     string firstName,
     string lastName,
     DateTime birthday,
@@ -20,7 +21,7 @@ public sealed class Person(
     float thirst = 100
 )
 {
-    public Guid Id { get; init; } = Id;
+    public Guid Id { get; init; } = id;
     public string FirstName { get; private set; } = firstName;
     public string LastName { get; private set; } = lastName;
     public DateTime Birthday { get; private set; } = birthday;
@@ -33,6 +34,8 @@ public sealed class Person(
     public float Hygiene { get; private set; } = hygiene;
     public float Thirst { get; private set; } = thirst;
     public AddressBook  AddressBook { get; } = new AddressBook();
+    public int FoodItemCount { get; private set; } = 0;
+    public int DrinkItemCount { get; private set; } = 0;
 
     public void Do(IBeingActivity activity)
     {
@@ -41,11 +44,23 @@ public sealed class Person(
             Activities.Work => (Money, Math.Clamp(Energy - 40, 0, 100), Hunger, Thirst, Hygiene),
             Activities.Shower => (Money, Math.Clamp(Energy - 5, 0, 100), Hunger, Thirst, 100),
             Sleep => (Money, 100, Hunger, Thirst, Hygiene),
-            Drink => (Money, Energy, Hunger, 100, Hygiene),
-            Eat => (Money, Energy, 100, Thirst, Hygiene),
+            Drink => (Money, Energy, Hunger, TakeADrink(), Hygiene),
+            Eat => (Money, Energy, EatSomething(), Thirst, Hygiene),
             Idle => (Money, Energy, Hunger, Thirst, Hygiene),
             _ => throw new NotImplementedException()
         };
+    }
+
+    private int TakeADrink()
+    {
+        DrinkItemCount--;
+        return 100;
+    }
+
+    private int EatSomething()
+    {
+        FoodItemCount--;
+        return 100;
     }
 
     public void Execute(ICheat cheat)
@@ -109,6 +124,14 @@ public sealed class Person(
             _ => new Idle()
         };
     }
+
+    public Guid NearestBuildingId(AddressType type)
+    {
+        var res = AddressBook.NearestOfAddressType(type, Coordinates.X, Coordinates.Y, Coordinates.Z);
+        return res?.EntityId ?? Guid.Empty;
+    }
+    
+    public void SetPosition(Position pos) => Coordinates = pos;
     
     private static float Decay(float value, float decayRate) => Modify(value, -decayRate * 60);
     

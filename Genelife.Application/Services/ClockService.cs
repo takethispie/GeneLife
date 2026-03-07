@@ -33,11 +33,11 @@ public class ClockService {
     private async void OnTimedEvent(object source, ElapsedEventArgs e) {
         using var scope = services.CreateScope();
         var publishEndpoint = scope.ServiceProvider.GetRequiredService<IPublishEndpoint>();
-        await publishEndpoint.Publish(new Tick(timeOnly.Hour));
+        await publishEndpoint.Publish(new Tick(new DateTime(dateOnly, timeOnly)));
         ticks++;
         if(ticks < Constants.TickPerHour) return;
         ticks = 0;
-        await publishEndpoint.Publish(new HourElapsed());
+        await publishEndpoint.Publish(new HourElapsed(timeOnly));
         timeOnly = timeOnly.AddHours(1);
         switch (timeOnly.Hour) {
             case 12:
