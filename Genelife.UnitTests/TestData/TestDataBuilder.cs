@@ -2,6 +2,8 @@ using Bogus;
 using Genelife.Domain;
 using Genelife.Domain.Human;
 using Genelife.Domain.Work;
+using Genelife.Domain.Work.Employee;
+using Genelife.Domain.Work.Job;
 using Genelife.Domain.Work.Skills;
 using Person = Genelife.Domain.Human.Person;
 
@@ -85,7 +87,7 @@ public static class TestDataBuilder
                     TechnicalSkill.Git
                 }
             },
-            new OfficeLocation(0, 0, 0),
+            new Position(0, 0, 0),
             maxApplications ?? faker.Random.Int(50, 200)
         );
     }

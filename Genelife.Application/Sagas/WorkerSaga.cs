@@ -3,6 +3,7 @@ using Genelife.Application.Sagas.States;
 using Genelife.Application.Usecases;
 using Genelife.Domain;
 using Genelife.Domain.Work;
+using Genelife.Domain.Work.Job;
 using Genelife.Messages.Commands;
 using Genelife.Messages.Commands.Jobs;
 using Genelife.Messages.Commands.Worker;

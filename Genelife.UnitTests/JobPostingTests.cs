@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Genelife.Domain;
 using Genelife.Domain.Work;
+using Genelife.Domain.Work.Job;
 using Genelife.UnitTests.TestData;
 
 namespace Genelife.UnitTests;

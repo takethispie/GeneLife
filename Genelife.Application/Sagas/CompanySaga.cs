@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using Genelife.Application.Usecases;
 using Genelife.Domain;
 using Genelife.Domain.Work;
+using Genelife.Domain.Work.Employee;
 using Genelife.Messages.Commands.Company;
 using Genelife.Messages.Events;
 using Genelife.Messages.Events.Clock;
@@ -30,7 +31,7 @@ public class CompanySaga :
     public int Version { get; set; }
     public DateTime LastPayrollDate { get; set; }
     public List<Guid> Occupants { get; set; } = [];
-    public OfficeLocation OfficeLocation { get; set; } = new(0, 0, 0);
+    public Position OfficeLocation { get; set; } = new(0, 0, 0);
 
     public Expression<Func<CompanySaga, DayElapsed, bool>> CorrelationExpression => (_,_) => true;
 
@@ -39,7 +40,7 @@ public class CompanySaga :
         Company = context.Message.Company;
         DaysElapsedCount = 0;
         LastPayrollDate = DateTime.UtcNow;
-        OfficeLocation = new OfficeLocation(context.Message.X, context.Message.Y, context.Message.Z);
+        OfficeLocation = new Position(context.Message.X, context.Message.Y, context.Message.Z);
         Log.Information("Company {CompanyName} created with ID {SagaCorrelationId}", Company.Name, CorrelationId);
         await Task.CompletedTask;
     }

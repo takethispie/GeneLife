@@ -97,6 +97,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             When(SetMoney).Then(bc => bc.Saga.Person.Execute(new ChangeMoney(bc.Message.Value))),
             When(DayElapsed).Then(bc =>
             {
+                bc.Saga.LastTime = bc.Message.DateTime;
                 Log.Information($"{bc.Saga.CorrelationId} " +
                                 $"needs: {Math.Round(bc.Saga.Person.Hunger)} hunger " +
                                 $" {Math.Round(bc.Saga.Person.Energy)} energy " +
@@ -139,11 +140,13 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             When(AddMoney) .Then(bc => bc.Saga.Person.Money += bc.Message.Amount),
             When(FoodPurchased).Then(bc =>
             {
+                bc.Saga.Person.BuyFood(1);
                 Log.Information("Human {HumanId} purchased food. Total food items: {FoodCount}",
                     bc.Saga.CorrelationId, bc.Saga.Person.FoodItemCount);
             }),
             When(DrinkPurchased).Then(bc =>
             {
+                bc.Saga.Person.BuyDrink(1);
                 Log.Information("Human {HumanId} purchased drink. Total drink items: {DrinkCount}",
                     bc.Saga.CorrelationId, bc.Saga.Person.DrinkItemCount);
             }),
@@ -163,18 +166,19 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         During(Idle, 
             When(UpdateTick).Then(bc =>
             {
-                var activity = bc.Saga.Person.SelectNextActivity(bc.Message.DateTime.Hour, bc.Saga.HasJob);
+                var activity = bc.Saga.Person.SelectNextActivity(bc.Message.DateTime, bc.Saga.HasJob);
                 switch (activity)
                 {
                     case Eat when bc.Saga.Person.FoodItemCount <= 0:
                     case Drink when bc.Saga.Person.FoodItemCount <= 0:
                     {
+                        Log.Information("{sagaCorrelationId} doesnt have food or drink, going to the grocery store", bc.Saga.CorrelationId);
                         var storeId = bc.Saga.Person.NearestBuildingId(AddressType.Store);
-                        if (storeId == Guid.Empty) return;
+                        if (storeId == Guid.Empty) break;
                         bc.Publish(new GoToGroceryStore(storeId, bc.Saga.CorrelationId));
                         bc.Saga.LastTime = DateTime.UtcNow;
                         bc.TransitionToState(Shopping);
-                        break;
+                        return;
                     }
                 }
 
@@ -188,7 +192,6 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                     _ => Idle
                 };
                 bc.Saga.Activity = activity;
-                bc.Saga.Person.Do(activity);
                 bc.Saga.LastTime = bc.Message.DateTime;
                 if (activity is Work)
                     bc.Publish(new GoToWork(bc.Saga.CorrelationId));
@@ -199,13 +202,12 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         During(Eating, Drinking, Sleeping, Showering,
             When(UpdateTick).Then(bc =>
             {
-                if (bc.Message.DateTime < bc.Saga.LastTime.Add(bc.Saga.Activity.Duration))
-                {
-                    bc.Saga.LastTime = bc.Message.DateTime;
+                if (!bc.Saga.Activity.IsCompleted(bc.Message.DateTime))
                     return;
-                }
+                bc.Saga.LastTime = bc.Message.DateTime;
+                bc.Saga.Person.Do(bc.Saga.Activity);
                 Log.Information("{SagaCorrelationId} has finished {SagaCurrentState}", bc.Saga.CorrelationId, bc.Saga.CurrentState);
-                bc.Saga.Activity = new Idle();
+                bc.Saga.Activity = new Idle(bc.Message.DateTime);
                 bc.TransitionToState(Idle);
             }),
             Ignore(DayElapsed)
@@ -213,15 +215,14 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         During(Working,
             When(UpdateTick).Then(bc =>
             {
-                if (bc.Message.DateTime < bc.Saga.LastTime.Add(bc.Saga.Activity.Duration))
-                {
-                    bc.Saga.LastTime = bc.Message.DateTime;
+                if (!bc.Saga.Activity.IsCompleted(bc.Message.DateTime))
                     return;
-                }
+                bc.Saga.LastTime = bc.Message.DateTime;
+                bc.Saga.Person.Do(bc.Saga.Activity);
                 Log.Information("{SagaCorrelationId} has finished {SagaCurrentState}", bc.Saga.CorrelationId, bc.Saga.CurrentState);
                 if (bc.Saga.Activity is Work)
                     bc.Publish(new LeaveWork(bc.Saga.CorrelationId));
-                bc.Saga.Activity = new Idle();
+                bc.Saga.Activity = new Idle(bc.Message.DateTime);
                 bc.TransitionToState(Idle);
             }),
             Ignore(DayElapsed)
@@ -239,7 +240,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             When(LeftGroceryStore).Then(bc =>
             {
                 Log.Information("Human {HumanId} finished shopping and left grocery store", bc.Saga.CorrelationId);
-                bc.Saga.Activity = new Idle();
+                bc.Saga.Activity = new Idle(bc.Saga.LastTime);
             }).TransitionTo(Idle),
             Ignore(UpdateTick)
         );

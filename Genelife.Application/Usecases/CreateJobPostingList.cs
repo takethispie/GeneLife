@@ -1,12 +1,13 @@
 using Genelife.Domain;
 using Genelife.Domain.Work;
+using Genelife.Domain.Work.Job;
 using Genelife.Messages.Commands.Jobs;
 using Serilog;
 
 namespace Genelife.Application.Usecases;
 
 public class CreateJobPostingList {
-    public List<CreateJobPosting> Execute(Company company, int? publishedJobPostings, Guid correlationId, OfficeLocation officeLocation) {
+    public List<CreateJobPosting> Execute(Company company, int? publishedJobPostings, Guid correlationId, Position officeLocation) {
         var postings = new List<CreateJobPosting>();
         var positionsNeeded = new EvaluateHiring().Execute(company);
         if (positionsNeeded == 0 || publishedJobPostings is > 0)

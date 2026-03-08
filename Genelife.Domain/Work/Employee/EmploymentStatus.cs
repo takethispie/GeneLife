@@ -1,4 +1,4 @@
-namespace Genelife.Domain.Work;
+namespace Genelife.Domain.Work.Employee;
 
 public enum EmploymentStatus
 {

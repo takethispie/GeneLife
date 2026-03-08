@@ -11,8 +11,9 @@ public class SleepTests
     [Fact]
     public void Sleep_ShouldRestoreEnergyToFull()
     {
+        var now = DateTime.UtcNow;
         var human = TestDataBuilder.CreateHuman(energy: 20.0f);
-        var sleep = new Sleep();
+        var sleep = new Sleep(now);
 
         human.Do(sleep);
 
@@ -26,8 +27,9 @@ public class SleepTests
     [Fact]
     public void Sleep_ShouldWorkWithZeroEnergy()
     {
+        var now = DateTime.UtcNow;
         var human = TestDataBuilder.CreateHuman(energy: 0.0f);
-        var sleep = new Sleep();
+        var sleep = new Sleep(now);
 
         human.Do(sleep);
 
@@ -37,8 +39,9 @@ public class SleepTests
     [Fact]
     public void Sleep_ShouldWorkWithFullEnergy()
     {
+        var now = DateTime.UtcNow;
         var human = TestDataBuilder.CreateHuman(energy: 100.0f);
-        var sleep = new Sleep();
+        var sleep = new Sleep(now);
 
         human.Do(sleep);
 

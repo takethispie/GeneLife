@@ -1,4 +1,6 @@
-﻿namespace Genelife.Domain.Work;
+﻿using Genelife.Domain.Work.Employee;
+
+namespace Genelife.Domain.Work.Accounting;
 
 public class Accounting(float revenue, float taxRate)
 {

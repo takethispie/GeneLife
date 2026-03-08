@@ -1,6 +1,6 @@
 using Genelife.Domain.Work.Skills;
 
-namespace Genelife.Domain.Work;
+namespace Genelife.Domain.Work.Job;
 
 public record JobPosting(
     Guid CompanyId,
@@ -10,6 +10,6 @@ public record JobPosting(
     CompanyType CompanyType,
     JobLevel Level,
     SkillSet RequiredSkillSet,
-    OfficeLocation OfficeLocation,
+    Position OfficeLocation,
     int MaxApplications = 50
 );

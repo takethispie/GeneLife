@@ -87,8 +87,9 @@ public class ChooseActivityTests
     [InlineData(1)]
     public void Execute_ShouldChooseSleepAtNightTime(int hour)
     {
+        var now = new DateTime(2020, 01, 01, hour, 00, 00);
         var human = TestDataBuilder.CreateHuman(energy: 10.0f, hunger: 50.0f, hygiene: 50.0f);
-        var activity = human.SelectNextActivity(hour, true);
+        var activity = human.SelectNextActivity(now, true);
         activity.Should().BeOfType<Sleep>();
     }
 
@@ -100,8 +101,9 @@ public class ChooseActivityTests
     [InlineData(21)]
     public void Execute_ShouldChooseShowerDuringHygieneHours(int hour)
     {
+        var now = new DateTime(2020, 01, 01, hour, 00, 00);
         var human = TestDataBuilder.CreateHuman(energy: 80.0f, hunger: 80.0f, hygiene: 10.0f);
-        var activity = human.SelectNextActivity(hour, true);
+        var activity = human.SelectNextActivity(now, true);
         activity.Should().BeOfType<Shower>();
     }
 
@@ -112,32 +114,36 @@ public class ChooseActivityTests
     [InlineData(21)]
     public void Execute_ShouldChooseEatDuringMealHours(int hour)
     {
+        var now = new DateTime(2020, 01, 01, hour, 00, 00);
         var human = TestDataBuilder.CreateHuman(energy: 80.0f, hunger: 10.0f, hygiene: 80.0f);
-        var activity = human.SelectNextActivity(hour, true);
+        var activity = human.SelectNextActivity(now, true);
         activity.Should().BeOfType<Eat>();
     }
 
     [Fact]
     public void Execute_ShouldChooseLowestNeedActivity()
     {
+        var now = new DateTime(2020, 01, 01, 22, 00, 00);
         var human = TestDataBuilder.CreateHuman(energy: 5.0f, hunger: 50.0f, hygiene: 50.0f);
-        var activity = human.SelectNextActivity(22, true);
+        var activity = human.SelectNextActivity(now, true);
         activity.Should().BeOfType<Sleep>();
     }
 
     [Fact]
     public void Execute_ShouldChooseHygieneWhenLowest()
     {
+        var now = new DateTime(2020, 01, 01, 7, 00, 00);
         var human = TestDataBuilder.CreateHuman(energy: 80.0f, hunger: 80.0f, hygiene: 5.0f);
-        var activity = human.SelectNextActivity(7, true);
+        var activity = human.SelectNextActivity(now, true);
         activity.Should().BeOfType<Shower>();
     }
 
     [Fact]
     public void Execute_ShouldChooseHungerWhenLowest()
     {
+        var now = new DateTime(2020, 01, 01, 13, 00, 00);
         var human = TestDataBuilder.CreateHuman(energy: 80.0f, hunger: 5.0f, hygiene: 80.0f);
-        var activity = human.SelectNextActivity(13, true);
+        var activity = human.SelectNextActivity(now, true);
         activity.Should().BeOfType<Eat>();
     }
 
@@ -150,24 +156,27 @@ public class ChooseActivityTests
     [InlineData(17)]
     public void Execute_ShouldReturnNullDuringWorkHours(int hour)
     {
+        var now = new DateTime(2020, 01, 01, hour, 00, 00);
         var human = TestDataBuilder.CreateHuman(energy: 50.0f, hunger: 50.0f, hygiene: 50.0f);
-        var activity = human.SelectNextActivity(hour, true);
+        var activity = human.SelectNextActivity(now, true);
         activity.Should().BeNull();
     }
 
     [Fact]
     public void Execute_ShouldPrioritizeBasedOnNeedLevel()
     {
+        var now = new DateTime(2020, 01, 01, 19, 00, 00);
         var human = TestDataBuilder.CreateHuman(energy: 30.0f, hunger: 10.0f, hygiene: 40.0f);
-        var activity = human.SelectNextActivity(19, true);
+        var activity = human.SelectNextActivity(now, true);
         activity.Should().BeOfType<Eat>();
     }
 
     [Fact]
     public void Execute_ShouldHandleEqualNeeds()
     {
+        var now = new DateTime(2020, 01, 01, 20, 00, 00);
         var human = TestDataBuilder.CreateHuman(energy: 50.0f, hunger: 30.0f, hygiene: 30.0f);
-        var activity = human.SelectNextActivity(20, true);
+        var activity = human.SelectNextActivity(now, true);
         activity.Should().NotBeNull();
         activity.Should().Match(x => x.GetType() == typeof(Eat) || x.GetType() == typeof(Shower));
     }
@@ -179,16 +188,18 @@ public class ChooseActivityTests
     [InlineData(5)]
     public void Execute_ShouldReturnNullDuringEarlyMorning(int hour)
     {
+        var now = new DateTime(2020, 01, 01, hour, 00, 00);
         var human = TestDataBuilder.CreateHuman(energy: 50.0f, hunger: 50.0f, hygiene: 50.0f);
-        var activity = human.SelectNextActivity(hour, true);
+        var activity = human.SelectNextActivity(now, true);
         activity.Should().BeNull();
     }
 
     [Fact]
     public void Execute_ShouldHandleExtremeNeedValues()
     {
+        var now = new DateTime(2020, 01, 01, 22, 00, 00);
         var human = TestDataBuilder.CreateHuman(energy: 0.0f, hunger: 0.0f, hygiene: 0.0f);
-        var activity = human.SelectNextActivity(22, true);
+        var activity = human.SelectNextActivity(now, true);
         activity.Should().BeOfType<Sleep>();
     }
 }

@@ -67,7 +67,7 @@ public class CompanySagaTests
         await harness.Bus.Publish(new CreateCompany(id, company, officeLocation.X, officeLocation.Y, officeLocation.Z));
         await Task.Delay(100);
 
-        await harness.Bus.Publish(new DayElapsed(new DateOnly(1, 1, 1)));
+        await harness.Bus.Publish(new DayElapsed(new DateTime(1, 1, 1)));
 
         (await harness.Consumed.Any<DayElapsed>()).Should().BeTrue();
     }
@@ -98,7 +98,7 @@ public class CompanySagaTests
         await harness.Bus.Publish(new CreateCompany(id, company, officeLocation.X, officeLocation.Y, officeLocation.Z));
         await Task.Delay(100);
 
-        await harness.Bus.Publish(new EmployeeHired(id, humanId, salary, new OfficeLocation(0, 0, 0)));
+        await harness.Bus.Publish(new EmployeeHired(id, humanId, salary, new Position(0, 0, 0)));
 
         (await harness.Consumed.Any<EmployeeHired>()).Should().BeTrue();
         (await sagaHarness.Consumed.Any<EmployeeHired>()).Should().BeTrue();
@@ -129,13 +129,13 @@ public class CompanySagaTests
         await harness.Bus.Publish(new CreateCompany(id, company, officeLocation.X, officeLocation.Y, officeLocation.Z));
         await Task.Delay(100);
 
-        await harness.Bus.Publish(new EmployeeHired(id, humanId, 75000f, new OfficeLocation(0, 0, 0)));
+        await harness.Bus.Publish(new EmployeeHired(id, humanId, 75000f, new Position(0, 0, 0)));
         await Task.Delay(100);
 
         await harness.Bus.Publish(new EmployeeProductivityUpdated(id, humanId, 0.9f));
         await Task.Delay(100);
 
-        await harness.Bus.Publish(new DayElapsed(new DateOnly(1, 1, 1)));
+        await harness.Bus.Publish(new DayElapsed(new DateTime(1, 1, 1)));
 
         (await harness.Consumed.Any<CreateCompany>()).Should().BeTrue();
         (await harness.Consumed.Any<EmployeeHired>()).Should().BeTrue();

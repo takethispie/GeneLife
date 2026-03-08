@@ -11,8 +11,9 @@ public class EatTests
     [Fact]
     public void Eat_ShouldRestoreHungerToFull()
     {
+        var now = DateTime.UtcNow;
         var human = TestDataBuilder.CreateHuman(hunger: 30.0f);
-        var eat = new Eat();
+        var eat = new Eat(now);
 
         human.Do(eat);
 
@@ -26,8 +27,9 @@ public class EatTests
     [Fact]
     public void Eat_ShouldWorkWithZeroHunger()
     {
+        var now = DateTime.UtcNow;
         var human = TestDataBuilder.CreateHuman(hunger: 0.0f);
-        var eat = new Eat();
+        var eat = new Eat(now);
 
         human.Do(eat);
 
@@ -37,8 +39,9 @@ public class EatTests
     [Fact]
     public void Eat_ShouldWorkWithFullHunger()
     {
+        var now = DateTime.UtcNow;
         var human = TestDataBuilder.CreateHuman(hunger: 50.0f);
-        var eat = new Eat();
+        var eat = new Eat(now);
 
         human.Do(eat);
 

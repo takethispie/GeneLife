@@ -63,6 +63,9 @@ public sealed class Person(
         return 100;
     }
 
+    public void BuyDrink(int amount) => DrinkItemCount += amount;
+    public void BuyFood(int amount) => FoodItemCount += amount;
+
     public void Execute(ICheat cheat)
     {
         switch (cheat)
@@ -100,28 +103,28 @@ public sealed class Person(
         Hygiene = Decay(Hygiene, 0.04f);
     }
     
-    public IBeingActivity SelectNextActivity(int hour, bool works) {
+    public IBeingActivity SelectNextActivity(DateTime dateTime, bool works) {
         List<(float val, string name)> actions = [];
-        if (hour is >= 22 or <= 1 && Energy < 25)
+        if (dateTime.Hour is >= 22 or <= 1 && Energy < 25)
             actions.Add((Energy, "Energy"));
-        if(hour is > 5 and < 8 or > 18 and < 22 && Hygiene < 25)
+        if(dateTime.Hour is > 5 and < 8 or > 18 and < 22 && Hygiene < 25)
             actions.Add((Hygiene, "Hygiene"));
-        if(hour is > 12 and < 14 or > 18 and < 22 && Hunger < 30)
+        if(dateTime.Hour is > 12 and < 14 or > 18 and < 22 && Hunger < 30)
             actions.Add((Hunger, "Hunger"));
-        if(hour is > 10 and < 16 or > 19 and < 23 && Thirst < 30)
+        if(dateTime.Hour is > 10 and < 16 or > 19 and < 23 && Thirst < 30)
             actions.Add((Thirst, "Thirst"));
-        if(hour is > 7 and < 18 && Energy > 50 && works)
+        if(dateTime.Hour is > 7 and < 18 && Energy > 50 && works)
             actions.Add((Energy, "Work"));
         
-        if (actions.Count == 0) return new Idle();
+        if (actions.Count == 0) return new Idle(dateTime);
         
         return actions.OrderBy(x => x.val).First().name switch {
-            "Energy" => new Sleep(),
-            "Hygiene" => new Activities.Shower(),
-            "Hunger" => new Eat(),
-            "Thirst" => new Drink(),
-            "Work" => new Activities.Work(),
-            _ => new Idle()
+            "Energy" => new Sleep(dateTime),
+            "Hygiene" => new Activities.Shower(dateTime),
+            "Hunger" => new Eat(dateTime),
+            "Thirst" => new Drink(dateTime),
+            "Work" => new Activities.Work(dateTime),
+            _ => new Idle(dateTime)
         };
     }
 

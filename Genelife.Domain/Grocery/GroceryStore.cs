@@ -3,7 +3,7 @@ namespace Genelife.Domain.Grocery;
 public class GroceryStore(Guid id, Position position, int foodPrice, int drinkPrice)
 {
     public Guid Id {get; init; } = id;
-    public Position Position { get; init; } = position;
+    public Position Position { get; private set; } = position;
     public List<Guid> Customers { get; private set; } = [];
     public int FoodPrice { get; private set; } = foodPrice;
     public int DrinkPrice { get; private set; } = drinkPrice;

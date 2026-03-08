@@ -1,5 +1,5 @@
-using Genelife.Domain;
-using Genelife.Domain.Work;
+using Genelife.Domain.Work.Employee;
+using Genelife.Domain.Work.Job;
 using Genelife.Domain.Work.Skills;
 
 namespace Genelife.Application.Generators;
@@ -10,19 +10,15 @@ public class GenerateEmployment
     
     public (SkillSet, int) Execute(DateTime birthday)
     {
-        // Generate years of experience based on age
         var age = DateTime.Now.Year - birthday.Year;
-        var maxExperience = Math.Max(0, age - 18); // Assume work starts at 18
-        var experience = random.Next(0, Math.Min(maxExperience + 1, 25)); // Cap at 25 years
-
+        var maxExperience = Math.Max(0, age - 18);
+        var experience = random.Next(0, Math.Min(maxExperience + 1, 25));
         return (GenerateSkills(experience), experience);
     }
     
     private SkillSet GenerateSkills(int experience)
     {
         var skillSet = new SkillSet();
-        
-        // Always add some common skills
         var commonSkills = SkillExtensions.GetAllValues<CommonSkill>();
         var numCommonSkills = Math.Min(random.Next(3, 7), commonSkills.Length);
         var selectedCommonSkills = commonSkills
@@ -104,15 +100,12 @@ public class GenerateEmployment
                     break;
             }
         }
-        
         return skillSet;
     }
     
     public float GenerateDesiredSalary(int yearsOfExperience, JobPosting jobPosting)
     {
-        // Base salary expectation on experience and job level
-        var experienceMultiplier = 1.0f + (yearsOfExperience * 0.05); // 5% per year of experience
-        
+        var experienceMultiplier = 1.0f + (yearsOfExperience * 0.05);
         var baseSalary = jobPosting.Level switch
         {
             JobLevel.Entry => 30000,
@@ -127,17 +120,11 @@ public class GenerateEmployment
         };
         
         var expectedSalary = baseSalary * experienceMultiplier;
-        
-        // Add some randomness (±20%)
-        var variation = random.NextSingle() * 0.4 + 0.8; // 0.8 to 1.2
+        var variation = random.NextSingle() * 0.4 + 0.8;
         expectedSalary *= variation;
-        
-        // Ensure it's within a reasonable range of the job posting
         var minAcceptable = jobPosting.SalaryMin * 0.8f;
         var maxReasonable = jobPosting.SalaryMax * 1.3f;
-        
         expectedSalary = Math.Max(minAcceptable, Math.Min(maxReasonable, expectedSalary));
-        
         return Convert.ToSingle(Math.Round(expectedSalary, 0));
     }
     

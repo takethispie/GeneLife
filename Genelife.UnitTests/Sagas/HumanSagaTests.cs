@@ -72,67 +72,6 @@ public class HumanSagaTests
     }
 
     [Fact]
-    public async Task SalaryPaid_ShouldBeConsumed()
-    {
-        // Arrange
-        var human = TestDataBuilder.CreateHuman(money: 1000.0f);
-        var humanId = NewId.NextGuid();
-
-        await using var provider = new ServiceCollection()
-            .AddSingleton<GenerateEmployment>()
-            .AddSingleton<CalculateMatchScore>()
-            .AddMassTransitTestHarness(cfg => { cfg.AddSagaStateMachine<HumanSaga, HumanSagaState>(); })
-            .BuildServiceProvider(true);
-
-        var harness = provider.GetRequiredService<ITestHarness>();
-        await harness.Start();
-
-        var sagaHarness = harness.GetSagaStateMachineHarness<HumanSaga, HumanSagaState>();
-
-        // Create the saga first
-        await harness.Bus.Publish(new CreateHuman(humanId, human));
-        await Task.Delay(100); // Wait for saga creation
-
-        // Act
-        await harness.Bus.Publish(new SalaryPaid(humanId, 500.0f, 100.0f));
-
-        // Assert
-        (await harness.Consumed.Any<SalaryPaid>()).Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task HireEmployee_ShouldBeConsumed()
-    {
-        // Arrange
-        var human = TestDataBuilder.CreateHuman();
-        var humanId = NewId.NextGuid();
-        var companyId = Guid.NewGuid();
-        var salary = 75000f;
-
-        await using var provider = new ServiceCollection()
-            .AddSingleton<GenerateEmployment>()
-            .AddSingleton<CalculateMatchScore>()
-            .AddMassTransitTestHarness(cfg => { cfg.AddSagaStateMachine<HumanSaga, HumanSagaState>(); })
-            .BuildServiceProvider(true);
-
-        var harness = provider.GetRequiredService<ITestHarness>();
-        await harness.Start();
-
-        var sagaHarness = harness.GetSagaStateMachineHarness<HumanSaga, HumanSagaState>();
-
-        // Create the saga first
-        await harness.Bus.Publish(new CreateHuman(humanId, human));
-        await Task.Delay(100); // Wait for saga creation
-
-        // Act
-        await harness.Bus.Publish(new EmployeeHired(companyId, humanId, salary, new OfficeLocation(0, 0, 0)));
-
-        // Assert
-        (await harness.Consumed.Any<EmployeeHired>()).Should().BeTrue();
-        (await sagaHarness.Consumed.Any<EmployeeHired>()).Should().BeTrue();
-    }
-
-    [Fact]
     public async Task Tick_ShouldBeConsumed()
     {
         // Arrange

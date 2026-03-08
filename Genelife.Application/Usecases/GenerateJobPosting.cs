@@ -1,5 +1,6 @@
 using Genelife.Domain;
 using Genelife.Domain.Work;
+using Genelife.Domain.Work.Job;
 using Genelife.Domain.Work.Skills;
 
 namespace Genelife.Application.Usecases;
@@ -42,7 +43,7 @@ public class GenerateJobPosting
         }
     };
     
-    public JobPosting GenerateForCompany(Guid companyId, CompanyType companyType, JobLevel level, int positionsNeeded, OfficeLocation officeLocation)
+    public JobPosting GenerateForCompany(Guid companyId, CompanyType companyType, JobLevel level, int positionsNeeded, Position officeLocation)
     {
         var titles = jobTitlesByType.GetValueOrDefault(companyType, jobTitlesByType[CompanyType.Services]);
         var title = titles[random.Next(titles.Count)];

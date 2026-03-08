@@ -11,8 +11,9 @@ public class ShowerTests
     [Fact]
     public void Shower_ShouldRestoreHygieneToFull()
     {
+        var now = DateTime.UtcNow;
         var human = TestDataBuilder.CreateHuman(hygiene: 40.0f);
-        var shower = new Shower();
+        var shower = new Shower(now);
 
         human.Do(shower);
 
@@ -26,8 +27,9 @@ public class ShowerTests
     [Fact]
     public void Shower_ShouldWorkWithZeroHygiene()
     {
+        var now = DateTime.UtcNow;
         var human = TestDataBuilder.CreateHuman(hygiene: 0.0f);
-        var shower = new Shower();
+        var shower = new Shower(now);
 
         human.Do(shower);
 
@@ -37,8 +39,9 @@ public class ShowerTests
     [Fact]
     public void Shower_ShouldWorkWithFullHygiene()
     {
+        var now = DateTime.UtcNow;
         var human = TestDataBuilder.CreateHuman(hygiene: 100.0f);
-        var shower = new Shower();
+        var shower = new Shower(now);
 
         human.Do(shower);
 
