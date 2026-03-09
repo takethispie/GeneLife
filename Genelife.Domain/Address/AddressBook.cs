@@ -58,4 +58,10 @@ public class AddressBook
         var coordinates = new AddressCoordinates(x, y, z);
         Add(new AddressEntry(AddressType.Store, id, coordinates));
     }
+    
+    public Guid NearestBuildingId(AddressType type, Position coordinates)
+    {
+        var res = NearestOfAddressType(type, coordinates.X, coordinates.Y, coordinates.Z);
+        return res?.EntityId ?? Guid.Empty;
+    }
 }

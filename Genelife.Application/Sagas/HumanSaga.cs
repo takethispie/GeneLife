@@ -14,10 +14,6 @@ using Genelife.Messages.Events.Grocery;
 using Genelife.Messages.Events.Locomotion;
 using MassTransit;
 using Serilog;
-using SetEnergy = Genelife.Messages.Commands.SetEnergy;
-using SetHunger = Genelife.Messages.Commands.SetHunger;
-using SetHygiene = Genelife.Messages.Commands.SetHygiene;
-using SetMoney = Genelife.Messages.Commands.SetMoney;
 
 namespace Genelife.Application.Sagas;
 
@@ -173,7 +169,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                     case Drink when bc.Saga.Person.FoodItemCount <= 0:
                     {
                         Log.Information("{sagaCorrelationId} doesnt have food or drink, going to the grocery store", bc.Saga.CorrelationId);
-                        var storeId = bc.Saga.Person.NearestBuildingId(AddressType.Store);
+                        var storeId = bc.Saga.Person.AddressBook.NearestBuildingId(AddressType.Store, bc.Saga.Person.Coordinates);
                         if (storeId == Guid.Empty) break;
                         bc.Publish(new GoToGroceryStore(storeId, bc.Saga.CorrelationId));
                         bc.Saga.LastTime = DateTime.UtcNow;

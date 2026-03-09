@@ -63,8 +63,17 @@ public sealed class Person(
         return 100;
     }
 
-    public void BuyDrink(int amount) => DrinkItemCount += amount;
-    public void BuyFood(int amount) => FoodItemCount += amount;
+    public void BuyDrink(int amount)
+    {
+        Money -= amount;
+        DrinkItemCount += amount;
+    }
+
+    public void BuyFood(int amount)
+    {
+        Money -= amount;
+        FoodItemCount += amount;
+    }
 
     public void Execute(ICheat cheat)
     {
@@ -128,10 +137,16 @@ public sealed class Person(
         };
     }
 
-    public Guid NearestBuildingId(AddressType type)
+    public int GetFoodBudget()
     {
-        var res = AddressBook.NearestOfAddressType(type, Coordinates.X, Coordinates.Y, Coordinates.Z);
-        return res?.EntityId ?? Guid.Empty;
+        var onePercent = money / 100;
+        return Math.Max(Convert.ToInt32(onePercent * 10), 1000);
+    }
+    
+    public int GetDrinkBudget()
+    {
+        var onePercent = money / 100;
+        return Math.Max(Convert.ToInt32(onePercent * 5), 400);
     }
     
     public void SetPosition(Position pos) => Coordinates = pos;
