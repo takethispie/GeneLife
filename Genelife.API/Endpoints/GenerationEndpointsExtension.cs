@@ -1,5 +1,5 @@
 ﻿using System.Numerics;
-using Genelife.Application.Generators;
+using Genelife.Application.Usecases;
 using Genelife.Domain;
 using Genelife.Domain.Work;
 using Genelife.Domain.Work.Skills;

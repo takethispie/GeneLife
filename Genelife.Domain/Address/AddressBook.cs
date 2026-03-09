@@ -44,7 +44,7 @@ public class AddressBook
     public void AddWorkAddress(float x, float y, float z, Guid id)
     {
         var coordinates = new AddressCoordinates(x, y, z);
-        Add(new AddressEntry(AddressType.Store, id, coordinates));
+        Add(new AddressEntry(AddressType.Office, id, coordinates));
     }
     
     public void AddHomeAddress(float x, float y, float z, Guid id)

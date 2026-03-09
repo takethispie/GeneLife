@@ -1,5 +1,3 @@
-using Genelife.Domain;
-using Genelife.Domain.Work;
 using Genelife.Domain.Work.Job;
 using Genelife.Domain.Work.Skills;
 

@@ -1,5 +1,5 @@
 using FluentAssertions;
-using Genelife.Application.Generators;
+using Genelife.Application.Usecases;
 using Genelife.Domain;
 using Genelife.Domain.Work;
 
@@ -25,7 +25,7 @@ public class CompanyGeneratorTests
     {
         var company = CompanyGenerator.Generate(CompanyType.Technology);
         company.Type.Should().Be(CompanyType.Technology);
-        company.Revenue.Should().BeInRange(50000, 200000);
+        company.Accounting.Revenue.Should().BeInRange(50000, 200000);
     }
 
     [Fact]
@@ -33,6 +33,6 @@ public class CompanyGeneratorTests
     {
         var company = CompanyGenerator.Generate(CompanyType.Healthcare);
         company.Type.Should().Be(CompanyType.Healthcare);
-        company.Revenue.Should().BeInRange(60000, 250000);
+        company.Accounting.Revenue.Should().BeInRange(60000, 250000);
     }
 }

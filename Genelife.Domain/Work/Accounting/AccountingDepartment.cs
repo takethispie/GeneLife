@@ -2,7 +2,7 @@
 
 namespace Genelife.Domain.Work.Accounting;
 
-public class Accounting(float revenue, float taxRate)
+public class AccountingDepartment(float revenue, float taxRate)
 {
     public float Revenue { get; private set; } = revenue;
     public float TaxRate { get; private set; } = taxRate;

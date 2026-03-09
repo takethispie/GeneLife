@@ -50,16 +50,16 @@ public class GenerateJobPosting
         var (salaryMin, salaryMax) = GenerateSalaryRange(companyType, level);
 
         return new JobPosting(
-            CompanyId: companyId,
-            Title: title,
-            SalaryMin: salaryMin,
-            SalaryMax: salaryMax,
-            CompanyType: companyType,
-            Level: level,
+            companyId: companyId,
+            title: title,
+            salaryMin: salaryMin,
+            salaryMax: salaryMax,
+            companyType: companyType,
+            level: level,
             // TODO add real skillset requirements
             new SkillSet(),
             officeLocation,
-            MaxApplications: Math.Min(100, positionsNeeded * 20)
+            maxApplications: Math.Min(100, positionsNeeded * 20)
         );
     }
     

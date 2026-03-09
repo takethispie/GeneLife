@@ -88,7 +88,7 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                         .ThenBy(app => app.RequestedSalary)
                         .ToList();
                 if (rankedApplications is not [{ MatchScore: >= 0.6f } top, ..]) return;
-                var salary = new CalculateOfferSalary().Execute(context.Saga.JobPosting, top);
+                var salary = context.Saga.JobPosting.CalculateSalaryOffer(top);
                 Log.Information($"sending offer to top candidate for {context.Saga.JobPosting.Title}: " +
                                 $"{top.HumanId} (Score: {top.MatchScore:F2})");
                 context.Publish(new Recruit(top.HumanId, context.Saga.CorrelationId, context.Saga.JobPosting, salary));

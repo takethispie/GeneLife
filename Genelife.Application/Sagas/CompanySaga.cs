@@ -104,7 +104,7 @@ public class CompanySaga :
             "Company {CompanyName}: Productivity {AverageProductivity:F2}, New Revenue {RevenueChange:C}",
             Company.Name, 
             Company.AverageProductivity, 
-            Company.Revenue
+            Company.Accounting.Revenue
         );
 
         var postings =

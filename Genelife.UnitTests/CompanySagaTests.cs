@@ -3,7 +3,6 @@ using FluentAssertions;
 using Genelife.Application.Sagas;
 using Genelife.Application.Usecases;
 using Genelife.Domain;
-using Genelife.Domain.Work;
 using Genelife.Messages.Events.Clock;
 using Genelife.Messages.Events.Company;
 using Genelife.UnitTests.TestData;
@@ -22,7 +21,6 @@ public class CompanySagaTests
         var company = TestDataBuilder.CreateCompany();
 
         await using var provider = new ServiceCollection()
-            .AddSingleton<EvaluateHiring>()
             .AddSingleton<GenerateJobPosting>()
             .AddMassTransitTestHarness(cfg => { cfg.AddSaga<CompanySaga>(); })
             .BuildServiceProvider(true);
@@ -49,7 +47,6 @@ public class CompanySagaTests
         var company = TestDataBuilder.CreateCompany();
 
         await using var provider = new ServiceCollection()
-            .AddSingleton<EvaluateHiring>()
             .AddSingleton<GenerateJobPosting>()
             .AddMassTransitTestHarness(cfg => { cfg.AddSaga<CompanySaga>(); })
             .BuildServiceProvider(true);
@@ -80,7 +77,6 @@ public class CompanySagaTests
         var salary = 75000f;
 
         await using var provider = new ServiceCollection()
-            .AddSingleton<EvaluateHiring>()
             .AddSingleton<GenerateJobPosting>()
             .AddMassTransitTestHarness(cfg => { cfg.AddSaga<CompanySaga>(); })
             .BuildServiceProvider(true);
@@ -111,7 +107,6 @@ public class CompanySagaTests
         var humanId = Guid.NewGuid();
 
         await using var provider = new ServiceCollection()
-            .AddSingleton<EvaluateHiring>()
             .AddSingleton<GenerateJobPosting>()
             .AddMassTransitTestHarness(cfg => { cfg.AddSaga<CompanySaga>(); })
             .BuildServiceProvider(true);

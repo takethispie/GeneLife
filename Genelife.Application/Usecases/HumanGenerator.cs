@@ -1,9 +1,8 @@
-using System.Numerics;
 using Bogus.DataSets;
 using Genelife.Domain;
 using Genelife.Domain.Human;
 
-namespace Genelife.Application.Generators;
+namespace Genelife.Application.Usecases;
 
 public static class HumanGenerator {
     public static Person Build(Sex sex, int age = 18) {

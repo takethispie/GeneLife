@@ -37,7 +37,6 @@ public static class BuildingEndpointsExtension
         app.MapPost("/create/grocery-store", async ([FromBody] CreateGroceryStoreRequest request, [FromServices] IPublishEndpoint endpoint) =>
             {
                 var groceryStoreId = Guid.NewGuid();
-    
                 await endpoint.Publish(new GroceryStoreBuilt(
                     groceryStoreId,
                     request.X,

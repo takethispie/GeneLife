@@ -2,7 +2,7 @@ using Genelife.Domain.Work.Employee;
 using Genelife.Domain.Work.Job;
 using Genelife.Domain.Work.Skills;
 
-namespace Genelife.Application.Generators;
+namespace Genelife.Application.Usecases;
 
 public class GenerateEmployment
 {
@@ -126,19 +126,5 @@ public class GenerateEmployment
         var maxReasonable = jobPosting.SalaryMax * 1.3f;
         expectedSalary = Math.Max(minAcceptable, Math.Min(maxReasonable, expectedSalary));
         return Convert.ToSingle(Math.Round(expectedSalary, 0));
-    }
-    
-    public string GenerateCoverLetter(string firstName, string lastName, Employment employmentProfile, JobPosting jobPosting)
-    {
-        var templates = new[]
-        {
-            $"Dear Hiring Manager, I am {firstName} {lastName} and I am very interested in the {jobPosting.Title} position. With {employmentProfile.YearsOfExperience} years of experience, I believe I would be a valuable addition to your team.",
-            $"Hello, I would like to apply for the {jobPosting.Title} role. My {employmentProfile.YearsOfExperience} years of experience and relevant skills make me excited about this opportunity.",
-            $"Dear Sir/Madam, Please consider my application for the {jobPosting.Title} position. I am passionate about this field and have {employmentProfile.YearsOfExperience} years of relevant experience.",
-            $"To whom it may concern, I am writing to express my interest in the {jobPosting.Title} role. My background and {employmentProfile.YearsOfExperience} years of experience align well with your requirements.",
-            $"Dear Hiring Team, I am excited to apply for the {jobPosting.Title} position. With my skills and {employmentProfile.YearsOfExperience} years of experience, I would welcome the opportunity to contribute to your organization."
-        };
-        
-        return templates[random.Next(templates.Length)];
     }
 }

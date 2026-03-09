@@ -2,6 +2,7 @@
 using Genelife.API.DTOs;
 using Genelife.Domain;
 using Genelife.Domain.Work;
+using Genelife.Domain.Work.Accounting;
 using Genelife.Domain.Work.Job;
 using Genelife.Messages.Commands.Company;
 using Genelife.Messages.Commands.Jobs;
@@ -15,15 +16,14 @@ public static class CompanyEndpointsExtension
 {
     public static void UseCompanyEndpoints(this WebApplication app)
     {
-        app.MapPost("/create/company/{type}", async (CompanyType type, Guid officeId, [FromServices] IPublishEndpoint endpoint) =>
+        app.MapPost("/create/company/{type}", async (CompanyType type, [FromServices] IPublishEndpoint endpoint) =>
             {
                 var companyId = Guid.NewGuid();
                 var company = new Company(
                     Guid.NewGuid(),
-                    name: $"{type} Corp {Random.Shared.Next(1000, 9999)}",
-                    revenue: 50000 + Random.Shared.NextSingle() * 100000,
-                    taxRate: 0.25f,
-                    type: type
+                    $"{type} Corp {Random.Shared.Next(1000, 9999)}",
+                    new AccountingDepartment(50000 + Random.Shared.NextSingle() * 100000,0.25f),
+                    type
                 );
     
                 var officeLocation = new Vector3(

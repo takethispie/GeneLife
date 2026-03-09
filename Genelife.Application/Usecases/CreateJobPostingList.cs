@@ -9,7 +9,7 @@ namespace Genelife.Application.Usecases;
 public class CreateJobPostingList {
     public List<CreateJobPosting> Execute(Company company, int? publishedJobPostings, Guid correlationId, Position officeLocation) {
         var postings = new List<CreateJobPosting>();
-        var positionsNeeded = new EvaluateHiring().Execute(company);
+        var positionsNeeded = company.GetHiringPotential();
         if (positionsNeeded == 0 || publishedJobPostings is > 0)
             return postings;
         for (var i = 0; i < positionsNeeded; i++) {

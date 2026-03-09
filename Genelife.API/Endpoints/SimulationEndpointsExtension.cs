@@ -1,5 +1,6 @@
 ﻿using Genelife.Messages.Commands.Clock;
 using MassTransit;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Genelife.API.Endpoints;
@@ -20,8 +21,11 @@ public static class SimulationEndpointsExtension
             .WithName("simulation Stop");
 
 
-        app.MapGet("/simulation/setClockSpeed/{milliseconds}", async (int milliseconds, [FromServices] IPublishEndpoint endpoint) => {
-                await endpoint.Publish(new SetClockSpeed(milliseconds));
+        app.MapGet("/simulation/setClockSpeed/{seconds:int}", async (int seconds, [FromServices] IPublishEndpoint endpoint) =>
+            {
+                if (seconds >= 0) return Results.BadRequest("Should be greater than 0");
+                await endpoint.Publish(new SetClockSpeed(seconds));
+                return Results.Ok();
             })
             .WithName("set Clock Speed");
     }

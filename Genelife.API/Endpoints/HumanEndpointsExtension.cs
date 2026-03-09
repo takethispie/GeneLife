@@ -1,4 +1,4 @@
-﻿using Genelife.Application.Generators;
+﻿using Genelife.Application.Usecases;
 using Genelife.Domain;
 using Genelife.Messages.Commands;
 using MassTransit;
@@ -17,8 +17,9 @@ public static class HumanEndpointsExtension
             .WithName("create Human");
 
 
-        app.MapPost("/create/human/{count}/{sex}", async (int count, Sex sex, [FromServices] IPublishEndpoint endpoint) =>
+        app.MapPost("/create/human/{count:int}/{sex}", async (int count, Sex sex, [FromServices] IPublishEndpoint endpoint) =>
             {
+                if(count <= 0) return Results.BadRequest("human count Should be greater than 0");
                 var results = new List<object>();
     
                 for (int i = 0; i < count; i++)

@@ -2,6 +2,7 @@ using Bogus;
 using Genelife.Domain;
 using Genelife.Domain.Human;
 using Genelife.Domain.Work;
+using Genelife.Domain.Work.Accounting;
 using Genelife.Domain.Work.Employee;
 using Genelife.Domain.Work.Job;
 using Genelife.Domain.Work.Skills;
@@ -50,10 +51,12 @@ public static class TestDataBuilder
         int? maxEmployees = null)
     {
         return new Company(
-            companyId  ?? Guid.NewGuid(),
+            companyId ?? Guid.NewGuid(),
             name ?? faker.Company.CompanyName(),
-            revenue ?? faker.Random.Float(100000f, 10000000f),
-            taxRate ?? faker.Random.Float(0.15f, 0.35f),
+            new AccountingDepartment(
+                revenue ?? faker.Random.Float(100000f, 10000000f),
+                taxRate ?? faker.Random.Float(0.15f, 0.35f)
+            ),
             type ?? faker.PickRandom<CompanyType>()
         );
     }

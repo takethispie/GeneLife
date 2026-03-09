@@ -1,7 +1,7 @@
-using Genelife.Domain;
 using Genelife.Domain.Work;
+using Genelife.Domain.Work.Accounting;
 
-namespace Genelife.Application.Generators;
+namespace Genelife.Application.Usecases;
 
 public static class CompanyGenerator
 {
@@ -61,7 +61,7 @@ public static class CompanyGenerator
         };
 
         var taxRate = Convert.ToSingle(random.NextDouble() * 0.15 + 0.10);
-        var company = new Company(Guid.NewGuid(), name, baseRevenue, taxRate, type);
+        var company = new Company(Guid.NewGuid(), name, new AccountingDepartment(baseRevenue, taxRate), type);
         return company;
     }
 }
