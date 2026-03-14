@@ -6,7 +6,7 @@ using OneOf;
 
 namespace Genelife.Domain.Human;
 
-public sealed class Person(
+public class Person(
     Guid id,
     string firstName,
     string lastName,
@@ -14,6 +14,7 @@ public sealed class Person(
     Sex sex,
     LifeSkillSet lifeSkillSet,
     Position coordinates,
+    AddressBook addressBook,
     float money,
     float hunger = 100,
     float energy = 100,
@@ -22,10 +23,10 @@ public sealed class Person(
 )
 {
     public Guid Id { get; init; } = id;
-    public string FirstName { get; private set; } = firstName;
-    public string LastName { get; private set; } = lastName;
+    public string FirstName { get; init; } = firstName;
+    public string LastName { get; init; } = lastName;
     public DateTime Birthday { get; private set; } = birthday;
-    public Sex Sex { get; private set; } = sex;
+    public Sex Sex { get; init; } = sex;
     public LifeSkillSet LifeSkillSet { get; private set; } = lifeSkillSet;
     public Position Coordinates { get; private set; } = coordinates;
     public float Money { get; set; } = money;
@@ -33,9 +34,9 @@ public sealed class Person(
     public float Energy { get; private set; } = energy;
     public float Hygiene { get; private set; } = hygiene;
     public float Thirst { get; private set; } = thirst;
-    public AddressBook  AddressBook { get; } = new AddressBook();
-    public int FoodItemCount { get; private set; } = 0;
-    public int DrinkItemCount { get; private set; } = 0;
+    public AddressBook  AddressBook { get; init; } = addressBook;
+    public int FoodItemCount { get; private set; }
+    public int DrinkItemCount { get; private set; }
 
     public void Do(IBeingActivity activity)
     {
@@ -139,13 +140,13 @@ public sealed class Person(
 
     public int GetFoodBudget()
     {
-        var onePercent = money / 100;
+        var onePercent = Money / 100;
         return Math.Max(Convert.ToInt32(onePercent * 10), 1000);
     }
     
     public int GetDrinkBudget()
     {
-        var onePercent = money / 100;
+        var onePercent = Money / 100;
         return Math.Max(Convert.ToInt32(onePercent * 5), 400);
     }
     

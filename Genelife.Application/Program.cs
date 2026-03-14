@@ -60,27 +60,63 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
                 x.AddSagaStateMachine<HumanSaga, HumanSagaState>(so => 
                 {
                     so.UsePartitioner(20, ctx => ctx.CorrelationId ?? Guid.Empty);
-                }).InMemoryRepository();
+                    so.ConcurrentMessageLimit = 1;
+                }).MongoDbRepository(r =>
+                {
+                    r.Connection = "mongodb://root:example@mongo:27017/";
+                    r.DatabaseName = "maindb";
+                });
+                
                 x.AddSaga<HouseSaga>(so =>
                 {
                     so.UsePartitioner(20, ctx => ctx.CorrelationId ?? Guid.Empty);
-                }).InMemoryRepository();
+                    so.ConcurrentMessageLimit = 1;
+                }).MongoDbRepository(r =>
+                {
+                    r.Connection = "mongodb://root:example@mongo:27017/";
+                    r.DatabaseName = "maindb";
+                });
+                
                 x.AddSaga<GroceryStoreSaga>(so => 
                 {
                     so.UsePartitioner(20, ctx => ctx.CorrelationId ?? Guid.Empty);
-                }).InMemoryRepository();
+                    so.ConcurrentMessageLimit = 1;
+                }).MongoDbRepository(r =>
+                {
+                    r.Connection = "mongodb://root:example@mongo:27017/";
+                    r.DatabaseName = "maindb";
+                });
+                
                 x.AddSaga<CompanySaga>(so =>
                 {
                     so.UsePartitioner(20, ctx => ctx.CorrelationId ?? Guid.Empty);
-                }).InMemoryRepository();
+                    so.ConcurrentMessageLimit = 1;
+                }).MongoDbRepository(r =>
+                {
+                    r.Connection = "mongodb://root:example@mongo:27017/";
+                    r.DatabaseName = "maindb";
+                });
+                
                 x.AddSagaStateMachine<JobPostingSaga, JobPostingSagaState>(so =>
                 {
                     so.UsePartitioner(20, ctx => ctx.CorrelationId ?? Guid.Empty);
-                }).InMemoryRepository();
+                    so.ConcurrentMessageLimit = 1;
+                }).MongoDbRepository(r =>
+                {
+                    r.Connection = "mongodb://root:example@mongo:27017/";
+                    r.DatabaseName = "maindb";
+                });
+                
                 x.AddSagaStateMachine<WorkerSaga, WorkerSagaState>(so =>
                 {
                     so.UsePartitioner(20, ctx => ctx.CorrelationId ?? Guid.Empty);
-                }).InMemoryRepository();
+                    so.ConcurrentMessageLimit = 1;
+                }).MongoDbRepository(r =>
+                {
+                    r.Connection = "mongodb://root:example@mongo:27017/";
+                    r.DatabaseName = "maindb";
+                });
+                
                 x.AddSagas(entryAssembly);
                 x.AddActivities(entryAssembly);
 

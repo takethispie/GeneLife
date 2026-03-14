@@ -8,7 +8,7 @@ public static class HumanGenerator {
     public static Person Build(Sex sex, int age = 18) {
         var nameGenerator = new Name();
         var gender = sex == Sex.Male ? Name.Gender.Male : Name.Gender.Female;
-        
+
         return new(
             Guid.NewGuid(),
             nameGenerator.FirstName(gender),
@@ -17,6 +17,7 @@ public static class HumanGenerator {
             sex,
             new LifeSkillSet(),
             new Position(0, 0, 0),
+            new(),
             20000
         );
     }

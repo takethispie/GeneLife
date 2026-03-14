@@ -5,9 +5,9 @@ namespace Genelife.Domain.Address;
 
 public class AddressBook
 {
-    public List<AddressEntry> Addresses = [];
+    public List<AddressEntry> Addresses { get; init; } = [];
 
-    public void Add(AddressEntry entry)
+    private void Add(AddressEntry entry)
     {
         //TODO checks for type that should have only one address (like own home)
         if (Addresses.Any(address => address.EntityId == entry.EntityId)) return;

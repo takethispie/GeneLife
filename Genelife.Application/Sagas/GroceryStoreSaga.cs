@@ -22,14 +22,14 @@ public class GroceryStoreSaga :
     Observes<DiscoverGroceryStores, GroceryStoreSaga>
 {
     public Guid CorrelationId { get; set; }
-    private GroceryStore store { get; set; }
+    public GroceryStore Store { get; set; }
     public int Version { get; set; }
 
     public Expression<Func<GroceryStoreSaga, DiscoverGroceryStores, bool>> CorrelationExpression => (saga, message) => true;
 
     public async Task Consume(ConsumeContext<GroceryStoreBuilt> context)
     {
-        store = new GroceryStore(
+        Store = new GroceryStore(
             context.CorrelationId ??  Guid.NewGuid(), 
             new(context.Message.X, context.Message.Y, context.Message.Z),
             context.Message.FoodPrice,
@@ -45,7 +45,7 @@ public class GroceryStoreSaga :
 
     public async Task Consume(ConsumeContext<GoToGroceryStore> context)
     {
-        store.CustomerEnters(context.Message.HumanId);
+        Store.CustomerEnters(context.Message.HumanId);
         await context.Publish(new EnteredGroceryStore(context.Message.HumanId, CorrelationId));
         Log.Information("Customer {CustomerId} entered grocery store {StoreId}",
             context.Message.HumanId, CorrelationId);
@@ -53,7 +53,7 @@ public class GroceryStoreSaga :
 
     public async Task Consume(ConsumeContext<LeaveGroceryStore> context)
     {
-        store.CustomerLeaves(context.Message.HumanId);
+        Store.CustomerLeaves(context.Message.HumanId);
         await context.Publish(new LeftGroceryStore(context.Message.HumanId, CorrelationId));
         Log.Information("Customer {CustomerId} left grocery store {StoreId}",
             context.Message.HumanId, CorrelationId);
@@ -61,14 +61,14 @@ public class GroceryStoreSaga :
 
     public async Task Consume(ConsumeContext<BuyFood> context)
     {
-        if (!store.BuyFood(context.Message.HumanId)) return;
-        await context.Publish(new FoodPurchased(context.Message.HumanId, CorrelationId, store.FoodPrice));
+        if (!Store.BuyFood(context.Message.HumanId)) return;
+        await context.Publish(new FoodPurchased(context.Message.HumanId, CorrelationId, Store.FoodPrice));
     }
 
     public async Task Consume(ConsumeContext<BuyDrink> context)
     {
-        if (!store.BuyDrink(context.Message.HumanId)) return;
-        await context.Publish(new DrinkPurchased(context.Message.HumanId, CorrelationId, store.DrinkPrice));
+        if (!Store.BuyDrink(context.Message.HumanId)) return;
+        await context.Publish(new DrinkPurchased(context.Message.HumanId, CorrelationId, Store.DrinkPrice));
     }
 
     public async Task Consume(ConsumeContext<DiscoverGroceryStores> context)
@@ -76,9 +76,9 @@ public class GroceryStoreSaga :
         await context.Publish(new AddGroceryStoreAddress(
             context.Message.HumanId,
             CorrelationId,
-            store.Position.X,
-            store.Position.Y,
-            store.Position.Z
+            Store.Position.X,
+            Store.Position.Y,
+            Store.Position.Z
         ));
         Log.Information("Grocery store {StoreId} responded to discovery request from human {HumanId}",
             CorrelationId, context.Message.HumanId);
