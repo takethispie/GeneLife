@@ -10,6 +10,7 @@ using Genelife.Application.Sagas;
 using Genelife.Application.Sagas.States;
 using Genelife.Application.Services;
 using Genelife.Domain.Activities;
+using Genelife.Domain.Human.Activities;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
@@ -58,27 +59,27 @@ static IHostBuilder CreateHostBuilder(string[] args) =>
                 x.AddConsumers(entryAssembly);
                 x.AddSagaStateMachine<HumanSaga, HumanSagaState>(so => 
                 {
-                    so.UsePartitioner(8, ctx => ctx.CorrelationId ?? Guid.Empty);
+                    so.UsePartitioner(20, ctx => ctx.CorrelationId ?? Guid.Empty);
                 }).InMemoryRepository();
                 x.AddSaga<HouseSaga>(so =>
                 {
-                    so.UsePartitioner(8, ctx => ctx.CorrelationId ?? Guid.Empty);
+                    so.UsePartitioner(20, ctx => ctx.CorrelationId ?? Guid.Empty);
                 }).InMemoryRepository();
                 x.AddSaga<GroceryStoreSaga>(so => 
                 {
-                    so.UsePartitioner(8, ctx => ctx.CorrelationId ?? Guid.Empty);
+                    so.UsePartitioner(20, ctx => ctx.CorrelationId ?? Guid.Empty);
                 }).InMemoryRepository();
                 x.AddSaga<CompanySaga>(so =>
                 {
-                    so.UsePartitioner(8, ctx => ctx.CorrelationId ?? Guid.Empty);
+                    so.UsePartitioner(20, ctx => ctx.CorrelationId ?? Guid.Empty);
                 }).InMemoryRepository();
                 x.AddSagaStateMachine<JobPostingSaga, JobPostingSagaState>(so =>
                 {
-                    so.UsePartitioner(8, ctx => ctx.CorrelationId ?? Guid.Empty);
+                    so.UsePartitioner(20, ctx => ctx.CorrelationId ?? Guid.Empty);
                 }).InMemoryRepository();
                 x.AddSagaStateMachine<WorkerSaga, WorkerSagaState>(so =>
                 {
-                    so.UsePartitioner(8, ctx => ctx.CorrelationId ?? Guid.Empty);
+                    so.UsePartitioner(20, ctx => ctx.CorrelationId ?? Guid.Empty);
                 }).InMemoryRepository();
                 x.AddSagas(entryAssembly);
                 x.AddActivities(entryAssembly);

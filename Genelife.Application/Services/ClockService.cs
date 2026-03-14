@@ -5,21 +5,16 @@ using MassTransit;
 namespace Genelife.Application.Services;
 
 public class ClockService {
-    private readonly IServiceProvider _services;
+    private readonly IServiceProvider services;
     private readonly System.Timers.Timer timer;
-    private int ticks;
-    private TimeOnly timeOnly;
-    private DateOnly dateOnly;
+    private DateTime dateTime;
 
     public ClockService(IServiceProvider services) {
-        _services = services;
+        this.services = services;
         timer = new(1000);
         timer.Elapsed += OnTimedEvent!;
         timer.AutoReset = true;
-        ticks = 0;
-        timeOnly = new(0, 0);
-        dateOnly = new(1, 1, 1);
-        
+        dateTime = new DateTime(1, 1, 1, 0, 0, 0);
     }
 
     public void Start() {
@@ -31,21 +26,21 @@ public class ClockService {
     }   
 
     private async void OnTimedEvent(object source, ElapsedEventArgs e) {
-        using var scope = _services.CreateScope();
+        using var scope = services.CreateScope();
         var publishEndpoint = scope.ServiceProvider.GetRequiredService<IPublishEndpoint>();
-        await publishEndpoint.Publish(new Tick(timeOnly.Hour));
-        ticks++;
-        if(ticks < Constants.TickPerHour) return;
-        ticks = 0;
-        await publishEndpoint.Publish(new HourElapsed());
-        timeOnly = timeOnly.AddHours(1);
-        switch (timeOnly.Hour) {
+        var previousDate = dateTime;
+        dateTime = dateTime.AddMinutes(15);
+        await publishEndpoint.Publish(new Tick(dateTime));
+        if(previousDate.AddHours(1) < dateTime) return;
+        await publishEndpoint.Publish(new HourElapsed(new TimeOnly(dateTime.Hour, dateTime.Minute, dateTime.Second)));
+        dateTime = dateTime.AddHours(1);
+        switch (dateTime.Hour) {
             case 12:
                 Console.WriteLine("Noon of current day");
                 break;
             case 0:
                 Console.WriteLine("1 day went by");
-                await publishEndpoint.Publish(new DayElapsed(dateOnly));
+                await publishEndpoint.Publish(new DayElapsed(new DateTime(dateTime.Year, dateTime.Month, dateTime.Day)));
                 break;
         }
     }

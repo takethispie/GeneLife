@@ -1,5 +1,6 @@
 using Genelife.Domain;
 using Genelife.Domain.Work;
+using Genelife.Domain.Work.Job;
 using Genelife.Domain.Work.Skills;
 
 namespace Genelife.Application.Usecases;
@@ -8,7 +9,7 @@ public class GenerateJobPosting
 {
     private readonly Random random = new();
     
-    private static readonly Dictionary<CompanyType, List<string>> JobTitlesByType = new()
+    private static readonly Dictionary<CompanyType, List<string>> jobTitlesByType = new()
     {
         [CompanyType.Technology] = new List<string>
         {
@@ -42,23 +43,23 @@ public class GenerateJobPosting
         }
     };
     
-    public JobPosting GenerateForCompany(Guid companyId, CompanyType companyType, JobLevel level, int positionsNeeded, OfficeLocation officeLocation)
+    public JobPosting GenerateForCompany(Guid companyId, CompanyType companyType, JobLevel level, int positionsNeeded, Position officeLocation)
     {
-        var titles = JobTitlesByType.GetValueOrDefault(companyType, JobTitlesByType[CompanyType.Services]);
+        var titles = jobTitlesByType.GetValueOrDefault(companyType, jobTitlesByType[CompanyType.Services]);
         var title = titles[random.Next(titles.Count)];
         var (salaryMin, salaryMax) = GenerateSalaryRange(companyType, level);
 
         return new JobPosting(
-            CompanyId: companyId,
-            Title: title,
-            SalaryMin: salaryMin,
-            SalaryMax: salaryMax,
-            CompanyType: companyType,
-            Level: level,
+            companyId: companyId,
+            title: title,
+            salaryMin: salaryMin,
+            salaryMax: salaryMax,
+            companyType: companyType,
+            level: level,
             // TODO add real skillset requirements
             new SkillSet(),
             officeLocation,
-            MaxApplications: Math.Min(100, positionsNeeded * 20)
+            maxApplications: Math.Min(100, positionsNeeded * 20)
         );
     }
     

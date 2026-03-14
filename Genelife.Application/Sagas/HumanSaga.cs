@@ -1,9 +1,9 @@
 using Genelife.Application.Sagas.States;
-using Genelife.Application.Usecases;
 using Genelife.Domain;
 using Genelife.Domain.Activities;
 using Genelife.Domain.Address;
-using Genelife.Domain.Address.Exceptions;
+using Genelife.Domain.CheatCodes;
+using Genelife.Domain.Human.Activities;
 using Genelife.Messages.Commands;
 using Genelife.Messages.Commands.Grocery;
 using Genelife.Messages.Commands.Locomotion;
@@ -59,9 +59,8 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         InstanceState(x => x.CurrentState);
         Initially(When(Created).Then(bc =>
         {
-            bc.Saga.Human = bc.Message.Human;
-            bc.Saga.AddressBook = new AddressBook();
-            Log.Information("Created human {HumanFirstName} {HumanLastName} ", bc.Saga.Human.FirstName, bc.Saga.Human.LastName);
+            bc.Saga.Person = bc.Message.Person;
+            Log.Information("Created human {HumanFirstName} {HumanLastName} ", bc.Saga.Person.FirstName, bc.Saga.Person.LastName);
             bc.Publish(new DiscoverGroceryStores(bc.Saga.CorrelationId));
         }).TransitionTo(Idle));
         
@@ -86,19 +85,20 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         Event(() => AddGroceryStoreAddress, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
         
         DuringAny(
-            When(HourElapsed).Then(bc => { bc.Saga.Human = new UpdateNeeds().Execute(bc.Saga.Human); }),
-            When(SetAge).Then(bc => bc.Saga.Human = new ChangeBirthday().Execute(bc.Saga.Human, bc.Message.Value)),
-            When(SetEnergy).Then(bc => bc.Saga.Human = bc.Saga.Human with { Energy = bc.Message.Value }),
-            When(SetHunger).Then(bc => bc.Saga.Human = bc.Saga.Human with { Hunger = bc.Message.Value }),
-            When(SetHygiene).Then(bc => bc.Saga.Human = bc.Saga.Human with { Hygiene = bc.Message.Value }),
-            When(SetMoney).Then(bc => bc.Saga.Human = bc.Saga.Human with { Money = bc.Message.Value }),
+            When(HourElapsed).Then(bc => bc.Saga.Person.Update()),
+            When(SetAge).Then(bc => bc.Saga.Person.Execute(new ChangeBirthday(bc.Message.Value))),
+            When(SetEnergy).Then(bc => bc.Saga.Person.Execute(new ChangeEnergy(bc.Message.Value))),
+            When(SetHunger).Then(bc => bc.Saga.Person.Execute(new ChangeHunger(bc.Message.Value))),
+            When(SetHygiene).Then(bc => bc.Saga.Person.Execute(new ChangeHygiene(bc.Message.Value))),
+            When(SetMoney).Then(bc => bc.Saga.Person.Execute(new ChangeMoney(bc.Message.Value))),
             When(DayElapsed).Then(bc =>
             {
+                bc.Saga.LastTime = bc.Message.DateTime;
                 Log.Information($"{bc.Saga.CorrelationId} " +
-                                $"needs: {Math.Round(bc.Saga.Human.Hunger)} hunger " +
-                                $" {Math.Round(bc.Saga.Human.Energy)} energy " +
-                                $" {Math.Round(bc.Saga.Human.Hygiene)} hygiene " +
-                                $" {bc.Saga.Human.Money} money "
+                                $"needs: {Math.Round(bc.Saga.Person.Hunger)} hunger " +
+                                $" {Math.Round(bc.Saga.Person.Energy)} energy " +
+                                $" {Math.Round(bc.Saga.Person.Hygiene)} hygiene " +
+                                $" {bc.Saga.Person.Money} money "
                 );
             }),
             When(JobStatusChanged).Then(bc =>
@@ -111,78 +111,70 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             }),
             When(AddHomeAddress).Then(bc =>
             {
-                Log.Information("home address added for human {SagaCorrelationId}", bc.Saga.CorrelationId);
-                var coordinates = new AddressCoordinates(
+                bc.Saga.Person.AddressBook.AddHomeAddress(
                     bc.Message.Coordinates.X,
                     bc.Message.Coordinates.Y,
-                    bc.Message.Coordinates.Z
+                    bc.Message.Coordinates.Z,
+                    bc.Message.HomeId
                 );
-                bc.Saga.AddressBook.Add(new AddressEntry(AddressType.Home, bc.Message.HomeId, coordinates));
+                Log.Information("home address added for human {SagaCorrelationId}", bc.Saga.CorrelationId);
             }),
             When(AddWorkAddress).Then(bc =>
             {
-                Log.Information("work address added for human {SagaCorrelationId}", bc.Saga.CorrelationId);
-                var coordinates = new AddressCoordinates(
+                bc.Saga.Person.AddressBook.AddWorkAddress(
                     bc.Message.OfficeLocation.X,
                     bc.Message.OfficeLocation.Y,
-                    bc.Message.OfficeLocation.Z
+                    bc.Message.OfficeLocation.Z,
+                    bc.Message.OfficeId
                 );
-                bc.Saga.AddressBook.Add(new AddressEntry(AddressType.Office, bc.Message.OfficeId, coordinates));
+                Log.Information("work address added for human {SagaCorrelationId}", bc.Saga.CorrelationId);
             }),
-            When(Arrived).Then(bc => bc.Saga.Position = new Position(bc.Message.X, bc.Message.Y, bc.Message.Z)),
+            When(Arrived).Then(bc => bc.Saga.Person.SetPosition(new Position(bc.Message.X, bc.Message.Y, bc.Message.Z))),
             When(GoToWork).Then(OnGoToWork),
             When(LeaveWork).Then(OnLeaveWork),
-            When(GoHome).Then(bc => OnGoHome(bc.Saga.AddressBook, bc, bc.Saga.CorrelationId)),
-            When(AddMoney)
-                .Then(bc => bc.Saga.Human = bc.Saga.Human with {Money = bc.Saga.Human.Money + bc.Message.Amount }),
+            When(GoHome).Then(bc => OnGoHome(bc.Saga.Person.AddressBook, bc, bc.Saga.CorrelationId)),
+            When(AddMoney) .Then(bc => bc.Saga.Person.Money += bc.Message.Amount),
             When(FoodPurchased).Then(bc =>
             {
-                bc.Saga.FoodCount++;
+                bc.Saga.Person.BuyFood(1);
                 Log.Information("Human {HumanId} purchased food. Total food items: {FoodCount}",
-                    bc.Saga.CorrelationId, bc.Saga.FoodCount);
+                    bc.Saga.CorrelationId, bc.Saga.Person.FoodItemCount);
             }),
             When(DrinkPurchased).Then(bc =>
             {
-                bc.Saga.DrinkCount++;
+                bc.Saga.Person.BuyDrink(1);
                 Log.Information("Human {HumanId} purchased drink. Total drink items: {DrinkCount}",
-                    bc.Saga.CorrelationId, bc.Saga.DrinkCount);
+                    bc.Saga.CorrelationId, bc.Saga.Person.DrinkItemCount);
             }),
             When(GroceryStoreAddressAnnounced).Then(bc =>
             {
-                var coordinates = new AddressCoordinates(bc.Message.X, bc.Message.Y, bc.Message.Z);
-                bc.Saga.AddressBook.Add(new AddressEntry(AddressType.Store, bc.Message.GroceryStoreId, coordinates));
+                bc.Saga.Person.AddressBook.AddGroceryStore(bc.Message.X, bc.Message.Y, bc.Message.Z, bc.Message.GroceryStoreId);
                 Log.Information("Human {HumanId} learned about grocery store {StoreId} via announcement",
                     bc.Saga.CorrelationId, bc.Message.GroceryStoreId);
             }),
             When(AddGroceryStoreAddress).Then(bc =>
             {
-                var coordinates = new AddressCoordinates(bc.Message.X, bc.Message.Y, bc.Message.Z);
-                bc.Saga.AddressBook.Add(new AddressEntry(AddressType.Store, bc.Message.GroceryStoreId, coordinates));
+                bc.Saga.Person.AddressBook.AddGroceryStore(bc.Message.X, bc.Message.Y, bc.Message.Z, bc.Message.GroceryStoreId);
                 Log.Information("Human {HumanId} learned about grocery store {StoreId} via discovery",
                     bc.Saga.CorrelationId, bc.Message.GroceryStoreId);
             })
         );
-
         During(Idle, 
             When(UpdateTick).Then(bc =>
             {
-                var activity = new ChooseActivity().Execute(bc.Saga.Human, bc.Message.Hour, bc.Saga.HasJob);
+                var activity = bc.Saga.Person.SelectNextActivity(bc.Message.DateTime, bc.Saga.HasJob);
                 switch (activity)
                 {
-                    case Eat when bc.Saga.FoodCount <= 0:
-                    case Drink when bc.Saga.DrinkCount <= 0:
+                    case Eat when bc.Saga.Person.FoodItemCount <= 0:
+                    case Drink when bc.Saga.Person.FoodItemCount <= 0:
                     {
-                        var storeAddress = bc.Saga.AddressBook.NearestOfAddressType(
-                            AddressType.Store,
-                            bc.Saga.Position.X, bc.Saga.Position.Y, bc.Saga.Position.Z
-                        );
-                        if (storeAddress != null)
-                        {
-                            bc.Publish(new GoToGroceryStore(storeAddress.EntityId, bc.Saga.CorrelationId));
-                            bc.TransitionToState(Shopping);
-                            return;
-                        }
-                        break;
+                        Log.Information("{sagaCorrelationId} doesnt have food or drink, going to the grocery store", bc.Saga.CorrelationId);
+                        var storeId = bc.Saga.Person.AddressBook.NearestBuildingId(AddressType.Store, bc.Saga.Person.Coordinates);
+                        if (storeId == Guid.Empty) break;
+                        bc.Publish(new GoToGroceryStore(storeId, bc.Saga.CorrelationId));
+                        bc.Saga.LastTime = DateTime.UtcNow;
+                        bc.TransitionToState(Shopping);
+                        return;
                     }
                 }
 
@@ -192,36 +184,13 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                     Drink => Drinking,
                     Sleep => Sleeping,
                     Shower => Showering,
-                    Domain.Activities.Work => Working,
+                    Work => Working,
                     _ => Idle
                 };
                 bc.Saga.Activity = activity;
-                
-                switch (activity)
-                {
-                    case Eat when bc.Saga.FoodCount > 0:
-                        bc.Saga.FoodCount--;
-                        bc.Saga.Human = activity.Apply(bc.Saga.Human);
-                        Log.Information("Human {HumanId} consumed food. Remaining food: {FoodCount}",
-                            bc.Saga.CorrelationId, bc.Saga.FoodCount);
-                        break;
-                    
-                    case Drink when bc.Saga.DrinkCount > 0:
-                        bc.Saga.DrinkCount--;
-                        bc.Saga.Human = activity.Apply(bc.Saga.Human);
-                        Log.Information("Human {HumanId} consumed drink. Remaining drinks: {DrinkCount}",
-                            bc.Saga.CorrelationId, bc.Saga.DrinkCount);
-                        break;
-                    
-                    default:
-                        if (activity is not Eat and not Drink)
-                            bc.Saga.Human = activity.Apply(bc.Saga.Human);
-                        break;
-                }
-                
-                if (activity is Domain.Activities.Work)
+                bc.Saga.LastTime = bc.Message.DateTime;
+                if (activity is Work)
                     bc.Publish(new GoToWork(bc.Saga.CorrelationId));
-                    
                 bc.TransitionToState(state);
             })
         );
@@ -229,32 +198,27 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         During(Eating, Drinking, Sleeping, Showering,
             When(UpdateTick).Then(bc =>
             {
-                if (bc.Saga.Activity.TickDuration > 0)
-                {
-                    bc.Saga.Activity.TickDuration -= 1;
+                if (!bc.Saga.Activity.IsCompleted(bc.Message.DateTime))
                     return;
-                }
-
+                bc.Saga.LastTime = bc.Message.DateTime;
+                bc.Saga.Person.Do(bc.Saga.Activity);
                 Log.Information("{SagaCorrelationId} has finished {SagaCurrentState}", bc.Saga.CorrelationId, bc.Saga.CurrentState);
-                bc.Saga.Activity = new Idle();
+                bc.Saga.Activity = new Idle(bc.Message.DateTime);
                 bc.TransitionToState(Idle);
             }),
             Ignore(DayElapsed)
         );
-
         During(Working,
             When(UpdateTick).Then(bc =>
             {
-                if (bc.Saga.Activity.TickDuration > 0)
-                {
-                    bc.Saga.Activity.TickDuration -= 1;
+                if (!bc.Saga.Activity.IsCompleted(bc.Message.DateTime))
                     return;
-                }
-
+                bc.Saga.LastTime = bc.Message.DateTime;
+                bc.Saga.Person.Do(bc.Saga.Activity);
                 Log.Information("{SagaCorrelationId} has finished {SagaCurrentState}", bc.Saga.CorrelationId, bc.Saga.CurrentState);
-                if (bc.Saga.Activity is Domain.Activities.Work { GoHomeWhenFinished: true })
+                if (bc.Saga.Activity is Work)
                     bc.Publish(new LeaveWork(bc.Saga.CorrelationId));
-                bc.Saga.Activity = new Idle();
+                bc.Saga.Activity = new Idle(bc.Message.DateTime);
                 bc.TransitionToState(Idle);
             }),
             Ignore(DayElapsed)
@@ -263,16 +227,16 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         During(Shopping,
             When(EnteredGroceryStore).Then(bc =>
             {
-                if (bc.Saga.FoodCount <= 0)
+                if (bc.Saga.Person.FoodItemCount <= 0)
                     bc.Publish(new BuyFood(bc.Message.GroceryStoreId, bc.Saga.CorrelationId));
-                if (bc.Saga.DrinkCount <= 0)
+                if (bc.Saga.Person.DrinkItemCount <= 0)
                     bc.Publish(new BuyDrink(bc.Message.GroceryStoreId, bc.Saga.CorrelationId));
                 bc.Publish(new LeaveGroceryStore(bc.Message.GroceryStoreId, bc.Saga.CorrelationId));
             }),
             When(LeftGroceryStore).Then(bc =>
             {
                 Log.Information("Human {HumanId} finished shopping and left grocery store", bc.Saga.CorrelationId);
-                bc.Saga.Activity = new Idle();
+                bc.Saga.Activity = new Idle(bc.Saga.LastTime);
             }).TransitionTo(Idle),
             Ignore(UpdateTick)
         );
@@ -280,15 +244,8 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
 
     private static void OnGoToWork(BehaviorContext<HumanSagaState, GoToWork> bc)
     {
-        var workAddress = bc.Saga.AddressBook.AllOfAddressType(AddressType.Office).FirstOrDefault();
-        //TODO use fallback system-wide event with just the human correlationId and no target office
-        if (workAddress is null) 
-            throw new AddressNotFoundException(nameof(workAddress));
-        var homeAddress = bc.Saga.AddressBook
-            .AllOfAddressType(AddressType.Home)
-            .FirstOrDefault();
-        if (homeAddress is null) 
-            throw new AddressNotFoundException(nameof(homeAddress));
+        var workAddress = bc.Saga.Person.AddressBook.GetWorkAddress();
+        var homeAddress = bc.Saga.Person.AddressBook.GetHomeAddress();
         bc.Publish(new LeaveHome(homeAddress.EntityId, bc.Saga.CorrelationId));
         bc.Publish(new EnteredWork(workAddress.EntityId, bc.Saga.CorrelationId));
         Log.Information("{SagaCorrelationId} is going to work at {WorkAddressEntityId}", bc.Saga.CorrelationId, workAddress.EntityId);
@@ -296,24 +253,16 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
 
     private static void OnLeaveWork(BehaviorContext<HumanSagaState, LeaveWork> bc)
     {
-        var workAddress = bc.Saga.AddressBook.AllOfAddressType(AddressType.Office).FirstOrDefault();
-        //TODO use fallback system-wide event with just the human correlationId and no target office
-        if (workAddress is null) 
-            throw new AddressNotFoundException(nameof(workAddress));
+        var workAddress = bc.Saga.Person.AddressBook.GetWorkAddress();
         bc.Publish(new LeftWork(workAddress.EntityId, bc.Saga.CorrelationId));
-        OnGoHome(bc.Saga.AddressBook, bc, bc.Saga.CorrelationId);
+        OnGoHome(bc.Saga.Person.AddressBook, bc, bc.Saga.CorrelationId);
         Log.Information("{SagaCorrelationId} is leaving work at {WorkAddressEntityId}", bc.Saga.CorrelationId, workAddress.EntityId);
     }
 
     private static void OnGoHome(AddressBook addressBook, IPublishEndpoint endpoint, Guid correlationId)
     {
-        var homeAddress = addressBook
-            .AllOfAddressType(AddressType.Home)
-            .FirstOrDefault();
-        if (homeAddress is null) 
-            throw new AddressNotFoundException(nameof(homeAddress));
-        var pos = homeAddress.EntityId;
-        endpoint.Publish(new GoHome(pos, correlationId));
+        var homeAddress = addressBook.GetHomeAddress();
+        endpoint.Publish(new GoHome(homeAddress.EntityId, correlationId));
     }
     
 }

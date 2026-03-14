@@ -4,7 +4,7 @@ public enum HealthcareSkill
 {
     PatientCare,
     MedicalTerminology,
-    HIPAACompliance,
+    HipaaCompliance,
     ElectronicHealthRecords,
     ClinicalSkills,
     MedicalEquipment,

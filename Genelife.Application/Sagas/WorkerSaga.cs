@@ -1,8 +1,8 @@
-using Genelife.Application.Generators;
 using Genelife.Application.Sagas.States;
 using Genelife.Application.Usecases;
 using Genelife.Domain;
 using Genelife.Domain.Work;
+using Genelife.Domain.Work.Job;
 using Genelife.Messages.Commands;
 using Genelife.Messages.Commands.Jobs;
 using Genelife.Messages.Commands.Worker;
@@ -96,7 +96,7 @@ public class WorkerSaga : MassTransitStateMachine<WorkerSagaState>
                         return;
                     }
                     bc.Saga.EmployerId = bc.Message.JobPosting.CompanyId;
-                    bc.Publish(new RecruitmentAccepted(bc.Message.JobPostingId, bc.Saga.CorrelationId, bc.Message.JobPosting.CompanyId, bc.Message.salary));
+                    bc.Publish(new RecruitmentAccepted(bc.Message.JobPostingId, bc.Saga.CorrelationId, bc.Message.JobPosting.CompanyId, bc.Message.Salary));
                     bc.Saga.HiringTimeOut = 6;
             })
         );

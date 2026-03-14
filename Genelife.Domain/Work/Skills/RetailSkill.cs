@@ -2,7 +2,7 @@ namespace Genelife.Domain.Work.Skills;
 
 public enum RetailSkill
 {
-    POSSystems,
+    PosSystems,
     VisualMerchandising,
     CashHandling,
     InventoryManagement,

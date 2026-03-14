@@ -1,10 +1,10 @@
 using Genelife.Domain.Activities.Interfaces;
+using Genelife.Domain.Human;
 
 namespace Genelife.Domain.Activities;
 
-public class Sleep : ILivingActivity {
-    public int TickDuration { get; set; } = ILivingActivity.TickPerHour * 8;
-    public bool GoHomeWhenFinished => false;
-
-    public Human Apply(Human being) => being with { Energy = 100 };
+public class Sleep(DateTime start) : IBeingActivity
+{
+    public DateTime StartTime { get; } = start;
+    public TimeSpan Duration { get; set; } = TimeSpan.FromHours(8);
 }

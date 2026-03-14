@@ -1,5 +1,5 @@
 ﻿using System.Numerics;
-using Genelife.Application.Generators;
+using Genelife.Application.Usecases;
 using Genelife.Domain;
 using Genelife.Domain.Work;
 using Genelife.Domain.Work.Skills;
@@ -64,7 +64,7 @@ public static class GenerationEndpointsExtension
             [humanId]
         ));
 
-        var coords = new Coordinates(
+        var coords = new Position(
             houseLocation.X,
             houseLocation.Y,
             houseLocation.Z
