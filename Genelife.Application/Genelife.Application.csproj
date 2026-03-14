@@ -26,5 +26,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Genelife.Domain\Genelife.Domain.csproj" />
     <ProjectReference Include="..\Genelife.Messages\Genelife.Messages.csproj" />
+    <ProjectReference Include="..\GeneLife.ServiceDefaults\GeneLife.ServiceDefaults.csproj" />
   </ItemGroup>
 </Project>

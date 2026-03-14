@@ -1,0 +1,16 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.1.2">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <UserSecretsId>721dc499-c202-4ea7-88e5-1995906b0a8b</UserSecretsId>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Genelife.API\Genelife.API.csproj" />
+      <ProjectReference Include="..\Genelife.Application\Genelife.Application.csproj" />
+    </ItemGroup>
+
+</Project>

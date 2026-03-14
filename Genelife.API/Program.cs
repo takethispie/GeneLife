@@ -9,6 +9,8 @@ static bool IsRunningInContainer() => bool.TryParse(Environment.GetEnvironmentVa
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddServiceDefaults();
+
 builder.Services.AddAuthorization();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -33,6 +35,8 @@ builder.Services.AddMassTransit(x => {
 });
 
 var app = builder.Build();
+
+app.MapDefaultEndpoints();
 
 app.UseSwagger();
 app.UseSwaggerUI();
