@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Aspire.RabbitMQ.Client" Version="13.1.2" />
     <PackageReference Include="Bogus" Version="35.6.5" />
     <PackageReference Include="MassTransit" Version="8.4.0" />
     <PackageReference Include="MassTransit.Abstractions" Version="8.4.0" />

@@ -13,4 +13,9 @@
       <ProjectReference Include="..\Genelife.Application\Genelife.Application.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="Aspire.Hosting.MongoDB" Version="13.1.2" />
+      <PackageReference Include="Aspire.Hosting.RabbitMQ" Version="13.1.2" />
+    </ItemGroup>
+
 </Project>

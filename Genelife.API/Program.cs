@@ -5,11 +5,12 @@ using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using Genelife.API.Endpoints;
 
-static bool IsRunningInContainer() => bool.TryParse(Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"), out var inContainer) && inContainer;
-
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
+
+// Register Aspire-managed RabbitMQ connection (connection string injected by AppHost)
+builder.AddRabbitMQClient("rabbitmq");
 
 builder.Services.AddAuthorization();
 builder.Services.AddEndpointsApiExplorer();
@@ -27,8 +28,6 @@ builder.Services.AddMassTransit(x => {
 
     x.UsingRabbitMq((context, cfg) =>
     {
-        if (IsRunningInContainer())
-            cfg.Host("rabbitmq");
         cfg.UseDelayedMessageScheduler();
         cfg.ConfigureEndpoints(context);
     });
