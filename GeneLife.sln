@@ -11,7 +11,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Genelife.UnitTests", "Genel
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Genelife.Messages", "Genelife.Messages\Genelife.Messages.csproj", "{2DC67B55-E4C3-41CB-A9EB-3126EA579CEE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Genelife.TerminalUI", "Genelife.TerminalUI\Genelife.TerminalUI.csproj", "{339D4C2B-039B-473A-99DE-03FEC13906F3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Genelife.LiteFrontend", "Genelife.LiteFrontend\Genelife.LiteFrontend.csproj", "{339D4C2B-039B-473A-99DE-03FEC13906F3}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Genelife.Domain", "Genelife.Domain\Genelife.Domain.csproj", "{8D6FA3D6-DB02-41EB-B232-E6F6AC01BBD8}"
 EndProject
