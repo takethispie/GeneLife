@@ -108,9 +108,10 @@ public class Person(
 
     public void Update()
     {
-        Hunger = Decay(Hunger, 0.05f);
+        Hunger = Decay(Hunger, 0.02f);
         Energy = Decay(Energy, 0.03f);
-        Hygiene = Decay(Hygiene, 0.04f);
+        Hygiene = Decay(Hygiene, 0.01f);
+        Thirst = Decay(Thirst, 0.03f);
     }
     
     public IBeingActivity SelectNextActivity(DateTime dateTime, bool works) {
