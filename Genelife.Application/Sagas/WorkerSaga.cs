@@ -76,7 +76,7 @@ public class WorkerSaga : MassTransitStateMachine<WorkerSagaState>
                     Skills: bc.Saga.SkillSet,
                     YearsOfExperience: bc.Saga.YearsOfExperience
                 );
-                var matchScore = new CalculateMatchScore().Execute(jobPosting, tempApplication);
+                var matchScore = jobPosting.CalculateMatchScore(tempApplication);
                 if (matchScore < 0.3f) return;
                 bc.Publish(new JobApplicationSubmitted(bc.Message.CorrelationId, tempApplication with { MatchScore = matchScore }));
                 Log.Information($"{bc.Saga.FirstName} {bc.Saga.LastName} applied for {jobPosting.Title} " +

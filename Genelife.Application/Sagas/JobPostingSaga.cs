@@ -59,7 +59,7 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
 
             When(ApplicationSubmitted).Then(context => {
                 var application = context.Message.Application;
-                var matchScore = new CalculateMatchScore().Execute(context.Saga.JobPosting, application);
+                var matchScore = context.Saga.JobPosting.CalculateMatchScore(application);
                 context.Saga.Applications.Add(application with { MatchScore = matchScore });
                 Log.Information("Application received for {JobPostingTitle} from {ApplicationHumanId} (Match: {MatchScore:F2})", context.Saga.JobPosting.Title, context.Message.Application.HumanId, matchScore);
             }).TransitionTo(Active),
