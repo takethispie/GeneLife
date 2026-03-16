@@ -107,6 +107,10 @@ builder.Services.AddMassTransit(x =>
 
     x.UsingRabbitMq((context, cfg) =>
     {
+        var rabbitMqConnectionString = builder.Configuration.GetConnectionString("rabbitmq");
+        if (!string.IsNullOrEmpty(rabbitMqConnectionString))
+            cfg.Host(new Uri(rabbitMqConnectionString));
+
         cfg.UseMessageRetry(r => r.Exponential(
             retryLimit: 5,
             minInterval: TimeSpan.FromMilliseconds(100),

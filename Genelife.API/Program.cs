@@ -4,10 +4,22 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using Genelife.API.Endpoints;
+using Genelife.API.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
+
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(b =>
+    {
+        b.WithOrigins("http://localhost:5173", "https://localhost:7173")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
 
 // Register Aspire-managed RabbitMQ connection (connection string injected by AppHost)
 builder.AddRabbitMQClient("rabbitmq");
@@ -16,6 +28,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddOpenApi();
+builder.Services.AddSignalR();
 BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
 builder.Services.AddMassTransit(x => {
     x.SetKebabCaseEndpointNameFormatter();
@@ -28,6 +41,10 @@ builder.Services.AddMassTransit(x => {
 
     x.UsingRabbitMq((context, cfg) =>
     {
+        var rabbitMqConnectionString = builder.Configuration.GetConnectionString("rabbitmq");
+        if (!string.IsNullOrEmpty(rabbitMqConnectionString))
+            cfg.Host(new Uri(rabbitMqConnectionString));
+
         cfg.UseDelayedMessageScheduler();
         cfg.ConfigureEndpoints(context);
     });
@@ -36,7 +53,7 @@ builder.Services.AddMassTransit(x => {
 var app = builder.Build();
 
 app.MapDefaultEndpoints();
-
+app.UseCors();
 app.UseSwagger();
 app.UseSwaggerUI();
 app.UseHttpsRedirection();
@@ -50,5 +67,7 @@ app.UseCheatcodeEndpoints();
 app.UseSimulationEndpoints();
 app.UseCompanyEndpoints();
 app.UseGenerationEndpoints();
+
+app.MapHub<HumanHub>("/hubs/human");
 
 app.Run();

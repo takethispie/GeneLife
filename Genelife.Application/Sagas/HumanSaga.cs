@@ -11,6 +11,7 @@ using Genelife.Messages.Events;
 using Genelife.Messages.Events.Buildings;
 using Genelife.Messages.Events.Clock;
 using Genelife.Messages.Events.Grocery;
+using Genelife.Messages.Events.Human;
 using Genelife.Messages.Events.Locomotion;
 using MassTransit;
 using Serilog;
@@ -85,12 +86,36 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         Event(() => AddGroceryStoreAddress, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
         
         DuringAny(
-            When(HourElapsed).Then(bc => bc.Saga.Person.Update()),
-            When(SetAge).Then(bc => bc.Saga.Person.Execute(new ChangeBirthday(bc.Message.Value))),
-            When(SetEnergy).Then(bc => bc.Saga.Person.Execute(new ChangeEnergy(bc.Message.Value))),
-            When(SetHunger).Then(bc => bc.Saga.Person.Execute(new ChangeHunger(bc.Message.Value))),
-            When(SetHygiene).Then(bc => bc.Saga.Person.Execute(new ChangeHygiene(bc.Message.Value))),
-            When(SetMoney).Then(bc => bc.Saga.Person.Execute(new ChangeMoney(bc.Message.Value))),
+            When(HourElapsed).Then(bc =>
+            {
+                bc.Saga.Person.Update();
+                bc.Publish(HumanUpdate.FromPerson(bc.Saga.Person, bc.Saga.CurrentState));
+            }),
+            When(SetAge).Then(bc =>
+            {
+                bc.Saga.Person.Execute(new ChangeBirthday(bc.Message.Value));
+                bc.Publish(HumanUpdate.FromPerson(bc.Saga.Person, bc.Saga.CurrentState));
+            }),
+            When(SetEnergy).Then(bc =>
+            {
+                bc.Saga.Person.Execute(new ChangeEnergy(bc.Message.Value));
+                bc.Publish(HumanUpdate.FromPerson(bc.Saga.Person, bc.Saga.CurrentState));
+            }),
+            When(SetHunger).Then(bc =>
+            {
+                bc.Saga.Person.Execute(new ChangeHunger(bc.Message.Value));
+                bc.Publish(HumanUpdate.FromPerson(bc.Saga.Person, bc.Saga.CurrentState));
+            }),
+            When(SetHygiene).Then(bc =>
+            {
+                bc.Saga.Person.Execute(new ChangeHygiene(bc.Message.Value));
+                bc.Publish(HumanUpdate.FromPerson(bc.Saga.Person, bc.Saga.CurrentState));
+            }),
+            When(SetMoney).Then(bc =>
+            {
+                bc.Saga.Person.Execute(new ChangeMoney(bc.Message.Value));
+                bc.Publish(HumanUpdate.FromPerson(bc.Saga.Person, bc.Saga.CurrentState));
+            }),
             When(DayElapsed).Then(bc =>
             {
                 bc.Saga.LastTime = bc.Message.DateTime;
@@ -133,18 +158,24 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             When(GoToWork).Then(OnGoToWork),
             When(LeaveWork).Then(OnLeaveWork),
             When(GoHome).Then(bc => OnGoHome(bc.Saga.Person.AddressBook, bc, bc.Saga.CorrelationId)),
-            When(AddMoney) .Then(bc => bc.Saga.Person.Money += bc.Message.Amount),
+            When(AddMoney).Then(bc =>
+            {
+                bc.Saga.Person.Money += bc.Message.Amount;
+                bc.Publish(HumanUpdate.FromPerson(bc.Saga.Person, bc.Saga.CurrentState));
+            }),
             When(FoodPurchased).Then(bc =>
             {
                 bc.Saga.Person.BuyFood(1);
                 Log.Information("Human {HumanId} purchased food. Total food items: {FoodCount}",
                     bc.Saga.CorrelationId, bc.Saga.Person.FoodItemCount);
+                bc.Publish(HumanUpdate.FromPerson(bc.Saga.Person, bc.Saga.CurrentState));
             }),
             When(DrinkPurchased).Then(bc =>
             {
                 bc.Saga.Person.BuyDrink(1);
                 Log.Information("Human {HumanId} purchased drink. Total drink items: {DrinkCount}",
                     bc.Saga.CorrelationId, bc.Saga.Person.DrinkItemCount);
+                bc.Publish(HumanUpdate.FromPerson(bc.Saga.Person, bc.Saga.CurrentState));
             }),
             When(GroceryStoreAddressAnnounced).Then(bc =>
             {
@@ -205,6 +236,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                 Log.Information("{SagaCorrelationId} has finished {SagaCurrentState}", bc.Saga.CorrelationId, bc.Saga.CurrentState);
                 bc.Saga.Activity = new Idle(bc.Message.DateTime);
                 bc.TransitionToState(Idle);
+                bc.Publish(HumanUpdate.FromPerson(bc.Saga.Person, bc.Saga.CurrentState));
             }),
             Ignore(DayElapsed)
         );
@@ -220,6 +252,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                     bc.Publish(new LeaveWork(bc.Saga.CorrelationId));
                 bc.Saga.Activity = new Idle(bc.Message.DateTime);
                 bc.TransitionToState(Idle);
+                bc.Publish(HumanUpdate.FromPerson(bc.Saga.Person, bc.Saga.CurrentState));
             }),
             Ignore(DayElapsed)
         );
