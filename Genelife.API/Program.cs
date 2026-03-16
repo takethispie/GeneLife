@@ -5,11 +5,11 @@ using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using Genelife.API.Endpoints;
 using Genelife.API.Hubs;
+using Genelife.API.Consumers;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
-
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(b =>
@@ -69,5 +69,6 @@ app.UseCompanyEndpoints();
 app.UseGenerationEndpoints();
 
 app.MapHub<HumanHub>("/hubs/human");
+app.MapHub<CompanyHub>("/hubs/company");
 
 app.Run();

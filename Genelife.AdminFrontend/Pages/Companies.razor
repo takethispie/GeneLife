@@ -1,0 +1,109 @@
+@page "/companies"
+@using Genelife.AdminFrontend.Models
+@using Genelife.AdminFrontend.Services
+@using Microsoft.AspNetCore.SignalR.Client
+@inject CompanyHubService HubService
+@inject NavigationManager Nav
+@implements IAsyncDisposable
+
+<PageTitle>Companies</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Live Companies</MudText>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudChip T="string"
+             Color="@(_connectionState == HubConnectionState.Connected ? Color.Success : Color.Error)"
+             Icon="@(_connectionState == HubConnectionState.Connected ? Icons.Material.Filled.Wifi : Icons.Material.Filled.WifiOff)">
+        @_connectionState
+    </MudChip>
+    <MudText Typo="Typo.body2" Color="Color.Secondary">@_companies.Count company(ies) tracked</MudText>
+</MudStack>
+
+@if (_companies.Count == 0)
+{
+    <MudAlert Severity="Severity.Info">Waiting for company updates…</MudAlert>
+}
+else
+{
+    <MudGrid>
+        @foreach (var company in _companies.Values.OrderBy(c => c.Name))
+        {
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard Elevation="2"
+                         Style="cursor:pointer"
+                         @onclick="() => NavigateTo(company.CorrelationId)">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">@company.Name</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@company.CompanyType</MudText>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Color="Color.Default" />
+                        </CardHeaderActions>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudGrid Spacing="1">
+                            <MudItem xs="6">
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Revenue</MudText>
+                                    <MudText Typo="Typo.body2">@company.Revenue.ToString("C0")</MudText>
+                                </MudStack>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Employees</MudText>
+                                    <MudText Typo="Typo.body2">@company.EmployeeCount</MudText>
+                                </MudStack>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Productivity</MudText>
+                                    <MudText Typo="Typo.body2">@company.AverageProductivity.ToString("P0")</MudText>
+                                </MudStack>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Open Postings</MudText>
+                                    <MudText Typo="Typo.body2">@(company.PublishedJobPostings ?? 0)</MudText>
+                                </MudStack>
+                            </MudItem>
+                        </MudGrid>
+                        <MudDivider Class="mt-2 mb-1" />
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            Office (@company.OfficeX:F1, @company.OfficeY:F1, @company.OfficeZ:F1)
+                        </MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+}
+
+@code {
+    private readonly Dictionary<Guid, CompanyUpdateDto> _companies = [];
+    private HubConnectionState _connectionState = HubConnectionState.Disconnected;
+
+    protected override async Task OnInitializedAsync()
+    {
+        HubService.OnCompanyUpdate += HandleCompanyUpdate;
+        await HubService.StartAsync();
+        _connectionState = HubService.State;
+        StateHasChanged();
+    }
+
+    private void HandleCompanyUpdate(CompanyUpdateDto dto)
+    {
+        _companies[dto.CorrelationId] = dto;
+        _connectionState = HubService.State;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void NavigateTo(Guid companyId) =>
+        Nav.NavigateTo($"/companies/{companyId}");
+
+    public async ValueTask DisposeAsync()
+    {
+        HubService.OnCompanyUpdate -= HandleCompanyUpdate;
+        await Task.CompletedTask;
+    }
+}

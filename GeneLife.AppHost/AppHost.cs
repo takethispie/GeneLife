@@ -10,7 +10,6 @@ var rabbitmq = builder.AddRabbitMQ("rabbitmq")
 
 builder.AddProject<Projects.Genelife_API>("genelife-api")
     .WithReference(rabbitmq)
-    .WaitFor(mongoDb)
     .WaitFor(rabbitmq);
 
 builder.AddProject<Projects.Genelife_Application>("genelife-application")
