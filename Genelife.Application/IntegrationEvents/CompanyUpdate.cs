@@ -1,6 +1,4 @@
-using Genelife.Domain.Work.Job;
-
-namespace Genelife.Messages.Events.Company;
+namespace Genelife.Application.IntegrationEvents;
 
 public record JobPostingSnapshot(
     Guid PostingId,

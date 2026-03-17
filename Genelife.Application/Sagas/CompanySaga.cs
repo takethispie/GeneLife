@@ -11,7 +11,7 @@ using Genelife.Messages.Events.Jobs;
 using Genelife.Messages.Events.Locomotion;
 using MassTransit;
 using Serilog;
-using CompanyUpdateEvent = Genelife.Messages.Events.Company.CompanyUpdate;
+using CompanyUpdateEvent = Genelife.Application.IntegrationEvents.CompanyUpdate;
 
 namespace Genelife.Application.Sagas;
 

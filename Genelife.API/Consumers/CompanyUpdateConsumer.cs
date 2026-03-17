@@ -1,4 +1,5 @@
 using Genelife.API.Hubs;
+using Genelife.Application.IntegrationEvents;
 using Genelife.Messages.Events.Company;
 using MassTransit;
 using Microsoft.AspNetCore.SignalR;

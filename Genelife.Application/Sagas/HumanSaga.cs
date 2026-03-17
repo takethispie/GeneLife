@@ -1,3 +1,4 @@
+using Genelife.Application.IntegrationEvents;
 using Genelife.Application.Sagas.States;
 using Genelife.Domain;
 using Genelife.Domain.Activities;
@@ -11,7 +12,6 @@ using Genelife.Messages.Events;
 using Genelife.Messages.Events.Buildings;
 using Genelife.Messages.Events.Clock;
 using Genelife.Messages.Events.Grocery;
-using Genelife.Messages.Events.Human;
 using Genelife.Messages.Events.Locomotion;
 using MassTransit;
 using Serilog;

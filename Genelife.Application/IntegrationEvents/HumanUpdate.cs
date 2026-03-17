@@ -1,6 +1,6 @@
 using Genelife.Domain.Human;
 
-namespace Genelife.Messages.Events.Human;
+namespace Genelife.Application.IntegrationEvents;
 
 public record HumanUpdate(
     Guid CorrelationId,

@@ -1,4 +1,3 @@
-using Genelife.Messages.Events.Human;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Genelife.API.Hubs;
