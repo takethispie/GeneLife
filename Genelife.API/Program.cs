@@ -70,5 +70,6 @@ app.UseGenerationEndpoints();
 
 app.MapHub<HumanHub>("/hubs/human");
 app.MapHub<CompanyHub>("/hubs/company");
+app.MapHub<GroceryHub>("/hubs/grocery");
 
 app.Run();

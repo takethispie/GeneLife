@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Genelife.Application.IntegrationEvents;
 using Genelife.Domain;
 using Genelife.Domain.Grocery;
 using Genelife.Messages.Commands;
@@ -47,6 +48,7 @@ public class GroceryStoreSaga :
     {
         Store.CustomerEnters(context.Message.HumanId);
         await context.Publish(new EnteredGroceryStore(context.Message.HumanId, CorrelationId));
+        await context.Publish(GroceryUpdate.FromStore(CorrelationId, Store));
         Log.Information("Customer {CustomerId} entered grocery store {StoreId}",
             context.Message.HumanId, CorrelationId);
     }
@@ -55,6 +57,7 @@ public class GroceryStoreSaga :
     {
         Store.CustomerLeaves(context.Message.HumanId);
         await context.Publish(new LeftGroceryStore(context.Message.HumanId, CorrelationId));
+        await context.Publish(GroceryUpdate.FromStore(CorrelationId, Store));
         Log.Information("Customer {CustomerId} left grocery store {StoreId}",
             context.Message.HumanId, CorrelationId);
     }
@@ -63,12 +66,14 @@ public class GroceryStoreSaga :
     {
         if (!Store.BuyFood(context.Message.HumanId)) return;
         await context.Publish(new FoodPurchased(context.Message.HumanId, CorrelationId, Store.FoodPrice));
+        await context.Publish(GroceryUpdate.FromStore(CorrelationId, Store));
     }
 
     public async Task Consume(ConsumeContext<BuyDrink> context)
     {
         if (!Store.BuyDrink(context.Message.HumanId)) return;
         await context.Publish(new DrinkPurchased(context.Message.HumanId, CorrelationId, Store.DrinkPrice));
+        await context.Publish(GroceryUpdate.FromStore(CorrelationId, Store));
     }
 
     public async Task Consume(ConsumeContext<DiscoverGroceryStores> context)
