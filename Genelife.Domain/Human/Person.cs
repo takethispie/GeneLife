@@ -64,17 +64,11 @@ public class Person(
         return 100;
     }
 
-    public void BuyDrink(int amount)
-    {
-        Money -= amount;
-        DrinkItemCount += amount;
+    public void AddGroceryItems(int foodCount, int drinkCount) {
+        FoodItemCount += foodCount;
+        DrinkItemCount += drinkCount;
     }
-
-    public void BuyFood(int amount)
-    {
-        Money -= amount;
-        FoodItemCount += amount;
-    }
+    
 
     public void Execute(ICheat cheat)
     {

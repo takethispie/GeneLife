@@ -46,12 +46,11 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
     public Event<GoToWork> GoToWork { get; set; } = null!;
     public Event<GoHome> GoHome { get; set; } = null!;
     public Event<AddMoney>? AddMoney { get; set; } = null;
-    public Event<FoodPurchased>? FoodPurchased { get; set; } = null;
-    public Event<DrinkPurchased>? DrinkPurchased { get; set; } = null;
     public Event<EnteredGroceryStore>? EnteredGroceryStore { get; set; } = null;
     public Event<LeftGroceryStore>? LeftGroceryStore { get; set; } = null;
     public Event<GroceryStoreAddressAnnounced>? GroceryStoreAddressAnnounced { get; set; } = null;
     public Event<AddGroceryStoreAddress>? AddGroceryStoreAddress { get; set; } = null;
+    public Event<GroceryItemsPurchased>? GroceryItemsPurchased { get; set; } = null;
 
 
 
@@ -78,12 +77,11 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         Event(() => GoHome, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
         Event(() => GoToWork, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
         Event(() => AddMoney, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
-        Event(() => FoodPurchased, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
-        Event(() => DrinkPurchased, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
         Event(() => EnteredGroceryStore, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
         Event(() => LeftGroceryStore, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
         Event(() => GroceryStoreAddressAnnounced, e => e.CorrelateBy(saga => "any", _ => "any"));
         Event(() => AddGroceryStoreAddress, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
+        Event(() => GroceryItemsPurchased, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
         
         DuringAny(
             When(HourElapsed).Then(bc =>
@@ -163,20 +161,14 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                 bc.Saga.Person.Money += bc.Message.Amount;
                 bc.Publish(HumanUpdate.FromPerson(bc.Saga.Person, bc.Saga.CurrentState));
             }),
-            When(FoodPurchased).Then(bc =>
-            {
-                bc.Saga.Person.BuyFood(1);
-                Log.Information("Human {HumanId} purchased food. Total food items: {FoodCount}",
-                    bc.Saga.CorrelationId, bc.Saga.Person.FoodItemCount);
+            When(GroceryItemsPurchased).Then(bc => {
+                bc.Saga.Person.Money -= bc.Message.TotalPrice;
+                bc.Saga.Person.AddGroceryItems(bc.Message.Foods, bc.Message.Drinks);
+                Log.Information("Human {HumanId} purchased Groceries. Total food items: {FoodCount} food and {drinkCount}",
+                    bc.Saga.CorrelationId, bc.Saga.Person.FoodItemCount, bc.Saga.Person.DrinkItemCount);
                 bc.Publish(HumanUpdate.FromPerson(bc.Saga.Person, bc.Saga.CurrentState));
             }),
-            When(DrinkPurchased).Then(bc =>
-            {
-                bc.Saga.Person.BuyDrink(1);
-                Log.Information("Human {HumanId} purchased drink. Total drink items: {DrinkCount}",
-                    bc.Saga.CorrelationId, bc.Saga.Person.DrinkItemCount);
-                bc.Publish(HumanUpdate.FromPerson(bc.Saga.Person, bc.Saga.CurrentState));
-            }),
+
             When(GroceryStoreAddressAnnounced).Then(bc =>
             {
                 bc.Saga.Person.AddressBook.AddGroceryStore(bc.Message.X, bc.Message.Y, bc.Message.Z, bc.Message.GroceryStoreId);
@@ -190,6 +182,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                     bc.Saga.CorrelationId, bc.Message.GroceryStoreId);
             })
         );
+        
         During(Idle, 
             When(UpdateTick).Then(bc =>
             {
@@ -240,6 +233,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             }),
             Ignore(DayElapsed)
         );
+        
         During(Working,
             When(UpdateTick).Then(bc =>
             {
@@ -258,12 +252,13 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         );
 
         During(Shopping,
-            When(EnteredGroceryStore).Then(bc =>
-            {
-                if (bc.Saga.Person.FoodItemCount <= 0)
-                    bc.Publish(new BuyFood(bc.Message.GroceryStoreId, bc.Saga.CorrelationId));
-                if (bc.Saga.Person.DrinkItemCount <= 0)
-                    bc.Publish(new BuyDrink(bc.Message.GroceryStoreId, bc.Saga.CorrelationId));
+            When(EnteredGroceryStore).Then(bc => {
+                var drinkBudget = bc.Saga.Person.GetDrinkBudget();
+                var foodBudget = bc.Saga.Person.GetFoodBudget();
+                var drinkCount = drinkBudget / bc.Message.DrinkPrice;
+                var foodCount = foodBudget / bc.Message.FoodPrice;
+                if(drinkCount > 0 ||  foodCount > 0) 
+                    bc.Publish(new BuyGroceryItems(bc.Message.GroceryStoreId, bc.Saga.CorrelationId, drinkCount, foodCount));
                 bc.Publish(new LeaveGroceryStore(bc.Message.GroceryStoreId, bc.Saga.CorrelationId));
             }),
             When(LeftGroceryStore).Then(bc =>

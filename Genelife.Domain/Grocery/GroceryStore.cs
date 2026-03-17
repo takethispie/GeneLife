@@ -21,17 +21,17 @@ public class GroceryStore(Guid id, Position position, int foodPrice, int drinkPr
         Customers.Remove(customerId);
     }
 
-    public bool BuyDrink(Guid customerId )
+    public bool BuyDrink(Guid customerId, int count = 1)
     {
         if (!Customers.Contains(customerId)) return false;
-        Revenue += DrinkPrice;
+        Revenue += DrinkPrice  * count;
         return true;
     }
 
-    public bool BuyFood(Guid customerId)
+    public bool BuyFood(Guid customerId, int count = 1)
     {
         if (!Customers.Contains(customerId)) return false;
-        Revenue += FoodPrice;
+        Revenue += FoodPrice * count;
         return true;
     }
 }

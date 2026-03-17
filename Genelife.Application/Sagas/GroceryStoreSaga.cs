@@ -18,8 +18,7 @@ public class GroceryStoreSaga :
     InitiatedBy<GroceryStoreBuilt>,
     Orchestrates<GoToGroceryStore>,
     Orchestrates<LeaveGroceryStore>,
-    Orchestrates<BuyFood>,
-    Orchestrates<BuyDrink>,
+    Orchestrates<BuyGroceryItems>,
     Observes<DiscoverGroceryStores, GroceryStoreSaga>
 {
     public Guid CorrelationId { get; set; }
@@ -47,7 +46,7 @@ public class GroceryStoreSaga :
     public async Task Consume(ConsumeContext<GoToGroceryStore> context)
     {
         Store.CustomerEnters(context.Message.HumanId);
-        await context.Publish(new EnteredGroceryStore(context.Message.HumanId, CorrelationId));
+        await context.Publish(new EnteredGroceryStore(context.Message.HumanId, CorrelationId, Store.FoodPrice,  Store.DrinkPrice));
         await context.Publish(GroceryUpdate.FromStore(CorrelationId, Store));
         Log.Information("Customer {CustomerId} entered grocery store {StoreId}",
             context.Message.HumanId, CorrelationId);
@@ -61,18 +60,22 @@ public class GroceryStoreSaga :
         Log.Information("Customer {CustomerId} left grocery store {StoreId}",
             context.Message.HumanId, CorrelationId);
     }
-
-    public async Task Consume(ConsumeContext<BuyFood> context)
-    {
-        if (!Store.BuyFood(context.Message.HumanId)) return;
-        await context.Publish(new FoodPurchased(context.Message.HumanId, CorrelationId, Store.FoodPrice));
-        await context.Publish(GroceryUpdate.FromStore(CorrelationId, Store));
-    }
-
-    public async Task Consume(ConsumeContext<BuyDrink> context)
-    {
-        if (!Store.BuyDrink(context.Message.HumanId)) return;
-        await context.Publish(new DrinkPurchased(context.Message.HumanId, CorrelationId, Store.DrinkPrice));
+    
+    public async Task Consume(ConsumeContext<BuyGroceryItems> context) {
+        var foodGiven = context.Message.Foods;
+        var drinkGiven = context.Message.Drinks;
+        if (context.Message.Foods > 0 && !Store.BuyFood(context.Message.HumanId))
+            foodGiven = 0;
+        if(context.Message.Drinks > 0 && !Store.BuyDrink(context.Message.HumanId)) 
+            drinkGiven = 0;
+        var total = foodGiven * Store.FoodPrice + drinkGiven * Store.DrinkPrice;
+        await context.Publish(new GroceryItemsPurchased(
+            context.Message.HumanId, 
+            CorrelationId,
+            total,
+            drinkGiven,
+            foodGiven
+        ));
         await context.Publish(GroceryUpdate.FromStore(CorrelationId, Store));
     }
 
