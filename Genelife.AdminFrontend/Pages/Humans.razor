@@ -7,25 +7,25 @@
 
 <PageTitle>Humans</PageTitle>
 
-<MudText Typo="Typo.h4" GutterBottom="true">Live Human Updates</MudText>
+<MudText Typo="Typo.h4" GutterBottom="true">Humans</MudText>
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
     <MudChip T="string"
-             Color="@(_connectionState == HubConnectionState.Connected ? Color.Success : Color.Error)"
-             Icon="@(_connectionState == HubConnectionState.Connected ? Icons.Material.Filled.Wifi : Icons.Material.Filled.WifiOff)">
-        @_connectionState
+             Color="@(connectionState == HubConnectionState.Connected ? Color.Success : Color.Error)"
+             Icon="@(connectionState == HubConnectionState.Connected ? Icons.Material.Filled.Wifi : Icons.Material.Filled.WifiOff)">
+        @connectionState
     </MudChip>
-    <MudText Typo="Typo.body2" Color="Color.Secondary">@_humans.Count person(s) tracked</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary">@humans.Count person(s) tracked</MudText>
 </MudStack>
 
-@if (_humans.Count == 0)
+@if (humans.Count == 0)
 {
-    <MudAlert Severity="Severity.Info">Waiting for human updates…</MudAlert>
+    <MudAlert Severity="Severity.Info">Waiting for updates…</MudAlert>
 }
 else
 {
     <MudGrid>
-        @foreach (var human in _humans.Values.OrderBy(h => h.FirstName))
+        @foreach (var human in humans.Values.OrderBy(h => h.FirstName))
         {
             <MudItem xs="12" sm="6" md="4">
                 <MudCard Elevation="2">
@@ -59,7 +59,7 @@ else
                             </MudChip>
                         </MudStack>
                         <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
-                            Position (@human.X:F1, @human.Y:F1, @human.Z:F1)
+                            Position (@human.X, @human.Y, @human.Z)
                         </MudText>
                     </MudCardContent>
                 </MudCard>
@@ -68,25 +68,22 @@ else
     </MudGrid>
 }
 
-@* Inline helper component for a labelled progress bar *@
 @code {
-    // ── State ──────────────────────────────────────────────────────────────
-    private readonly Dictionary<Guid, HumanUpdateDto> _humans = [];
-    private HubConnectionState _connectionState = HubConnectionState.Disconnected;
+    private readonly Dictionary<Guid, HumanUpdateDto> humans = [];
+    private HubConnectionState connectionState = HubConnectionState.Disconnected;
 
-    // ── Lifecycle ──────────────────────────────────────────────────────────
     protected override async Task OnInitializedAsync()
     {
         HubService.OnHumanUpdate += HandleHumanUpdate;
         await HubService.StartAsync();
-        _connectionState = HubService.State;
+        connectionState = HubService.State;
         StateHasChanged();
     }
 
     private void HandleHumanUpdate(HumanUpdateDto dto)
     {
-        _humans[dto.CorrelationId] = dto;
-        _connectionState = HubService.State;
+        humans[dto.CorrelationId] = dto;
+        connectionState = HubService.State;
         InvokeAsync(StateHasChanged);
     }
 
@@ -96,7 +93,6 @@ else
         await Task.CompletedTask;
     }
 
-    // ── Helpers ────────────────────────────────────────────────────────────
     private static int GetAge(DateTime birthday) =>
         (int)((DateTime.UtcNow - birthday).TotalDays / 365.25);
 }

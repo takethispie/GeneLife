@@ -6,26 +6,26 @@
 @inject NavigationManager Nav
 @implements IAsyncDisposable
 
-<PageTitle>@(_company?.Name ?? "Company Detail")</PageTitle>
+<PageTitle>@(company?.Name ?? "Company Detail")</PageTitle>
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4" Spacing="2">
     <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
                    OnClick="@(() => Nav.NavigateTo("/companies"))" />
-    <MudText Typo="Typo.h4">@(_company?.Name ?? "Loading…")</MudText>
-    @if (_company is not null)
+    <MudText Typo="Typo.h4">@(company?.Name ?? "Loading…")</MudText>
+    @if (company is not null)
     {
-        <MudChip T="string" Color="Color.Primary" Size="Size.Small">@_company.CompanyType</MudChip>
+        <MudChip T="string" Color="Color.Primary" Size="Size.Small">@company.CompanyType</MudChip>
     }
     <MudSpacer />
     <MudChip T="string"
-             Color="@(_connectionState == HubConnectionState.Connected ? Color.Success : Color.Error)"
-             Icon="@(_connectionState == HubConnectionState.Connected ? Icons.Material.Filled.Wifi : Icons.Material.Filled.WifiOff)"
+             Color="@(connectionState == HubConnectionState.Connected ? Color.Success : Color.Error)"
+             Icon="@(connectionState == HubConnectionState.Connected ? Icons.Material.Filled.Wifi : Icons.Material.Filled.WifiOff)"
              Size="Size.Small">
-        @_connectionState
+        @connectionState
     </MudChip>
 </MudStack>
 
-@if (_company is null)
+@if (company is null)
 {
     <MudAlert Severity="Severity.Info">Waiting for company data…</MudAlert>
 }
@@ -35,25 +35,25 @@ else
         <MudItem xs="6" sm="3">
             <MudPaper Class="pa-3" Elevation="1">
                 <MudText Typo="Typo.caption" Color="Color.Secondary">Revenue</MudText>
-                <MudText Typo="Typo.h6">@_company.Revenue.ToString("C0")</MudText>
+                <MudText Typo="Typo.h6">@company.Revenue.ToString("C0")</MudText>
             </MudPaper>
         </MudItem>
         <MudItem xs="6" sm="3">
             <MudPaper Class="pa-3" Elevation="1">
                 <MudText Typo="Typo.caption" Color="Color.Secondary">Employees</MudText>
-                <MudText Typo="Typo.h6">@_company.EmployeeCount</MudText>
+                <MudText Typo="Typo.h6">@company.EmployeeCount</MudText>
             </MudPaper>
         </MudItem>
         <MudItem xs="6" sm="3">
             <MudPaper Class="pa-3" Elevation="1">
                 <MudText Typo="Typo.caption" Color="Color.Secondary">Avg. Productivity</MudText>
-                <MudText Typo="Typo.h6">@_company.AverageProductivity.ToString("P0")</MudText>
+                <MudText Typo="Typo.h6">@company.AverageProductivity.ToString("P0")</MudText>
             </MudPaper>
         </MudItem>
         <MudItem xs="6" sm="3">
             <MudPaper Class="pa-3" Elevation="1">
                 <MudText Typo="Typo.caption" Color="Color.Secondary">Open Postings</MudText>
-                <MudText Typo="Typo.h6">@(_company.PublishedJobPostings ?? 0)</MudText>
+                <MudText Typo="Typo.h6">@(company.PublishedJobPostings ?? 0)</MudText>
             </MudPaper>
         </MudItem>
     </MudGrid>
@@ -63,13 +63,13 @@ else
         Active Job Postings
     </MudText>
 
-    @if (_company.ActiveJobPostings.Count == 0)
+    @if (company.ActiveJobPostings.Count == 0)
     {
         <MudAlert Severity="Severity.Normal" Class="mb-4">No active job postings.</MudAlert>
     }
     else
     {
-        <MudTable Items="@_company.ActiveJobPostings" Hover="true" Striped="true" Class="mb-6" Elevation="2">
+        <MudTable Items="@company.ActiveJobPostings" Hover="true" Striped="true" Class="mb-6" Elevation="2">
             <HeaderContent>
                 <MudTh>Title</MudTh>
                 <MudTh>Level</MudTh>
@@ -106,13 +106,13 @@ else
         Employees
     </MudText>
 
-    @if (_company.Employees.Count == 0)
+    @if (company.Employees.Count == 0)
     {
         <MudAlert Severity="Severity.Normal">No employees yet.</MudAlert>
     }
     else
     {
-        <MudTable Items="@_company.Employees" Hover="true" Striped="true" Elevation="2">
+        <MudTable Items="@company.Employees" Hover="true" Striped="true" Elevation="2">
             <HeaderContent>
                 <MudTh>ID</MudTh>
                 <MudTh>Salary</MudTh>
@@ -147,23 +147,23 @@ else
 @code {
     [Parameter] public Guid CompanyId { get; set; }
 
-    private CompanyUpdateDto? _company;
-    private HubConnectionState _connectionState = HubConnectionState.Disconnected;
+    private CompanyUpdateDto? company;
+    private HubConnectionState connectionState = HubConnectionState.Disconnected;
 
     protected override async Task OnInitializedAsync()
     {
         HubService.OnCompanyUpdate += HandleCompanyUpdate;
         await HubService.StartAsync();
         await HubService.SubscribeToCompanyAsync(CompanyId);
-        _connectionState = HubService.State;
+        connectionState = HubService.State;
         StateHasChanged();
     }
 
     private void HandleCompanyUpdate(CompanyUpdateDto dto)
     {
         if (dto.CorrelationId != CompanyId) return;
-        _company = dto;
-        _connectionState = HubService.State;
+        company = dto;
+        connectionState = HubService.State;
         InvokeAsync(StateHasChanged);
     }
 

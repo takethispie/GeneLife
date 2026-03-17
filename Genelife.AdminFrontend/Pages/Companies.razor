@@ -12,21 +12,21 @@
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
     <MudChip T="string"
-             Color="@(_connectionState == HubConnectionState.Connected ? Color.Success : Color.Error)"
-             Icon="@(_connectionState == HubConnectionState.Connected ? Icons.Material.Filled.Wifi : Icons.Material.Filled.WifiOff)">
-        @_connectionState
+             Color="@(connectionState == HubConnectionState.Connected ? Color.Success : Color.Error)"
+             Icon="@(connectionState == HubConnectionState.Connected ? Icons.Material.Filled.Wifi : Icons.Material.Filled.WifiOff)">
+        @connectionState
     </MudChip>
-    <MudText Typo="Typo.body2" Color="Color.Secondary">@_companies.Count company(ies) tracked</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary">@companies.Count company(ies) tracked</MudText>
 </MudStack>
 
-@if (_companies.Count == 0)
+@if (companies.Count == 0)
 {
     <MudAlert Severity="Severity.Info">Waiting for company updates…</MudAlert>
 }
 else
 {
     <MudGrid>
-        @foreach (var company in _companies.Values.OrderBy(c => c.Name))
+        @foreach (var company in companies.Values.OrderBy(c => c.Name))
         {
             <MudItem xs="12" sm="6" md="4">
                 <MudCard Elevation="2"
@@ -80,21 +80,21 @@ else
 }
 
 @code {
-    private readonly Dictionary<Guid, CompanyUpdateDto> _companies = [];
-    private HubConnectionState _connectionState = HubConnectionState.Disconnected;
+    private readonly Dictionary<Guid, CompanyUpdateDto> companies = [];
+    private HubConnectionState connectionState = HubConnectionState.Disconnected;
 
     protected override async Task OnInitializedAsync()
     {
         HubService.OnCompanyUpdate += HandleCompanyUpdate;
         await HubService.StartAsync();
-        _connectionState = HubService.State;
+        connectionState = HubService.State;
         StateHasChanged();
     }
 
     private void HandleCompanyUpdate(CompanyUpdateDto dto)
     {
-        _companies[dto.CorrelationId] = dto;
-        _connectionState = HubService.State;
+        companies[dto.CorrelationId] = dto;
+        connectionState = HubService.State;
         InvokeAsync(StateHasChanged);
     }
 

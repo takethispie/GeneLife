@@ -38,7 +38,7 @@ public record CompanyUpdate(
 {
     public static CompanyUpdate FromSaga(
         Guid correlationId,
-        Genelife.Domain.Work.Company company,
+        Domain.Work.Company company,
         int? publishedJobPostings,
         float officeX,
         float officeY,
