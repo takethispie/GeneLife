@@ -90,10 +90,14 @@ public class CompanySaga :
         DaysElapsedCount++;
         if (DaysElapsedCount >= 30) {
             Log.Information("Company {CompanyName}: Processing payroll", Company.Name);
-            Company.CalculatePayroll();
-            //foreach (var salaryPayment in salaryPayments)
-                //await context.Publish(salaryPayment);
-            //await context.Publish(new PayrollCompleted(CorrelationId, totalPaid, totalTaxes));
+            var salaries = Company.CalculatePayroll().ToList();
+            foreach (var salary in salaries)
+            {
+                await context.Publish(new SalaryPaid(salary.EmployeeId, salary.Amount, salary.TaxDeducted));
+            }
+            var totalPaid = salaries.Sum(salary => salary.Amount);
+            var totalTaxes = salaries.Sum(salary => salary.TaxDeducted);
+            await context.Publish(new PayrollCompleted(CorrelationId, totalPaid, totalTaxes));
             LastPayrollDate = DateTime.UtcNow;
             Log.Information("Company {CompanyName}: Payroll completed.", Company.Name);
             DaysElapsedCount = 0;

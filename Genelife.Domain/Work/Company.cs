@@ -25,10 +25,7 @@ public class Company(
     public void RemoveEmployee(Employee.Employee employee) 
         => Employees = Employees.Where(e => e.Id != employee.Id).ToList();
 
-    public void CalculatePayroll()
-    {
-        var salaryPayments = Accounting.CalculatePayroll(this);
-    }
+    public IEnumerable<Salary> CalculatePayroll() => Accounting.CalculatePayroll(this);
 
     public void CalculateProductivity()
     {
