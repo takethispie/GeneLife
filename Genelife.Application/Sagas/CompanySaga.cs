@@ -11,6 +11,7 @@ using Genelife.Messages.Events.Jobs;
 using Genelife.Messages.Events.Locomotion;
 using MassTransit;
 using Serilog;
+using CompanyUpdateEvent = Genelife.Application.IntegrationEvents.CompanyUpdate;
 
 namespace Genelife.Application.Sagas;
 
@@ -56,7 +57,7 @@ public class CompanySaga :
         Company.AddEmployee(employment);
         PublishedJobPostings--;
         Log.Information("Company {CompanyName}: Hired employee {MessageWorkerId} with salary {MessageSalary:C}", Company.Name, context.Message.WorkerId, context.Message.Salary);
-        await Task.CompletedTask;
+        await context.Publish(CompanyUpdateEvent.FromSaga(CorrelationId, Company, PublishedJobPostings, OfficeLocation.X, OfficeLocation.Y, OfficeLocation.Z));
     }
 
     public async Task Consume(ConsumeContext<JobPostingExpired> context)
@@ -102,8 +103,8 @@ public class CompanySaga :
         Company.CalculateProductivity();
         Log.Information(
             "Company {CompanyName}: Productivity {AverageProductivity:F2}, New Revenue {RevenueChange:C}",
-            Company.Name, 
-            Company.AverageProductivity, 
+            Company.Name,
+            Company.AverageProductivity,
             Company.Accounting.Revenue
         );
 
@@ -117,5 +118,7 @@ public class CompanySaga :
         foreach (var posting in postings)
             await context.Publish(posting);
         if (postings.Count > 0) PublishedJobPostings = postings.Count;
+
+        await context.Publish(CompanyUpdateEvent.FromSaga(CorrelationId, Company, PublishedJobPostings, OfficeLocation.X, OfficeLocation.Y, OfficeLocation.Z));
     }
 }

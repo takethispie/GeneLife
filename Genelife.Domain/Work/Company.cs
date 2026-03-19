@@ -14,7 +14,7 @@ public class Company(
     public List<Employee.Employee> Employees { get; private set; } = [];
     public CompanyType Type { get; private set; } = type;
     public float AverageProductivity { get; private set; } = 1.0F;
-    public AccountingDepartment Accounting { get; } = accounting;
+    public AccountingDepartment Accounting { get; init; } = accounting;
 
     public void AddEmployee(Employee.Employee employee)
     {

@@ -11,9 +11,15 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Genelife.UnitTests", "Genel
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Genelife.Messages", "Genelife.Messages\Genelife.Messages.csproj", "{2DC67B55-E4C3-41CB-A9EB-3126EA579CEE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Genelife.TerminalUI", "Genelife.TerminalUI\Genelife.TerminalUI.csproj", "{339D4C2B-039B-473A-99DE-03FEC13906F3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Genelife.LiteFrontend", "Genelife.LiteFrontend\Genelife.LiteFrontend.csproj", "{339D4C2B-039B-473A-99DE-03FEC13906F3}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Genelife.Domain", "Genelife.Domain\Genelife.Domain.csproj", "{8D6FA3D6-DB02-41EB-B232-E6F6AC01BBD8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Genelife.AdminFrontend", "Genelife.AdminFrontend\Genelife.AdminFrontend.csproj", "{288C2D9F-2DE6-4816-8F5D-947515116881}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GeneLife.AppHost", "GeneLife.AppHost\GeneLife.AppHost.csproj", "{07AEAC0B-C818-4944-8368-96709AF29F48}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GeneLife.ServiceDefaults", "GeneLife.ServiceDefaults\GeneLife.ServiceDefaults.csproj", "{C23A5897-4E89-4BFF-80F9-93E5F3458978}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,6 +51,18 @@ Global
 		{8D6FA3D6-DB02-41EB-B232-E6F6AC01BBD8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8D6FA3D6-DB02-41EB-B232-E6F6AC01BBD8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8D6FA3D6-DB02-41EB-B232-E6F6AC01BBD8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{288C2D9F-2DE6-4816-8F5D-947515116881}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{288C2D9F-2DE6-4816-8F5D-947515116881}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{288C2D9F-2DE6-4816-8F5D-947515116881}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{288C2D9F-2DE6-4816-8F5D-947515116881}.Release|Any CPU.Build.0 = Release|Any CPU
+		{07AEAC0B-C818-4944-8368-96709AF29F48}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{07AEAC0B-C818-4944-8368-96709AF29F48}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{07AEAC0B-C818-4944-8368-96709AF29F48}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{07AEAC0B-C818-4944-8368-96709AF29F48}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C23A5897-4E89-4BFF-80F9-93E5F3458978}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C23A5897-4E89-4BFF-80F9-93E5F3458978}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C23A5897-4E89-4BFF-80F9-93E5F3458978}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C23A5897-4E89-4BFF-80F9-93E5F3458978}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -33,6 +33,7 @@ public static class TestDataBuilder
             sex ?? faker.PickRandom<Sex>(),
             new LifeSkillSet(),
             new Position(0, 0, 0),
+            new(),
             money ?? faker.Random.Float(0, 10000),
             hunger ?? faker.Random.Float(0, 100),
             energy ?? faker.Random.Float(0, 100),

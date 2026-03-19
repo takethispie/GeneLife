@@ -1,0 +1,191 @@
+@page "/companies/{CompanyId:guid}"
+@using Genelife.AdminFrontend.Models
+@using Genelife.AdminFrontend.Services
+@using Microsoft.AspNetCore.SignalR.Client
+@inject CompanyHubService HubService
+@inject NavigationManager Nav
+@implements IAsyncDisposable
+
+<PageTitle>@(company?.Name ?? "Company Detail")</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4" Spacing="2">
+    <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
+                   OnClick="@(() => Nav.NavigateTo("/companies"))" />
+    <MudText Typo="Typo.h4">@(company?.Name ?? "Loading…")</MudText>
+    @if (company is not null)
+    {
+        <MudChip T="string" Color="Color.Primary" Size="Size.Small">@company.CompanyType</MudChip>
+    }
+    <MudSpacer />
+    <MudChip T="string"
+             Color="@(connectionState == HubConnectionState.Connected ? Color.Success : Color.Error)"
+             Icon="@(connectionState == HubConnectionState.Connected ? Icons.Material.Filled.Wifi : Icons.Material.Filled.WifiOff)"
+             Size="Size.Small">
+        @connectionState
+    </MudChip>
+</MudStack>
+
+@if (company is null)
+{
+    <MudAlert Severity="Severity.Info">Waiting for company data…</MudAlert>
+}
+else
+{
+    <MudGrid Class="mb-4">
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-3" Elevation="1">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Revenue</MudText>
+                <MudText Typo="Typo.h6">@company.Revenue.ToString("C0")</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-3" Elevation="1">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Employees</MudText>
+                <MudText Typo="Typo.h6">@company.EmployeeCount</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-3" Elevation="1">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Avg. Productivity</MudText>
+                <MudText Typo="Typo.h6">@company.AverageProductivity.ToString("P0")</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <MudPaper Class="pa-3" Elevation="1">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Open Postings</MudText>
+                <MudText Typo="Typo.h6">@(company.PublishedJobPostings ?? 0)</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudText Typo="Typo.h5" Class="mb-2">
+        <MudIcon Icon="@Icons.Material.Filled.Work" Class="mr-1" />
+        Active Job Postings
+    </MudText>
+
+    @if (company.ActiveJobPostings.Count == 0)
+    {
+        <MudAlert Severity="Severity.Normal" Class="mb-4">No active job postings.</MudAlert>
+    }
+    else
+    {
+        <MudTable Items="@company.ActiveJobPostings" Hover="true" Striped="true" Class="mb-6" Elevation="2">
+            <HeaderContent>
+                <MudTh>Title</MudTh>
+                <MudTh>Level</MudTh>
+                <MudTh>Salary Range</MudTh>
+                <MudTh>Applications</MudTh>
+                <MudTh>Status</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Title">@context.Title</MudTd>
+                <MudTd DataLabel="Level">
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info">@context.Level</MudChip>
+                </MudTd>
+                <MudTd DataLabel="Salary Range">
+                    @context.SalaryMin.ToString("C0") – @context.SalaryMax.ToString("C0")
+                </MudTd>
+                <MudTd DataLabel="Applications">
+                    <MudBadge Content="@context.ApplicationCount"
+                              Color="@(context.ApplicationCount > 0 ? Color.Success : Color.Default)"
+                              Overlap="true">
+                        <MudIcon Icon="@Icons.Material.Filled.People" />
+                    </MudBadge>
+                </MudTd>
+                <MudTd DataLabel="Status">
+                    <MudChip T="string" Size="Size.Small" Color="@GetStateColor(context.CurrentState)">
+                        @context.CurrentState
+                    </MudChip>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+
+    <MudText Typo="Typo.h5" Class="mb-2">
+        <MudIcon Icon="@Icons.Material.Filled.Badge" Class="mr-1" />
+        Employees
+    </MudText>
+
+    @if (company.Employees.Count == 0)
+    {
+        <MudAlert Severity="Severity.Normal">No employees yet.</MudAlert>
+    }
+    else
+    {
+        <MudTable Items="@company.Employees" Hover="true" Striped="true" Elevation="2">
+            <HeaderContent>
+                <MudTh>ID</MudTh>
+                <MudTh>Salary</MudTh>
+                <MudTh>Hire Date</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh>Productivity</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="ID">
+                    <MudText Typo="Typo.caption">@context.EmployeeId.ToString()</MudText>
+                </MudTd>
+                <MudTd DataLabel="Salary">@context.Salary.ToString("C0")</MudTd>
+                <MudTd DataLabel="Hire Date">@context.HireDate.ToString("yyyy-MM-dd")</MudTd>
+                <MudTd DataLabel="Status">
+                    <MudChip T="string" Size="Size.Small"
+                             Color="@(context.Status == "Active" ? Color.Success : Color.Warning)">
+                        @context.Status
+                    </MudChip>
+                </MudTd>
+                <MudTd DataLabel="Productivity">
+                    <MudProgressLinear Value="@(context.ProductivityScore * 50)"
+                                       Min="0" Max="100"
+                                       Color="@GetProductivityColor(context.ProductivityScore)"
+                                       Rounded="true" Size="Size.Small" />
+                    <MudText Typo="Typo.caption">@context.ProductivityScore.ToString("F2")</MudText>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+}
+
+@code {
+    [Parameter] public Guid CompanyId { get; set; }
+
+    private CompanyUpdateDto? company;
+    private HubConnectionState connectionState = HubConnectionState.Disconnected;
+
+    protected override async Task OnInitializedAsync()
+    {
+        HubService.OnCompanyUpdate += HandleCompanyUpdate;
+        await HubService.StartAsync();
+        await HubService.SubscribeToCompanyAsync(CompanyId);
+        connectionState = HubService.State;
+        StateHasChanged();
+    }
+
+    private void HandleCompanyUpdate(CompanyUpdateDto dto)
+    {
+        if (dto.CorrelationId != CompanyId) return;
+        company = dto;
+        connectionState = HubService.State;
+        InvokeAsync(StateHasChanged);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        HubService.OnCompanyUpdate -= HandleCompanyUpdate;
+        await HubService.UnsubscribeFromCompanyAsync(CompanyId);
+    }
+
+    private static Color GetStateColor(string state) => state switch
+    {
+        "Active"                => Color.Success,
+        "ReviewingApplications" => Color.Warning,
+        "AwaitingAnswer"        => Color.Info,
+        _                       => Color.Default
+    };
+
+    private static Color GetProductivityColor(float score) => score switch
+    {
+        >= 1.5f => Color.Success,
+        >= 1.0f => Color.Primary,
+        >= 0.5f => Color.Warning,
+        _       => Color.Error
+    };
+}

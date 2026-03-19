@@ -50,7 +50,6 @@ public class HumanSagaTests
 
         await using var provider = new ServiceCollection()
             .AddSingleton<GenerateEmployment>()
-            .AddSingleton<CalculateMatchScore>()
             .AddMassTransitTestHarness(cfg => { cfg.AddSagaStateMachine<HumanSaga, HumanSagaState>(); })
             .BuildServiceProvider(true);
 
@@ -78,7 +77,6 @@ public class HumanSagaTests
 
         await using var provider = new ServiceCollection()
             .AddSingleton<GenerateEmployment>()
-            .AddSingleton<CalculateMatchScore>()
             .AddMassTransitTestHarness(cfg => { cfg.AddSagaStateMachine<HumanSaga, HumanSagaState>(); })
             .BuildServiceProvider(true);
 

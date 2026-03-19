@@ -1,0 +1,99 @@
+@page "/humans"
+@using Genelife.AdminFrontend.Models
+@using Genelife.AdminFrontend.Services
+@using Microsoft.AspNetCore.SignalR.Client
+@inject HumanHubService HubService
+@implements IAsyncDisposable
+
+<PageTitle>Humans</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Humans</MudText>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudChip T="string"
+             Color="@(connectionState == HubConnectionState.Connected ? Color.Success : Color.Error)"
+             Icon="@(connectionState == HubConnectionState.Connected ? Icons.Material.Filled.Wifi : Icons.Material.Filled.WifiOff)">
+        @connectionState
+    </MudChip>
+    <MudText Typo="Typo.body2" Color="Color.Secondary">@humans.Count person(s) tracked</MudText>
+</MudStack>
+
+@if (humans.Count == 0)
+{
+    <MudAlert Severity="Severity.Info">Waiting for updates…</MudAlert>
+}
+else
+{
+    <MudGrid>
+        @foreach (var human in humans.Values.OrderBy(h => h.FirstName))
+        {
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard Elevation="2">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">@human.FirstName @human.LastName</MudText>
+                            <MudText Typo="Typo.body2">@human.CorrelationId.ToString()</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @human.Sex · Age @GetAge(human.Birthday) · @human.CurrentState
+                            </MudText>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            <MudChip T="string" Size="Size.Small" Color="Color.Primary">
+                                @human.Money.ToString("C0")
+                            </MudChip>
+                        </CardHeaderActions>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudStack Spacing="1">
+                            <VitalBar Label="Hunger"  Value="@human.Hunger"  Color="Color.Warning" Icon="@Icons.Material.Filled.Restaurant" />
+                            <VitalBar Label="Energy"  Value="@human.Energy"  Color="Color.Success" Icon="@Icons.Material.Filled.BatteryFull" />
+                            <VitalBar Label="Hygiene" Value="@human.Hygiene" Color="Color.Info"    Icon="@Icons.Material.Filled.Shower" />
+                            <VitalBar Label="Thirst"  Value="@human.Thirst"  Color="Color.Primary" Icon="@Icons.Material.Filled.WaterDrop" />
+                        </MudStack>
+                        <MudDivider Class="my-2" />
+                        <MudStack Row="true" Spacing="2">
+                            <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.Fastfood">
+                                Food: @human.FoodItemCount
+                            </MudChip>
+                            <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.LocalDrink">
+                                Drink: @human.DrinkItemCount
+                            </MudChip>
+                        </MudStack>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
+                            Position (@human.X, @human.Y, @human.Z)
+                        </MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+}
+
+@code {
+    private readonly Dictionary<Guid, HumanUpdateDto> humans = [];
+    private HubConnectionState connectionState = HubConnectionState.Disconnected;
+
+    protected override async Task OnInitializedAsync()
+    {
+        HubService.OnHumanUpdate += HandleHumanUpdate;
+        await HubService.StartAsync();
+        connectionState = HubService.State;
+        StateHasChanged();
+    }
+
+    private void HandleHumanUpdate(HumanUpdateDto dto)
+    {
+        humans[dto.CorrelationId] = dto;
+        connectionState = HubService.State;
+        InvokeAsync(StateHasChanged);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        HubService.OnHumanUpdate -= HandleHumanUpdate;
+        await Task.CompletedTask;
+    }
+
+    private static int GetAge(DateTime birthday) =>
+        (int)((DateTime.UtcNow - birthday).TotalDays / 365.25);
+}
