@@ -34,4 +34,16 @@ public class GroceryStore(Guid id, Position position, int foodPrice, int drinkPr
         Revenue += FoodPrice * count;
         return true;
     }
+
+    public void SetFoodPrice(int price)
+    {
+        if (price < 1) price = 1;
+        FoodPrice = price;
+    }
+
+    public void SetDrinkPrice(int price)
+    {
+        if (price < 1) price = 1;
+        DrinkPrice = price;
+    }
 }

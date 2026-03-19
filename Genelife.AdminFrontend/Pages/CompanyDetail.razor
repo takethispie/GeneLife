@@ -122,7 +122,7 @@ else
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="ID">
-                    <MudText Typo="Typo.caption">@context.EmployeeId.ToString()[..8]…</MudText>
+                    <MudText Typo="Typo.caption">@context.EmployeeId.ToString()</MudText>
                 </MudTd>
                 <MudTd DataLabel="Salary">@context.Salary.ToString("C0")</MudTd>
                 <MudTd DataLabel="Hire Date">@context.HireDate.ToString("yyyy-MM-dd")</MudTd>

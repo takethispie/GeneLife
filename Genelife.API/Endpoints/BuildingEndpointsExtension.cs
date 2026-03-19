@@ -1,4 +1,5 @@
 ﻿using Genelife.API.DTOs;
+using Genelife.Messages.Commands.Grocery;
 using Genelife.Messages.Events.Buildings;
 using MassTransit;
 using Microsoft.AspNetCore.Mvc;
@@ -55,5 +56,17 @@ public static class BuildingEndpointsExtension
                 });
             })
             .WithName("create GroceryStore");
+
+        app.MapPatch("/grocery-store/{id:guid}/price", async (
+                Guid id,
+                [FromBody] SetGroceryPriceRequest request,
+                [FromServices] IPublishEndpoint endpoint) =>
+            {
+                await endpoint.Publish(new SetGroceryPrice(id, request.FoodPrice, request.DrinkPrice));
+                return Results.Accepted();
+            })
+            .WithName("set GroceryStore price");
     }
 }
+
+public record SetGroceryPriceRequest(int? FoodPrice, int? DrinkPrice);

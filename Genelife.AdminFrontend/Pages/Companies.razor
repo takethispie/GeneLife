@@ -45,6 +45,12 @@ else
                         <MudGrid Spacing="1">
                             <MudItem xs="6">
                                 <MudStack Spacing="0">
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Id</MudText>
+                                    <MudText Typo="Typo.body2">@company.CorrelationId.ToString()</MudText>
+                                </MudStack>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudStack Spacing="0">
                                     <MudText Typo="Typo.caption" Color="Color.Secondary">Revenue</MudText>
                                     <MudText Typo="Typo.body2">@company.Revenue.ToString("C0")</MudText>
                                 </MudStack>
@@ -70,7 +76,7 @@ else
                         </MudGrid>
                         <MudDivider Class="mt-2 mb-1" />
                         <MudText Typo="Typo.caption" Color="Color.Secondary">
-                            Office (@company.OfficeX:F1, @company.OfficeY:F1, @company.OfficeZ:F1)
+                            Office (@company.OfficeX, @company.OfficeY, @company.OfficeZ)
                         </MudText>
                     </MudCardContent>
                 </MudCard>

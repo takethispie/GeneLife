@@ -3,6 +3,7 @@
 @using Genelife.AdminFrontend.Services
 @using Microsoft.AspNetCore.SignalR.Client
 @inject GroceryHubService HubService
+@inject GroceryApiService ApiService
 @implements IAsyncDisposable
 
 <PageTitle>Grocery Stores</PageTitle>
@@ -36,7 +37,7 @@ else
                                 Store
                             </MudText>
                             <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                @store.CorrelationId.ToString()[..8]…
+                                @store.CorrelationId.ToString()
                             </MudText>
                         </CardHeaderContent>
                         <CardHeaderActions>
@@ -62,19 +63,45 @@ else
                             <MudItem xs="6">
                                 <MudStack Spacing="0">
                                     <MudText Typo="Typo.caption" Color="Color.Secondary">Food Price</MudText>
-                                    <MudText Typo="Typo.body2">@store.FoodPrice.ToString("C0")</MudText>
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Remove"
+                                                       Size="Size.Small"
+                                                       Variant="Variant.Outlined"
+                                                       Color="Color.Error"
+                                                       Disabled="@(store.FoodPrice <= 1)"
+                                                       OnClick="@(() => AdjustFoodPrice(store.CorrelationId, store.FoodPrice - 1))" />
+                                        <MudText Typo="Typo.body2" Style="min-width:2rem;text-align:center">@store.FoodPrice.ToString("C0")</MudText>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Add"
+                                                       Size="Size.Small"
+                                                       Variant="Variant.Outlined"
+                                                       Color="Color.Success"
+                                                       OnClick="@(() => AdjustFoodPrice(store.CorrelationId, store.FoodPrice + 1))" />
+                                    </MudStack>
                                 </MudStack>
                             </MudItem>
                             <MudItem xs="6">
                                 <MudStack Spacing="0">
                                     <MudText Typo="Typo.caption" Color="Color.Secondary">Drink Price</MudText>
-                                    <MudText Typo="Typo.body2">@store.DrinkPrice.ToString("C0")</MudText>
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Remove"
+                                                       Size="Size.Small"
+                                                       Variant="Variant.Outlined"
+                                                       Color="Color.Error"
+                                                       Disabled="@(store.DrinkPrice <= 1)"
+                                                       OnClick="@(() => AdjustDrinkPrice(store.CorrelationId, store.DrinkPrice - 1))" />
+                                        <MudText Typo="Typo.body2" Style="min-width:2rem;text-align:center">@store.DrinkPrice.ToString("C0")</MudText>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Add"
+                                                       Size="Size.Small"
+                                                       Variant="Variant.Outlined"
+                                                       Color="Color.Success"
+                                                       OnClick="@(() => AdjustDrinkPrice(store.CorrelationId, store.DrinkPrice + 1))" />
+                                    </MudStack>
                                 </MudStack>
                             </MudItem>
                         </MudGrid>
                         <MudDivider Class="mt-2 mb-1" />
                         <MudText Typo="Typo.caption" Color="Color.Secondary">
-                            Position (@store.X:F1, @store.Y:F1, @store.Z:F1)
+                            Position (@store.X, @store.Y, @store.Z)
                         </MudText>
                     </MudCardContent>
                 </MudCard>
@@ -100,6 +127,18 @@ else
         stores[dto.CorrelationId] = dto;
         connectionState = HubService.State;
         InvokeAsync(StateHasChanged);
+    }
+
+    private async Task AdjustFoodPrice(Guid storeId, int newPrice)
+    {
+        if (newPrice < 1) return;
+        await ApiService.SetPriceAsync(storeId, foodPrice: newPrice, drinkPrice: null);
+    }
+
+    private async Task AdjustDrinkPrice(Guid storeId, int newPrice)
+    {
+        if (newPrice < 1) return;
+        await ApiService.SetPriceAsync(storeId, foodPrice: null, drinkPrice: newPrice);
     }
 
     public async ValueTask DisposeAsync()

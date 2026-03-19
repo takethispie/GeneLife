@@ -32,6 +32,7 @@ else
                     <MudCardHeader>
                         <CardHeaderContent>
                             <MudText Typo="Typo.h6">@human.FirstName @human.LastName</MudText>
+                            <MudText Typo="Typo.body2">@human.CorrelationId.ToString()</MudText>
                             <MudText Typo="Typo.caption" Color="Color.Secondary">
                                 @human.Sex · Age @GetAge(human.Birthday) · @human.CurrentState
                             </MudText>

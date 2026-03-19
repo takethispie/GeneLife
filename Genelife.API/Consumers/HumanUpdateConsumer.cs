@@ -11,12 +11,10 @@ public class HumanUpdateConsumer(IHubContext<HumanHub> hubContext) : IConsumer<H
     {
         var update = context.Message;
 
-        // Broadcast to all clients subscribed to this specific human's group
         await hubContext.Clients
             .Group(update.CorrelationId.ToString())
             .SendAsync("HumanUpdate", update, context.CancellationToken);
 
-        // Also broadcast to the "all-humans" group for clients that want every update
         await hubContext.Clients
             .Group("all-humans")
             .SendAsync("HumanUpdate", update, context.CancellationToken);

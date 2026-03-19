@@ -19,6 +19,7 @@ public class GroceryStoreSaga :
     Orchestrates<GoToGroceryStore>,
     Orchestrates<LeaveGroceryStore>,
     Orchestrates<BuyGroceryItems>,
+    Orchestrates<SetGroceryPrice>,
     Observes<DiscoverGroceryStores, GroceryStoreSaga>
 {
     public Guid CorrelationId { get; set; }
@@ -62,12 +63,10 @@ public class GroceryStoreSaga :
     }
     
     public async Task Consume(ConsumeContext<BuyGroceryItems> context) {
-        var foodGiven = context.Message.Foods;
-        var drinkGiven = context.Message.Drinks;
-        if (context.Message.Foods > 0 && !Store.BuyFood(context.Message.HumanId))
-            foodGiven = 0;
-        if(context.Message.Drinks > 0 && !Store.BuyDrink(context.Message.HumanId)) 
-            drinkGiven = 0;
+        var foodGiven = 0;
+        var drinkGiven = 0;
+        if (Store.BuyFood(context.Message.HumanId)) foodGiven = context.Message.Foods;
+        if(Store.BuyDrink(context.Message.HumanId)) drinkGiven = context.Message.Drinks;
         var total = foodGiven * Store.FoodPrice + drinkGiven * Store.DrinkPrice;
         await context.Publish(new GroceryItemsPurchased(
             context.Message.HumanId, 
@@ -77,6 +76,17 @@ public class GroceryStoreSaga :
             foodGiven
         ));
         await context.Publish(GroceryUpdate.FromStore(CorrelationId, Store));
+    }
+
+    public async Task Consume(ConsumeContext<SetGroceryPrice> context)
+    {
+        if (context.Message.FoodPrice.HasValue)
+            Store.SetFoodPrice(context.Message.FoodPrice.Value);
+        if (context.Message.DrinkPrice.HasValue)
+            Store.SetDrinkPrice(context.Message.DrinkPrice.Value);
+        await context.Publish(GroceryUpdate.FromStore(CorrelationId, Store));
+        Log.Information("Grocery store {StoreId} prices updated — food: {FoodPrice}, drink: {DrinkPrice}",
+            CorrelationId, Store.FoodPrice, Store.DrinkPrice);
     }
 
     public async Task Consume(ConsumeContext<DiscoverGroceryStores> context)
