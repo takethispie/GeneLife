@@ -117,12 +117,6 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             When(DayElapsed).Then(bc =>
             {
                 bc.Saga.LastTime = bc.Message.DateTime;
-                Log.Information($"{bc.Saga.CorrelationId} " +
-                                $"needs: {Math.Round(bc.Saga.Person.Hunger)} hunger " +
-                                $" {Math.Round(bc.Saga.Person.Energy)} energy " +
-                                $" {Math.Round(bc.Saga.Person.Hygiene)} hygiene " +
-                                $" {bc.Saga.Person.Money} money "
-                );
             }),
             When(JobStatusChanged).Then(bc =>
             {
@@ -196,7 +190,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                         var storeId = bc.Saga.Person.AddressBook.NearestBuildingId(AddressType.Store, bc.Saga.Person.Coordinates);
                         if (storeId == Guid.Empty) break;
                         bc.Publish(new GoToGroceryStore(storeId, bc.Saga.CorrelationId));
-                        bc.Saga.LastTime = DateTime.UtcNow;
+                        bc.Saga.LastTime = bc.Message.DateTime;
                         bc.TransitionToState(Shopping);
                         return;
                     }
