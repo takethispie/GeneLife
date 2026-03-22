@@ -12,7 +12,7 @@ public static class HumanEndpointsExtension
     {
         app.MapPost("/create/human/{sex}", async (Sex sex, [FromServices] IPublishEndpoint endpoint) => {
                 var guid = Guid.NewGuid();
-                await endpoint.Publish(new CreateHuman(guid, HumanGenerator.Build(sex)));
+                await endpoint.Publish(new CreateHuman(guid, HumanGenerator.Build(guid, sex)));
             })
             .WithName("create Human");
 
@@ -25,7 +25,7 @@ public static class HumanEndpointsExtension
                 for (int i = 0; i < count; i++)
                 {
                     var humanId = Guid.NewGuid();
-                    var human = HumanGenerator.Build(sex);
+                    var human = HumanGenerator.Build(humanId, sex);
                     await endpoint.Publish(new CreateHuman(humanId, human));
                     results.Add(new { HumanId = humanId, Human = human });
                 }

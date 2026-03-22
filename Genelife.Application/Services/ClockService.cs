@@ -36,10 +36,10 @@ public class ClockService {
         dateTime = dateTime.AddHours(1);
         switch (dateTime.Hour) {
             case 12:
-                Console.WriteLine("Noon of current day");
+                Console.WriteLine($"Noon of current day: {dateTime}");
                 break;
             case 0:
-                Console.WriteLine("1 day went by");
+                Console.WriteLine($"new day: {dateTime}");
                 await publishEndpoint.Publish(new DayElapsed(new DateTime(dateTime.Year, dateTime.Month, dateTime.Day)));
                 break;
         }
