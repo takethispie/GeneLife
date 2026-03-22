@@ -92,16 +92,6 @@ builder.Services.AddMassTransit(x =>
         r.DatabaseName = "maindb";
     });
 
-    x.AddSagaStateMachine<WorkerSaga, WorkerSagaState>(so =>
-    {
-        so.UsePartitioner(20, ctx => ctx.CorrelationId ?? Guid.Empty);
-        so.ConcurrentMessageLimit = 1;
-    }).MongoDbRepository(r =>
-    {
-        r.Connection = mongoConnectionString;
-        r.DatabaseName = "maindb";
-    });
-
     x.AddSagas(entryAssembly);
     x.AddActivities(entryAssembly);
 

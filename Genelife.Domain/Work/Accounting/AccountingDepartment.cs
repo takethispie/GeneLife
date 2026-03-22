@@ -1,4 +1,4 @@
-﻿using Genelife.Domain.Work.Employee;
+﻿using Genelife.Domain.Work.Personal;
 
 namespace Genelife.Domain.Work.Accounting;
 

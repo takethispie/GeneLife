@@ -3,8 +3,8 @@ using Genelife.Domain;
 using Genelife.Domain.Human;
 using Genelife.Domain.Work;
 using Genelife.Domain.Work.Accounting;
-using Genelife.Domain.Work.Employee;
 using Genelife.Domain.Work.Job;
+using Genelife.Domain.Work.Personal;
 using Genelife.Domain.Work.Skills;
 using Person = Genelife.Domain.Human.Person;
 

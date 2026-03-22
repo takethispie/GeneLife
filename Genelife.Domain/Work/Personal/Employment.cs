@@ -1,4 +1,4 @@
-namespace Genelife.Domain.Work.Employee;
+namespace Genelife.Domain.Work.Personal;
 
 public record Employment(
     List<string> Skills,

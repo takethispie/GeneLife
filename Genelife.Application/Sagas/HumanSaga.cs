@@ -1,17 +1,22 @@
 using Genelife.Application.IntegrationEvents;
 using Genelife.Application.Sagas.States;
+using Genelife.Application.Usecases;
 using Genelife.Domain;
 using Genelife.Domain.Activities;
 using Genelife.Domain.Address;
 using Genelife.Domain.CheatCodes;
 using Genelife.Domain.Human.Activities;
+using Genelife.Domain.Work.Job;
 using Genelife.Messages.Commands;
 using Genelife.Messages.Commands.Grocery;
+using Genelife.Messages.Commands.Jobs;
 using Genelife.Messages.Commands.Locomotion;
 using Genelife.Messages.Events;
 using Genelife.Messages.Events.Buildings;
 using Genelife.Messages.Events.Clock;
+using Genelife.Messages.Events.Company;
 using Genelife.Messages.Events.Grocery;
+using Genelife.Messages.Events.Jobs;
 using Genelife.Messages.Events.Locomotion;
 using MassTransit;
 using Serilog;
@@ -20,6 +25,7 @@ namespace Genelife.Application.Sagas;
 
 public class HumanSaga : MassTransitStateMachine<HumanSagaState>
 {
+    // Activity states
     public State? Idle { get; set; } = null!;
     public State? Working { get; set; } = null;
     public State? Sleeping { get; set; } = null!;
@@ -28,11 +34,12 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
     public State? Showering { get; set; } = null!;
     public State? Shopping { get; set; } = null!;
 
+    // Human lifecycle events
     public Event<CreateHuman>? Created { get; set; } = null;
     public Event<Tick>? UpdateTick { get; set; } = null;
     public Event<DayElapsed>? DayElapsed { get; set; } = null;
     public Event<HourElapsed>? HourElapsed { get; set; } = null;
-    public Event<SetJobStatus>?  JobStatusChanged { get; set; } = null;
+    public Event<SetJobStatus>? JobStatusChanged { get; set; } = null;
     public Event<SetHunger>? SetHunger { get; set; } = null;
     public Event<SetAge>? SetAge { get; set; } = null;
     public Event<SetEnergy>? SetEnergy { get; set; } = null;
@@ -51,19 +58,22 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
     public Event<GroceryStoreAddressAnnounced>? GroceryStoreAddressAnnounced { get; set; } = null;
     public Event<AddGroceryStoreAddress>? AddGroceryStoreAddress { get; set; } = null;
     public Event<GroceryItemsPurchased>? GroceryItemsPurchased { get; set; } = null;
-
-
+    public Event<CreateJobPosting>? JobPostingCreated { get; set; } = null;
+    public Event<Recruit>? ApplicationAccepted { get; set; } = null;
+    public Event<EmployeeHired>? EmployeeHired { get; set; } = null;
+    public Event<SalaryPaid>? SalaryPaid { get; set; } = null;
 
     public HumanSaga()
     {
         InstanceState(x => x.CurrentState);
+
         Initially(When(Created).Then(bc =>
         {
             bc.Saga.Person = bc.Message.Person;
             Log.Information("Created human {HumanFirstName} {HumanLastName} ", bc.Saga.Person.FirstName, bc.Saga.Person.LastName);
             bc.Publish(new DiscoverGroceryStores(bc.Saga.CorrelationId));
         }).TransitionTo(Idle));
-        
+
         Event(() => UpdateTick, e => e.CorrelateBy(saga => "any", _ => "any"));
         Event(() => DayElapsed, e => e.CorrelateBy(saga => "any", _ => "any"));
         Event(() => HourElapsed, e => e.CorrelateBy(saga => "any", _ => "any"));
@@ -71,7 +81,6 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         Event(() => Arrived, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
         Event(() => AddHomeAddress, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
         Event(() => AddWorkAddress, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
-        Event(() => Arrived, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
         Event(() => LeaveHome, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
         Event(() => LeaveWork, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
         Event(() => GoHome, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
@@ -82,7 +91,11 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         Event(() => GroceryStoreAddressAnnounced, e => e.CorrelateBy(saga => "any", _ => "any"));
         Event(() => AddGroceryStoreAddress, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
         Event(() => GroceryItemsPurchased, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
-        
+        Event(() => JobPostingCreated, e => e.CorrelateBy(saga => "any", _ => "any"));
+        Event(() => EmployeeHired, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.WorkerId.ToString()));
+        Event(() => ApplicationAccepted, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.CorrelationId.ToString()));
+        Event(() => SalaryPaid, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
+
         DuringAny(
             When(HourElapsed).Then(bc =>
             {
@@ -117,12 +130,26 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             When(DayElapsed).Then(bc =>
             {
                 bc.Saga.LastTime = bc.Message.DateTime;
-                Log.Information($"{bc.Saga.CorrelationId} " +
-                                $"needs: {Math.Round(bc.Saga.Person.Hunger)} hunger " +
-                                $" {Math.Round(bc.Saga.Person.Energy)} energy " +
-                                $" {Math.Round(bc.Saga.Person.Hygiene)} hygiene " +
-                                $" {bc.Saga.Person.Money} money "
-                );
+
+                if (bc.Saga.HasJob) return;
+
+                if (bc.Saga.HiringTimeOut is 0)
+                {
+                    bc.Saga.EmployerId = Guid.Empty;
+                    bc.Saga.HiringTimeOut = null;
+                }
+                if (bc.Saga.HiringTimeOut is > 0)
+                {
+                    bc.Saga.HiringTimeOut--;
+                    return;
+                }
+
+                if (!bc.Saga.IsLookingForJob && bc.Saga.EmployerId == Guid.Empty && new Random().NextDouble() < 0.5)
+                {
+                    bc.Saga.IsLookingForJob = true;
+                    Log.Information("{FirstName} {LastName} started actively job seeking",
+                        bc.Saga.Person.FirstName, bc.Saga.Person.LastName);
+                }
             }),
             When(JobStatusChanged).Then(bc =>
             {
@@ -131,6 +158,8 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                     : "Work activity removed from possible activities";
                 Log.Information("{SagaCorrelationId} has {Message}", bc.Saga.CorrelationId, message);
                 bc.Saga.HasJob = bc.Message.Hasjob;
+                if (bc.Message.Hasjob)
+                    bc.Saga.IsLookingForJob = false;
             }),
             When(AddHomeAddress).Then(bc =>
             {
@@ -161,14 +190,14 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                 bc.Saga.Person.Money += bc.Message.Amount;
                 bc.Publish(HumanUpdate.FromPerson(bc.Saga.Person, bc.Saga.CurrentState));
             }),
-            When(GroceryItemsPurchased).Then(bc => {
+            When(GroceryItemsPurchased).Then(bc =>
+            {
                 bc.Saga.Person.Money -= bc.Message.TotalPrice;
                 bc.Saga.Person.AddGroceryItems(bc.Message.Foods, bc.Message.Drinks);
                 Log.Information("Human {HumanId} purchased Groceries. Total food items: {FoodCount} food and {drinkCount}",
                     bc.Saga.CorrelationId, bc.Saga.Person.FoodItemCount, bc.Saga.Person.DrinkItemCount);
                 bc.Publish(HumanUpdate.FromPerson(bc.Saga.Person, bc.Saga.CurrentState));
             }),
-
             When(GroceryStoreAddressAnnounced).Then(bc =>
             {
                 bc.Saga.Person.AddressBook.AddGroceryStore(bc.Message.X, bc.Message.Y, bc.Message.Z, bc.Message.GroceryStoreId);
@@ -180,10 +209,64 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                 bc.Saga.Person.AddressBook.AddGroceryStore(bc.Message.X, bc.Message.Y, bc.Message.Z, bc.Message.GroceryStoreId);
                 Log.Information("Human {HumanId} learned about grocery store {StoreId} via discovery",
                     bc.Saga.CorrelationId, bc.Message.GroceryStoreId);
+            }),
+
+            // Worker: job application handling (active when looking for job)
+            When(JobPostingCreated).Then(bc =>
+            {
+                if (!bc.Saga.IsLookingForJob) return;
+                var jobPosting = bc.Message.JobPosting;
+                var desiredSalary = new GenerateEmployment().GenerateDesiredSalary(bc.Saga.YearsOfExperience, jobPosting);
+                var tempApplication = new JobApplication(
+                    JobPostingId: bc.Message.CorrelationId,
+                    HumanId: bc.Saga.CorrelationId,
+                    ApplicationDate: DateTime.UtcNow,
+                    RequestedSalary: desiredSalary,
+                    Skills: bc.Saga.SkillSet,
+                    YearsOfExperience: bc.Saga.YearsOfExperience
+                );
+                var matchScore = jobPosting.CalculateMatchScore(tempApplication);
+                if (matchScore < 0.3f) return;
+                bc.Publish(new JobApplicationSubmitted(bc.Message.CorrelationId, tempApplication with { MatchScore = matchScore }));
+                Log.Information("{FirstName} {LastName} applied for {JobTitle} (Match Score: {MatchScore:F2}, Desired Salary: {DesiredSalary:C})",
+                    bc.Saga.Person.FirstName, bc.Saga.Person.LastName, jobPosting.Title, matchScore, desiredSalary);
+            }),
+            When(ApplicationAccepted).Then(bc =>
+            {
+                if (bc.Saga.HasJob)
+                {
+                    bc.Publish(new RecruitmentRefused(bc.Message.JobPostingId, bc.Saga.CorrelationId));
+                    return;
+                }
+                if (bc.Saga.EmployerId != Guid.Empty)
+                {
+                    bc.Publish(new RecruitmentRefused(bc.Message.JobPostingId, bc.Saga.CorrelationId));
+                    return;
+                }
+                bc.Saga.EmployerId = bc.Message.JobPosting.CompanyId;
+                bc.Publish(new RecruitmentAccepted(bc.Message.JobPostingId, bc.Saga.CorrelationId, bc.Message.JobPosting.CompanyId, bc.Message.Salary));
+                bc.Saga.HiringTimeOut = 6;
+            }),
+            When(EmployeeHired).Then(bc =>
+            {
+                bc.Saga.HiringTimeOut = null;
+                bc.Saga.IsLookingForJob = false;
+                bc.Publish(new SetJobStatus(bc.Saga.CorrelationId, true));
+                bc.Publish(new SetWorkAddress(bc.Saga.CorrelationId, bc.Message.CorrelationId, bc.Message.OfficeLocation));
+                Log.Information("{SagaCorrelationId} finished hiring process into company {CompanyId}",
+                    bc.Saga.CorrelationId, bc.Message.CorrelationId);
+            }),
+            When(SalaryPaid).Then(bc =>
+            {
+                var newMoney = bc.Message.Amount;
+                Log.Information("{SagaCorrelationId} received salary: {Amount:C} (tax deducted: {TaxDeducted:C}). Total money: {Total:F2}",
+                    bc.Saga.CorrelationId, bc.Message.Amount, bc.Message.TaxDeducted, newMoney);
+                bc.Saga.Person.Money += newMoney;
+                bc.Publish(HumanUpdate.FromPerson(bc.Saga.Person, bc.Saga.CurrentState));
             })
         );
-        
-        During(Idle, 
+
+        During(Idle,
             When(UpdateTick).Then(bc =>
             {
                 var activity = bc.Saga.Person.SelectNextActivity(bc.Message.DateTime, bc.Saga.HasJob);
@@ -196,7 +279,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                         var storeId = bc.Saga.Person.AddressBook.NearestBuildingId(AddressType.Store, bc.Saga.Person.Coordinates);
                         if (storeId == Guid.Empty) break;
                         bc.Publish(new GoToGroceryStore(storeId, bc.Saga.CorrelationId));
-                        bc.Saga.LastTime = DateTime.UtcNow;
+                        bc.Saga.LastTime = bc.Message.DateTime;
                         bc.TransitionToState(Shopping);
                         return;
                     }
@@ -233,7 +316,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             }),
             Ignore(DayElapsed)
         );
-        
+
         During(Working,
             When(UpdateTick).Then(bc =>
             {
@@ -252,12 +335,13 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         );
 
         During(Shopping,
-            When(EnteredGroceryStore).Then(bc => {
+            When(EnteredGroceryStore).Then(bc =>
+            {
                 var drinkBudget = bc.Saga.Person.GetDrinkBudget();
                 var foodBudget = bc.Saga.Person.GetFoodBudget();
                 var drinkCount = drinkBudget / bc.Message.DrinkPrice;
                 var foodCount = foodBudget / bc.Message.FoodPrice;
-                if(drinkCount > 0 ||  foodCount > 0) 
+                if (drinkCount > 0 || foodCount > 0)
                     bc.Publish(new BuyGroceryItems(bc.Message.GroceryStoreId, bc.Saga.CorrelationId, drinkCount, foodCount));
                 bc.Publish(new LeaveGroceryStore(bc.Message.GroceryStoreId, bc.Saga.CorrelationId));
             }),
@@ -292,5 +376,4 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         var homeAddress = addressBook.GetHomeAddress();
         endpoint.Publish(new GoHome(homeAddress.EntityId, correlationId));
     }
-    
 }

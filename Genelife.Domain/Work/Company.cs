@@ -1,4 +1,5 @@
 using Genelife.Domain.Work.Accounting;
+using Genelife.Domain.Work.Personal;
 
 namespace Genelife.Domain.Work;
 
@@ -11,18 +12,18 @@ public class Company(
 {
     public Guid Id { get; init; } = id;
     public string Name { get; init; } = name;
-    public List<Employee.Employee> Employees { get; private set; } = [];
+    public List<Employee> Employees { get; private set; } = [];
     public CompanyType Type { get; private set; } = type;
     public float AverageProductivity { get; private set; } = 1.0F;
     public AccountingDepartment Accounting { get; init; } = accounting;
 
-    public void AddEmployee(Employee.Employee employee)
+    public void AddEmployee(Employee employee)
     {
         if (Employees.Contains(employee)) return;
         Employees.Add(employee);
     }
     
-    public void RemoveEmployee(Employee.Employee employee) 
+    public void RemoveEmployee(Employee employee) 
         => Employees = Employees.Where(e => e.Id != employee.Id).ToList();
 
     public IEnumerable<Salary> CalculatePayroll() => Accounting.CalculatePayroll(this);

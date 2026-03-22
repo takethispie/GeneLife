@@ -37,7 +37,7 @@ public static class GenerationEndpointsExtension
     {
         var sex = Random.Shared.Next(2) == 0 ? Sex.Male : Sex.Female;
         var humanId = Guid.NewGuid();
-        var human = HumanGenerator.Build(sex);
+        var human = HumanGenerator.Build(humanId, sex);
         //TODO add randomization of stats
         await endpoint.Publish(new CreateHuman(humanId, human));
         results.Humans.Add(new { HumanId = humanId, Human = human });
