@@ -25,7 +25,6 @@ namespace Genelife.Application.Sagas;
 
 public class HumanSaga : MassTransitStateMachine<HumanSagaState>
 {
-    // Activity states
     public State? Idle { get; set; } = null!;
     public State? Working { get; set; } = null;
     public State? Sleeping { get; set; } = null!;
@@ -34,7 +33,6 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
     public State? Showering { get; set; } = null!;
     public State? Shopping { get; set; } = null!;
 
-    // Human lifecycle events
     public Event<CreateHuman>? Created { get; set; } = null;
     public Event<Tick>? UpdateTick { get; set; } = null;
     public Event<DayElapsed>? DayElapsed { get; set; } = null;
@@ -210,8 +208,6 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                 Log.Information("Human {HumanId} learned about grocery store {StoreId} via discovery",
                     bc.Saga.CorrelationId, bc.Message.GroceryStoreId);
             }),
-
-            // Worker: job application handling (active when looking for job)
             When(JobPostingCreated).Then(bc =>
             {
                 if (!bc.Saga.IsLookingForJob) return;
