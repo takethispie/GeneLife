@@ -1,4 +1,5 @@
 ﻿using Genelife.Messages.Commands;
+using Genelife.Messages.Commands.Human;
 using MassTransit;
 using Microsoft.AspNetCore.Mvc;
 

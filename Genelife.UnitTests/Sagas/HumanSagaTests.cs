@@ -5,6 +5,7 @@ using Genelife.Application.Usecases;
 using Genelife.Domain;
 using Genelife.Domain.Work;
 using Genelife.Messages.Commands;
+using Genelife.Messages.Commands.Human;
 using Genelife.Messages.Events.Clock;
 using Genelife.Messages.Events.Company;
 using Genelife.UnitTests.TestData;

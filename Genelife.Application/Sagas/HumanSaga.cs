@@ -9,6 +9,7 @@ using Genelife.Domain.Locations;
 using Genelife.Domain.Work.Job;
 using Genelife.Messages.Commands;
 using Genelife.Messages.Commands.Grocery;
+using Genelife.Messages.Commands.Human;
 using Genelife.Messages.Commands.Jobs;
 using Genelife.Messages.Commands.Locomotion;
 using Genelife.Messages.Events;
@@ -186,7 +187,6 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             {
                 var homeAddress = bc.Saga.Person.AddressBook.GetHomeAddress();
                 bc.Publish(new EnteredHome(homeAddress.EntityId, bc.Saga.CorrelationId));
-                bc.Saga.Person.SetPosition(homeAddress);
             }),
             When(AddMoney).Then(bc =>
             {
@@ -361,17 +361,15 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         var homeAddress = bc.Saga.Person.AddressBook.GetHomeAddress();
         bc.Publish(new LeaveHome(homeAddress.EntityId, bc.Saga.CorrelationId));
         bc.Publish(new EnteredWork(workAddress.EntityId, bc.Saga.CorrelationId));
-        bc.Saga.Person.SetPosition(workAddress);
         Log.Information("{SagaCorrelationId} is going to work at {WorkAddressEntityId}", bc.Saga.CorrelationId, workAddress.EntityId);
     }
 
     private static void OnLeaveWork(BehaviorContext<HumanSagaState, LeaveWork> bc)
     {
         var workAddress = bc.Saga.Person.AddressBook.GetWorkAddress();
-        bc.Publish(new LeftWork(workAddress.EntityId, bc.Saga.CorrelationId));
         var homeAddress = bc.Saga.Person.AddressBook.GetHomeAddress();
+        bc.Publish(new LeftWork(workAddress.EntityId, bc.Saga.CorrelationId));
         bc.Publish(new EnteredHome(homeAddress.EntityId, bc.Saga.CorrelationId));
-        bc.Saga.Person.SetPosition(homeAddress);
         Log.Information("{SagaCorrelationId} is leaving work at {WorkAddressEntityId}", bc.Saga.CorrelationId, workAddress.EntityId);
     }
 }

@@ -1,6 +1,7 @@
 using Genelife.Domain;
 using Genelife.Domain.House;
 using Genelife.Messages.Commands;
+using Genelife.Messages.Commands.Human;
 using Genelife.Messages.Commands.Locomotion;
 using Genelife.Messages.Events;
 using Genelife.Messages.Events.Buildings;
