@@ -1,7 +1,7 @@
 using Genelife.Domain.Activities;
 using Genelife.Domain.Activities.Interfaces;
-using Genelife.Domain.Address;
 using Genelife.Domain.CheatCodes;
+using Genelife.Domain.Locations;
 using OneOf;
 
 namespace Genelife.Domain.Human;
@@ -103,8 +103,8 @@ public class Person(
     public void Update()
     {
         Hunger = Decay(Hunger, 0.02f);
-        Energy = Decay(Energy, 0.03f);
-        Hygiene = Decay(Hygiene, 0.01f);
+        Energy = Decay(Energy, 0.01f);
+        Hygiene = Decay(Hygiene, 0.005f);
         Thirst = Decay(Thirst, 0.03f);
     }
     
@@ -146,6 +146,7 @@ public class Person(
     }
     
     public void SetPosition(Position pos) => Coordinates = pos;
+    public void SetPosition(Address address) => Coordinates = new Position(address.Coordinates.X, address.Coordinates.Y,  address.Coordinates.Z);
     
     private static float Decay(float value, float decayRate) => Modify(value, -decayRate * 60);
     

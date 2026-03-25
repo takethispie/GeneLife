@@ -1,26 +1,26 @@
 ﻿using System.Numerics;
-using Genelife.Domain.Address.Exceptions;
+using Genelife.Domain.Locations.Exceptions;
 
-namespace Genelife.Domain.Address;
+namespace Genelife.Domain.Locations;
 
 public class AddressBook
 {
-    public List<AddressEntry> Addresses { get; init; } = [];
+    public List<Address> Addresses { get; init; } = [];
 
-    private void Add(AddressEntry entry)
+    private void Add(Address entry)
     {
         //TODO checks for type that should have only one address (like own home)
         if (Addresses.Any(address => address.EntityId == entry.EntityId)) return;
         Addresses.Add(entry);
     }
     
-    public bool Remove(AddressEntry entry) => Addresses.Remove(entry);
+    public bool Remove(Address entry) => Addresses.Remove(entry);
     
-    public bool Exists(AddressEntry entry) => Addresses.Any(ad => ad == entry);
+    public bool Exists(Address entry) => Addresses.Any(ad => ad == entry);
     
-    public IEnumerable<AddressEntry> AllOfAddressType(AddressType addressType) => Addresses.Where(ad => ad.AddressType == addressType);
+    public IEnumerable<Address> AllOfAddressType(AddressType addressType) => Addresses.Where(ad => ad.AddressType == addressType);
 
-    public AddressEntry? NearestOfAddressType(AddressType addressType, float x, float y, float z)
+    public Address? NearestOfAddressType(AddressType addressType, float x, float y, float z)
     {
         var origin = new Vector3(x, y, z);
         return Addresses
@@ -29,13 +29,13 @@ public class AddressBook
             .FirstOrDefault();
     }
     
-    public AddressEntry GetHomeAddress()
+    public Address GetHomeAddress()
     {
         var homeAddress = AllOfAddressType(AddressType.Home).FirstOrDefault();
         return homeAddress is null ? throw new AddressNotFoundException(nameof(homeAddress)) : homeAddress;
     }
     
-    public AddressEntry GetWorkAddress()
+    public Address GetWorkAddress()
     {
         var officeAddress = AllOfAddressType(AddressType.Office).FirstOrDefault();
         return officeAddress is null ? throw new AddressNotFoundException(nameof(officeAddress)) : officeAddress;
@@ -44,19 +44,19 @@ public class AddressBook
     public void AddWorkAddress(float x, float y, float z, Guid id)
     {
         var coordinates = new AddressCoordinates(x, y, z);
-        Add(new AddressEntry(AddressType.Office, id, coordinates));
+        Add(new Address(AddressType.Office, id, coordinates));
     }
     
     public void AddHomeAddress(float x, float y, float z, Guid id)
     {
         var coordinates = new AddressCoordinates(x, y, z);
-        Add(new AddressEntry(AddressType.Home, id, coordinates));
+        Add(new Address(AddressType.Home, id, coordinates));
     }
 
     public void AddGroceryStore(float x, float y, float z, Guid id)
     {
         var coordinates = new AddressCoordinates(x, y, z);
-        Add(new AddressEntry(AddressType.Store, id, coordinates));
+        Add(new Address(AddressType.Store, id, coordinates));
     }
     
     public Guid NearestBuildingId(AddressType type, Position coordinates)
