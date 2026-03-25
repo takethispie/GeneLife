@@ -3,9 +3,9 @@ using Genelife.Application.Sagas.States;
 using Genelife.Application.Usecases;
 using Genelife.Domain;
 using Genelife.Domain.Activities;
-using Genelife.Domain.Address;
 using Genelife.Domain.CheatCodes;
 using Genelife.Domain.Human.Activities;
+using Genelife.Domain.Locations;
 using Genelife.Domain.Work.Job;
 using Genelife.Messages.Commands;
 using Genelife.Messages.Commands.Grocery;
@@ -182,7 +182,12 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             When(Arrived).Then(bc => bc.Saga.Person.SetPosition(new Position(bc.Message.X, bc.Message.Y, bc.Message.Z))),
             When(GoToWork).Then(OnGoToWork),
             When(LeaveWork).Then(OnLeaveWork),
-            When(GoHome).Then(bc => OnGoHome(bc.Saga.Person.AddressBook, bc, bc.Saga.CorrelationId)),
+            When(GoHome).Then(bc =>
+            {
+                var homeAddress = bc.Saga.Person.AddressBook.GetHomeAddress();
+                bc.Publish(new EnteredHome(homeAddress.EntityId, bc.Saga.CorrelationId));
+                bc.Saga.Person.SetPosition(homeAddress);
+            }),
             When(AddMoney).Then(bc =>
             {
                 bc.Saga.Person.Money += bc.Message.Amount;
@@ -356,6 +361,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         var homeAddress = bc.Saga.Person.AddressBook.GetHomeAddress();
         bc.Publish(new LeaveHome(homeAddress.EntityId, bc.Saga.CorrelationId));
         bc.Publish(new EnteredWork(workAddress.EntityId, bc.Saga.CorrelationId));
+        bc.Saga.Person.SetPosition(workAddress);
         Log.Information("{SagaCorrelationId} is going to work at {WorkAddressEntityId}", bc.Saga.CorrelationId, workAddress.EntityId);
     }
 
@@ -363,13 +369,9 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
     {
         var workAddress = bc.Saga.Person.AddressBook.GetWorkAddress();
         bc.Publish(new LeftWork(workAddress.EntityId, bc.Saga.CorrelationId));
-        OnGoHome(bc.Saga.Person.AddressBook, bc, bc.Saga.CorrelationId);
+        var homeAddress = bc.Saga.Person.AddressBook.GetHomeAddress();
+        bc.Publish(new EnteredHome(homeAddress.EntityId, bc.Saga.CorrelationId));
+        bc.Saga.Person.SetPosition(homeAddress);
         Log.Information("{SagaCorrelationId} is leaving work at {WorkAddressEntityId}", bc.Saga.CorrelationId, workAddress.EntityId);
-    }
-
-    private static void OnGoHome(AddressBook addressBook, IPublishEndpoint endpoint, Guid correlationId)
-    {
-        var homeAddress = addressBook.GetHomeAddress();
-        endpoint.Publish(new GoHome(homeAddress.EntityId, correlationId));
     }
 }

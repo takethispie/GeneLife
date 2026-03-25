@@ -5,7 +5,6 @@ using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using Genelife.API.Endpoints;
 using Genelife.API.Hubs;
-using Genelife.API.Consumers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,7 +20,6 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Register Aspire-managed RabbitMQ connection (connection string injected by AppHost)
 builder.AddRabbitMQClient("rabbitmq");
 
 builder.Services.AddAuthorization();

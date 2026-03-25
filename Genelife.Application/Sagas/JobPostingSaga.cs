@@ -36,7 +36,6 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
             .TransitionTo(Active)
         );
 
-        // Configure event correlations
         Event(() => DayElapsed, e => e.CorrelateBy(saga => "any", ctx => "any"));
         Event(() => ApplicationSubmitted, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
         Event(() => RemoveApplication, e => e.CorrelateById(saga => saga.JobPosting.CompanyId, ctx => ctx.Message.CompanyId));

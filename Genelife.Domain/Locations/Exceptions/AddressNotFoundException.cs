@@ -1,3 +1,3 @@
-﻿namespace Genelife.Domain.Address.Exceptions;
+﻿namespace Genelife.Domain.Locations.Exceptions;
 
 public class AddressNotFoundException(string addressName) : Exception(addressName);
