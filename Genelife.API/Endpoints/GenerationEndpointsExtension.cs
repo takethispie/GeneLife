@@ -6,6 +6,7 @@ using Genelife.Domain.Work.Skills;
 using Genelife.Messages.Commands;
 using Genelife.Messages.Commands.Clock;
 using Genelife.Messages.Commands.Company;
+using Genelife.Messages.Commands.Human;
 using Genelife.Messages.Commands.Worker;
 using Genelife.Messages.Events.Buildings;
 using MassTransit;

@@ -4,6 +4,7 @@ using Genelife.Domain;
 using Genelife.Domain.Grocery;
 using Genelife.Messages.Commands;
 using Genelife.Messages.Commands.Grocery;
+using Genelife.Messages.Commands.Human;
 using Genelife.Messages.Commands.Locomotion;
 using Genelife.Messages.Events.Buildings;
 using Genelife.Messages.Events.Grocery;

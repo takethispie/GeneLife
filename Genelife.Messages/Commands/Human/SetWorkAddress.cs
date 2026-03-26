@@ -1,7 +1,6 @@
 ﻿using Genelife.Domain;
-using Genelife.Domain.Work;
 using MassTransit;
 
-namespace Genelife.Messages.Commands;
+namespace Genelife.Messages.Commands.Human;
 
 public record SetWorkAddress(Guid CorrelationId, Guid OfficeId, Position OfficeLocation) : CorrelatedBy<Guid>;

@@ -40,18 +40,16 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
         Event(() => ApplicationSubmitted, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
         Event(() => RemoveApplication, e => e.CorrelateById(saga => saga.JobPosting.CompanyId, ctx => ctx.Message.CompanyId));
         
-        DuringAny(
-            When(RecruitmentRefused).Then(bc => {
-                var id = bc.Message.HumanId;
-                bc.Saga.Applications = bc.Saga.Applications.Where(x => x.HumanId != id).ToList();
-                Log.Information("{Guid} removed from application {SagaCorrelationId} after refusing recruitment proposal", id, bc.Saga.CorrelationId);
-            }),
-            When(DayElapsed).Then(context => context.Saga.DaysActive++)
-        );
+        DuringAny(When(DayElapsed).Then(context => context.Saga.DaysActive++));
         
         During(Active,
         When(DayElapsed) .Then(context => {
-                if (context.Saga is { DaysActive: <= 3, Applications.Count: < 1 }) return;
+                if(context.Saga is { DaysActive: > 3, Applications.Count: < 1 }) {
+                    context.Publish(new JobPostingResubmitted(context.Saga.CorrelationId, context.Saga.JobPosting));
+                    Log.Information("Job posting {JobPostingId}: resubmitted", context.Saga.CorrelationId);
+                }
+
+                if (context.Saga is { DaysActive: <= 30, Applications.Count: < 1}) return;
                 Log.Information("Job posting: {JobPostingTitle} ended, reviewing applications", context.Saga.JobPosting.Title);
                 context.TransitionToState(ReviewingApplications);
             }),
@@ -75,8 +73,7 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                 var pendingApplications = context.Saga.Applications;
                 if (pendingApplications.Count == 0) {
                     Log.Information("0 Application received for {JobPostingTitle} closing posting", context.Saga.JobPosting.Title);
-                    context.Publish(
-                        new JobPostingExpired(context.Saga.JobPosting.CompanyId, context.Saga.CorrelationId));
+                    context.Publish(new JobPostingExpired(context.Saga.JobPosting.CompanyId, context.Saga.CorrelationId));
                     context.SetCompleted();
                 }
 
@@ -107,7 +104,12 @@ public class JobPostingSaga : MassTransitStateMachine<JobPostingSagaState>
                     context.Message.Salary,
                     context.Saga.JobPosting.OfficeLocation
                 ));
-            }).Finalize()
+            }).Finalize(),
+            When(RecruitmentRefused).Then(bc => {
+                var id = bc.Message.HumanId;
+                bc.Saga.Applications = bc.Saga.Applications.Where(x => x.HumanId != id).ToList();
+                Log.Information("{Guid} removed from application {SagaCorrelationId} after refusing recruitment proposal", id, bc.Saga.CorrelationId);
+            }).TransitionTo(Active)
         );
         
         SetCompletedWhenFinalized();

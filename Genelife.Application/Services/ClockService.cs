@@ -14,7 +14,7 @@ public class ClockService {
         timer = new(1000);
         timer.Elapsed += OnTimedEvent!;
         timer.AutoReset = true;
-        dateTime = new DateTime(1, 1, 1, 0, 0, 0);
+        dateTime = new DateTime(100, 1, 1, 0, 0, 0);
     }
 
     public void Start() {
@@ -33,7 +33,6 @@ public class ClockService {
         await publishEndpoint.Publish(new Tick(dateTime));
         if(previousDate.AddHours(1) < dateTime) return;
         await publishEndpoint.Publish(new HourElapsed(new TimeOnly(dateTime.Hour, dateTime.Minute, dateTime.Second)));
-        dateTime = dateTime.AddHours(1);
         switch (dateTime.Hour) {
             case 12:
                 Console.WriteLine($"Noon of current day: {dateTime}");

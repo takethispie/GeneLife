@@ -1,6 +1,6 @@
 using MassTransit;
 
-namespace Genelife.Messages.Commands;
+namespace Genelife.Messages.Commands.Human;
 
 public record AddGroceryStoreAddress(
     Guid CorrelationId,

@@ -7,8 +7,10 @@ using Genelife.Domain.CheatCodes;
 using Genelife.Domain.Human.Activities;
 using Genelife.Domain.Locations;
 using Genelife.Domain.Work.Job;
+using Genelife.Domain.Work.Skills;
 using Genelife.Messages.Commands;
 using Genelife.Messages.Commands.Grocery;
+using Genelife.Messages.Commands.Human;
 using Genelife.Messages.Commands.Jobs;
 using Genelife.Messages.Commands.Locomotion;
 using Genelife.Messages.Events;
@@ -60,6 +62,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
     public Event<Recruit>? ApplicationAccepted { get; set; } = null;
     public Event<EmployeeHired>? EmployeeHired { get; set; } = null;
     public Event<SalaryPaid>? SalaryPaid { get; set; } = null;
+    public Event<JobPostingResubmitted>? JobPostingResubmitted { get; set; } = null;
 
     public HumanSaga()
     {
@@ -93,7 +96,8 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         Event(() => EmployeeHired, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.WorkerId.ToString()));
         Event(() => ApplicationAccepted, e => e.CorrelateBy(saga => saga.CorrelationId.ToString(), ctx => ctx.Message.CorrelationId.ToString()));
         Event(() => SalaryPaid, e => e.CorrelateById(saga => saga.CorrelationId, ctx => ctx.Message.CorrelationId));
-
+        Event(() => JobPostingResubmitted, e => e.CorrelateBy(saga => "any", _ => "any"));
+        
         DuringAny(
             When(HourElapsed).Then(bc =>
             {
@@ -186,7 +190,6 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             {
                 var homeAddress = bc.Saga.Person.AddressBook.GetHomeAddress();
                 bc.Publish(new EnteredHome(homeAddress.EntityId, bc.Saga.CorrelationId));
-                bc.Saga.Person.SetPosition(homeAddress);
             }),
             When(AddMoney).Then(bc =>
             {
@@ -213,24 +216,44 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
                 Log.Information("Human {HumanId} learned about grocery store {StoreId} via discovery",
                     bc.Saga.CorrelationId, bc.Message.GroceryStoreId);
             }),
-            When(JobPostingCreated).Then(bc =>
-            {
+            When(JobPostingCreated).Then(bc => {
                 if (!bc.Saga.IsLookingForJob) return;
-                var jobPosting = bc.Message.JobPosting;
-                var desiredSalary = new GenerateEmployment().GenerateDesiredSalary(bc.Saga.YearsOfExperience, jobPosting);
-                var tempApplication = new JobApplication(
-                    JobPostingId: bc.Message.CorrelationId,
-                    HumanId: bc.Saga.CorrelationId,
-                    ApplicationDate: DateTime.UtcNow,
-                    RequestedSalary: desiredSalary,
-                    Skills: bc.Saga.SkillSet,
-                    YearsOfExperience: bc.Saga.YearsOfExperience
+                var application = ApplyToJobIfMatch(
+                    bc.Message.JobPosting, 
+                    bc.Saga.YearsOfExperience, 
+                    bc.Message.CorrelationId, 
+                    bc.Saga.CorrelationId,
+                    bc.Saga.SkillSet
                 );
-                var matchScore = jobPosting.CalculateMatchScore(tempApplication);
-                if (matchScore < 0.3f) return;
-                bc.Publish(new JobApplicationSubmitted(bc.Message.CorrelationId, tempApplication with { MatchScore = matchScore }));
-                Log.Information("{FirstName} {LastName} applied for {JobTitle} (Match Score: {MatchScore:F2}, Desired Salary: {DesiredSalary:C})",
-                    bc.Saga.Person.FirstName, bc.Saga.Person.LastName, jobPosting.Title, matchScore, desiredSalary);
+                if (application is null) return;
+                bc.Publish(new JobApplicationSubmitted(bc.Message.CorrelationId, application));
+                Log.Information("{FirstName} {LastName} applied for {JobTitle} " +
+                                "(Match Score: {MatchScore:F2}, Desired Salary: {DesiredSalary:C})",
+                    bc.Saga.Person.FirstName, 
+                    bc.Saga.Person.LastName, 
+                    bc.Message.JobPosting.Title, 
+                    application.MatchScore, 
+                    application.RequestedSalary
+                );
+            }),
+            When(JobPostingResubmitted).Then(bc => {
+                if (!bc.Saga.IsLookingForJob) return;
+                var applicationToSend = ApplyToJobIfMatch(bc.Message.JobPosting, 
+                    bc.Saga.YearsOfExperience, 
+                    bc.Message.JobPostingId, 
+                    bc.Saga.CorrelationId,
+                    bc.Saga.SkillSet
+                );
+                if (applicationToSend is null) return;
+                bc.Publish(new JobApplicationSubmitted(bc.Message.JobPostingId, applicationToSend));
+                Log.Information("{FirstName} {LastName} applied for {JobTitle} " +
+                                "(Match Score: {MatchScore:F2}, Desired Salary: {DesiredSalary:C})",
+                    bc.Saga.Person.FirstName, 
+                    bc.Saga.Person.LastName, 
+                    bc.Message.JobPosting.Title, 
+                    applicationToSend.MatchScore, 
+                    applicationToSend.RequestedSalary
+                );
             }),
             When(ApplicationAccepted).Then(bc =>
             {
@@ -355,23 +378,43 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
         );
     }
 
+    private static JobApplication? ApplyToJobIfMatch(
+        JobPosting jobPosting, 
+        int yearsOfXp, 
+        Guid postingId, 
+        Guid humanId,
+        SkillSet skillSet
+    ) {
+        var desiredSalary = new GenerateEmployment().GenerateDesiredSalary(yearsOfXp, jobPosting);
+        var tempApplication = new JobApplication(
+            postingId,
+            humanId,
+            DateTime.UtcNow,
+            desiredSalary,
+            skillSet,
+            yearsOfXp
+        );
+        var matchScore = jobPosting.CalculateMatchScore(tempApplication);
+        if (matchScore < 0.3f) return null;
+        return tempApplication with { MatchScore = matchScore };
+
+    }
+
     private static void OnGoToWork(BehaviorContext<HumanSagaState, GoToWork> bc)
     {
         var workAddress = bc.Saga.Person.AddressBook.GetWorkAddress();
         var homeAddress = bc.Saga.Person.AddressBook.GetHomeAddress();
         bc.Publish(new LeaveHome(homeAddress.EntityId, bc.Saga.CorrelationId));
         bc.Publish(new EnteredWork(workAddress.EntityId, bc.Saga.CorrelationId));
-        bc.Saga.Person.SetPosition(workAddress);
         Log.Information("{SagaCorrelationId} is going to work at {WorkAddressEntityId}", bc.Saga.CorrelationId, workAddress.EntityId);
     }
 
     private static void OnLeaveWork(BehaviorContext<HumanSagaState, LeaveWork> bc)
     {
         var workAddress = bc.Saga.Person.AddressBook.GetWorkAddress();
-        bc.Publish(new LeftWork(workAddress.EntityId, bc.Saga.CorrelationId));
         var homeAddress = bc.Saga.Person.AddressBook.GetHomeAddress();
+        bc.Publish(new LeftWork(workAddress.EntityId, bc.Saga.CorrelationId));
         bc.Publish(new EnteredHome(homeAddress.EntityId, bc.Saga.CorrelationId));
-        bc.Saga.Person.SetPosition(homeAddress);
         Log.Information("{SagaCorrelationId} is leaving work at {WorkAddressEntityId}", bc.Saga.CorrelationId, workAddress.EntityId);
     }
 }

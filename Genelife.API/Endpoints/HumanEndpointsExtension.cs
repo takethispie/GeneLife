@@ -1,6 +1,7 @@
 ﻿using Genelife.Application.Usecases;
 using Genelife.Domain;
 using Genelife.Messages.Commands;
+using Genelife.Messages.Commands.Human;
 using MassTransit;
 using Microsoft.AspNetCore.Mvc;
 
