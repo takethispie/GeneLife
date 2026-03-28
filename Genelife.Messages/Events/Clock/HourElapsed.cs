@@ -1,4 +1,4 @@
 namespace Genelife.Messages.Events.Clock
 {
-    public record HourElapsed(TimeOnly timeOnly);
+    public record HourElapsed(DateTime DateTime);
 }

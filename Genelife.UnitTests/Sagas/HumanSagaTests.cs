@@ -64,7 +64,7 @@ public class HumanSagaTests
         await Task.Delay(100); // Wait for saga creation
 
         // Act
-        await harness.Bus.Publish(new HourElapsed(new TimeOnly(1, 0)));
+        await harness.Bus.Publish(new HourElapsed(new DateTime(0, 0, 0, 1, 0, 0)));
 
         // Assert
         (await harness.Consumed.Any<HourElapsed>()).Should().BeTrue();

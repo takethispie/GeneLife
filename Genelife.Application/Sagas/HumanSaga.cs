@@ -132,9 +132,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             When(DayElapsed).Then(bc =>
             {
                 bc.Saga.LastTime = bc.Message.DateTime;
-
                 if (bc.Saga.HasJob) return;
-
                 if (bc.Saga.HiringTimeOut is 0)
                 {
                     bc.Saga.EmployerId = Guid.Empty;
@@ -257,12 +255,7 @@ public class HumanSaga : MassTransitStateMachine<HumanSagaState>
             }),
             When(ApplicationAccepted).Then(bc =>
             {
-                if (bc.Saga.HasJob)
-                {
-                    bc.Publish(new RecruitmentRefused(bc.Message.JobPostingId, bc.Saga.CorrelationId));
-                    return;
-                }
-                if (bc.Saga.EmployerId != Guid.Empty)
+                if (bc.Saga.HasJob || bc.Saga.EmployerId != Guid.Empty)
                 {
                     bc.Publish(new RecruitmentRefused(bc.Message.JobPostingId, bc.Saga.CorrelationId));
                     return;

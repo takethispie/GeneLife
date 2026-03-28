@@ -32,7 +32,7 @@ public class ClockService {
         dateTime = dateTime.AddMinutes(15);
         await publishEndpoint.Publish(new Tick(dateTime));
         if(previousDate.AddHours(1) < dateTime) return;
-        await publishEndpoint.Publish(new HourElapsed(new TimeOnly(dateTime.Hour, dateTime.Minute, dateTime.Second)));
+        await publishEndpoint.Publish(new HourElapsed(dateTime));
         switch (dateTime.Hour) {
             case 12:
                 Console.WriteLine($"Noon of current day: {dateTime}");

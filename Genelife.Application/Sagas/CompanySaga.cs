@@ -23,24 +23,26 @@ public class CompanySaga :
     Orchestrates<JobPostingExpired>,
     Orchestrates<EnteredWork>,
     Orchestrates<LeftWork>,
-    Observes<DayElapsed, CompanySaga>
+    Observes<DayElapsed, CompanySaga>,
+    Observes<HourElapsed, CompanySaga> 
 {
     public Guid CorrelationId { get; set; }
     public Company Company { get; set; } = null!;
     public int DaysElapsedCount { get; set; }
     public int? PublishedJobPostings { get; set; }
     public int Version { get; set; }
+    public DateTime LastTime { get; set; }
     public DateTime LastPayrollDate { get; set; }
     public List<Guid> Occupants { get; set; } = [];
     public Position OfficeLocation { get; set; } = new(0, 0, 0);
 
     public Expression<Func<CompanySaga, DayElapsed, bool>> CorrelationExpression => (_,_) => true;
+    Expression<Func<CompanySaga, HourElapsed, bool>> Observes<HourElapsed, CompanySaga>.CorrelationExpression => (_,_) => true;
 
     public async Task Consume(ConsumeContext<CreateCompany> context)
     {
         Company = context.Message.Company;
         DaysElapsedCount = 0;
-        LastPayrollDate = DateTime.UtcNow;
         OfficeLocation = new Position(context.Message.X, context.Message.Y, context.Message.Z);
         Log.Information("Company {CompanyName} created with ID {SagaCorrelationId}", Company.Name, CorrelationId);
         await Task.CompletedTask;
@@ -51,7 +53,7 @@ public class CompanySaga :
         var employment = new Employee(
             context.Message.WorkerId,
             context.Message.Salary,
-            DateTime.UtcNow,
+            LastTime,
             EmploymentStatus.Active
         );
         Company.AddEmployee(employment);
@@ -85,8 +87,8 @@ public class CompanySaga :
         await Task.CompletedTask;
     }
 
-    public async Task Consume(ConsumeContext<DayElapsed> context)
-    {
+    public async Task Consume(ConsumeContext<DayElapsed> context) {
+        LastTime = context.Message.DateTime;
         DaysElapsedCount++;
         if (DaysElapsedCount >= 30) {
             Log.Information("Company {CompanyName}: Processing payroll", Company.Name);
@@ -124,5 +126,10 @@ public class CompanySaga :
         if (postings.Count > 0) PublishedJobPostings = postings.Count;
 
         await context.Publish(CompanyUpdateEvent.FromSaga(CorrelationId, Company, PublishedJobPostings, OfficeLocation.X, OfficeLocation.Y, OfficeLocation.Z));
+    }
+
+    public Task Consume(ConsumeContext<HourElapsed> context) {
+        LastTime = context.Message.DateTime;
+        return Task.CompletedTask;
     }
 }

@@ -136,13 +136,13 @@ public class Person(
     public int GetFoodBudget()
     {
         var onePercent = Money / 100;
-        return Math.Max(Convert.ToInt32(onePercent * 10), 1000);
+        return Math.Max(Convert.ToInt32(onePercent * 10), 200);
     }
     
     public int GetDrinkBudget()
     {
         var onePercent = Money / 100;
-        return Math.Max(Convert.ToInt32(onePercent * 5), 400);
+        return Math.Max(Convert.ToInt32(onePercent * 5), 100);
     }
     
     public void SetPosition(Position pos) => Coordinates = pos;
