@@ -104,8 +104,7 @@ else
         InvokeAsync(StateHasChanged);
     }
 
-    private void NavigateTo(Guid companyId) =>
-        Nav.NavigateTo($"/companies/{companyId}");
+    private void NavigateTo(Guid companyId) => Nav.NavigateTo($"/companies/{companyId}");
 
     public async ValueTask DisposeAsync()
     {

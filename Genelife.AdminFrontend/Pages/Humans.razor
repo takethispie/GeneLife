@@ -3,6 +3,8 @@
 @using Genelife.AdminFrontend.Services
 @using Microsoft.AspNetCore.SignalR.Client
 @inject HumanHubService HubService
+@inject HumanApiService HumanApiService
+@inject ISnackbar Snackbar
 @implements IAsyncDisposable
 
 <PageTitle>Humans</PageTitle>
@@ -16,6 +18,13 @@
         @connectionState
     </MudChip>
     <MudText Typo="Typo.body2" Color="Color.Secondary">@humans.Count person(s) tracked</MudText>
+    <MudSpacer />
+    <MudButton Variant="Variant.Filled"
+               Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.PersonAdd"
+               OnClick="OpenCreateDialog">
+        New Human
+    </MudButton>
 </MudStack>
 
 @if (humans.Count == 0)
@@ -69,9 +78,102 @@ else
     </MudGrid>
 }
 
+<!-- Create Human Dialog -->
+<MudDialog @bind-Visible="createDialogVisible" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Class="mr-2" />
+            Create New Human
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="createForm" @bind-IsValid="formIsValid">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="newHuman.FirstName"
+                                  Label="First Name"
+                                  Variant="Variant.Outlined"
+                                  Required="true"
+                                  RequiredError="First name is required."
+                                  MaxLength="100" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="newHuman.LastName"
+                                  Label="Last Name"
+                                  Variant="Variant.Outlined"
+                                  Required="true"
+                                  RequiredError="Last name is required."
+                                  MaxLength="100" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField @bind-Value="newHuman.Age"
+                                     Label="Age"
+                                     Variant="Variant.Outlined"
+                                     Required="true"
+                                     Min="1"
+                                     Max="120"
+                                     RequiredError="Age is required." />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect @bind-Value="newHuman.Sex"
+                               Label="Sex"
+                               Variant="Variant.Outlined"
+                               Required="true"
+                               RequiredError="Sex is required.">
+                        <MudSelectItem Value="@("Male")">Male</MudSelectItem>
+                        <MudSelectItem Value="@("Female")">Female</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudNumericField @bind-Value="newHuman.Money"
+                                     Label="Starting Money"
+                                     Variant="Variant.Outlined"
+                                     Required="true"
+                                     Min="0f"
+                                     Format="F2"
+                                     Adornment="Adornment.Start"
+                                     AdornmentIcon="@Icons.Material.Filled.AttachMoney"
+                                     RequiredError="Money is required." />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CloseCreateDialog" Disabled="isSubmitting">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="SubmitCreateHuman"
+                   Disabled="isSubmitting">
+            @if (isSubmitting)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                <span>Creating…</span>
+            }
+            else
+            {
+                <span>Create</span>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
 @code {
     private readonly Dictionary<Guid, HumanUpdateDto> humans = [];
     private HubConnectionState connectionState = HubConnectionState.Disconnected;
+
+    // Dialog state
+    private bool createDialogVisible = false;
+    private bool formIsValid = false;
+    private bool isSubmitting = false;
+    private MudForm createForm = default!;
+    private CreateHumanDto newHuman = new();
+
+    private readonly DialogOptions dialogOptions = new()
+    {
+        MaxWidth = MaxWidth.Small,
+        FullWidth = true,
+        CloseOnEscapeKey = true
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -96,4 +198,41 @@ else
 
     private static int GetAge(DateTime birthday) =>
         (int)((DateTime.UtcNow - birthday).TotalDays / 365.25);
+
+    private void OpenCreateDialog()
+    {
+        newHuman = new CreateHumanDto();
+        createDialogVisible = true;
+    }
+
+    private void CloseCreateDialog()
+    {
+        createDialogVisible = false;
+    }
+
+    private async Task SubmitCreateHuman()
+    {
+        await createForm.ValidateAsync();
+        if (!formIsValid) return;
+        isSubmitting = true;
+        try
+        {
+            var id = await HumanApiService.CreateHumanAsync(newHuman);
+            if (id.HasValue)
+            {
+                Snackbar.Add($"Human '{newHuman.FirstName} {newHuman.LastName}' created successfully.", Severity.Success);
+                createDialogVisible = false;
+            }
+            else
+                Snackbar.Add("Failed to create human. Please check the values and try again.", Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
 }

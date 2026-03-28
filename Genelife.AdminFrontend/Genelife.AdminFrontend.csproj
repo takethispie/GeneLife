@@ -14,4 +14,8 @@
     <PackageReference Include="MudBlazor" Version="9.*" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Genelife.Domain\Genelife.Domain.csproj" />
+  </ItemGroup>
+
 </Project>
