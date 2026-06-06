@@ -1,3 +1,4 @@
+using Genelife.API.Constants;
 using Genelife.API.Hubs;
 using Genelife.Application.IntegrationEvents;
 using MassTransit;
@@ -13,10 +14,10 @@ public class HumanUpdateConsumer(IHubContext<HumanHub> hubContext) : IConsumer<H
 
         await hubContext.Clients
             .Group(update.CorrelationId.ToString())
-            .SendAsync("HumanUpdate", update, context.CancellationToken);
+            .SendAsync(SignalRMethods.HumanUpdate, update, context.CancellationToken);
 
         await hubContext.Clients
-            .Group("all-humans")
-            .SendAsync("HumanUpdate", update, context.CancellationToken);
+            .Group(SignalRGroups.AllHuman)
+            .SendAsync(SignalRMethods.HumanUpdate, update, context.CancellationToken);
     }
 }

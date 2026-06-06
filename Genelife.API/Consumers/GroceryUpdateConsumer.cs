@@ -1,3 +1,4 @@
+using Genelife.API.Constants;
 using Genelife.API.Hubs;
 using Genelife.Application.IntegrationEvents;
 using MassTransit;
@@ -13,10 +14,10 @@ public class GroceryUpdateConsumer(IHubContext<GroceryHub> hubContext) : IConsum
 
         await hubContext.Clients
             .Group(update.CorrelationId.ToString())
-            .SendAsync("GroceryUpdate", update, context.CancellationToken);
+            .SendAsync(SignalRMethods.GroceryUpdate, update, context.CancellationToken);
 
         await hubContext.Clients
-            .Group("all-grocery-stores")
-            .SendAsync("GroceryUpdate", update, context.CancellationToken);
+            .Group(SignalRGroups.AllGroceryStores)
+            .SendAsync(SignalRMethods.GroceryUpdate, update, context.CancellationToken);
     }
 }

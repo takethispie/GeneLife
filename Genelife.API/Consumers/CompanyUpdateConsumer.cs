@@ -1,3 +1,4 @@
+using Genelife.API.Constants;
 using Genelife.API.Hubs;
 using Genelife.Application.IntegrationEvents;
 using MassTransit;
@@ -13,10 +14,10 @@ public class CompanyUpdateConsumer(IHubContext<CompanyHub> hubContext) : IConsum
 
         await hubContext.Clients
             .Group(update.CorrelationId.ToString())
-            .SendAsync("CompanyUpdate", update, context.CancellationToken);
+            .SendAsync(SignalRMethods.CompanyUpdate, update, context.CancellationToken);
 
         await hubContext.Clients
-            .Group("all-companies")
-            .SendAsync("CompanyUpdate", update, context.CancellationToken);
+            .Group(SignalRGroups.AllCompanies)
+            .SendAsync(SignalRMethods.CompanyUpdate, update, context.CancellationToken);
     }
 }
