@@ -1,21 +1,20 @@
-<Project Sdk="Aspire.AppHost.Sdk/13.1.2">
+<Project Sdk="Aspire.AppHost.Sdk/13.4.2">
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <UserSecretsId>721dc499-c202-4ea7-88e5-1995906b0a8b</UserSecretsId>
+        <UserSecretsId>4dba9746-8e80-4118-a2f4-2ff29c0a8ffa</UserSecretsId>
+        <RootNamespace>GeneLife.AppHost2</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Genelife.API\Genelife.API.csproj" />
-      <ProjectReference Include="..\Genelife.Application\Genelife.Application.csproj" />
+      <ProjectReference Include="..\Application\Application.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Aspire.Hosting.MongoDB" Version="13.1.2" />
-      <PackageReference Include="Aspire.Hosting.RabbitMQ" Version="13.1.2" />
+      <PackageReference Include="Aspire.Hosting.Blazor" Version="13.4.2-preview.1.26303.6" />
     </ItemGroup>
 
 </Project>
