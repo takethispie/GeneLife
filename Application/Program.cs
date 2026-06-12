@@ -1,12 +1,26 @@
+using Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
+
+// Add PostgreSQL with EF Core using Aspire integration
+builder.AddNpgsqlDbContext<ApplicationDbContext>("genelifedb");
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+
+// Apply migrations on startup (development only)
+if (app.Environment.IsDevelopment())
+{
+    using var scope = app.Services.CreateScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    await dbContext.Database.EnsureCreatedAsync();
+}
 
 app.MapDefaultEndpoints();
 
@@ -33,6 +47,13 @@ app.MapGet("/weatherforecast", () => {
         return forecast;
     })
     .WithName("GetWeatherForecast");
+
+// Example endpoint using DbContext
+app.MapGet("/humans", async (ApplicationDbContext db) =>
+{
+    return await db.Humans.ToListAsync();
+})
+.WithName("GetHumans");
 
 app.Run();
 

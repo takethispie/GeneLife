@@ -11,10 +11,12 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Application\Application.csproj" />
+      <ProjectReference Include="..\AdminPanel\AdminPanel.csproj" />
     </ItemGroup>
 
     <ItemGroup>
       <PackageReference Include="Aspire.Hosting.Blazor" Version="13.4.2-preview.1.26303.6" />
+      <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.4.2" />
     </ItemGroup>
 
 </Project>
