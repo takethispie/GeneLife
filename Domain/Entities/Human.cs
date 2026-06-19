@@ -1,5 +1,4 @@
 using Domain.Enums;
-using Domain.Repositories;
 using Domain.ValueObjects;
 
 namespace Domain.Entities;
@@ -30,10 +29,5 @@ public class Human {
         Needs = new Needs(0, 0, 0);
         Money = 0;
         Address = new Address();
-    }
-    
-    public void MoveHome(Address newAddress, IHouseRepository houseRepository)
-    {
-        Address = newAddress;
     }
 }
