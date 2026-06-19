@@ -4,9 +4,6 @@ using Genelife.Components;
 
 namespace Genelife.Systems;
 
-/// <summary>
-/// System that handles the decay of needs over time
-/// </summary>
 public class NeedsDecaySystem
 {
     private readonly World _world;

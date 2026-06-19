@@ -5,9 +5,6 @@ using Genelife.Enums;
 
 namespace Genelife.Systems;
 
-/// <summary>
-/// System that makes decisions for Sims based on their needs
-/// </summary>
 public class DecisionSystem
 {
     private readonly World _world;
@@ -24,7 +21,6 @@ public class DecisionSystem
     {
         _world.Query(in _queryDescription, (ref CurrentAction action, ref Needs needs) =>
         {
-            // Only make decisions when idle
             if (action.Type != ActionType.Idle)
                 return;
 
