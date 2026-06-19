@@ -6,8 +6,8 @@ namespace Domain.Repositories;
 public interface ICompanyRepository {
     IEnumerable<Company> GetCompanies();
     IEnumerable<Company> GetCompaniesNear(Vector3 position, float radius);
-    Company GetCompany(Guid companyId);
+    Company GetCompany(Guid id);
     Guid CreateCompany(Company company);
-    bool DeleteCompany(Guid companyId);
+    bool DeleteCompany(Guid id);
     bool UpdateCompany(Company company);
 }

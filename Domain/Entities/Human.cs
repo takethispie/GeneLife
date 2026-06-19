@@ -4,7 +4,7 @@ using Domain.ValueObjects;
 namespace Domain.Entities;
 
 public class Human {
-    public Guid Id { get; private set; }
+    public int Id { get; private set; }
     public string FirstName { get; private set; }
     public string LastName { get; private set; }
     public Needs Needs { get; private set; }
@@ -12,7 +12,7 @@ public class Human {
     public Address Address { get; private set; }
     public HumanState State { get; private set; } = HumanState.Idle;
 
-    public Human(Guid id, string firstName, string lastName, Needs needs, float money, Address address)
+    public Human(int id, string firstName, string lastName, Needs needs, float money, Address address)
     {
         Id = id;
         FirstName = firstName;

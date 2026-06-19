@@ -7,9 +7,9 @@ namespace Domain.Repositories;
 public interface IHouseRepository {
     bool IsInhabitant(Guid humanId, Address address);
     Guid CreateHouse(House house);
-    bool DeleteHouse(Guid houseId);
+    bool DeleteHouse(Guid id);
     bool UpdateHouse(House house);
     IEnumerable<House> GetHouses();
-    House GetHouse(Guid houseId);
+    House GetHouse(Guid id);
     IEnumerable<House> GetHousesNear(Vector3 position, float radius);
 }
