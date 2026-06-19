@@ -49,8 +49,7 @@ public class SimulationManager : IHostedService, IDisposable
             _needsDecaySystem = new NeedsDecaySystem(_world);
             _decisionSystem = new DecisionSystem(_world);
             _actionSystem = new ActionSystem(_world);
-
-            _timer = new Timer(SimulationTick, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+            _timer = new Timer(SimulationTick, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(40));
             _isRunning = true;
         }
     }
