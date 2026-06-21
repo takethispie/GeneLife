@@ -1,9 +1,9 @@
 using Genelife.Api.Services;
+using Genelife.Api.Endpoints;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -16,6 +16,8 @@ app.UseSwagger();
 app.UseSwaggerUI();
 app.UseHttpsRedirection();
 app.UseAuthorization();
-app.MapControllers();
+
+app.MapSimulationEndpoints();
+app.MapCompanyEndpoints();
 
 app.Run();

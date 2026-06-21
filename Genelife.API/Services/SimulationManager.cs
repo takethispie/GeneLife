@@ -1,35 +1,18 @@
-using Arch.Core;
 using Genelife.Api.DTOs;
-using Genelife.Components;
-using Genelife.Enums;
-using Genelife.Systems;
+using Genelife.Api.Repositories;
 
 namespace Genelife.Api.Services;
 
 public class SimulationManager : IHostedService, IDisposable
 {
-    private World? world;
-    private NeedsDecaySystem? needsDecaySystem;
-    private DecisionSystem? decisionSystem;
-    private ActionSystem? actionSystem;
-    private HiringSystem? hiringSystem;
-    private PayrollSystem? payrollSystem;
-    private JobSeekerSystem? jobSeekerSystem;
-    private Timer? timer;
-    private bool isRunning;
-    private readonly object @lock = new();
-    private const float DeltaTime = 1f;
+    private readonly SimulationEngine _engine;
 
-    public bool IsRunning
+    public SimulationManager()
     {
-        get
-        {
-            lock (@lock)
-            {
-                return isRunning;
-            }
-        }
+        _engine = new SimulationEngine();
     }
+
+    public bool IsRunning => _engine.IsRunning;
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
@@ -44,100 +27,71 @@ public class SimulationManager : IHostedService, IDisposable
 
     public void StartSimulation()
     {
-        lock (@lock)
-        {
-            if (isRunning)
-                return;
-
-            world = World.Create();
-            needsDecaySystem = new NeedsDecaySystem(world);
-            decisionSystem = new DecisionSystem(world);
-            actionSystem = new ActionSystem(world);
-            hiringSystem = new HiringSystem(world);
-            payrollSystem = new PayrollSystem(world);
-            jobSeekerSystem = new JobSeekerSystem(world);
-            timer = new Timer(SimulationTick, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(40));
-            isRunning = true;
-        }
+        _engine.Start();
     }
 
     public void StopSimulation()
     {
-        lock (@lock)
-        {
-            if (!isRunning)
-                return;
-
-            timer?.Dispose();
-            timer = null;
-            world?.Dispose();
-            world = null;
-            isRunning = false;
-        }
+        _engine.Stop();
     }
 
     public void AddSim(string name, int age)
     {
-        lock (@lock)
+        _engine.ExecuteWithWorld(world =>
         {
-            if (world == null)
-                throw new InvalidOperationException("Simulation is not running");
-
-            world.Create(
-                new SimName(name),
-                new Needs(),
-                new CurrentAction(ActionType.Idle, 0f),
-                new Alive(age)
-            );
-        }
+            var repository = new SimRepository(world);
+            repository.Add(name, age);
+            return true;
+        });
     }
 
     public List<SimStatus> GetAllSims()
     {
-        lock (@lock)
+        return _engine.ExecuteWithWorld(world =>
         {
-            if (world == null)
-                return new List<SimStatus>();
-
-            var sims = new List<SimStatus>();
-            var query = new QueryDescription().WithAll<SimName, Needs, CurrentAction>();
-
-            world.Query(in query, (ref SimName name, ref Needs needs, ref CurrentAction action) =>
-            {
-                sims.Add(new SimStatus
-                {
-                    Name = name.Name,
-                    Hunger = needs.Hunger,
-                    Energy = needs.Energy,
-                    Hygiene = needs.Hygiene,
-                    Bladder = needs.Bladder,
-                    CurrentAction = action.Type.ToString(),
-                    TimeRemaining = action.TimeRemaining
-                });
-            });
-
-            return sims;
-        }
+            var repository = new SimRepository(world);
+            return repository.GetAll();
+        });
     }
 
-    private void SimulationTick(object? state)
+    public int AddCompany(string name)
     {
-        lock (@lock)
+        return _engine.ExecuteWithWorld(world =>
         {
-            if (!isRunning || world == null)
-                return;
+            var repository = new CompanyRepository(world);
+            return repository.Add(name);
+        });
+    }
 
-            needsDecaySystem?.Update(DeltaTime);
-            decisionSystem?.Update();
-            actionSystem?.Update(DeltaTime);
-            hiringSystem?.Update();
-            payrollSystem?.Update();
-            jobSeekerSystem?.Update();
-        }
+    public CompanyStatus? GetCompany(int entityId)
+    {
+        return _engine.ExecuteWithWorld(world =>
+        {
+            var repository = new CompanyRepository(world);
+            return repository.Get(entityId);
+        });
+    }
+
+    public List<CompanyStatus> GetAllCompanies()
+    {
+        return _engine.ExecuteWithWorld(world =>
+        {
+            var repository = new CompanyRepository(world);
+            return repository.GetAll();
+        });
+    }
+
+    public bool DeleteCompany(int entityId)
+    {
+        return _engine.ExecuteWithWorld(world =>
+        {
+            var repository = new CompanyRepository(world);
+            return repository.Delete(entityId);
+        });
     }
 
     public void Dispose()
     {
-        StopSimulation();
+        _engine.Dispose();
     }
 }
