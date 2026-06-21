@@ -1,6 +1,7 @@
 using Arch.Core;
 using Arch.Core.Extensions;
-using Genelife.Components;
+using Genelife.Components.Employment;
+using Genelife.Components.Gen;
 using Genelife.Enums;
 
 namespace Genelife.Systems;
@@ -10,17 +11,17 @@ namespace Genelife.Systems;
 /// </summary>
 public class HiringSystem
 {
-    private readonly World _world;
-    private readonly QueryDescription _jobPostingsQuery;
-    private readonly QueryDescription _jobSeekersQuery;
-    private readonly QueryDescription _applicationsQuery;
+    private readonly World world;
+    private readonly QueryDescription jobPostingsQuery;
+    private readonly QueryDescription jobSeekersQuery;
+    private readonly QueryDescription applicationsQuery;
 
     public HiringSystem(World world)
     {
-        _world = world;
-        _jobPostingsQuery = new QueryDescription().WithAll<JobPosting>();
-        _jobSeekersQuery = new QueryDescription().WithAll<JobSeeker>().WithNone<Employee>();
-        _applicationsQuery = new QueryDescription().WithAll<JobApplication>();
+        this.world = world;
+        jobPostingsQuery = new QueryDescription().WithAll<JobPosting>();
+        jobSeekersQuery = new QueryDescription().WithAll<JobSeeker>().WithNone<Employee>();
+        applicationsQuery = new QueryDescription().WithAll<JobApplication>();
     }
 
     public void Update()
@@ -35,7 +36,7 @@ public class HiringSystem
     private void ProcessApplications()
     {
         var jobPostings = new List<(Entity entity, JobPosting posting)>();
-        _world.Query(in _jobPostingsQuery, (Entity entity, ref JobPosting posting) =>
+        world.Query(in jobPostingsQuery, (Entity entity, ref JobPosting posting) =>
         {
             if (posting.OpenPositions > 0)
             {
@@ -45,13 +46,13 @@ public class HiringSystem
 
         if (jobPostings.Count == 0) return;
 
-        _world.Query(in _jobSeekersQuery, (Entity seekerEntity, ref JobSeeker seeker) =>
+        world.Query(in jobSeekersQuery, (Entity seekerEntity, ref JobSeeker seeker) =>
         {
             if (!seeker.IsLookingForWork) return;
 
             // Check if already applied to any jobs
             bool hasApplications = false;
-            _world.Query(in _applicationsQuery, (ref JobApplication app) =>
+            world.Query(in applicationsQuery, (ref JobApplication app) =>
             {
                 if (app.ApplicantEntityId == seekerEntity.Id && app.Status == ApplicationStatus.Pending)
                 {
@@ -81,7 +82,7 @@ public class HiringSystem
             if (bestScore > 0.3f)
             {
                 var application = new JobApplication(seekerEntity.Id, bestJobEntity.Id, bestScore);
-                _world.Create(application);
+                world.Create(application);
             }
         });
     }
@@ -93,7 +94,7 @@ public class HiringSystem
     {
         var applicationsToProcess = new List<(Entity entity, JobApplication application)>();
         
-        _world.Query(in _applicationsQuery, (Entity entity, ref JobApplication app) =>
+        world.Query(in applicationsQuery, (Entity entity, ref JobApplication app) =>
         {
             if (app.Status == ApplicationStatus.Pending)
             {
@@ -110,7 +111,7 @@ public class HiringSystem
         {
             // Find the job posting entity
             Entity? jobEntity = null;
-            _world.Query(in _jobPostingsQuery, (Entity entity, ref JobPosting posting) =>
+            world.Query(in jobPostingsQuery, (Entity entity, ref JobPosting posting) =>
             {
                 if (entity.Id == jobPostingId)
                 {
@@ -118,9 +119,9 @@ public class HiringSystem
                 }
             });
             
-            if (jobEntity == null || !_world.IsAlive(jobEntity.Value)) continue;
+            if (jobEntity == null || !world.IsAlive(jobEntity.Value)) continue;
             
-            ref var jobPosting = ref _world.Get<JobPosting>(jobEntity.Value);
+            ref var jobPosting = ref world.Get<JobPosting>(jobEntity.Value);
             
             int hired = 0;
             foreach (var (appEntity, application) in applications)
@@ -129,7 +130,7 @@ public class HiringSystem
 
                 // Find the applicant entity
                 Entity? applicantEntity = null;
-                _world.Query(in _jobSeekersQuery, (Entity entity, ref JobSeeker seeker) =>
+                world.Query(in jobSeekersQuery, (Entity entity, ref JobSeeker seeker) =>
                 {
                     if (entity.Id == application.ApplicantEntityId)
                     {
@@ -137,10 +138,10 @@ public class HiringSystem
                     }
                 });
                 
-                if (applicantEntity == null || !_world.IsAlive(applicantEntity.Value)) continue;
+                if (applicantEntity == null || !world.IsAlive(applicantEntity.Value)) continue;
 
                 // Accept application
-                ref var app = ref _world.Get<JobApplication>(appEntity);
+                ref var app = ref world.Get<JobApplication>(appEntity);
                 app.Status = ApplicationStatus.Accepted;
 
                 // Hire the applicant
@@ -154,9 +155,9 @@ public class HiringSystem
             // Reject remaining applications
             foreach (var (appEntity, application) in applications.Skip(hired))
             {
-                if (_world.IsAlive(appEntity))
+                if (world.IsAlive(appEntity))
                 {
-                    ref var app = ref _world.Get<JobApplication>(appEntity);
+                    ref var app = ref world.Get<JobApplication>(appEntity);
                     app.Status = ApplicationStatus.Rejected;
                 }
             }
@@ -164,7 +165,7 @@ public class HiringSystem
             // Delete job posting if all positions filled
             if (jobPosting.OpenPositions <= 0)
             {
-                _world.Destroy(jobEntity.Value);
+                world.Destroy(jobEntity.Value);
             }
         }
     }
@@ -181,18 +182,18 @@ public class HiringSystem
             jobPosting.Position,
             jobPosting.Salary
         );
-        _world.Add(applicantEntity, employee);
+        world.Add(applicantEntity, employee);
 
         // Add Wallet if not present
-        if (!_world.Has<Wallet>(applicantEntity))
+        if (!world.Has<Wallet>(applicantEntity))
         {
-            _world.Add(applicantEntity, new Wallet(0f));
+            world.Add(applicantEntity, new Wallet(0f));
         }
 
         // Remove JobSeeker component
-        if (_world.Has<JobSeeker>(applicantEntity))
+        if (world.Has<JobSeeker>(applicantEntity))
         {
-            _world.Remove<JobSeeker>(applicantEntity);
+            world.Remove<JobSeeker>(applicantEntity);
         }
     }
 

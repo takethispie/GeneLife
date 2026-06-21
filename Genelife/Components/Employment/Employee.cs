@@ -1,4 +1,4 @@
-namespace Genelife.Components;
+namespace Genelife.Components.Employment;
 
 /// <summary>
 /// Component representing an employee relationship with a company

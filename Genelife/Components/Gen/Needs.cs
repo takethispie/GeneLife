@@ -1,4 +1,4 @@
-namespace Genelife.Components;
+namespace Genelife.Components.Gen;
 
 /// <summary>
 /// Component representing a Sim's basic needs

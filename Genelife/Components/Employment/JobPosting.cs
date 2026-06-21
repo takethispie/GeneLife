@@ -1,4 +1,4 @@
-namespace Genelife.Components;
+namespace Genelife.Components.Employment;
 
 /// <summary>
 /// Component representing a job posting from a company

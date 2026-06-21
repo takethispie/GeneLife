@@ -1,4 +1,4 @@
-namespace Genelife.Components;
+namespace Genelife.Components.Gen;
 
 /// <summary>
 /// Component representing an entity's money/balance

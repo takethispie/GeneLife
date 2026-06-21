@@ -1,13 +1,13 @@
-namespace Genelife.Components;
+namespace Genelife.Components.Gen;
 
 /// <summary>
 /// Component for identifying a Sim
 /// </summary>
-public record struct SimName
+public record struct GenName
 {
     public string Name;
     
-    public SimName(string name)
+    public GenName(string name)
     {
         Name = name;
     }

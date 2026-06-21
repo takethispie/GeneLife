@@ -1,6 +1,6 @@
 using Genelife.Enums;
 
-namespace Genelife.Components;
+namespace Genelife.Components.Employment;
 
 /// <summary>
 /// Component representing a job application linking an applicant to a job posting

@@ -1,6 +1,7 @@
 using Arch.Core;
 using Genelife.Api.DTOs;
-using Genelife.Components;
+using Genelife.Components.Company;
+using Genelife.Components.Employment;
 
 namespace Genelife.Api.Repositories;
 

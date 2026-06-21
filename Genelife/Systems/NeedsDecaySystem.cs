@@ -1,23 +1,23 @@
 using Arch.Core;
 using Arch.Core.Extensions;
-using Genelife.Components;
+using Genelife.Components.Gen;
 
 namespace Genelife.Systems;
 
 public class NeedsDecaySystem
 {
-    private readonly World _world;
-    private readonly QueryDescription _queryDescription;
+    private readonly World world;
+    private readonly QueryDescription queryDescription;
 
     public NeedsDecaySystem(World world)
     {
-        _world = world;
-        _queryDescription = new QueryDescription().WithAll<Needs>();
+        this.world = world;
+        queryDescription = new QueryDescription().WithAll<Needs>();
     }
 
     public void Update(float deltaTime)
     {
-        _world.Query(in _queryDescription, (ref Needs needs) =>
+        world.Query(in queryDescription, (ref Needs needs) =>
         {
             // Decay rates per second
             needs.Hunger -= 0.5f * deltaTime;

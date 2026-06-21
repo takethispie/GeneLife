@@ -1,25 +1,25 @@
 using Arch.Core;
 using Arch.Core.Extensions;
-using Genelife.Components;
+using Genelife.Components.Gen;
 using Genelife.Enums;
 
 namespace Genelife.Systems;
 
 public class DecisionSystem
 {
-    private readonly World _world;
-    private readonly QueryDescription _queryDescription;
+    private readonly World world;
+    private readonly QueryDescription queryDescription;
     private const float CriticalThreshold = 30f;
 
     public DecisionSystem(World world)
     {
-        _world = world;
-        _queryDescription = new QueryDescription().WithAll<CurrentAction, Needs>();
+        this.world = world;
+        queryDescription = new QueryDescription().WithAll<CurrentAction, Needs>();
     }
 
     public void Update()
     {
-        _world.Query(in _queryDescription, (ref CurrentAction action, ref Needs needs) =>
+        world.Query(in queryDescription, (ref CurrentAction action, ref Needs needs) =>
         {
             if (action.Type != ActionType.Idle)
                 return;

@@ -1,4 +1,4 @@
-namespace Genelife.Components;
+namespace Genelife.Components.Gen;
 
 public record struct Alive
 {

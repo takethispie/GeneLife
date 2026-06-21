@@ -1,6 +1,7 @@
 using Arch.Core;
 using Arch.Core.Extensions;
-using Genelife.Components;
+using Genelife.Components.Employment;
+using Genelife.Components.Gen;
 
 namespace Genelife.Systems;
 
@@ -9,33 +10,33 @@ namespace Genelife.Systems;
 /// </summary>
 public class PayrollSystem
 {
-    private readonly World _world;
-    private readonly QueryDescription _queryDescription;
-    private readonly int _payrollInterval;
-    private int _tickCounter;
+    private readonly World world;
+    private readonly QueryDescription queryDescription;
+    private readonly int payrollInterval;
+    private int tickCounter;
 
     public PayrollSystem(World world, int payrollInterval = 300)
     {
-        _world = world;
-        _payrollInterval = payrollInterval;
-        _tickCounter = 0;
-        _queryDescription = new QueryDescription().WithAll<Employee, Wallet>();
+        this.world = world;
+        this.payrollInterval = payrollInterval;
+        tickCounter = 0;
+        queryDescription = new QueryDescription().WithAll<Employee, Wallet>();
     }
 
     public void Update()
     {
-        _tickCounter++;
+        tickCounter++;
 
-        if (_tickCounter >= _payrollInterval)
+        if (tickCounter >= payrollInterval)
         {
-            _tickCounter = 0;
+            tickCounter = 0;
             ProcessPayroll();
         }
     }
 
     private void ProcessPayroll()
     {
-        _world.Query(in _queryDescription, (ref Employee employee, ref Wallet wallet) =>
+        world.Query(in queryDescription, (ref Employee employee, ref Wallet wallet) =>
         {
             wallet.Balance += employee.Salary;
         });

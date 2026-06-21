@@ -1,6 +1,6 @@
 using Arch.Core;
 using Genelife.Api.DTOs;
-using Genelife.Components;
+using Genelife.Components.Gen;
 using Genelife.Enums;
 
 namespace Genelife.Api.Repositories;
@@ -17,7 +17,7 @@ public class SimRepository
     public void Add(string name, int age)
     {
         world.Create(
-            new SimName(name),
+            new GenName(name),
             new Needs(),
             new CurrentAction(ActionType.Idle, 0f),
             new Alive(age)
@@ -27,9 +27,9 @@ public class SimRepository
     public List<SimStatus> GetAll()
     {
         var sims = new List<SimStatus>();
-        var query = new QueryDescription().WithAll<SimName, Needs, CurrentAction>();
+        var query = new QueryDescription().WithAll<GenName, Needs, CurrentAction>();
 
-        world.Query(in query, (ref SimName name, ref Needs needs, ref CurrentAction action) =>
+        world.Query(in query, (ref GenName name, ref Needs needs, ref CurrentAction action) =>
         {
             sims.Add(new SimStatus
             {

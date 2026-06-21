@@ -1,4 +1,4 @@
-namespace Genelife.Components;
+namespace Genelife.Components.Company;
 
 /// <summary>
 /// Component for identifying a Company

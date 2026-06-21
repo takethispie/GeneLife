@@ -1,6 +1,6 @@
 using Genelife.Enums;
 
-namespace Genelife.Components;
+namespace Genelife.Components.Gen;
 
 /// <summary>
 /// Component representing the current action a Sim is performing

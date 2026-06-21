@@ -1,6 +1,5 @@
 using Arch.Core;
-using Arch.Core.Extensions;
-using Genelife.Components;
+using Genelife.Components.Gen;
 using Genelife.Enums;
 
 namespace Genelife.Systems;
@@ -10,18 +9,18 @@ namespace Genelife.Systems;
 /// </summary>
 public class ActionSystem
 {
-    private readonly World _world;
-    private readonly QueryDescription _queryDescription;
+    private readonly World world;
+    private readonly QueryDescription queryDescription;
 
     public ActionSystem(World world)
     {
-        _world = world;
-        _queryDescription = new QueryDescription().WithAll<CurrentAction, Needs>();
+        this.world = world;
+        queryDescription = new QueryDescription().WithAll<CurrentAction, Needs>();
     }
 
     public void Update(float deltaTime)
     {
-        _world.Query(in _queryDescription, (ref CurrentAction action, ref Needs needs) =>
+        world.Query(in queryDescription, (ref CurrentAction action, ref Needs needs) =>
         {
             action.TimeRemaining -= deltaTime;
 
@@ -40,14 +39,15 @@ public class ActionSystem
                 case ActionType.UsingToilet:
                     needs.Bladder = Math.Min(100f, needs.Bladder + 15f * deltaTime);
                     break;
+                case ActionType.Idle:
+                default:
+                    break;
             }
 
             // Action completed
-            if (action.TimeRemaining <= 0)
-            {
-                action.Type = ActionType.Idle;
-                action.TimeRemaining = 0;
-            }
+            if (action.TimeRemaining > 0) return;
+            action.Type = ActionType.Idle;
+            action.TimeRemaining = 0;
         });
     }
 }
