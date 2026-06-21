@@ -1,4 +1,5 @@
 using Arch.Core;
+using Genelife.Api.DTOs;
 using Genelife.Components;
 using Genelife.Enums;
 using Genelife.Systems;
@@ -7,22 +8,25 @@ namespace Genelife.Api.Services;
 
 public class SimulationManager : IHostedService, IDisposable
 {
-    private World? _world;
-    private NeedsDecaySystem? _needsDecaySystem;
-    private DecisionSystem? _decisionSystem;
-    private ActionSystem? _actionSystem;
-    private Timer? _timer;
-    private bool _isRunning;
-    private readonly object _lock = new();
+    private World? world;
+    private NeedsDecaySystem? needsDecaySystem;
+    private DecisionSystem? decisionSystem;
+    private ActionSystem? actionSystem;
+    private HiringSystem? hiringSystem;
+    private PayrollSystem? payrollSystem;
+    private JobSeekerSystem? jobSeekerSystem;
+    private Timer? timer;
+    private bool isRunning;
+    private readonly object @lock = new();
     private const float DeltaTime = 1f;
 
     public bool IsRunning
     {
         get
         {
-            lock (_lock)
+            lock (@lock)
             {
-                return _isRunning;
+                return isRunning;
             }
         }
     }
@@ -40,61 +44,65 @@ public class SimulationManager : IHostedService, IDisposable
 
     public void StartSimulation()
     {
-        lock (_lock)
+        lock (@lock)
         {
-            if (_isRunning)
+            if (isRunning)
                 return;
 
-            _world = World.Create();
-            _needsDecaySystem = new NeedsDecaySystem(_world);
-            _decisionSystem = new DecisionSystem(_world);
-            _actionSystem = new ActionSystem(_world);
-            _timer = new Timer(SimulationTick, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(40));
-            _isRunning = true;
+            world = World.Create();
+            needsDecaySystem = new NeedsDecaySystem(world);
+            decisionSystem = new DecisionSystem(world);
+            actionSystem = new ActionSystem(world);
+            hiringSystem = new HiringSystem(world);
+            payrollSystem = new PayrollSystem(world);
+            jobSeekerSystem = new JobSeekerSystem(world);
+            timer = new Timer(SimulationTick, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(40));
+            isRunning = true;
         }
     }
 
     public void StopSimulation()
     {
-        lock (_lock)
+        lock (@lock)
         {
-            if (!_isRunning)
+            if (!isRunning)
                 return;
 
-            _timer?.Dispose();
-            _timer = null;
-            _world?.Dispose();
-            _world = null;
-            _isRunning = false;
+            timer?.Dispose();
+            timer = null;
+            world?.Dispose();
+            world = null;
+            isRunning = false;
         }
     }
 
-    public void AddSim(string name)
+    public void AddSim(string name, int age)
     {
-        lock (_lock)
+        lock (@lock)
         {
-            if (_world == null)
+            if (world == null)
                 throw new InvalidOperationException("Simulation is not running");
 
-            _world.Create(
+            world.Create(
                 new SimName(name),
                 new Needs(),
-                new CurrentAction(ActionType.Idle, 0f)
+                new CurrentAction(ActionType.Idle, 0f),
+                new Alive(age)
             );
         }
     }
 
     public List<SimStatus> GetAllSims()
     {
-        lock (_lock)
+        lock (@lock)
         {
-            if (_world == null)
+            if (world == null)
                 return new List<SimStatus>();
 
             var sims = new List<SimStatus>();
             var query = new QueryDescription().WithAll<SimName, Needs, CurrentAction>();
 
-            _world.Query(in query, (ref SimName name, ref Needs needs, ref CurrentAction action) =>
+            world.Query(in query, (ref SimName name, ref Needs needs, ref CurrentAction action) =>
             {
                 sims.Add(new SimStatus
                 {
@@ -114,14 +122,17 @@ public class SimulationManager : IHostedService, IDisposable
 
     private void SimulationTick(object? state)
     {
-        lock (_lock)
+        lock (@lock)
         {
-            if (!_isRunning || _world == null)
+            if (!isRunning || world == null)
                 return;
 
-            _needsDecaySystem?.Update(DeltaTime);
-            _decisionSystem?.Update();
-            _actionSystem?.Update(DeltaTime);
+            needsDecaySystem?.Update(DeltaTime);
+            decisionSystem?.Update();
+            actionSystem?.Update(DeltaTime);
+            hiringSystem?.Update();
+            payrollSystem?.Update();
+            jobSeekerSystem?.Update();
         }
     }
 
@@ -129,15 +140,4 @@ public class SimulationManager : IHostedService, IDisposable
     {
         StopSimulation();
     }
-}
-
-public class SimStatus
-{
-    public string Name { get; set; } = string.Empty;
-    public float Hunger { get; set; }
-    public float Energy { get; set; }
-    public float Hygiene { get; set; }
-    public float Bladder { get; set; }
-    public string CurrentAction { get; set; } = string.Empty;
-    public float TimeRemaining { get; set; }
 }

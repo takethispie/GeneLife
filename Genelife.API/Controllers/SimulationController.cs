@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Genelife.Api.Services;
+using Genelife.Api.DTOs;
 
 namespace Genelife.Api.Controllers;
 
@@ -52,7 +53,7 @@ public class SimulationController : ControllerBase
 
         try
         {
-            _simulationManager.AddSim(request.Name);
+            _simulationManager.AddSim(request.Name, request.Age);
             return Ok(new { message = $"Sim '{request.Name}' added successfully" });
         }
         catch (InvalidOperationException ex)
@@ -67,9 +68,4 @@ public class SimulationController : ControllerBase
         var sims = _simulationManager.GetAllSims();
         return Ok(sims);
     }
-}
-
-public class AddSimRequest
-{
-    public string Name { get; set; } = string.Empty;
 }

@@ -12,7 +12,7 @@ public record struct JobSeeker
     public JobSeeker(bool isLookingForWork = true, List<string>? skills = null, float desiredSalary = 1000f)
     {
         IsLookingForWork = isLookingForWork;
-        Skills = skills ?? new List<string>();
+        Skills = skills ?? [];
         DesiredSalary = desiredSalary;
     }
 }
