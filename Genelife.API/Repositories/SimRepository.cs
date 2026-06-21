@@ -7,16 +7,16 @@ namespace Genelife.Api.Repositories;
 
 public class SimRepository
 {
-    private readonly World _world;
+    private readonly World world;
 
     public SimRepository(World world)
     {
-        _world = world;
+        this.world = world;
     }
 
     public void Add(string name, int age)
     {
-        _world.Create(
+        world.Create(
             new SimName(name),
             new Needs(),
             new CurrentAction(ActionType.Idle, 0f),
@@ -29,7 +29,7 @@ public class SimRepository
         var sims = new List<SimStatus>();
         var query = new QueryDescription().WithAll<SimName, Needs, CurrentAction>();
 
-        _world.Query(in query, (ref SimName name, ref Needs needs, ref CurrentAction action) =>
+        world.Query(in query, (ref SimName name, ref Needs needs, ref CurrentAction action) =>
         {
             sims.Add(new SimStatus
             {

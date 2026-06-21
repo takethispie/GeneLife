@@ -6,16 +6,16 @@ namespace Genelife.Api.Repositories;
 
 public class CompanyRepository
 {
-    private readonly World _world;
+    private readonly World world;
 
     public CompanyRepository(World world)
     {
-        _world = world;
+        this.world = world;
     }
 
     public int Add(string name)
     {
-        var entity = _world.Create(new CompanyName(name));
+        var entity = world.Create(new CompanyName(name));
         return entity.Id;
     }
 
@@ -24,7 +24,7 @@ public class CompanyRepository
         CompanyStatus? result = null;
         var query = new QueryDescription().WithAll<CompanyName>();
         
-        _world.Query(in query, (Entity entity, ref CompanyName companyName) =>
+        world.Query(in query, (Entity entity, ref CompanyName companyName) =>
         {
             if (entity.Id == entityId)
             {
@@ -46,7 +46,7 @@ public class CompanyRepository
         var companies = new List<CompanyStatus>();
         var query = new QueryDescription().WithAll<CompanyName>();
 
-        _world.Query(in query, (Entity entity, ref CompanyName companyName) =>
+        world.Query(in query, (Entity entity, ref CompanyName companyName) =>
         {
             int employeeCount = CountEmployees(entity.Id);
             companies.Add(new CompanyStatus
@@ -65,11 +65,11 @@ public class CompanyRepository
         bool deleted = false;
         var query = new QueryDescription().WithAll<CompanyName>();
         
-        _world.Query(in query, (Entity entity, ref CompanyName _) =>
+        world.Query(in query, (Entity entity, ref CompanyName _) =>
         {
             if (entity.Id == entityId)
             {
-                _world.Destroy(entity);
+                world.Destroy(entity);
                 deleted = true;
             }
         });
@@ -81,7 +81,7 @@ public class CompanyRepository
     {
         int count = 0;
         var employeeQuery = new QueryDescription().WithAll<Employee>();
-        _world.Query(in employeeQuery, (ref Employee employee) =>
+        world.Query(in employeeQuery, (ref Employee employee) =>
         {
             if (employee.CompanyEntityId == companyEntityId)
                 count++;

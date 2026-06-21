@@ -5,14 +5,14 @@ namespace Genelife.Api.Services;
 
 public class SimulationManager : IHostedService, IDisposable
 {
-    private readonly SimulationEngine _engine;
+    private readonly SimulationEngine engine;
 
     public SimulationManager()
     {
-        _engine = new SimulationEngine();
+        engine = new SimulationEngine();
     }
 
-    public bool IsRunning => _engine.IsRunning;
+    public bool IsRunning => engine.IsRunning;
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
@@ -27,17 +27,17 @@ public class SimulationManager : IHostedService, IDisposable
 
     public void StartSimulation()
     {
-        _engine.Start();
+        engine.Start();
     }
 
     public void StopSimulation()
     {
-        _engine.Stop();
+        engine.Stop();
     }
 
     public void AddSim(string name, int age)
     {
-        _engine.ExecuteWithWorld(world =>
+        engine.ExecuteWithWorld(world =>
         {
             var repository = new SimRepository(world);
             repository.Add(name, age);
@@ -47,7 +47,7 @@ public class SimulationManager : IHostedService, IDisposable
 
     public List<SimStatus> GetAllSims()
     {
-        return _engine.ExecuteWithWorld(world =>
+        return engine.ExecuteWithWorld(world =>
         {
             var repository = new SimRepository(world);
             return repository.GetAll();
@@ -56,7 +56,7 @@ public class SimulationManager : IHostedService, IDisposable
 
     public int AddCompany(string name)
     {
-        return _engine.ExecuteWithWorld(world =>
+        return engine.ExecuteWithWorld(world =>
         {
             var repository = new CompanyRepository(world);
             return repository.Add(name);
@@ -65,7 +65,7 @@ public class SimulationManager : IHostedService, IDisposable
 
     public CompanyStatus? GetCompany(int entityId)
     {
-        return _engine.ExecuteWithWorld(world =>
+        return engine.ExecuteWithWorld(world =>
         {
             var repository = new CompanyRepository(world);
             return repository.Get(entityId);
@@ -74,7 +74,7 @@ public class SimulationManager : IHostedService, IDisposable
 
     public List<CompanyStatus> GetAllCompanies()
     {
-        return _engine.ExecuteWithWorld(world =>
+        return engine.ExecuteWithWorld(world =>
         {
             var repository = new CompanyRepository(world);
             return repository.GetAll();
@@ -83,7 +83,7 @@ public class SimulationManager : IHostedService, IDisposable
 
     public bool DeleteCompany(int entityId)
     {
-        return _engine.ExecuteWithWorld(world =>
+        return engine.ExecuteWithWorld(world =>
         {
             var repository = new CompanyRepository(world);
             return repository.Delete(entityId);
@@ -92,6 +92,6 @@ public class SimulationManager : IHostedService, IDisposable
 
     public void Dispose()
     {
-        _engine.Dispose();
+        engine.Dispose();
     }
 }
