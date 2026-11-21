@@ -30,6 +30,8 @@ builder.Services.AddHostedService(provider => provider.GetRequiredService<Simula
 builder.Services.AddSingleton<ICommandQueue, CommandQueue>();
 builder.Services.AddSingleton<Genelife.Api.Snapshots.ReplicationTracker>();
 builder.Services.AddSingleton<Genelife.Api.Snapshots.ReplicationMetrics>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<WorldRestoreService>();
 builder.Services.AddHostedService<SnapshotBroadcastService>();
 
 // Marten document store.
