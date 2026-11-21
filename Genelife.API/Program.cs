@@ -64,6 +64,7 @@ if (useWolverineEndpoints)
     {
         opts.Discovery.IncludeAssembly(typeof(Program).Assembly);
         opts.Discovery.IncludeAssembly(typeof(Genelife.Messages.Commands.CreateSim).Assembly);
+        opts.Durability.Mode = Wolverine.DurabilityMode.ServerlessWithOutbox;
     });
     builder.Services.AddWolverineHttp();
 }

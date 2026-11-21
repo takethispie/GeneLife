@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Collections.Concurrent;
 using Arch.Core;
 using Arch.Core.Extensions;
 using Genelife.Api.DTOs;
@@ -10,8 +11,8 @@ using Genelife.Components.Gen;
 using Genelife.Enums;
 using Genelife.Messages.Events;
 using Genelife.Systems;
+using Marten;
 using Wolverine;
-using System.Collections.Concurrent;
 
 namespace Genelife.Api.Services;
 
@@ -39,12 +40,14 @@ private readonly NetworkIdRegistry networkIds = new();
     private readonly ConcurrentQueue<EnqueuedCommand> queuedCommands = new();
     private readonly HashSet<Guid> processedMessageIds = new(1024);
     private readonly WorldSaveService? worldSaveService;
+    private readonly IDocumentStore? documentStore;
     private long lastSaveTick;
     private const long AutoSaveInterval = 600;
 
-    public SimulationEngine(WorldSaveService? worldSaveService = null)
+    public SimulationEngine(WorldSaveService? worldSaveService = null, IDocumentStore? documentStore = null)
     {
         this.worldSaveService = worldSaveService;
+        this.documentStore = documentStore;
     }
 
     public SimulationEngine(IMessageBus? messageBus = null)
@@ -170,7 +173,18 @@ if (SnapshotsEnabled)
             events.Add(new TickCompleted(tick, currentWorld.Size, ElapsedMilliseconds(tickStart)));
         }
 
-        if (MessageBus != null && events.Count > 0)
+        if (documentStore != null && events.Count > 0)
+        {
+            using var session = documentStore.LightweightSession();
+
+            foreach (var e in events)
+            {
+                session.Events.Append(Guid.NewGuid(), e);
+            }
+
+            session.SaveChangesAsync().GetAwaiter().GetResult();
+        }
+        else if (MessageBus != null && events.Count > 0)
         {
             foreach (var e in events)
             {
