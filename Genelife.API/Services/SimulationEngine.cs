@@ -25,13 +25,27 @@ public class SimulationEngine : IDisposable
     private long tick;
     private WorldSnapshot? _latest;
     private readonly object @lock = new();
-    private readonly NetworkIdRegistry networkIds = new();
+private readonly NetworkIdRegistry networkIds = new();
     private readonly SnapshotHistory history = new();
     private readonly Action<SystemRunResult> recordSystemRun;
     private readonly IMessageBus? messageBus;
-private static readonly string[] ActionNames = Enum.GetNames<ActionType>();
     private readonly ConcurrentQueue<EnqueuedCommand> queuedCommands = new();
     private readonly HashSet<Guid> processedMessageIds = new(1024);
+    private readonly WorldSaveService? worldSaveService;
+    private readonly IDocumentStore? documentStore;
+    private long lastSaveTick;
+    private const long AutoSaveInterval = 600;
+    private static readonly string[] ActionNames = Enum.GetNames<ActionType>();
+    private readonly ConcurrentQueue<EnqueuedCommand> queuedCommands = new();
+    private readonly HashSet<Guid> processedMessageIds = new(1024);
+    private readonly WorldSaveService? worldSaveService;
+    private long lastSaveTick;
+    private const long AutoSaveInterval = 600;
+
+    public SimulationEngine(WorldSaveService? worldSaveService = null)
+    {
+        this.worldSaveService = worldSaveService;
+    }
 
     public SimulationEngine(IMessageBus? messageBus = null)
     {
@@ -49,6 +63,7 @@ private static readonly string[] ActionNames = Enum.GetNames<ActionType>();
     public double LastTickMilliseconds { get; private set; }
     public long CurrentTick { get { lock (@lock) { return tick; } } }
     public bool SnapshotsEnabled { get; set; } = true;
+    public IMessageBus? MessageBus { get; set; }
 
     public void EnqueueCommand(EnqueuedCommand command)
     {
@@ -83,10 +98,16 @@ private static readonly string[] ActionNames = Enum.GetNames<ActionType>();
 
     public void Shutdown()
     {
+        World? worldToSave = null;
+        EmploymentIndex? indexToSave = null;
+
         lock (@lock)
         {
             if (!isRunning)
                 return;
+
+            worldToSave = world;
+            indexToSave = employmentIndex;
 
             metrics.Flush();
             world?.Dispose();
@@ -97,6 +118,11 @@ private static readonly string[] ActionNames = Enum.GetNames<ActionType>();
             networkIds.Clear();
             _latest = null;
             isRunning = false;
+        }
+
+        if (worldToSave != null && worldSaveService != null && indexToSave != null)
+        {
+            worldSaveService.SaveAsync(worldToSave, indexToSave).GetAwaiter().GetResult();
         }
     }
 
@@ -144,11 +170,23 @@ if (SnapshotsEnabled)
             events.Add(new TickCompleted(tick, currentWorld.Size, ElapsedMilliseconds(tickStart)));
         }
 
-        if (messageBus != null && events.Count > 0)
+        if (MessageBus != null && events.Count > 0)
         {
             foreach (var e in events)
             {
-                messageBus.PublishAsync(e).ConfigureAwait(false).GetAwaiter().GetResult();
+                MessageBus.PublishAsync(e).ConfigureAwait(false).GetAwaiter().GetResult();
+            }
+        }
+
+        if (worldSaveService != null && employmentIndex != null)
+        {
+            var currentTick = Interlocked.Read(ref tick);
+            if (currentTick - Interlocked.Read(ref lastSaveTick) >= AutoSaveInterval)
+            {
+                var w = World;
+                if (w != null)
+                    worldSaveService.SaveAsync(w, employmentIndex).GetAwaiter().GetResult();
+                Interlocked.Exchange(ref lastSaveTick, currentTick);
             }
         }
     }

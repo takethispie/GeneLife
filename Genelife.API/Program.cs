@@ -31,6 +31,7 @@ builder.Services.AddSingleton<Genelife.Api.Snapshots.ReplicationTracker>();
 builder.Services.AddSingleton<Genelife.Api.Snapshots.ReplicationMetrics>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<WorldRestoreService>();
+builder.Services.AddSingleton<WorldSaveService>();
 builder.Services.AddHostedService<SnapshotBroadcastService>();
 
 var featureFlags = builder.Configuration.GetSection("FeatureFlags");
