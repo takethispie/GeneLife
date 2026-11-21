@@ -135,13 +135,13 @@ public class SimulationEngine : IDisposable
     private static List<SimStatus> BuildSimSnapshots(World world)
     {
         var sims = new List<SimStatus>();
-        var query = new QueryDescription().WithAll<GenName, Needs, CurrentAction, NetworkId>();
+        var query = new QueryDescription().WithAll<GenName, Needs, CurrentAction>();
 
-        world.Query(in query, (ref GenName name, ref Needs needs, ref CurrentAction action, ref NetworkId networkId) =>
+        world.Query(in query, (ref GenName name, ref Needs needs, ref CurrentAction action) =>
         {
             sims.Add(new SimStatus
             {
-                NetworkId = networkId.Value,
+                NetworkId = 0,
                 Name = name.Name,
                 Hunger = needs.Hunger,
                 Energy = needs.Energy,
@@ -152,22 +152,40 @@ public class SimulationEngine : IDisposable
             });
         });
 
+        var netQuery = new QueryDescription().WithAll<GenName, Needs, CurrentAction, NetworkId>();
+        world.Query(in netQuery, (ref NetworkId networkId, ref GenName name) =>
+        {
+            var nameCopy = name.Name;
+            var match = sims.Find(s => s.Name == nameCopy);
+            if (match != null)
+                match.NetworkId = networkId.Value;
+        });
+
         return sims;
     }
 
     private static List<CompanyStatus> BuildCompanySnapshots(World world, EmploymentIndex index)
     {
         var companies = new List<CompanyStatus>();
-        var query = new QueryDescription().WithAll<CompanyName, NetworkId>();
+        var query = new QueryDescription().WithAll<CompanyName>();
 
-        world.Query(in query, (Entity entity, ref CompanyName companyName, ref NetworkId networkId) =>
+        world.Query(in query, (Entity entity, ref CompanyName companyName) =>
         {
             companies.Add(new CompanyStatus
             {
-                NetworkId = networkId.Value,
+                NetworkId = 0,
                 Name = companyName.Name,
                 EmployeeCount = index.CountEmployees(entity)
             });
+        });
+
+        var netQuery = new QueryDescription().WithAll<CompanyName, NetworkId>();
+        world.Query(in netQuery, (Entity entity, ref NetworkId networkId, ref CompanyName companyName) =>
+        {
+            var nameCopy = companyName.Name;
+            var match = companies.Find(c => c.Name == nameCopy);
+            if (match != null)
+                match.NetworkId = networkId.Value;
         });
 
         return companies;
