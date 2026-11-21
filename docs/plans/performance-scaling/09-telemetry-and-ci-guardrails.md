@@ -5,11 +5,11 @@
 
 ## Tasks
 
-- [ ] Emit per-system timing and allocation metrics.
-- [ ] Define thresholds per NPC tier (see plan thresholds).
-- [ ] Add a CI or scheduled benchmark job using the load harness.
-- [ ] Fail/warn on regressions beyond a tolerance.
-- [ ] Publish a short report per run.
+- [x] Emit per-system timing and allocation metrics.
+- [x] Define thresholds per NPC tier (see plan thresholds).
+- [x] Add a CI or scheduled benchmark job using the load harness.
+- [x] Fail/warn on regressions beyond a tolerance.
+- [x] Publish a short report per run.
 
 ## Files likely touched
 

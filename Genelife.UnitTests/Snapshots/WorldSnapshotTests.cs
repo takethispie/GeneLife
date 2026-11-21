@@ -169,4 +169,113 @@ public class WorldSnapshotTests
         }
         finally { engine.Shutdown(); }
     }
+
+    [Fact]
+    public void SnapshotSims_IncludeLocationAndTickForInterpolation()
+    {
+        using var engine = new SimulationEngine();
+        engine.Initialize();
+        try
+        {
+            engine.ExecuteWithWorld(world =>
+            {
+                var entity = world.Create(
+                    new GenName("Moving"),
+                    new Needs(),
+                    new CurrentAction(ActionType.Idle, 0),
+                    new Alive(30),
+                    new Location(12.5f, -3.25f));
+                world.Add(entity, new NetworkId(7));
+                return true;
+            });
+
+            Tick(engine);
+            var snapshot = engine.GetLatestSnapshot();
+            Assert.NotNull(snapshot);
+            var sim = snapshot.Sims.Find(s => s.Name == "Moving");
+            Assert.NotNull(sim);
+            Assert.Equal(7UL, sim.NetworkId);
+            Assert.Equal(12.5f, sim.X);
+            Assert.Equal(-3.25f, sim.Y);
+            Assert.True(snapshot.Tick > 0);
+        }
+        finally { engine.Shutdown(); }
+    }
+
+    [Fact]
+    public void SnapshotHistory_RecordsEachPublishedTick()
+    {
+        using var engine = new SimulationEngine();
+        engine.Initialize();
+        try
+        {
+            Tick(engine, times: 3);
+            Assert.Equal(3, engine.SnapshotHistory.LatestTick);
+            Assert.True(engine.SnapshotHistory.TryGet(1, out _));
+            Assert.True(engine.SnapshotHistory.TryGet(2, out _));
+            Assert.True(engine.SnapshotHistory.TryGet(3, out _));
+        }
+        finally { engine.Shutdown(); }
+    }
+
+    [Fact]
+    public void DeltaPayload_IsSmallerThanFullSnapshot_ForStableNeeds()
+    {
+        using var engine = new SimulationEngine();
+        engine.Initialize();
+        try
+        {
+            engine.ExecuteWithWorld(world =>
+            {
+                for (var i = 0; i < 100; i++)
+                {
+                    var entity = world.Create(
+                        new GenName($"Stable_{i}"),
+                        new Needs(),
+                        new CurrentAction(ActionType.Idle, 0f),
+                        new Alive(30),
+                        new Location(0f, 0f));
+                    world.Add(entity, new NetworkId((ulong)(i + 1)));
+                }
+
+                return true;
+            });
+
+            Tick(engine);
+            var full = engine.GetLatestSnapshot();
+            Assert.NotNull(full);
+            var sinceTick = full.Tick;
+
+            engine.ExecuteWithWorld(world =>
+            {
+                var query = new QueryDescription().WithAll<NetworkId, Location>();
+                world.Query(in query, (Entity entity, ref NetworkId networkId) =>
+                {
+                    if (networkId.Value == 1)
+                    {
+                        ref var location = ref world.Get<Location>(entity);
+                        location.Position = new System.Numerics.Vector2(5f, 5f);
+                    }
+                });
+                return true;
+            });
+
+            Tick(engine);
+            var delta = engine.SnapshotHistory.BuildDelta(sinceTick);
+            Assert.NotNull(delta);
+            Assert.False(delta!.Full);
+            Assert.True(delta.Sims.Count <= 5, $"expected a small delta, got {delta.Sims.Count} sims");
+
+            var changed = Assert.Single(delta.Sims, sim => sim.NetworkId == 1);
+            Assert.Equal(5f, changed.X);
+            Assert.Equal(5f, changed.Y);
+
+            var fullBytes = ReplicationMetrics.EstimateBytes(full);
+            var deltaBytes = ReplicationMetrics.EstimateBytes(delta);
+
+            Assert.True(deltaBytes < fullBytes,
+                $"expected delta ({deltaBytes}B) to be smaller than full ({fullBytes}B)");
+        }
+        finally { engine.Shutdown(); }
+    }
 }

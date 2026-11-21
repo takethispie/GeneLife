@@ -1,18 +1,21 @@
+using Genelife.Enums;
+
 namespace Genelife.Components.Employment;
 
 /// <summary>
-/// Component representing a Sim looking for work
+/// Component representing a Sim looking for work. Skills are stored as a
+/// bitmask of <see cref="Skill"/> tokens so the component has no list field.
 /// </summary>
 public record struct JobSeeker
 {
     public bool IsLookingForWork;
-    public List<string> Skills;
+    public Skill Skills;
     public float DesiredSalary;
-    
-    public JobSeeker(bool isLookingForWork = true, List<string>? skills = null, float desiredSalary = 1000f)
+
+    public JobSeeker(bool isLookingForWork = true, Skill skills = Skill.None, float desiredSalary = 1000f)
     {
         IsLookingForWork = isLookingForWork;
-        Skills = skills ?? [];
+        Skills = skills;
         DesiredSalary = desiredSalary;
     }
 }

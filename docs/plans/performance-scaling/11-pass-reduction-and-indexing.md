@@ -5,11 +5,11 @@
 
 ## Tasks
 
-- [ ] Identify systems scanning overlapping archetypes per tick.
-- [ ] Combine hot passes or move to chunk iteration where it pays.
-- [ ] Replace `Get`/`Delete`/`GetAll` scans with `NetworkId`→entity maps.
-- [ ] Measure per-pass cost before/after.
-- [ ] Document the final system/pass layout.
+- [x] Identify systems scanning overlapping archetypes per tick.
+- [x] Combine hot passes or move to chunk iteration where it pays.
+- [x] Replace `Get`/`Delete`/`GetAll` scans with `NetworkId`→entity maps.
+- [x] Measure per-pass cost before/after.
+- [x] Document the final system/pass layout.
 
 ## Files likely touched
 

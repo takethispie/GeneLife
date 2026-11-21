@@ -59,8 +59,8 @@ public sealed class Metrics
         tickDurationsMs = new double[histogramCapacity];
     }
 
-    /// <summary>Records the elapsed time of a single system update.</summary>
-    public void RecordSystem(string name, double elapsedMilliseconds)
+    /// <summary>Records the elapsed time and managed allocation of a single system update.</summary>
+    public void RecordSystem(string name, double elapsedMilliseconds, long allocatedBytes = 0)
     {
         lock (sync)
         {
@@ -72,6 +72,7 @@ public sealed class Metrics
 
             stats.Calls++;
             stats.TotalMilliseconds += elapsedMilliseconds;
+            stats.TotalAllocatedBytes += Math.Max(0, allocatedBytes);
             if (elapsedMilliseconds > stats.MaxMilliseconds)
                 stats.MaxMilliseconds = elapsedMilliseconds;
         }
@@ -252,7 +253,7 @@ public sealed class Metrics
             .Take(3)
             .Select(system => string.Create(
                 CultureInfo.InvariantCulture,
-                $"{system.Name}={system.AverageMilliseconds:F2}ms"));
+                $"{system.Name}={system.AverageMilliseconds:F2}ms/{system.AverageAllocatedBytes:F0}B"));
 
         return string.Create(
             CultureInfo.InvariantCulture,
@@ -279,13 +280,16 @@ public sealed class Metrics
         public long Calls { get; set; }
         public double TotalMilliseconds { get; set; }
         public double MaxMilliseconds { get; set; }
+        public long TotalAllocatedBytes { get; set; }
 
         public SystemMetric ToMetric() => new(
             Name,
             Calls,
             TotalMilliseconds,
             Calls > 0 ? TotalMilliseconds / Calls : 0,
-            MaxMilliseconds);
+            MaxMilliseconds,
+            TotalAllocatedBytes,
+            Calls > 0 ? TotalAllocatedBytes / (double)Calls : 0);
     }
 }
 
@@ -294,7 +298,9 @@ public sealed record SystemMetric(
     long Calls,
     double TotalMilliseconds,
     double AverageMilliseconds,
-    double MaxMilliseconds);
+    double MaxMilliseconds,
+    long AllocatedBytes,
+    double AverageAllocatedBytes);
 
 public sealed record MetricsSnapshot(
     long TickCount,

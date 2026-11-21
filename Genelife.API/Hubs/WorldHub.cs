@@ -3,6 +3,7 @@ using System.Text.Json;
 using Genelife.Api.Auth;
 using Genelife.Api.Commands;
 using Genelife.Api.Services;
+using Genelife.Api.Snapshots;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
@@ -20,21 +21,29 @@ public sealed class WorldHub : Hub
     private readonly IConnectionRegistry registry;
     private readonly SimulationEngine engine;
     private readonly ICommandQueue commandQueue;
+    private readonly ReplicationTracker replicationTracker;
+    private readonly ReplicationMetrics replicationMetrics;
     private readonly ILogger<WorldHub>? logger;
     private readonly int maxPayloadBytes;
 
     private static readonly ConcurrentDictionary<string, RateLimitWindow> RateLimits = new();
+    private static readonly ConcurrentDictionary<string, RateLimitWindow> SnapshotRateLimits = new();
+    private const int SnapshotRequestsPerSecond = 5;
 
     public WorldHub(
         IConnectionRegistry registry,
         SimulationEngine engine,
         ICommandQueue commandQueue,
+        ReplicationTracker replicationTracker,
+        ReplicationMetrics replicationMetrics,
         IConfiguration configuration,
         ILogger<WorldHub>? logger = null)
     {
         this.registry = registry;
         this.engine = engine;
         this.commandQueue = commandQueue;
+        this.replicationTracker = replicationTracker;
+        this.replicationMetrics = replicationMetrics;
         this.logger = logger;
         maxPayloadBytes = configuration.GetValue("SignalR:MaxIntentPayloadBytes", 4096);
     }
@@ -50,6 +59,7 @@ public sealed class WorldHub : Hub
         }
 
         registry.Register(Context.ConnectionId, playerId);
+        replicationTracker.RestoreForConnection(Context.ConnectionId, playerId);
 
         await Groups.AddToGroupAsync(Context.ConnectionId, $"player-{playerId}");
         await Groups.AddToGroupAsync(Context.ConnectionId, "all");
@@ -57,6 +67,7 @@ public sealed class WorldHub : Hub
         var snapshot = engine.GetLatestSnapshot();
         if (snapshot is not null)
         {
+            replicationMetrics.Record(Context.ConnectionId, full: true, EstimateBytes(snapshot));
             await Clients.Caller.SendAsync("SendSnapshot", snapshot);
         }
 
@@ -73,8 +84,56 @@ public sealed class WorldHub : Hub
         }
 
         RateLimits.TryRemove(Context.ConnectionId, out _);
+        SnapshotRateLimits.TryRemove(Context.ConnectionId, out _);
+        replicationTracker.Remove(Context.ConnectionId);
+        replicationMetrics.Remove(Context.ConnectionId);
 
         await base.OnDisconnectedAsync(exception);
+    }
+
+    /// <summary>
+    /// Resends state for a reconnecting client. When <paramref name="sinceTick"/>
+    /// is inside the retained history window the caller receives
+    /// <c>SendSnapshotDelta</c>; otherwise a full <c>SendSnapshot</c> is sent.
+    /// Omitting the argument resumes from the connection's last acknowledged tick.
+    /// </summary>
+    public async Task RequestSnapshot(long? sinceTick)
+    {
+        if (!CheckRateLimit(SnapshotRateLimits, Context.ConnectionId, SnapshotRequestsPerSecond, out var error))
+        {
+            await Clients.Caller.SendAsync("SnapshotRejected", error);
+            return;
+        }
+
+        var effectiveSince = sinceTick ?? replicationTracker.GetAcknowledgedTick(Context.ConnectionId);
+        var delta = engine.SnapshotHistory.BuildDelta(effectiveSince);
+        if (delta is null)
+            return;
+
+        if (delta.Full)
+        {
+            var full = new WorldSnapshot(delta.Tick, delta.Version, delta.Sims, delta.Companies);
+            replicationMetrics.Record(Context.ConnectionId, full: true, EstimateBytes(full));
+            await Clients.Caller.SendAsync("SendSnapshot", full);
+            return;
+        }
+
+        replicationMetrics.Record(Context.ConnectionId, full: false, EstimateBytes(delta));
+        await Clients.Caller.SendAsync("SendSnapshotDelta", delta);
+    }
+
+    /// <summary>
+    /// Records the last world tick the client has applied. Subsequent broadcast
+    /// updates are sent as deltas from this tick while it remains in history.
+    /// </summary>
+    public void AcknowledgeSnapshot(long tick)
+    {
+        var latest = engine.SnapshotHistory.LatestTick;
+        if (tick < 0 || latest < 0 || tick > latest)
+            return;
+
+        var playerId = Context.User?.GetPlayerId();
+        replicationTracker.Acknowledge(Context.ConnectionId, playerId ?? string.Empty, tick);
     }
 
     public async Task<IntentResult> SubmitIntent(JsonElement payload)
@@ -129,13 +188,21 @@ public sealed class WorldHub : Hub
         return new IntentResult(true, null);
     }
 
-    private bool CheckRateLimit(string connectionId, out string? error)
+    private static int EstimateBytes(object payload) => ReplicationMetrics.EstimateBytes(payload);
+
+    private bool CheckRateLimit(string connectionId, out string? error) =>
+        CheckRateLimit(RateLimits, connectionId, maxPerWindow: 100, out error);
+
+    private static bool CheckRateLimit(
+        ConcurrentDictionary<string, RateLimitWindow> limits,
+        string connectionId,
+        int maxPerWindow,
+        out string? error)
     {
         var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         const long windowMs = 1000;
-        const int maxPerWindow = 100;
 
-        var window = RateLimits.GetOrAdd(connectionId, _ => new RateLimitWindow(now));
+        var window = limits.GetOrAdd(connectionId, _ => new RateLimitWindow(now));
 
         lock (window)
         {

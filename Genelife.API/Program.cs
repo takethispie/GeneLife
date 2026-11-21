@@ -19,10 +19,13 @@ builder.Services.AddSingleton<SimulationEngine>();
 builder.Services.Configure<SnapshotStoreOptions>(builder.Configuration.GetSection(SnapshotStoreOptions.SectionName));
 builder.Services.AddSingleton<ISnapshotStore, SnapshotStore>();
 builder.Services.AddSingleton<SimulationManager>();
-builder.Services.AddHostedService<SimulationLoop>();
+builder.Services.AddSingleton<SimulationLoop>();
+builder.Services.AddHostedService(provider => provider.GetRequiredService<SimulationLoop>());
 builder.Services.AddHostedService(provider => provider.GetRequiredService<SimulationManager>());
 
 builder.Services.AddSingleton<ICommandQueue, CommandQueue>();
+builder.Services.AddSingleton<Genelife.Api.Snapshots.ReplicationTracker>();
+builder.Services.AddSingleton<Genelife.Api.Snapshots.ReplicationMetrics>();
 builder.Services.AddHostedService<SnapshotBroadcastService>();
 
 // Authentication and authorization.

@@ -8,7 +8,6 @@ namespace Genelife.Api.Services;
 public class SimulationManager : IHostedService, IDisposable
 {
     private readonly SimulationEngine engine;
-    private readonly NetworkIdRegistry networkIds;
     private readonly ISnapshotStore store;
     private readonly ILogger<SimulationManager>? logger;
     private PeriodicTimer? saveTimer;
@@ -17,10 +16,11 @@ public class SimulationManager : IHostedService, IDisposable
     public SimulationManager(SimulationEngine engine, ISnapshotStore store, ILogger<SimulationManager>? logger = null)
     {
         this.engine = engine;
-        networkIds = new NetworkIdRegistry();
         this.store = store;
         this.logger = logger;
     }
+
+    private NetworkIdRegistry networkIds => engine.NetworkIds;
 
     public bool IsRunning => engine.IsRunning;
     public DateTime? LastSaveTime { get; private set; }

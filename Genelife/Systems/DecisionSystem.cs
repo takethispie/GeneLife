@@ -5,7 +5,7 @@ using Genelife.Enums;
 
 namespace Genelife.Systems;
 
-public class DecisionSystem
+public class DecisionSystem : ISimulationSystem
 {
     private readonly World world;
     private readonly QueryDescription queryDescription;
@@ -16,6 +16,12 @@ public class DecisionSystem
         this.world = world;
         queryDescription = new QueryDescription().WithAll<CurrentAction, Needs>().WithNone<PlayerControlled>();
     }
+
+    public string Name => "Decision";
+    public int Order => 200;
+    public Cadence Cadence => Cadence.EveryTick;
+
+    void ISimulationSystem.Update(in SimulationContext context) => Update();
 
     public void Update()
     {

@@ -1,15 +1,13 @@
 using System.Diagnostics;
 using System.Text.Json;
-using Arch.Core;
 using Genelife.Api.Services;
-using Genelife.Components.Employment;
-using Genelife.Systems;
 
 namespace Genelife.UnitTests.Performance;
 
 public class LoadHarness
 {
-    private const int TicksToRun = 10;
+    private const int WarmupTicks = 25;
+    private const int TicksToRun = 200;
     private const float DeltaTime = 1f / 20f;
 
     [Fact]
@@ -62,45 +60,40 @@ public class LoadHarness
 
     public static HarnessReport RunHarness(int count, bool synthetic)
     {
-        var world = World.Create();
+        using var engine = new SimulationEngine();
+        engine.Initialize();
+
+        var startEntityCount = engine.ExecuteWithWorld(world =>
+        {
+            if (synthetic)
+                SimFixture.PopulateSynthetic(world, count);
+            else
+                SimFixture.PopulateRealistic(world, count);
+
+            return world.Size;
+        });
+
+        // Drive the real tick path (systems, snapshot construction, history,
+        // replication metrics) so guardrails measure production work.
+        for (var i = 0; i < WarmupTicks; i++)
+            engine.Tick(DeltaTime);
+
         var metrics = new Metrics(histogramCapacity: 256, logEveryTicks: int.MaxValue);
-        var employmentIndex = new EmploymentIndex();
-
-        var needsDecay = new NeedsDecaySystem(world);
-        var decision = new DecisionSystem(world);
-        var action = new ActionSystem(world);
-        var hiring = new HiringSystem(world, employmentIndex);
-        var payroll = new PayrollSystem(world);
-        var jobSeeker = new JobSeekerSystem(world);
-
-        if (synthetic)
-            SimFixture.PopulateSynthetic(world, count);
-        else
-            SimFixture.PopulateRealistic(world, count);
-
-        var startEntityCount = world.Size;
 
         for (int i = 0; i < TicksToRun; i++)
         {
             var tickStart = Stopwatch.GetTimestamp();
             var allocStart = GC.GetAllocatedBytesForCurrentThread();
 
-            needsDecay.Update(DeltaTime);
-            decision.Update();
-            action.Update(DeltaTime);
-            hiring.Update();
-            payroll.Update();
-            jobSeeker.Update();
+            engine.Tick(DeltaTime);
 
             var allocBytes = GC.GetAllocatedBytesForCurrentThread() - allocStart;
             if (allocBytes < 0) allocBytes = 0;
             var durationMs = Stopwatch.GetElapsedTime(tickStart).TotalMilliseconds;
-            metrics.RecordTick(durationMs, allocBytes, world.Size);
+            metrics.RecordTick(durationMs, allocBytes, engine.World?.Size ?? 0);
         }
 
         var snapshot = metrics.Snapshot();
-
-        world.Dispose();
 
         return new HarnessReport
         {
@@ -109,6 +102,7 @@ public class LoadHarness
                 EntityCount = count,
                 WorkloadType = synthetic ? "synthetic" : "realistic",
                 TicksRun = TicksToRun,
+                WarmupTicks = WarmupTicks,
                 DeltaTime = DeltaTime
             },
             Results = new HarnessResults
@@ -156,6 +150,7 @@ public class LoadHarness
         public int EntityCount { get; set; }
         public string WorkloadType { get; set; } = null!;
         public int TicksRun { get; set; }
+        public int WarmupTicks { get; set; }
         public float DeltaTime { get; set; }
     }
 

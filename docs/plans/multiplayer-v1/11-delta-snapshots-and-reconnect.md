@@ -5,12 +5,12 @@
 
 ## Tasks
 
-- [ ] Keep a ring buffer of recent snapshots (bounded by tick/time window).
-- [ ] Compute per-client deltas relative to the last tick the client acknowledged.
-- [ ] Send full snapshot on join or when the client is too far behind.
-- [ ] Handle `sinceTick` requests from clients.
-- [ ] Include position + tick for client interpolation.
-- [ ] Measure bytes per client per second.
+- [x] Keep a ring buffer of recent snapshots (bounded by tick/time window).
+- [x] Compute per-client deltas relative to the last tick the client acknowledged.
+- [x] Send full snapshot on join or when the client is too far behind.
+- [x] Handle `sinceTick` requests from clients.
+- [x] Include position + tick for client interpolation.
+- [x] Measure bytes per client per second.
 
 ## Files likely touched
 

@@ -17,6 +17,8 @@ public interface IConnectionRegistry
     IReadOnlyCollection<string> GetConnections(string playerId);
 
     IReadOnlyCollection<string> GetPlayerIds();
+
+    IReadOnlyCollection<string> GetConnectionIds();
 }
 
 public sealed class ConnectionRegistry : IConnectionRegistry
@@ -56,5 +58,10 @@ public sealed class ConnectionRegistry : IConnectionRegistry
     public IReadOnlyCollection<string> GetPlayerIds()
     {
         return connections.Values.Distinct(StringComparer.Ordinal).ToArray();
+    }
+
+    public IReadOnlyCollection<string> GetConnectionIds()
+    {
+        return connections.Keys.ToArray();
     }
 }

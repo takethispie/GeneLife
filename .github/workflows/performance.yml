@@ -1,0 +1,49 @@
+name: performance-guardrails
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * *"
+
+jobs:
+  harness:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Build
+        run: dotnet build Genelife.UnitTests/Genelife.UnitTests.csproj --nologo
+
+      - name: Run load harness and guardrails
+        run: >
+          dotnet run --project Genelife.UnitTests/Genelife.UnitTests.csproj
+          --no-build --no-launch-profile --
+          -class Genelife.UnitTests.Performance.LoadHarness
+          -class Genelife.UnitTests.Performance.PerformanceGuardrailTests
+          -class Genelife.UnitTests.Performance.MultiplayerAcceptanceTests
+
+      - name: Upload performance reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-reports
+          path: "**/performance-reports/*.json"
+          if-no-files-found: warn
+
+      - name: Publish report summary
+        if: always()
+        run: |
+          echo "## Performance guardrails" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          find . -path "*/performance-reports/*.json" -maxdepth 8 | sort | while read -r report; do
+            echo "### ${report}" >> "$GITHUB_STEP_SUMMARY"
+            echo '```json' >> "$GITHUB_STEP_SUMMARY"
+            cat "$report" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          done

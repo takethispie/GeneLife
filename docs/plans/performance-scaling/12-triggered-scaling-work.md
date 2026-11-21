@@ -3,6 +3,10 @@
 **Depends:** 11
 **Goal:** Do expensive scaling work only when a measured trigger is hit.
 
+> **Wave 5 status:** trigger evaluator implemented (`ScalingTriggers`) and exposed through
+> `GET /api/simulation/metrics`. No scaling change was activated because no recorded trigger was
+> met; spatial/AOI work remains dormant. See `docs/plans/wave5-results.md`.
+
 ## Triggers
 
 - Tick p95 above target at the product NPC count.

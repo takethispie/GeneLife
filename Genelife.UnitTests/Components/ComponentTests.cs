@@ -122,16 +122,16 @@ public class ComponentTests
     {
         var seeker = new JobSeeker();
         Assert.False(seeker.IsLookingForWork);
-        Assert.Null(seeker.Skills);
+        Assert.Equal(Enums.Skill.None, seeker.Skills);
         Assert.Equal(0f, seeker.DesiredSalary);
     }
 
     [Fact]
     public void JobSeeker_StoresFields()
     {
-        var seeker = new JobSeeker(false, new List<string> { "C#", "SQL" }, 2500f);
+        var seeker = new JobSeeker(false, Enums.Skill.Programming | Enums.Skill.Medical, 2500f);
         Assert.False(seeker.IsLookingForWork);
-        Assert.Equal(2, seeker.Skills.Count);
+        Assert.Equal(Enums.Skill.Programming | Enums.Skill.Medical, seeker.Skills);
         Assert.Equal(2500f, seeker.DesiredSalary);
     }
 
@@ -141,12 +141,12 @@ public class ComponentTests
         var world = World.Create();
         var company = world.Create();
         var office = world.Create();
-        var posting = new JobPosting(company, office, "Dev", 3000f, new List<string> { "C#" });
+        var posting = new JobPosting(company, office, "Dev", 3000f, Enums.Skill.Programming);
         Assert.Equal(company, posting.Company);
         Assert.Equal(office, posting.Office);
         Assert.Equal("Dev", posting.Position);
         Assert.Equal(3000f, posting.Salary);
-        Assert.Single(posting.Requirements);
+        Assert.Equal(Enums.Skill.Programming, posting.Requirements);
     }
 
     [Fact]
@@ -156,7 +156,7 @@ public class ComponentTests
         var company = world.Create();
         var office = world.Create();
         var posting = new JobPosting(company, office, "Dev", 3000f);
-        Assert.Empty(posting.Requirements);
+        Assert.Equal(Enums.Skill.None, posting.Requirements);
     }
 
     [Fact]

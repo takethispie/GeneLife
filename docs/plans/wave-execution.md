@@ -78,19 +78,23 @@ API directory normalized to `Genelife.API`.
 - Acceptance: cross-player intent rejected; 32 clients receive filtered snapshots; restart resumes world;
   no `Vector3` in simulation code.
 
-## Wave 5 — delta replication, acceptance, triggered scaling
+## Wave 5 — delta replication, acceptance, triggered scaling — implemented
 
-| Agent | Steps | Owns | Depends |
-|---|---|---|---|
-| W5-A | MP11 delta snapshots + reconnect | `Snapshots/SnapshotHistory.cs`, hub | MP10 |
-| W5-B | MP14 acceptance + 32-client load test | test harness, docs/plan results | MP11, MP12, MP13 |
-| W5-C | Perf07 harden tick loop | `SimulationLoop.cs`, engine timing | Perf01, MP04 |
-| W5-D | Perf08 registry/cadence + Perf09 CI guardrails | `ISimulationSystem`, registry, metrics, CI | Perf04, Perf05 |
-| W5-E | Perf10 data hygiene + Perf11 pass reduction | components, systems, repositories | Perf03, Perf08 |
-| W5-F | Perf12 triggered scaling | spatial/AOI/parallel only on measured trigger | Perf11 |
+Results and measurements: `docs/plans/wave5-results.md`.
+
+| Agent | Steps | Status |
+|---|---|---|
+| W5-A | MP11 delta snapshots + reconnect | done |
+| W5-B | MP14 acceptance + 32-client load test | done |
+| W5-C | Perf07 harden tick loop | done |
+| W5-D | Perf08 registry/cadence + Perf09 CI guardrails | done |
+| W5-E | Perf10 data hygiene + Perf11 pass reduction | done |
+| W5-F | Perf12 triggered scaling | evaluator done; no scaling activated (no trigger met) |
 
 - Merge order: W5-A → W5-B; perf steps can run alongside but must not edit the same engine files.
 - Perf12 is trigger-gated. Do not start without a recorded trigger and baseline.
+- Test parallelization is disabled at assembly level because the baseline suite reproduced unsafe
+  concurrent Arch world access; the documented `dotnet run` command is now deterministic.
 
 ## Startup checklist for the next agent
 

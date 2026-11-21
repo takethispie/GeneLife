@@ -21,6 +21,8 @@ public sealed class PersistedSim
     public float Bladder { get; set; }
     public string ActionType { get; set; } = string.Empty;
     public float TimeRemaining { get; set; }
+    public float X { get; set; }
+    public float Y { get; set; }
     public bool IsLookingForWork { get; set; }
     public string? PlayerId { get; set; }
     public float WalletBalance { get; set; }
