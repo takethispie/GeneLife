@@ -8,7 +8,9 @@ using Genelife.Components.Company;
 using Genelife.Components.Employment;
 using Genelife.Components.Gen;
 using Genelife.Enums;
+using Genelife.Messages.Events;
 using Genelife.Systems;
+using Wolverine;
 
 namespace Genelife.Api.Services;
 
@@ -25,10 +27,12 @@ public class SimulationEngine : IDisposable
     private readonly NetworkIdRegistry networkIds = new();
     private readonly SnapshotHistory history = new();
     private readonly Action<SystemRunResult> recordSystemRun;
+    private readonly IMessageBus? messageBus;
     private static readonly string[] ActionNames = Enum.GetNames<ActionType>();
 
-    public SimulationEngine()
+    public SimulationEngine(IMessageBus? messageBus = null)
     {
+        this.messageBus = messageBus;
         recordSystemRun = result =>
             metrics.RecordSystem(result.Name, result.Milliseconds, result.AllocatedBytes);
     }
@@ -87,6 +91,8 @@ public class SimulationEngine : IDisposable
 
     public void Tick(float deltaTime)
     {
+        List<object> events = new();
+
         lock (@lock)
         {
             if (!isRunning || world == null)
@@ -102,6 +108,8 @@ public class SimulationEngine : IDisposable
             if (systems != null)
                 systems.Update(in context, recordSystemRun);
 
+            CollectSimEvents(currentWorld, events);
+
             var snapshotStart = Stopwatch.GetTimestamp();
             var sims = BuildSimSnapshots(currentWorld);
             var companies = BuildCompanySnapshots(currentWorld, employmentIndex!);
@@ -116,7 +124,31 @@ public class SimulationEngine : IDisposable
             var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedStart;
             LastTickMilliseconds = ElapsedMilliseconds(tickStart);
             metrics.RecordTick(LastTickMilliseconds, allocatedBytes, currentWorld.Size);
+
+            events.Add(new TickCompleted(tick, currentWorld.Size, ElapsedMilliseconds(tickStart)));
         }
+
+        if (messageBus != null && events.Count > 0)
+        {
+            foreach (var e in events)
+            {
+                messageBus.PublishAsync(e).ConfigureAwait(false).GetAwaiter().GetResult();
+            }
+        }
+    }
+
+    private void CollectSimEvents(World world, List<object> events)
+    {
+        var query = new QueryDescription().WithAll<Needs, NetworkId>();
+        world.Query(in query, (ref Needs needs, ref NetworkId nid) =>
+        {
+            events.Add(new SimNeedsChanged(nid.Value, needs.Hunger, needs.Energy, needs.Hygiene, needs.Bladder));
+        });
+    }
+
+    public WorldSnapshot? GetLatestSnapshot()
+    {
+        return Volatile.Read(ref _latest);
     }
 
     public MetricsSnapshot GetMetricsSnapshot()
@@ -125,11 +157,6 @@ public class SimulationEngine : IDisposable
         {
             return metrics.Snapshot();
         }
-    }
-
-    public WorldSnapshot? GetLatestSnapshot()
-    {
-        return Volatile.Read(ref _latest);
     }
 
     public T ExecuteWithWorld<T>(Func<World, T> operation)

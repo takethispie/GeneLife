@@ -43,6 +43,8 @@ builder.Services.AddMarten(opts =>
     opts.AutoCreateSchemaObjects = JasperFx.AutoCreate.CreateOrUpdate;
     opts.Schema.For<Genelife.Api.Models.SimDocument>().Identity(x => x.Id);
     opts.Schema.For<Genelife.Api.Models.CompanyDocument>().Identity(x => x.Id);
+    opts.Projections.Add<Genelife.Api.Projections.SimProjection>(JasperFx.Events.Projections.ProjectionLifecycle.Inline);
+    opts.Projections.Add<Genelife.Api.Projections.CompanyProjection>(JasperFx.Events.Projections.ProjectionLifecycle.Inline);
 })
     .UseLightweightSessions();
 
