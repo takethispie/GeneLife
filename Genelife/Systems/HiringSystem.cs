@@ -11,32 +11,41 @@ namespace Genelife.Systems;
 ///
 /// Follows a collect -> decide -> apply pipeline so that no structural
 /// changes (Create/Add/Remove/Destroy) happen while iterating a query.
+///
+/// Open seats are represented by <see cref="OpenPosition"/> entities; hiring
+/// destroys one seat per accepted applicant. The <see cref="EmploymentIndex"/>
+/// singleton is the sole derived view of employment relationships.
 /// </summary>
 public class HiringSystem
 {
     private readonly World world;
     private readonly QueryDescription jobPostingsQuery;
+    private readonly QueryDescription openPositionsQuery;
     private readonly QueryDescription jobSeekersQuery;
     private readonly QueryDescription applicationsQuery;
+    private readonly QueryDescription indexQuery;
 
     public HiringSystem(World world)
     {
         this.world = world;
         jobPostingsQuery = new QueryDescription().WithAll<JobPosting>();
+        openPositionsQuery = new QueryDescription().WithAll<OpenPosition>();
         jobSeekersQuery = new QueryDescription().WithAll<JobSeeker>().WithNone<Employee>();
         applicationsQuery = new QueryDescription().WithAll<JobApplication>();
+        indexQuery = new QueryDescription().WithAll<EmploymentIndex>();
     }
 
     public void Update()
     {
         // 1. Collect
         var postings = CollectPostings();
+        var openSeats = CollectOpenSeats();
         var seekers = CollectSeekers();
         var pendingApplicants = CollectPendingApplicants();
 
         // 2. Decide (pure C#, no world access)
         var newApplications = DecideApplications(postings, seekers, pendingApplicants);
-        var hirePlan = DecideHires(postings);
+        var hirePlan = DecideHires(postings, openSeats);
 
         // 3. Apply (structural changes only here)
         foreach (var application in newApplications)
@@ -68,6 +77,14 @@ public class HiringSystem
             }
         }
 
+        foreach (var seatEntity in hirePlan.FilledSeats)
+        {
+            if (world.IsAlive(seatEntity))
+            {
+                world.Destroy(seatEntity);
+            }
+        }
+
         foreach (var postingEntity in hirePlan.FilledPostings)
         {
             if (world.IsAlive(postingEntity))
@@ -84,12 +101,24 @@ public class HiringSystem
         var postings = new List<(Entity Entity, JobPosting Posting)>();
         world.Query(in jobPostingsQuery, (Entity entity, ref JobPosting posting) =>
         {
-            if (posting.OpenPositions > 0)
-            {
-                postings.Add((entity, posting));
-            }
+            postings.Add((entity, posting));
         });
         return postings;
+    }
+
+    private Dictionary<Entity, List<Entity>> CollectOpenSeats()
+    {
+        var seats = new Dictionary<Entity, List<Entity>>();
+        world.Query(in openPositionsQuery, (Entity entity, ref OpenPosition seat) =>
+        {
+            if (!seats.TryGetValue(seat.Posting, out var list))
+            {
+                list = new List<Entity>();
+                seats[seat.Posting] = list;
+            }
+            list.Add(entity);
+        });
+        return seats;
     }
 
     private List<(Entity Entity, JobSeeker Seeker)> CollectSeekers()
@@ -156,7 +185,9 @@ public class HiringSystem
         return newApplications;
     }
 
-    private HirePlan DecideHires(List<(Entity Entity, JobPosting Posting)> postings)
+    private HirePlan DecideHires(
+        List<(Entity Entity, JobPosting Posting)> postings,
+        Dictionary<Entity, List<Entity>> openSeats)
     {
         var plan = new HirePlan();
 
@@ -180,15 +211,22 @@ public class HiringSystem
 
             ref var jobPosting = ref world.Get<JobPosting>(jobPostingEntity);
 
+            // Available seats for this posting
+            if (!openSeats.TryGetValue(jobPostingEntity, out var seats))
+            {
+                seats = new List<Entity>();
+            }
+
             int hired = 0;
             foreach (var (appEntity, application) in applications)
             {
-                if (hired >= jobPosting.OpenPositions) break;
+                if (hired >= seats.Count) break;
 
                 if (!world.IsAlive(application.Applicant)) continue;
 
                 plan.Hires.Add((application.Applicant, jobPosting));
                 plan.AcceptedApplications.Add(appEntity);
+                plan.FilledSeats.Add(seats[hired]);
                 hired++;
             }
 
@@ -198,8 +236,8 @@ public class HiringSystem
                 plan.RejectedApplications.Add(appEntity);
             }
 
-            // Mark posting for deletion if all positions filled
-            if (jobPosting.OpenPositions - hired <= 0)
+            // Mark posting for deletion if all seats are filled
+            if (hired >= seats.Count)
             {
                 plan.FilledPostings.Add(jobPostingEntity);
             }
@@ -229,6 +267,17 @@ public class HiringSystem
         {
             world.Remove<JobSeeker>(applicantEntity);
         }
+
+        // Update the derived employment index
+        UpdateIndex(jobPosting.Company, applicantEntity);
+    }
+
+    private void UpdateIndex(Entity company, Entity employee)
+    {
+        world.Query(in indexQuery, (ref EmploymentIndex index) =>
+        {
+            index.Add(company, employee);
+        });
     }
 
     private float CalculateMatchScore(JobSeeker seeker, JobPosting posting)
@@ -261,6 +310,7 @@ public class HiringSystem
         public List<(Entity Applicant, JobPosting Posting)> Hires { get; } = new();
         public List<Entity> AcceptedApplications { get; } = new();
         public List<Entity> RejectedApplications { get; } = new();
+        public List<Entity> FilledSeats { get; } = new();
         public List<Entity> FilledPostings { get; } = new();
     }
 }
