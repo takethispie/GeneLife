@@ -62,4 +62,26 @@ public class JobSeekerSystemTests
 
         Assert.True(world.Has<JobSeeker>(entity));
     }
+
+    [Fact]
+    public void Update_AddsJobSeekerToAllEligibleSimsAfterQuery()
+    {
+        var world = World.Create();
+        var adult = world.Create(new Alive(18));
+        var olderAdult = world.Create(new Alive(40));
+        var minor = world.Create(new Alive(17));
+        var system = new JobSeekerSystem(world);
+
+        system.Update();
+
+        Assert.True(world.Has<JobSeeker>(adult));
+        Assert.True(world.Has<JobSeeker>(olderAdult));
+        Assert.False(world.Has<JobSeeker>(minor));
+
+        // Original components and entities survive the archetype migration.
+        Assert.True(world.IsAlive(adult));
+        Assert.True(world.IsAlive(olderAdult));
+        Assert.True(world.IsAlive(minor));
+        Assert.Equal(18, world.Get<Alive>(adult).Age);
+    }
 }

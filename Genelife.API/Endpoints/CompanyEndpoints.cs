@@ -1,3 +1,4 @@
+using Genelife.Api.Auth;
 using Genelife.Api.Services;
 using Genelife.Api.DTOs;
 
@@ -14,41 +15,45 @@ public static class CompanyEndpoints
 
             try
             {
-                var entityId = simulationManager.AddCompany(request.Name);
-                return Results.Ok(new { message = $"Company '{request.Name}' created successfully", entityId });
+                var networkId = simulationManager.AddCompany(request.Name);
+                return Results.Ok(new { message = $"Company '{request.Name}' created successfully", networkId });
             }
             catch (InvalidOperationException ex)
             {
                 return Results.BadRequest(new { message = ex.Message });
             }
         })
-        .WithName("CreateCompany");
+        .WithName("CreateCompany")
+        .RequireAuthorization(AuthPolicies.Admin);
 
-        app.MapGet("/api/companies/{entityId:int}", (int entityId, SimulationManager simulationManager) =>
+        app.MapGet("/api/companies/{networkId}", (ulong networkId, SimulationManager simulationManager) =>
         {
-            var company = simulationManager.GetCompany(entityId);
+            var company = simulationManager.GetCompany(networkId);
             if (company == null)
                 return Results.NotFound(new { message = "Company not found" });
 
             return Results.Ok(company);
         })
-        .WithName("GetCompany");
+        .WithName("GetCompany")
+        .RequireAuthorization(AuthPolicies.Player);
 
         app.MapGet("/api/companies", (SimulationManager simulationManager) =>
         {
             var companies = simulationManager.GetAllCompanies();
             return Results.Ok(companies);
         })
-        .WithName("GetAllCompanies");
+        .WithName("GetAllCompanies")
+        .RequireAuthorization(AuthPolicies.Player);
 
-        app.MapDelete("/api/companies/{entityId:int}", (int entityId, SimulationManager simulationManager) =>
+        app.MapDelete("/api/companies/{networkId}", (ulong networkId, SimulationManager simulationManager) =>
         {
-            var deleted = simulationManager.DeleteCompany(entityId);
+            var deleted = simulationManager.DeleteCompany(networkId);
             if (!deleted)
                 return Results.NotFound(new { message = "Company not found" });
 
             return Results.Ok(new { message = "Company deleted successfully" });
         })
-        .WithName("DeleteCompany");
+        .WithName("DeleteCompany")
+        .RequireAuthorization(AuthPolicies.Admin);
     }
 }

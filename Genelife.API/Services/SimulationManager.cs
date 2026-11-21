@@ -1,15 +1,18 @@
 using Genelife.Api.DTOs;
 using Genelife.Api.Repositories;
+using Genelife.Components.Gen;
 
 namespace Genelife.Api.Services;
 
 public class SimulationManager : IHostedService, IDisposable
 {
     private readonly SimulationEngine engine;
+    private readonly NetworkIdRegistry networkIds;
 
     public SimulationManager()
     {
         engine = new SimulationEngine();
+        networkIds = new NetworkIdRegistry();
     }
 
     public bool IsRunning => engine.IsRunning;
@@ -27,19 +30,27 @@ public class SimulationManager : IHostedService, IDisposable
 
     public void StartSimulation()
     {
+        if (engine.IsRunning)
+            return;
+
+        networkIds.Clear();
         engine.Start();
     }
 
     public void StopSimulation()
     {
+        if (!engine.IsRunning)
+            return;
+
         engine.Stop();
+        networkIds.Clear();
     }
 
     public void AddSim(string name, int age)
     {
         engine.ExecuteWithWorld(world =>
         {
-            var repository = new SimRepository(world);
+            var repository = new SimRepository(world, networkIds);
             repository.Add(name, age);
             return true;
         });
@@ -49,26 +60,26 @@ public class SimulationManager : IHostedService, IDisposable
     {
         return engine.ExecuteWithWorld(world =>
         {
-            var repository = new SimRepository(world);
+            var repository = new SimRepository(world, networkIds);
             return repository.GetAll();
         });
     }
 
-    public int AddCompany(string name)
+    public ulong AddCompany(string name)
     {
         return engine.ExecuteWithWorld(world =>
         {
-            var repository = new CompanyRepository(world, GetIndex());
-            return repository.Add(name);
+            var repository = new CompanyRepository(world, GetIndex(), networkIds);
+            return repository.Add(name).Value;
         });
     }
 
-    public CompanyStatus? GetCompany(int entityId)
+    public CompanyStatus? GetCompany(ulong networkId)
     {
         return engine.ExecuteWithWorld(world =>
         {
-            var repository = new CompanyRepository(world, GetIndex());
-            return repository.Get(entityId);
+            var repository = new CompanyRepository(world, GetIndex(), networkIds);
+            return repository.Get(new NetworkId(networkId));
         });
     }
 
@@ -76,17 +87,17 @@ public class SimulationManager : IHostedService, IDisposable
     {
         return engine.ExecuteWithWorld(world =>
         {
-            var repository = new CompanyRepository(world, GetIndex());
+            var repository = new CompanyRepository(world, GetIndex(), networkIds);
             return repository.GetAll();
         });
     }
 
-    public bool DeleteCompany(int entityId)
+    public bool DeleteCompany(ulong networkId)
     {
         return engine.ExecuteWithWorld(world =>
         {
-            var repository = new CompanyRepository(world, GetIndex());
-            return repository.Delete(entityId);
+            var repository = new CompanyRepository(world, GetIndex(), networkIds);
+            return repository.Delete(new NetworkId(networkId));
         });
     }
 

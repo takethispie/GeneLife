@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Arch.Core;
 using Genelife.Components.Employment;
 using Genelife.Systems;
@@ -7,6 +8,7 @@ namespace Genelife.Api.Services;
 public class SimulationEngine : IDisposable
 {
     private World? world;
+    private Metrics metrics = new();
     private EmploymentIndex? employmentIndex;
     private NeedsDecaySystem? needsDecaySystem;
     private DecisionSystem? decisionSystem;
@@ -60,6 +62,7 @@ public class SimulationEngine : IDisposable
                 return;
 
             world = World.Create();
+            metrics = new Metrics();
             employmentIndex = new EmploymentIndex();
             needsDecaySystem = new NeedsDecaySystem(world);
             decisionSystem = new DecisionSystem(world);
@@ -81,6 +84,7 @@ public class SimulationEngine : IDisposable
 
             timer?.Dispose();
             timer = null;
+            metrics.Flush();
             world?.Dispose();
             world = null;
             employmentIndex = null;
@@ -106,13 +110,42 @@ public class SimulationEngine : IDisposable
             if (!isRunning || world == null)
                 return;
 
+            var currentWorld = world;
+            var tickStart = Stopwatch.GetTimestamp();
+            var allocatedStart = GC.GetAllocatedBytesForCurrentThread();
+
+            var systemStart = Stopwatch.GetTimestamp();
             needsDecaySystem?.Update(DeltaTime);
+            metrics.RecordSystem("NeedsDecay", ElapsedMilliseconds(systemStart));
+
+            systemStart = Stopwatch.GetTimestamp();
             decisionSystem?.Update();
+            metrics.RecordSystem("Decision", ElapsedMilliseconds(systemStart));
+
+            systemStart = Stopwatch.GetTimestamp();
             actionSystem?.Update(DeltaTime);
+            metrics.RecordSystem("Action", ElapsedMilliseconds(systemStart));
+
+            systemStart = Stopwatch.GetTimestamp();
             hiringSystem?.Update();
+            metrics.RecordSystem("Hiring", ElapsedMilliseconds(systemStart));
+
+            systemStart = Stopwatch.GetTimestamp();
             payrollSystem?.Update();
+            metrics.RecordSystem("Payroll", ElapsedMilliseconds(systemStart));
+
+            systemStart = Stopwatch.GetTimestamp();
             jobSeekerSystem?.Update();
+            metrics.RecordSystem("JobSeeker", ElapsedMilliseconds(systemStart));
+
+            var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedStart;
+            metrics.RecordTick(ElapsedMilliseconds(tickStart), allocatedBytes, currentWorld.Size);
         }
+    }
+
+    private static double ElapsedMilliseconds(long startTimestamp)
+    {
+        return Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds;
     }
 
     public void Dispose()

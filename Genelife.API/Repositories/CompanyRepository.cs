@@ -1,7 +1,9 @@
 using Arch.Core;
 using Genelife.Api.DTOs;
+using Genelife.Api.Services;
 using Genelife.Components.Company;
 using Genelife.Components.Employment;
+using Genelife.Components.Gen;
 
 namespace Genelife.Api.Repositories;
 
@@ -9,50 +11,50 @@ public class CompanyRepository
 {
     private readonly World world;
     private readonly EmploymentIndex index;
+    private readonly NetworkIdRegistry networkIds;
 
-    public CompanyRepository(World world, EmploymentIndex index)
+    public CompanyRepository(World world, EmploymentIndex index, NetworkIdRegistry networkIds)
     {
         this.world = world;
         this.index = index;
+        this.networkIds = networkIds;
     }
 
-    public int Add(string name)
+    public NetworkId Add(string name)
     {
         var entity = world.Create(new CompanyName(name));
-        return entity.Id;
+        var networkId = networkIds.Allocate(entity);
+        world.Add(entity, networkId);
+        return networkId;
     }
 
-    public CompanyStatus? Get(int entityId)
+    public CompanyStatus? Get(NetworkId networkId)
     {
-        CompanyStatus? result = null;
-        var query = new QueryDescription().WithAll<CompanyName>();
+        if (!networkIds.TryGetEntity(networkId, out var entity))
+            return null;
 
-        world.Query(in query, (Entity entity, ref CompanyName companyName) =>
+        if (!world.IsAlive(entity) || !world.Has<CompanyName>(entity))
+            return null;
+
+        ref var companyName = ref world.Get<CompanyName>(entity);
+        return new CompanyStatus
         {
-            if (entity.Id == entityId)
-            {
-                result = new CompanyStatus
-                {
-                    EntityId = entityId,
-                    Name = companyName.Name,
-                    EmployeeCount = index.CountEmployees(entity)
-                };
-            }
-        });
-
-        return result;
+            NetworkId = networkId.Value,
+            Name = companyName.Name,
+            EmployeeCount = index.CountEmployees(entity)
+        };
     }
 
     public List<CompanyStatus> GetAll()
     {
         var companies = new List<CompanyStatus>();
-        var query = new QueryDescription().WithAll<CompanyName>();
+        var query = new QueryDescription().WithAll<CompanyName, NetworkId>();
 
-        world.Query(in query, (Entity entity, ref CompanyName companyName) =>
+        world.Query(in query, (Entity entity, ref CompanyName companyName, ref NetworkId networkId) =>
         {
             companies.Add(new CompanyStatus
             {
-                EntityId = entity.Id,
+                NetworkId = networkId.Value,
                 Name = companyName.Name,
                 EmployeeCount = index.CountEmployees(entity)
             });
@@ -61,20 +63,17 @@ public class CompanyRepository
         return companies;
     }
 
-    public bool Delete(int entityId)
+    public bool Delete(NetworkId networkId)
     {
-        bool deleted = false;
-        var query = new QueryDescription().WithAll<CompanyName>();
+        // Resolve via the registry rather than scanning with a raw Arch entity id.
+        if (!networkIds.TryGetEntity(networkId, out var target))
+            return false;
 
-        world.Query(in query, (Entity entity, ref CompanyName _) =>
-        {
-            if (entity.Id == entityId)
-            {
-                world.Destroy(entity);
-                deleted = true;
-            }
-        });
+        if (!world.IsAlive(target) || !world.Has<CompanyName>(target))
+            return false;
 
-        return deleted;
+        world.Destroy(target);
+        networkIds.Remove(networkId);
+        return true;
     }
 }

@@ -1,3 +1,4 @@
+using Genelife.Api.Auth;
 using Genelife.Api.Services;
 using Genelife.Api.DTOs;
 
@@ -15,7 +16,8 @@ public static class SimulationEndpoints
             simulationManager.StartSimulation();
             return Results.Ok(new { message = "Simulation started" });
         })
-        .WithName("StartSimulation");
+        .WithName("StartSimulation")
+        .RequireAuthorization(AuthPolicies.Admin);
 
         app.MapPost("/api/simulation/stop", (SimulationManager simulationManager) =>
         {
@@ -25,7 +27,8 @@ public static class SimulationEndpoints
             simulationManager.StopSimulation();
             return Results.Ok(new { message = "Simulation stopped" });
         })
-        .WithName("StopSimulation");
+        .WithName("StopSimulation")
+        .RequireAuthorization(AuthPolicies.Admin);
 
         app.MapGet("/api/simulation/status", (SimulationManager simulationManager) =>
         {
@@ -35,7 +38,8 @@ public static class SimulationEndpoints
                 sims = simulationManager.GetAllSims()
             });
         })
-        .WithName("GetStatus");
+        .WithName("GetStatus")
+        .RequireAuthorization(AuthPolicies.Player);
 
         app.MapPost("/api/simulation/sims", (AddSimRequest request, SimulationManager simulationManager) =>
         {
@@ -52,13 +56,15 @@ public static class SimulationEndpoints
                 return Results.BadRequest(new { message = ex.Message });
             }
         })
-        .WithName("AddSim");
+        .WithName("AddSim")
+        .RequireAuthorization(AuthPolicies.Admin);
 
         app.MapGet("/api/simulation/sims", (SimulationManager simulationManager) =>
         {
             var sims = simulationManager.GetAllSims();
             return Results.Ok(sims);
         })
-        .WithName("GetAllSims");
+        .WithName("GetAllSims")
+        .RequireAuthorization(AuthPolicies.Player);
     }
 }
