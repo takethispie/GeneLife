@@ -45,6 +45,7 @@ public class SimulationEngine : IDisposable
     public long LastSnapshotBuildTimeMs { get; private set; }
     public double LastTickMilliseconds { get; private set; }
     public long CurrentTick { get { lock (@lock) { return tick; } } }
+    public bool SnapshotsEnabled { get; set; } = true;
 
     public void Initialize()
     {
@@ -110,16 +111,19 @@ public class SimulationEngine : IDisposable
 
             CollectSimEvents(currentWorld, events);
 
-            var snapshotStart = Stopwatch.GetTimestamp();
-            var sims = BuildSimSnapshots(currentWorld);
-            var companies = BuildCompanySnapshots(currentWorld, employmentIndex!);
-            var next = new WorldSnapshot(tick, WorldSnapshot.CurrentVersion, sims, companies);
-            LastSnapshotBuildTimeMs = (long)ElapsedMilliseconds(snapshotStart);
+if (SnapshotsEnabled)
+            {
+                var snapshotStart = Stopwatch.GetTimestamp();
+                var sims = BuildSimSnapshots(currentWorld);
+                var companies = BuildCompanySnapshots(currentWorld, employmentIndex!);
+                var next = new WorldSnapshot(tick, WorldSnapshot.CurrentVersion, sims, companies);
+                LastSnapshotBuildTimeMs = (long)ElapsedMilliseconds(snapshotStart);
 
-            Interlocked.Exchange(ref _latest, next);
-            history.Record(next);
+                Interlocked.Exchange(ref _latest, next);
+                history.Record(next);
 
-            metrics.RecordSystem("SnapshotBuild", LastSnapshotBuildTimeMs, 0);
+                metrics.RecordSystem("SnapshotBuild", LastSnapshotBuildTimeMs, 0);
+            }
 
             var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedStart;
             LastTickMilliseconds = ElapsedMilliseconds(tickStart);

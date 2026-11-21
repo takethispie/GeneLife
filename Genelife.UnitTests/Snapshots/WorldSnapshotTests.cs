@@ -12,6 +12,7 @@ public class WorldSnapshotTests
 {
     private static void Tick(SimulationEngine engine, int times = 1)
     {
+        engine.SnapshotsEnabled = true;
         for (int i = 0; i < times; i++)
             engine.Tick(1f / 20f);
     }
