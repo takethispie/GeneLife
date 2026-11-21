@@ -1,7 +1,9 @@
 using Genelife.Api.DTOs;
+using Genelife.Api.Models;
 using Genelife.Api.Persistence;
 using Genelife.Api.Repositories;
 using Genelife.Components.Gen;
+using Marten;
 
 namespace Genelife.Api.Services;
 
@@ -9,14 +11,16 @@ public class SimulationManager : IHostedService, IDisposable
 {
     private readonly SimulationEngine engine;
     private readonly ISnapshotStore store;
+    private readonly IDocumentStore? documentStore;
     private readonly ILogger<SimulationManager>? logger;
     private PeriodicTimer? saveTimer;
     private CancellationTokenSource? saveCts;
 
-    public SimulationManager(SimulationEngine engine, ISnapshotStore store, ILogger<SimulationManager>? logger = null)
+    public SimulationManager(SimulationEngine engine, ISnapshotStore store, IDocumentStore? documentStore = null, ILogger<SimulationManager>? logger = null)
     {
         this.engine = engine;
         this.store = store;
+        this.documentStore = documentStore;
         this.logger = logger;
     }
 
@@ -133,6 +137,21 @@ public class SimulationManager : IHostedService, IDisposable
 
     public List<SimStatus> GetAllSims()
     {
+        if (documentStore != null)
+        {
+            try
+            {
+                using var session = documentStore.LightweightSession();
+                return session.Query<SimDocument>()
+                    .Select(d => d.ToSimStatus())
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                logger?.LogWarning(ex, "Marten query for GetAllSims failed; falling back to snapshot");
+            }
+        }
+
         var snapshot = engine.GetLatestSnapshot();
         if (snapshot != null)
             return snapshot.Sims;

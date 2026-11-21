@@ -1,7 +1,9 @@
 using Genelife.Api.Services;
 using Genelife.Api.DTOs;
+using Genelife.Api.Models;
 using Genelife.Messages.Commands;
 using Genelife.Messages.Queries;
+using Marten;
 using Microsoft.AspNetCore.Http;
 using Wolverine.Http;
 
