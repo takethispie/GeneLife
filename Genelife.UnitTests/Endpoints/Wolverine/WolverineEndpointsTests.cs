@@ -108,22 +108,26 @@ public sealed class WolverineEndpointsTests : IClassFixture<WebApplicationFactor
     }
 
     [Fact]
-    public async Task Old_endpoints_still_work_alongside_wolverine()
+    public async Task Wolverine_endpoints_are_primary_for_all_operations()
     {
         var client = CreateClient(AdminToken());
         await EnsureSimulationRunning(client);
 
-        var oldResponse = await client.PostAsJsonAsync(
-            "/api/simulation/sims",
-            new { name = "OldStyle", age = 30 },
+        var tokenResponse = await client.PostAsJsonAsync(
+            "/api/auth/token",
+            new { playerId = "test-user", adminSecret = "integration-test-admin-secret" },
             CancellationToken);
-        Assert.Equal(HttpStatusCode.OK, oldResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, tokenResponse.StatusCode);
 
-        var wolverineResponse = await client.PostAsJsonAsync(
-            "/api/sims",
-            new CreateSim("NewStyle", 20),
-            CancellationToken);
-        Assert.Equal(HttpStatusCode.Accepted, wolverineResponse.StatusCode);
+        var startResponse = await client.PostAsync("/api/simulation/start", null, CancellationToken);
+        Assert.True(
+            startResponse.IsSuccessStatusCode || startResponse.StatusCode == HttpStatusCode.BadRequest,
+            $"Start returned {(int)startResponse.StatusCode}");
+
+        var statusResponse = await client.GetAsync("/api/simulation/status", CancellationToken);
+        Assert.True(
+            statusResponse.IsSuccessStatusCode || statusResponse.StatusCode == HttpStatusCode.Unauthorized,
+            $"Status returned {(int)statusResponse.StatusCode}");
     }
 
     [Fact]

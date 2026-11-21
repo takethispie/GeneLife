@@ -3,7 +3,6 @@ using Genelife.Api.Commands;
 using Genelife.Api.Hubs;
 using Genelife.Api.Persistence;
 using Genelife.Api.Services;
-using Genelife.Api.Endpoints;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
@@ -160,8 +159,6 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapAuthEndpoints();
-app.MapSimulationEndpoints();
 app.MapWolverineEndpoints();
 
 app.MapHub<WorldHub>("/hubs/world");
