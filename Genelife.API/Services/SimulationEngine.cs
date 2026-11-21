@@ -11,6 +11,7 @@ using Genelife.Enums;
 using Genelife.Messages.Events;
 using Genelife.Systems;
 using Wolverine;
+using System.Collections.Concurrent;
 
 namespace Genelife.Api.Services;
 
@@ -28,7 +29,9 @@ public class SimulationEngine : IDisposable
     private readonly SnapshotHistory history = new();
     private readonly Action<SystemRunResult> recordSystemRun;
     private readonly IMessageBus? messageBus;
-    private static readonly string[] ActionNames = Enum.GetNames<ActionType>();
+private static readonly string[] ActionNames = Enum.GetNames<ActionType>();
+    private readonly ConcurrentQueue<EnqueuedCommand> queuedCommands = new();
+    private readonly HashSet<Guid> processedMessageIds = new(1024);
 
     public SimulationEngine(IMessageBus? messageBus = null)
     {
@@ -46,6 +49,13 @@ public class SimulationEngine : IDisposable
     public double LastTickMilliseconds { get; private set; }
     public long CurrentTick { get { lock (@lock) { return tick; } } }
     public bool SnapshotsEnabled { get; set; } = true;
+
+    public void EnqueueCommand(EnqueuedCommand command)
+    {
+        queuedCommands.Enqueue(command);
+    }
+
+    public int QueuedCommandCount => queuedCommands.Count;
 
     public void Initialize()
     {
@@ -93,6 +103,8 @@ public class SimulationEngine : IDisposable
     public void Tick(float deltaTime)
     {
         List<object> events = new();
+
+        DrainCommands();
 
         lock (@lock)
         {
@@ -147,6 +159,101 @@ if (SnapshotsEnabled)
         world.Query(in query, (ref Needs needs, ref NetworkId nid) =>
         {
             events.Add(new SimNeedsChanged(nid.Value, needs.Hunger, needs.Energy, needs.Hygiene, needs.Bladder));
+        });
+    }
+
+    private void DrainCommands()
+    {
+        while (queuedCommands.TryDequeue(out var command))
+        {
+            if (!processedMessageIds.Add(command.MessageId))
+                continue;
+
+            lock (@lock)
+            {
+                if (!isRunning || world == null)
+                    continue;
+
+                switch (command.Type)
+                {
+                    case CommandType.CreateSim:
+                        if (command.Payload != null)
+                        {
+                            var parts = command.Payload.Split('|');
+                            if (parts.Length >= 2)
+                            {
+                                var name = parts[0];
+                                var age = int.TryParse(parts[1], out var a) ? a : 18;
+                                var entity = world.Create(
+                                    new GenName(name),
+                                    new Needs(),
+                                    new CurrentAction(ActionType.Idle, 0f),
+                                    new Alive(age),
+                                    new Location(0f, 0f)
+                                );
+                                var nid = new NetworkId(command.NetworkId.GetValueOrDefault());
+                                world.Add(entity, nid);
+                            }
+                        }
+                        break;
+
+                    case CommandType.DeleteSim:
+                        if (command.NetworkId.HasValue)
+                        {
+                            DestroyByNetworkId(world, command.NetworkId.Value);
+                        }
+                        break;
+
+                    case CommandType.SetAction:
+                        if (command.NetworkId.HasValue && command.Payload != null)
+                        {
+                            SetEntityAction(world, command.NetworkId.Value, command.Payload);
+                        }
+                        break;
+
+                    case CommandType.CreateCompany:
+                        if (command.Payload != null)
+                        {
+                            var entity = world.Create(new CompanyName(command.Payload));
+                            var nid = new NetworkId(command.NetworkId.GetValueOrDefault());
+                            world.Add(entity, nid);
+                        }
+                        break;
+
+                    case CommandType.DeleteCompany:
+                        if (command.NetworkId.HasValue)
+                        {
+                            DestroyByNetworkId(world, command.NetworkId.Value);
+                        }
+                        break;
+                }
+            }
+        }
+    }
+
+    private void DestroyByNetworkId(World world, ulong networkId)
+    {
+        var query = new QueryDescription().WithAll<NetworkId>();
+        world.Query(in query, (Entity entity, ref NetworkId nid) =>
+        {
+            if (nid.Value == networkId)
+                world.Destroy(entity);
+        });
+    }
+
+    private void SetEntityAction(World world, ulong networkId, string actionType)
+    {
+        if (!Enum.TryParse<ActionType>(actionType, ignoreCase: true, out var action))
+            return;
+
+        var query = new QueryDescription().WithAll<NetworkId>();
+        world.Query(in query, (Entity entity, ref NetworkId nid) =>
+        {
+            if (nid.Value == networkId && world.Has<CurrentAction>(entity))
+            {
+                ref var ca = ref world.Get<CurrentAction>(entity);
+                ca = new CurrentAction(action, 0f);
+            }
         });
     }
 
