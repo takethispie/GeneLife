@@ -1,4 +1,5 @@
 using Arch.Core;
+using Genelife.Components.Employment;
 using Genelife.Systems;
 
 namespace Genelife.Api.Services;
@@ -47,6 +48,7 @@ public class SimulationEngine : IDisposable
                 return;
 
             world = World.Create();
+            world.Create(new EmploymentIndex());
             needsDecaySystem = new NeedsDecaySystem(world);
             decisionSystem = new DecisionSystem(world);
             actionSystem = new ActionSystem(world);

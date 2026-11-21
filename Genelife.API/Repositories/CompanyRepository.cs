@@ -24,17 +24,16 @@ public class CompanyRepository
     {
         CompanyStatus? result = null;
         var query = new QueryDescription().WithAll<CompanyName>();
-        
+
         world.Query(in query, (Entity entity, ref CompanyName companyName) =>
         {
             if (entity.Id == entityId)
             {
-                int employeeCount = CountEmployees(entityId);
                 result = new CompanyStatus
                 {
                     EntityId = entityId,
                     Name = companyName.Name,
-                    EmployeeCount = employeeCount
+                    EmployeeCount = CountEmployees(entity)
                 };
             }
         });
@@ -49,12 +48,11 @@ public class CompanyRepository
 
         world.Query(in query, (Entity entity, ref CompanyName companyName) =>
         {
-            int employeeCount = CountEmployees(entity.Id);
             companies.Add(new CompanyStatus
             {
                 EntityId = entity.Id,
                 Name = companyName.Name,
-                EmployeeCount = employeeCount
+                EmployeeCount = CountEmployees(entity)
             });
         });
 
@@ -65,7 +63,7 @@ public class CompanyRepository
     {
         bool deleted = false;
         var query = new QueryDescription().WithAll<CompanyName>();
-        
+
         world.Query(in query, (Entity entity, ref CompanyName _) =>
         {
             if (entity.Id == entityId)
@@ -78,14 +76,13 @@ public class CompanyRepository
         return deleted;
     }
 
-    private int CountEmployees(int companyEntityId)
+    private int CountEmployees(Entity company)
     {
         int count = 0;
-        var employeeQuery = new QueryDescription().WithAll<Employee>();
-        world.Query(in employeeQuery, (ref Employee employee) =>
+        var indexQuery = new QueryDescription().WithAll<EmploymentIndex>();
+        world.Query(in indexQuery, (ref EmploymentIndex index) =>
         {
-            if (employee.CompanyEntityId == companyEntityId)
-                count++;
+            count = index.CountEmployees(company);
         });
         return count;
     }
