@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Genelife\Genelife.csproj" />
+    <ProjectReference Include="..\Genelife.API\Genelife.API.csproj" />
   </ItemGroup>
 
 </Project>
