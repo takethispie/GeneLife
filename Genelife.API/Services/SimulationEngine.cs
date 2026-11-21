@@ -29,7 +29,6 @@ public class SimulationEngine : IDisposable
 private readonly NetworkIdRegistry networkIds = new();
     private readonly SnapshotHistory history = new();
     private readonly Action<SystemRunResult> recordSystemRun;
-    private readonly IMessageBus? messageBus;
     private readonly ConcurrentQueue<EnqueuedCommand> queuedCommands = new();
     private readonly HashSet<Guid> processedMessageIds = new(1024);
     private readonly WorldSaveService? worldSaveService;
@@ -37,22 +36,11 @@ private readonly NetworkIdRegistry networkIds = new();
     private long lastSaveTick;
     private const long AutoSaveInterval = 600;
     private static readonly string[] ActionNames = Enum.GetNames<ActionType>();
-    private readonly ConcurrentQueue<EnqueuedCommand> queuedCommands = new();
-    private readonly HashSet<Guid> processedMessageIds = new(1024);
-    private readonly WorldSaveService? worldSaveService;
-    private readonly IDocumentStore? documentStore;
-    private long lastSaveTick;
-    private const long AutoSaveInterval = 600;
 
     public SimulationEngine(WorldSaveService? worldSaveService = null, IDocumentStore? documentStore = null)
     {
         this.worldSaveService = worldSaveService;
         this.documentStore = documentStore;
-    }
-
-    public SimulationEngine(IMessageBus? messageBus = null)
-    {
-        this.messageBus = messageBus;
         recordSystemRun = result =>
             metrics.RecordSystem(result.Name, result.Milliseconds, result.AllocatedBytes);
     }
