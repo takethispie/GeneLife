@@ -174,6 +174,21 @@ public class SimulationManager : IHostedService, IDisposable
 
     public CompanyStatus? GetCompany(ulong networkId)
     {
+        if (documentStore != null)
+        {
+            try
+            {
+                using var session = documentStore.LightweightSession();
+                var doc = session.Query<CompanyDocument>()
+                    .FirstOrDefault(d => d.NetworkId == networkId);
+                return doc?.ToCompanyStatus();
+            }
+            catch (Exception ex)
+            {
+                logger?.LogWarning(ex, "Marten query for GetCompany failed; falling back to snapshot");
+            }
+        }
+
         var snapshot = engine.GetLatestSnapshot();
         if (snapshot != null)
             return snapshot.Companies.Find(c => c.NetworkId == networkId);
@@ -187,6 +202,21 @@ public class SimulationManager : IHostedService, IDisposable
 
     public List<CompanyStatus> GetAllCompanies()
     {
+        if (documentStore != null)
+        {
+            try
+            {
+                using var session = documentStore.LightweightSession();
+                return session.Query<CompanyDocument>()
+                    .Select(d => d.ToCompanyStatus())
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                logger?.LogWarning(ex, "Marten query for GetAllCompanies failed; falling back to snapshot");
+            }
+        }
+
         var snapshot = engine.GetLatestSnapshot();
         if (snapshot != null)
             return snapshot.Companies;

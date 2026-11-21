@@ -1,3 +1,5 @@
+using Genelife.Api.DTOs;
+
 namespace Genelife.Api.Models;
 
 public class CompanyDocument
@@ -8,4 +10,14 @@ public class CompanyDocument
     public int EmployeeCount { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
+
+    public CompanyStatus ToCompanyStatus()
+    {
+        return new CompanyStatus
+        {
+            NetworkId = NetworkId,
+            Name = Name,
+            EmployeeCount = EmployeeCount
+        };
+    }
 }
