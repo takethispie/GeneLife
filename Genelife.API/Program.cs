@@ -12,6 +12,7 @@ using Microsoft.IdentityModel.Tokens;
 using Wolverine;
 using Wolverine.Http;
 using Wolverine.Marten;
+using Wolverine.SignalR;
 using Marten;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -30,6 +31,10 @@ builder.Services.AddHostedService(provider => provider.GetRequiredService<Simula
 builder.Services.AddSingleton<ICommandQueue, CommandQueue>();
 builder.Services.AddSingleton<Genelife.Api.Snapshots.ReplicationTracker>();
 builder.Services.AddSingleton<Genelife.Api.Snapshots.ReplicationMetrics>();
+builder.Services.AddSingleton<WorldRestoreService>();
+builder.Services.AddSingleton<WorldSaveService>();
+builder.Services.AddSingleton<Genelife.Api.Handlers.Push.SimStatePushHandler>();
+builder.Services.AddSingleton<Genelife.Api.Handlers.Push.CompanyStatePushHandler>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<WorldRestoreService>();
 builder.Services.AddSingleton<WorldSaveService>();
