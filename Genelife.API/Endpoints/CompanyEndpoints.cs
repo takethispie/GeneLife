@@ -4,6 +4,7 @@ using Genelife.Api.DTOs;
 
 namespace Genelife.Api.Endpoints;
 
+[Obsolete("Migrated to Wolverine HTTP endpoints. See Endpoints/Wolverine/CompanyEndpoints.cs")]
 public static class CompanyEndpoints
 {
     public static void MapCompanyEndpoints(this WebApplication app)

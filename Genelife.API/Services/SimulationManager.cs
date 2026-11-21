@@ -188,6 +188,25 @@ public class SimulationManager : IHostedService, IDisposable
         });
     }
 
+    public bool DeleteSim(ulong networkId)
+    {
+        return engine.ExecuteWithWorld(world =>
+        {
+            var repository = new SimRepository(world, networkIds);
+            return repository.Delete(networkId);
+        });
+    }
+
+    public void SetSimAction(ulong networkId, string actionType)
+    {
+        engine.ExecuteWithWorld(world =>
+        {
+            var repository = new SimRepository(world, networkIds);
+            repository.SetAction(networkId, actionType);
+            return true;
+        });
+    }
+
     private Genelife.Components.Employment.EmploymentIndex GetIndex()
     {
         return engine.EmploymentIndex

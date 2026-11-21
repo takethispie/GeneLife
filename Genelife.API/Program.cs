@@ -9,6 +9,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Wolverine;
+using Wolverine.Http;
+using Wolverine.Marten;
+using Marten;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +31,29 @@ builder.Services.AddSingleton<ICommandQueue, CommandQueue>();
 builder.Services.AddSingleton<Genelife.Api.Snapshots.ReplicationTracker>();
 builder.Services.AddSingleton<Genelife.Api.Snapshots.ReplicationMetrics>();
 builder.Services.AddHostedService<SnapshotBroadcastService>();
+
+// Marten document store.
+var connectionString = builder.Configuration.GetConnectionString("Postgres")
+    ?? "Host=localhost;Port=5432;Database=genelife;Username=genelife;Password=genelife";
+
+builder.Services.AddMarten(opts =>
+{
+    opts.Connection(connectionString);
+    opts.DisableNpgsqlLogging = true;
+    opts.AutoCreateSchemaObjects = JasperFx.AutoCreate.CreateOrUpdate;
+    opts.Schema.For<Genelife.Api.Models.SimDocument>().Identity(x => x.Id);
+    opts.Schema.For<Genelife.Api.Models.CompanyDocument>().Identity(x => x.Id);
+})
+    .UseLightweightSessions();
+
+// Wolverine with in-memory transport.
+builder.Host.UseWolverine(opts =>
+{
+    opts.Discovery.IncludeAssembly(typeof(Program).Assembly);
+    opts.Discovery.IncludeAssembly(typeof(Genelife.Messages.Commands.CreateSim).Assembly);
+});
+
+builder.Services.AddWolverineHttp();
 
 // Authentication and authorization.
 builder.Services.AddOptions<JwtOptions>()
@@ -131,7 +158,7 @@ app.UseAuthorization();
 
 app.MapAuthEndpoints();
 app.MapSimulationEndpoints();
-app.MapCompanyEndpoints();
+app.MapWolverineEndpoints();
 
 app.MapHub<WorldHub>("/hubs/world");
 

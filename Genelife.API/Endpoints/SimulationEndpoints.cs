@@ -5,6 +5,7 @@ using Genelife.Api.DTOs;
 
 namespace Genelife.Api.Endpoints;
 
+[Obsolete("Migrated to Wolverine HTTP endpoints. See Endpoints/Wolverine/SimEndpoints.cs")]
 public static class SimulationEndpoints
 {
     public static void MapSimulationEndpoints(this WebApplication app)
