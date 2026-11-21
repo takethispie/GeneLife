@@ -25,6 +25,8 @@ public class SimDocument
         {
             NetworkId = NetworkId,
             Name = Name,
+            Age = Age,
+            IsPlayerControlled = IsPlayerControlled,
             Hunger = MathF.Round(Hunger, 1),
             Energy = MathF.Round(Energy, 1),
             Hygiene = MathF.Round(Hygiene, 1),

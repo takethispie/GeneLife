@@ -187,7 +187,12 @@ public class HiringSystem : ISimulationSystem
 
             if (bestScore > 0.3f)
             {
-                newApplications.Add(new JobApplication(seekerEntity, bestJobEntity, bestScore));
+                newApplications.Add(new JobApplication(
+                    seekerEntity,
+                    bestJobEntity,
+                    bestJob.Position ?? string.Empty,
+                    bestJob.Company,
+                    bestScore));
             }
         }
 

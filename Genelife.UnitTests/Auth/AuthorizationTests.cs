@@ -71,6 +71,7 @@ public sealed class AuthorizationTests : IClassFixture<WebApplicationFactory<Pro
     [Theory]
     [InlineData("/api/companies")]
     [InlineData("/api/companies/1")]
+    [InlineData("/api/data")]
     [InlineData("/api/simulation/status")]
     [InlineData("/api/simulation/sims")]
     public async Task Anonymous_read_endpoints_return_401(string path)
@@ -102,6 +103,7 @@ public sealed class AuthorizationTests : IClassFixture<WebApplicationFactory<Pro
     [Theory]
     [InlineData("/api/companies")]
     [InlineData("/api/companies/1")]
+    [InlineData("/api/data")]
     [InlineData("/api/simulation/status")]
     [InlineData("/api/simulation/sims")]
     public async Task Player_can_call_read_endpoints(string path)

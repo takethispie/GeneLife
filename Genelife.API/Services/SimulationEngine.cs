@@ -305,6 +305,245 @@ if (SnapshotsEnabled)
         return Volatile.Read(ref _latest);
     }
 
+    public WorldDataStatus GetWorldData()
+    {
+        WorldSnapshot? snapshot;
+        List<SimStatus>? simsFallback = null;
+        List<CompanyStatus>? companiesFallback = null;
+        var offices = new List<OfficeRecord>();
+        var employees = new List<EmployeeRecord>();
+        var postings = new List<PostingRecord>();
+        var openSeatPostings = new List<Entity>();
+        var applications = new List<ApplicationRecord>();
+        var employeeCountsByCompany = new Dictionary<ulong, int>();
+        long currentTick;
+        bool running;
+
+        lock (@lock)
+        {
+            running = isRunning;
+            currentTick = tick;
+
+            if (!running || world == null)
+            {
+                return new WorldDataStatus
+                {
+                    Tick = currentTick,
+                    IsRunning = running,
+                    CapturedAt = DateTimeOffset.UtcNow
+                };
+            }
+
+            var currentWorld = world;
+            snapshot = _latest;
+            if (snapshot is null)
+            {
+                simsFallback = BuildSimSnapshots(currentWorld);
+                companiesFallback = BuildCompanySnapshots(currentWorld, employmentIndex ?? new EmploymentIndex());
+            }
+
+            var officeQuery = new QueryDescription().WithAll<Office>();
+            currentWorld.Query(in officeQuery, (Entity entity, ref Office office) =>
+            {
+                offices.Add(new OfficeRecord(
+                    entity,
+                    office.OfficeName,
+                    GetNetworkId(currentWorld, office.Company),
+                    office.Capacity));
+            });
+
+            var employeeQuery = new QueryDescription().WithAll<Employee>();
+            currentWorld.Query(in employeeQuery, (Entity entity, ref Employee employee) =>
+            {
+                var companyNetworkId = GetNetworkId(currentWorld, employee.Company);
+                employees.Add(new EmployeeRecord(
+                    GetNetworkId(currentWorld, entity),
+                    companyNetworkId,
+                    employee.Office,
+                    employee.Position,
+                    employee.Salary));
+
+                employeeCountsByCompany.TryGetValue(companyNetworkId, out var count);
+                employeeCountsByCompany[companyNetworkId] = count + 1;
+            });
+
+            var postingQuery = new QueryDescription().WithAll<JobPosting>();
+            currentWorld.Query(in postingQuery, (Entity entity, ref JobPosting posting) =>
+            {
+                postings.Add(new PostingRecord(
+                    entity,
+                    posting.Position,
+                    GetNetworkId(currentWorld, posting.Company),
+                    posting.Office,
+                    posting.Salary,
+                    posting.Requirements.ToString()));
+            });
+
+            var openPositionQuery = new QueryDescription().WithAll<OpenPosition>();
+            currentWorld.Query(in openPositionQuery, (ref OpenPosition seat) =>
+            {
+                openSeatPostings.Add(seat.Posting);
+            });
+
+            var applicationQuery = new QueryDescription().WithAll<JobApplication>();
+            currentWorld.Query(in applicationQuery, (ref JobApplication application) =>
+            {
+                applications.Add(new ApplicationRecord(
+                    GetNetworkId(currentWorld, application.Applicant),
+                    application.JobPosting,
+                    GetNetworkId(currentWorld, application.Company),
+                    application.Position,
+                    application.Status.ToString(),
+                    application.MatchScore,
+                    application.ApplicationDate));
+            });
+        }
+
+        var sims = snapshot?.Sims ?? simsFallback ?? new List<SimStatus>();
+        var companies = snapshot?.Companies ?? companiesFallback ?? new List<CompanyStatus>();
+
+        var result = new WorldDataStatus
+        {
+            Tick = currentTick,
+            IsRunning = running,
+            CapturedAt = DateTimeOffset.UtcNow,
+            Sims = sims
+        };
+
+        var simNames = new Dictionary<ulong, string>();
+        foreach (var sim in sims)
+            simNames[sim.NetworkId] = sim.Name;
+
+        var companyNames = new Dictionary<ulong, string>();
+        foreach (var company in companies)
+            companyNames[company.NetworkId] = company.Name;
+
+        foreach (var company in companies)
+        {
+            result.Companies.Add(new CompanyStatus
+            {
+                NetworkId = company.NetworkId,
+                Name = company.Name,
+                EmployeeCount = employeeCountsByCompany.GetValueOrDefault(company.NetworkId)
+            });
+        }
+
+        var officeNames = new Dictionary<Entity, string>();
+        foreach (var office in offices)
+            officeNames[office.Entity] = office.Name;
+
+        var employeeCountsByOffice = new Dictionary<Entity, int>();
+        foreach (var employee in employees)
+        {
+            employeeCountsByOffice.TryGetValue(employee.Office, out var count);
+            employeeCountsByOffice[employee.Office] = count + 1;
+        }
+
+        foreach (var office in offices)
+        {
+            companyNames.TryGetValue(office.CompanyNetworkId, out var companyName);
+            result.Offices.Add(new OfficeStatus
+            {
+                Name = office.Name,
+                CompanyNetworkId = office.CompanyNetworkId,
+                Company = companyName ?? string.Empty,
+                Capacity = office.Capacity,
+                EmployeeCount = employeeCountsByOffice.GetValueOrDefault(office.Entity)
+            });
+        }
+
+        foreach (var employee in employees)
+        {
+            simNames.TryGetValue(employee.SimNetworkId, out var simName);
+            companyNames.TryGetValue(employee.CompanyNetworkId, out var companyName);
+
+            result.Employees.Add(new EmployeeStatus
+            {
+                SimNetworkId = employee.SimNetworkId,
+                Sim = simName ?? string.Empty,
+                CompanyNetworkId = employee.CompanyNetworkId,
+                Company = companyName ?? string.Empty,
+                Position = employee.Position,
+                Salary = employee.Salary
+            });
+        }
+
+        var postingLookup = new Dictionary<Entity, PostingRecord>();
+        foreach (var posting in postings)
+            postingLookup[posting.Entity] = posting;
+
+        var seatsByPosting = new Dictionary<Entity, int>();
+        foreach (var postingEntity in openSeatPostings)
+        {
+            seatsByPosting.TryGetValue(postingEntity, out var count);
+            seatsByPosting[postingEntity] = count + 1;
+        }
+
+        foreach (var postingEntity in openSeatPostings)
+        {
+            if (!postingLookup.TryGetValue(postingEntity, out var posting))
+                continue;
+
+            companyNames.TryGetValue(posting.CompanyNetworkId, out var companyName);
+            officeNames.TryGetValue(posting.Office, out var officeName);
+
+            result.OpenPositions.Add(new OpenPositionStatus
+            {
+                Position = posting.Position,
+                Company = companyName ?? string.Empty,
+                Office = officeName ?? string.Empty,
+                Salary = posting.Salary
+            });
+        }
+
+        foreach (var posting in postings)
+        {
+            companyNames.TryGetValue(posting.CompanyNetworkId, out var companyName);
+            officeNames.TryGetValue(posting.Office, out var officeName);
+
+            result.JobPostings.Add(new JobPostingStatus
+            {
+                Position = posting.Position,
+                CompanyNetworkId = posting.CompanyNetworkId,
+                Company = companyName ?? string.Empty,
+                Office = officeName ?? string.Empty,
+                Salary = posting.Salary,
+                Requirements = posting.Requirements,
+                OpenPositions = seatsByPosting.GetValueOrDefault(posting.Entity)
+            });
+        }
+
+        foreach (var application in applications)
+        {
+            simNames.TryGetValue(application.ApplicantNetworkId, out var applicantName);
+
+            var position = application.Position;
+            var companyNetworkId = application.CompanyNetworkId;
+            if (postingLookup.TryGetValue(application.JobPosting, out var posting))
+            {
+                if (string.IsNullOrEmpty(position))
+                    position = posting.Position;
+                if (companyNetworkId == 0)
+                    companyNetworkId = posting.CompanyNetworkId;
+            }
+
+            companyNames.TryGetValue(companyNetworkId, out var companyName);
+
+            result.JobApplications.Add(new JobApplicationStatus
+            {
+                Applicant = applicantName ?? string.Empty,
+                ApplicantNetworkId = application.ApplicantNetworkId,
+                Position = position,
+                Company = companyName ?? string.Empty,
+                Status = application.Status,
+                MatchScore = application.MatchScore,
+                ApplicationDate = application.ApplicationDate
+            });
+        }
+
+        return result;
+    }
+
     public MetricsSnapshot GetMetricsSnapshot()
     {
         lock (@lock)
@@ -421,10 +660,13 @@ if (SnapshotsEnabled)
 
         world.Query(in query, (Entity entity, ref GenName name, ref Needs needs, ref CurrentAction action) =>
         {
+            var isPlayerControlled = world.Has<PlayerControlled>(entity);
             var status = new SimStatus
             {
                 NetworkId = world.Has<NetworkId>(entity) ? world.Get<NetworkId>(entity).Value : 0,
                 Name = name.Name,
+                Age = world.TryGet<Alive>(entity, out var alive) ? alive.Age : 0,
+                IsPlayerControlled = isPlayerControlled,
                 Hunger = MathF.Round(needs.Hunger, 1),
                 Energy = MathF.Round(needs.Energy, 1),
                 Hygiene = MathF.Round(needs.Hygiene, 1),
@@ -463,6 +705,46 @@ if (SnapshotsEnabled)
 
         return companies;
     }
+
+    private static ulong GetNetworkId(World world, Entity entity)
+    {
+        if (entity.Equals(Entity.Null))
+            return 0UL;
+
+        return world.IsAlive(entity) && world.Has<NetworkId>(entity)
+            ? world.Get<NetworkId>(entity).Value
+            : 0UL;
+    }
+
+    private readonly record struct OfficeRecord(
+        Entity Entity,
+        string Name,
+        ulong CompanyNetworkId,
+        int Capacity);
+
+    private readonly record struct EmployeeRecord(
+        ulong SimNetworkId,
+        ulong CompanyNetworkId,
+        Entity Office,
+        string Position,
+        float Salary);
+
+    private readonly record struct PostingRecord(
+        Entity Entity,
+        string Position,
+        ulong CompanyNetworkId,
+        Entity Office,
+        float Salary,
+        string Requirements);
+
+    private readonly record struct ApplicationRecord(
+        ulong ApplicantNetworkId,
+        Entity JobPosting,
+        ulong CompanyNetworkId,
+        string Position,
+        string Status,
+        float MatchScore,
+        DateTime ApplicationDate);
 
     private static double ElapsedMilliseconds(long startTimestamp)
     {

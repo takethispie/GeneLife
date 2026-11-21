@@ -17,6 +17,27 @@ using Marten;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddServiceDefaults();
+
+const string AdminUiCorsPolicy = "AdminUi";
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(AdminUiCorsPolicy, policy =>
+    {
+        var allowedOrigins = builder.Configuration
+            .GetSection("Cors:AllowedOrigins")
+            .Get<string[]>();
+
+        if (allowedOrigins is { Length: > 0 })
+        {
+            policy.WithOrigins(allowedOrigins)
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        }
+    });
+});
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -45,7 +66,8 @@ var useWolverineEndpoints = featureFlags.GetValue<bool>("UseWolverineEndpoints")
 var useMartenReads = featureFlags.GetValue<bool>("UseMartenReads");
 
 // Marten document store.
-var connectionString = builder.Configuration.GetConnectionString("Postgres")
+var connectionString = builder.Configuration.GetConnectionString("genelife")
+    ?? builder.Configuration.GetConnectionString("Postgres")
     ?? "Host=localhost;Port=5432;Database=genelife;Username=genelife;Password=genelife";
 
 if (useMartenReads)
@@ -172,12 +194,19 @@ builder.Services.AddSignalR(options =>
 var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
-app.UseHttpsRedirection();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+
+app.UseCors(AdminUiCorsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapAuthEndpoints();
 app.MapSimulationEndpoints();
+app.MapWorldDataEndpoints();
 
 if (useWolverineEndpoints)
 {
@@ -185,6 +214,8 @@ if (useWolverineEndpoints)
 }
 
 app.MapHub<WorldHub>("/hubs/world");
+
+app.MapDefaultEndpoints();
 
 app.Run();
 
