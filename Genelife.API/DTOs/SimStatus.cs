@@ -10,4 +10,6 @@ public class SimStatus
     public float Bladder { get; set; }
     public string CurrentAction { get; set; } = string.Empty;
     public float TimeRemaining { get; set; }
+    public float X { get; set; }
+    public float Y { get; set; }
 }

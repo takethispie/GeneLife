@@ -12,7 +12,7 @@ public class JobSeekerSystemTests
     {
         var world = World.Create();
         var entity = world.Create(new Alive(20));
-        var system = new JobSeekerSystem(world);
+        var system = new JobSeekerSystem(world, 0);
 
         system.Update();
 
@@ -26,7 +26,7 @@ public class JobSeekerSystemTests
     {
         var world = World.Create();
         var entity = world.Create(new Alive(10));
-        var system = new JobSeekerSystem(world);
+        var system = new JobSeekerSystem(world, 0);
 
         system.Update();
 
@@ -43,7 +43,7 @@ public class JobSeekerSystemTests
             new Alive(25),
             new Employee(company, office, "Dev", 3000f)
         );
-        var system = new JobSeekerSystem(world);
+        var system = new JobSeekerSystem(world, 0);
 
         system.Update();
 
@@ -55,7 +55,7 @@ public class JobSeekerSystemTests
     {
         var world = World.Create();
         var entity = world.Create(new Alive(20));
-        var system = new JobSeekerSystem(world);
+        var system = new JobSeekerSystem(world, 0);
 
         system.Update();
         system.Update();
@@ -70,7 +70,7 @@ public class JobSeekerSystemTests
         var adult = world.Create(new Alive(18));
         var olderAdult = world.Create(new Alive(40));
         var minor = world.Create(new Alive(17));
-        var system = new JobSeekerSystem(world);
+        var system = new JobSeekerSystem(world, 0);
 
         system.Update();
 

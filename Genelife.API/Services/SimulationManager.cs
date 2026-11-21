@@ -1,4 +1,5 @@
 using Genelife.Api.DTOs;
+using Genelife.Api.Persistence;
 using Genelife.Api.Repositories;
 using Genelife.Components.Gen;
 
@@ -8,20 +9,68 @@ public class SimulationManager : IHostedService, IDisposable
 {
     private readonly SimulationEngine engine;
     private readonly NetworkIdRegistry networkIds;
+    private readonly ISnapshotStore store;
+    private readonly ILogger<SimulationManager>? logger;
+    private PeriodicTimer? saveTimer;
+    private CancellationTokenSource? saveCts;
 
-    public SimulationManager(SimulationEngine engine)
+    public SimulationManager(SimulationEngine engine, ISnapshotStore store, ILogger<SimulationManager>? logger = null)
     {
         this.engine = engine;
         networkIds = new NetworkIdRegistry();
+        this.store = store;
+        this.logger = logger;
     }
 
     public bool IsRunning => engine.IsRunning;
+    public DateTime? LastSaveTime { get; private set; }
+    public DateTime? LastLoadTime { get; private set; }
 
-    public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
-
-    public Task StopAsync(CancellationToken cancellationToken)
+    public async Task StartAsync(CancellationToken cancellationToken)
     {
-        return Task.CompletedTask;
+        await store.InitializeAsync(cancellationToken);
+
+        try
+        {
+            var latest = store.LoadLatest();
+            if (latest != null)
+            {
+                logger?.LogInformation("Restoring simulation from snapshot at tick {Tick}", latest.Tick);
+                engine.Restore(latest, networkIds);
+                LastLoadTime = DateTime.UtcNow;
+                StartPeriodicSave();
+            }
+            else
+            {
+                logger?.LogInformation("No snapshot found; simulation will start fresh when requested");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger?.LogWarning(ex, "Failed to restore from snapshot; starting fresh");
+        }
+    }
+
+    public async Task StopAsync(CancellationToken cancellationToken)
+    {
+        StopPeriodicSave();
+
+        if (engine.IsRunning)
+        {
+            try
+            {
+                SaveSnapshot();
+                logger?.LogInformation("Final snapshot saved before shutdown");
+            }
+            catch (Exception ex)
+            {
+                logger?.LogError(ex, "Failed to save final snapshot during shutdown");
+            }
+            engine.Shutdown();
+            networkIds.Clear();
+        }
+        
+        await Task.CompletedTask;
     }
 
     public void StartSimulation()
@@ -31,6 +80,7 @@ public class SimulationManager : IHostedService, IDisposable
 
         networkIds.Clear();
         engine.Initialize();
+        StartPeriodicSave();
     }
 
     public void StopSimulation()
@@ -38,8 +88,37 @@ public class SimulationManager : IHostedService, IDisposable
         if (!engine.IsRunning)
             return;
 
+        StopPeriodicSave();
         engine.Shutdown();
         networkIds.Clear();
+    }
+
+    public PersistedWorldState SaveSnapshot()
+    {
+        if (!engine.IsRunning)
+            throw new InvalidOperationException("Simulation is not running");
+
+        var state = engine.CaptureState(networkIds);
+        store.Save(state);
+        LastSaveTime = DateTime.UtcNow;
+        logger?.LogDebug("Snapshot saved at tick {Tick} with {SimCount} sims, {CompanyCount} companies",
+            state.Tick, state.Sims.Count, state.Companies.Count);
+        return state;
+    }
+
+    public void RestoreSnapshot()
+    {
+        if (engine.IsRunning)
+            throw new InvalidOperationException("Simulation is running. Stop it before restoring.");
+
+        var latest = store.LoadLatest();
+        if (latest == null)
+            throw new InvalidOperationException("No snapshot found to restore");
+
+        networkIds.Clear();
+        engine.Restore(latest, networkIds);
+        LastLoadTime = DateTime.UtcNow;
+        StartPeriodicSave();
     }
 
     public void AddSim(string name, int age)
@@ -115,5 +194,53 @@ public class SimulationManager : IHostedService, IDisposable
             ?? throw new InvalidOperationException("Simulation is not running");
     }
 
-    public void Dispose() => engine.Dispose();
+    private void StartPeriodicSave()
+    {
+        saveCts = new CancellationTokenSource();
+        saveTimer = new PeriodicTimer(TimeSpan.FromSeconds(30));
+        _ = RunPeriodicSave(saveCts.Token);
+    }
+
+    private void StopPeriodicSave()
+    {
+        saveCts?.Cancel();
+        saveCts?.Dispose();
+        saveCts = null;
+        saveTimer?.Dispose();
+        saveTimer = null;
+    }
+
+    private async Task RunPeriodicSave(CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                await saveTimer!.WaitForNextTickAsync(ct);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+
+            if (!engine.IsRunning)
+                break;
+
+            try
+            {
+                SaveSnapshot();
+            }
+            catch (Exception ex)
+            {
+                logger?.LogError(ex, "Periodic snapshot save failed");
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        StopPeriodicSave();
+        (store as IDisposable)?.Dispose();
+        engine.Dispose();
+    }
 }

@@ -1,10 +1,13 @@
 using System.Diagnostics;
 using Arch.Core;
+using Arch.Core.Extensions;
 using Genelife.Api.DTOs;
+using Genelife.Api.Persistence;
 using Genelife.Api.Snapshots;
 using Genelife.Components.Company;
 using Genelife.Components.Employment;
 using Genelife.Components.Gen;
+using Genelife.Enums;
 using Genelife.Systems;
 
 namespace Genelife.Api.Services;
@@ -132,6 +135,91 @@ public class SimulationEngine : IDisposable
         }
     }
 
+    public bool TryGetEntity(NetworkId networkId, out Entity entity)
+    {
+        lock (@lock)
+        {
+            if (world == null)
+            {
+                entity = default;
+                return false;
+            }
+
+            var result = Entity.Null;
+            var found = false;
+            var query = new QueryDescription().WithAll<NetworkId>();
+            world.Query(in query, (Entity e, ref NetworkId nid) =>
+            {
+                if (nid.Value == networkId.Value)
+                {
+                    result = e;
+                    found = true;
+                }
+            });
+
+            entity = result;
+            return found;
+        }
+    }
+
+    public bool IsAlive(Entity entity)
+    {
+        lock (@lock)
+        {
+            return world != null && world.IsAlive(entity);
+        }
+    }
+
+    public string? GetOwnerPlayerId(Entity entity)
+    {
+        lock (@lock)
+        {
+            if (world == null || !world.IsAlive(entity))
+                return null;
+
+            if (world.Has<PlayerControlled>(entity))
+            {
+                ref var pc = ref world.Get<PlayerControlled>(entity);
+                return pc.PlayerId;
+            }
+
+            return null;
+        }
+    }
+
+    public bool SetOwner(Entity entity, string playerId)
+    {
+        lock (@lock)
+        {
+            if (world == null || !world.IsAlive(entity))
+                return false;
+
+            if (world.Has<PlayerControlled>(entity))
+            {
+                ref var pc = ref world.Get<PlayerControlled>(entity);
+                pc.PlayerId = playerId;
+            }
+            else
+            {
+                world.Add(entity, new PlayerControlled(playerId));
+            }
+
+            return true;
+        }
+    }
+
+    public bool RemoveOwner(Entity entity)
+    {
+        lock (@lock)
+        {
+            if (world == null || !world.IsAlive(entity) || !world.Has<PlayerControlled>(entity))
+                return false;
+
+            world.Remove<PlayerControlled>(entity);
+            return true;
+        }
+    }
+
     private static List<SimStatus> BuildSimSnapshots(World world)
     {
         var sims = new List<SimStatus>();
@@ -175,7 +263,7 @@ public class SimulationEngine : IDisposable
             {
                 NetworkId = 0,
                 Name = companyName.Name,
-                EmployeeCount = index.CountEmployees(entity)
+                EmployeeCount = 0
             });
         });
 
@@ -185,7 +273,10 @@ public class SimulationEngine : IDisposable
             var nameCopy = companyName.Name;
             var match = companies.Find(c => c.Name == nameCopy);
             if (match != null)
+            {
                 match.NetworkId = networkId.Value;
+                match.EmployeeCount = index.CountEmployees(entity);
+            }
         });
 
         return companies;
@@ -199,5 +290,127 @@ public class SimulationEngine : IDisposable
     public void Dispose()
     {
         Shutdown();
+    }
+
+    public PersistedWorldState CaptureState(NetworkIdRegistry networkIds)
+    {
+        lock (@lock)
+        {
+            if (world == null)
+                throw new InvalidOperationException("Simulation is not running");
+
+            var currentTick = Volatile.Read(ref tick);
+            var sims = new List<PersistedSim>();
+            var companies = new List<PersistedCompany>();
+            var simByEntity = new Dictionary<Entity, PersistedSim>();
+
+            var simQuery = new QueryDescription().WithAll<GenName, Needs, CurrentAction, Alive, NetworkId>();
+            world.Query(in simQuery, (Entity entity, ref GenName name, ref Needs needs, ref CurrentAction action, ref Alive alive, ref NetworkId nid) =>
+            {
+                var sim = new PersistedSim
+                {
+                    Name = name.Name,
+                    Age = alive.Age,
+                    NetworkId = nid.Value,
+                    Hunger = needs.Hunger,
+                    Energy = needs.Energy,
+                    Hygiene = needs.Hygiene,
+                    Bladder = needs.Bladder,
+                    ActionType = action.Type.ToString(),
+                    TimeRemaining = action.TimeRemaining
+                };
+                sims.Add(sim);
+                simByEntity[entity] = sim;
+            });
+
+            var jobSeekerQuery = new QueryDescription().WithAll<GenName, JobSeeker>();
+            world.Query(in jobSeekerQuery, (Entity entity, ref JobSeeker js) =>
+            {
+                if (simByEntity.TryGetValue(entity, out var sim))
+                    sim.IsLookingForWork = js.IsLookingForWork;
+            });
+
+            var playerQuery = new QueryDescription().WithAll<GenName, PlayerControlled>();
+            world.Query(in playerQuery, (Entity entity, ref PlayerControlled pc) =>
+            {
+                if (simByEntity.TryGetValue(entity, out var sim))
+                    sim.PlayerId = pc.PlayerId;
+            });
+
+            var walletQuery = new QueryDescription().WithAll<GenName, Wallet>();
+            world.Query(in walletQuery, (Entity entity, ref Wallet wallet) =>
+            {
+                if (simByEntity.TryGetValue(entity, out var sim))
+                    sim.WalletBalance = wallet.Balance;
+            });
+
+            var companyQuery = new QueryDescription().WithAll<CompanyName, NetworkId>();
+            world.Query(in companyQuery, (ref CompanyName cname, ref NetworkId nid) =>
+            {
+                companies.Add(new PersistedCompany
+                {
+                    Name = cname.Name,
+                    NetworkId = nid.Value
+                });
+            });
+
+            return new PersistedWorldState
+            {
+                SchemaVersion = PersistedWorldState.CurrentSchemaVersion,
+                Tick = currentTick,
+                Sims = sims,
+                Companies = companies
+            };
+        }
+    }
+
+    public void Restore(PersistedWorldState state, NetworkIdRegistry networkIds)
+    {
+        lock (@lock)
+        {
+            if (isRunning)
+                throw new InvalidOperationException("Simulation is already running. Stop it before restoring.");
+
+            if (state.SchemaVersion != PersistedWorldState.CurrentSchemaVersion)
+                throw new InvalidOperationException(
+                    $"Cannot restore schema version {state.SchemaVersion}; expected {PersistedWorldState.CurrentSchemaVersion}");
+
+            Initialize();
+
+            foreach (var sim in state.Sims)
+            {
+                var entity = world!.Create(
+                    new GenName(sim.Name),
+                    new Needs { Hunger = sim.Hunger, Energy = sim.Energy, Hygiene = sim.Hygiene, Bladder = sim.Bladder },
+                    new CurrentAction(
+                        Enum.TryParse<ActionType>(sim.ActionType, out var at) ? at : ActionType.Idle,
+                        sim.TimeRemaining),
+                    new Alive(sim.Age)
+                );
+
+                if (sim.WalletBalance != 0)
+                    world.Add(entity, new Wallet(sim.WalletBalance));
+
+                var networkId = new NetworkId(sim.NetworkId);
+                world.Add(entity, networkId);
+                networkIds.AllocateWithValue(entity, networkId);
+
+                if (sim.IsLookingForWork)
+                    world.Add(entity, new JobSeeker(true));
+
+                if (sim.PlayerId != null)
+                    world.Add(entity, new PlayerControlled(sim.PlayerId));
+            }
+
+            foreach (var company in state.Companies)
+            {
+                var entity = world!.Create(new CompanyName(company.Name));
+                var networkId = new NetworkId(company.NetworkId);
+                world.Add(entity, networkId);
+                networkIds.AllocateWithValue(entity, networkId);
+            }
+
+            tick = state.Tick;
+        }
     }
 }

@@ -16,12 +16,13 @@ public class JobSeekerSystem
     private readonly World world;
     private readonly QueryDescription queryDescription;
     private const int WorkingAge = 18;
-    private const int CadenceInterval = 100;
+    private readonly int cadenceInterval;
     private int skipCounter;
 
-    public JobSeekerSystem(World world)
+    public JobSeekerSystem(World world, int cadenceInterval = 100)
     {
         this.world = world;
+        this.cadenceInterval = cadenceInterval;
         queryDescription = new QueryDescription()
             .WithAll<Alive>()
             .WithNone<Employee, JobSeeker>();
@@ -30,7 +31,7 @@ public class JobSeekerSystem
 
     public void Update()
     {
-        if (skipCounter < CadenceInterval)
+        if (skipCounter < cadenceInterval)
         {
             skipCounter++;
             return;

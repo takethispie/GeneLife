@@ -64,10 +64,17 @@ public class ComponentTests
     [Fact]
     public void Location_StoresCoordinates()
     {
-        var loc = new Location(new System.Numerics.Vector3(1f, 2f, 3f));
-        Assert.Equal(1f, loc.Coordinates.X);
-        Assert.Equal(2f, loc.Coordinates.Y);
-        Assert.Equal(3f, loc.Coordinates.Z);
+        var loc = new Location(new System.Numerics.Vector2(1f, 2f));
+        Assert.Equal(1f, loc.Position.X);
+        Assert.Equal(2f, loc.Position.Y);
+    }
+
+    [Fact]
+    public void Location_ConstructorWithFloats_StoresCoordinates()
+    {
+        var loc = new Location(3f, 4f);
+        Assert.Equal(3f, loc.Position.X);
+        Assert.Equal(4f, loc.Position.Y);
     }
 
     [Fact]

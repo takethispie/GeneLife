@@ -3,14 +3,19 @@ using System.Numerics;
 namespace Genelife.Components.Gen;
 
 /// <summary>
-/// Component representing a physical location
+/// Component representing a physical location in 2D world space.
 /// </summary>
 public record struct Location
 {
-    public Vector3 Coordinates;
-    
-    public Location(Vector3 coords)
+    public Vector2 Position;
+
+    public Location(Vector2 position)
     {
-        Coordinates = coords;
+        Position = position;
+    }
+
+    public Location(float x, float y)
+    {
+        Position = new Vector2(x, y);
     }
 }

@@ -35,7 +35,7 @@ public class HiringSystemTests
         world.Create(new OpenPosition(posting));
         AddSeeker(world);
 
-        var system = new HiringSystem(world, index);
+        var system = new HiringSystem(world, index, 0);
         system.Update();
 
         var query = new QueryDescription().WithAll<JobApplication>();
@@ -53,7 +53,7 @@ public class HiringSystemTests
         world.Create(new OpenPosition(posting));
         var seeker = AddSeeker(world);
 
-        var system = new HiringSystem(world, index);
+        var system = new HiringSystem(world, index, 0);
 
         // First update: seeker applies
         system.Update();
@@ -75,7 +75,7 @@ public class HiringSystemTests
         world.Create(new OpenPosition(posting));
         var seeker = AddSeeker(world);
 
-        var system = new HiringSystem(world, index);
+        var system = new HiringSystem(world, index, 0);
         system.Update();
         system.Update();
 
@@ -91,7 +91,7 @@ public class HiringSystemTests
         // No OpenPosition entity created
         var seeker = AddSeeker(world);
 
-        var system = new HiringSystem(world, index);
+        var system = new HiringSystem(world, index, 0);
         system.Update();
         system.Update();
 
@@ -108,7 +108,7 @@ public class HiringSystemTests
         AddSeeker(world);
         AddSeeker(world);
 
-        var system = new HiringSystem(world, index);
+        var system = new HiringSystem(world, index, 0);
         system.Update(); // both apply
         system.Update(); // one hired, one rejected
 
@@ -139,7 +139,7 @@ public class HiringSystemTests
         world.Create(new OpenPosition(posting));
         AddSeeker(world);
 
-        var system = new HiringSystem(world, index);
+        var system = new HiringSystem(world, index, 0);
         system.Update();
         system.Update();
 
@@ -156,7 +156,7 @@ public class HiringSystemTests
         world.Create(new OpenPosition(posting));
         AddSeeker(world, skills: new List<string>(), desiredSalary: 100000f);
 
-        var system = new HiringSystem(world, index);
+        var system = new HiringSystem(world, index, 0);
         system.Update();
 
         var query = new QueryDescription().WithAll<JobApplication>();

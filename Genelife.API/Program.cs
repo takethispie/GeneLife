@@ -1,22 +1,29 @@
 using Genelife.Api.Auth;
+using Genelife.Api.Commands;
+using Genelife.Api.Hubs;
+using Genelife.Api.Persistence;
 using Genelife.Api.Services;
 using Genelife.Api.Endpoints;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Register SimulationEngine and SimulationManager as singletons
 builder.Services.AddSingleton<SimulationEngine>();
+builder.Services.Configure<SnapshotStoreOptions>(builder.Configuration.GetSection(SnapshotStoreOptions.SectionName));
+builder.Services.AddSingleton<ISnapshotStore, SnapshotStore>();
 builder.Services.AddSingleton<SimulationManager>();
 builder.Services.AddHostedService<SimulationLoop>();
 builder.Services.AddHostedService(provider => provider.GetRequiredService<SimulationManager>());
+
+builder.Services.AddSingleton<ICommandQueue, CommandQueue>();
+builder.Services.AddHostedService<SnapshotBroadcastService>();
 
 // Authentication and authorization.
 builder.Services.AddOptions<JwtOptions>()
@@ -50,6 +57,16 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
 
         options.Events = new JwtBearerEvents
         {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                    context.Token = accessToken;
+
+                return Task.CompletedTask;
+            },
             OnChallenge = async context =>
             {
                 if (context.Response.HasStarted)
@@ -96,6 +113,12 @@ builder.Services.AddAuthorization(options =>
         .RequireRole(AuthRoles.Admin));
 });
 
+builder.Services.AddSignalR(options =>
+{
+    options.MaximumReceiveMessageSize = 8 * 1024;
+    options.EnableDetailedErrors = builder.Environment.IsDevelopment();
+});
+
 var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
@@ -106,6 +129,8 @@ app.UseAuthorization();
 app.MapAuthEndpoints();
 app.MapSimulationEndpoints();
 app.MapCompanyEndpoints();
+
+app.MapHub<WorldHub>("/hubs/world");
 
 app.Run();
 
