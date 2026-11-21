@@ -24,6 +24,8 @@ public class HiringSystem
     private readonly QueryDescription openPositionsQuery;
     private readonly QueryDescription jobSeekersQuery;
     private readonly QueryDescription applicationsQuery;
+    private int skipCounter;
+    private const int CadenceInterval = 25;
 
     public HiringSystem(World world, EmploymentIndex index)
     {
@@ -33,10 +35,19 @@ public class HiringSystem
         openPositionsQuery = new QueryDescription().WithAll<OpenPosition>();
         jobSeekersQuery = new QueryDescription().WithAll<JobSeeker>().WithNone<Employee>();
         applicationsQuery = new QueryDescription().WithAll<JobApplication>();
+        skipCounter = 0;
     }
 
     public void Update()
     {
+        if (skipCounter < CadenceInterval)
+        {
+            skipCounter++;
+            return;
+        }
+
+        skipCounter = 0;
+
         // 1. Collect
         var postings = CollectPostings();
         var openSeats = CollectOpenSeats();

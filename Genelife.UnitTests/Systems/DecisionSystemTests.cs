@@ -97,4 +97,40 @@ public class DecisionSystemTests
         Assert.True(allocatedAfter - allocatedBefore >= 0,
             $"DecisionSystem.Update allocated {allocatedAfter - allocatedBefore} bytes");
     }
+
+    [Fact]
+    public void Update_SkipsPlayerControlledSims()
+    {
+        var world = World.Create();
+        world.Create(
+            new Needs { Hunger = 5f, Energy = 100f, Hygiene = 100f, Bladder = 100f },
+            new CurrentAction(ActionType.Idle, 0f),
+            new PlayerControlled("player1")
+        );
+        var system = new DecisionSystem(world);
+
+        system.Update();
+
+        var query = new QueryDescription().WithAll<PlayerControlled, CurrentAction>();
+        world.Query(in query, (ref CurrentAction action) =>
+        {
+            Assert.Equal(ActionType.Idle, action.Type);
+        });
+    }
+
+    [Fact]
+    public void Update_NpcAtCriticalHunger_AutoEats()
+    {
+        var world = World.Create();
+        var npc = world.Create(
+            new Needs { Hunger = 5f, Energy = 100f, Hygiene = 100f, Bladder = 100f },
+            new CurrentAction(ActionType.Idle, 0f)
+        );
+        var system = new DecisionSystem(world);
+
+        system.Update();
+
+        ref var action = ref world.Get<CurrentAction>(npc);
+        Assert.Equal(ActionType.Eating, action.Type);
+    }
 }

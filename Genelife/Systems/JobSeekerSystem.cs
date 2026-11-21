@@ -16,23 +16,32 @@ public class JobSeekerSystem
     private readonly World world;
     private readonly QueryDescription queryDescription;
     private const int WorkingAge = 18;
+    private const int CadenceInterval = 100;
+    private int skipCounter;
 
     public JobSeekerSystem(World world)
     {
         this.world = world;
-        // Query Sims with Alive component but without Employee or JobSeeker components
         queryDescription = new QueryDescription()
             .WithAll<Alive>()
             .WithNone<Employee, JobSeeker>();
+        skipCounter = 0;
     }
 
     public void Update()
     {
+        if (skipCounter < CadenceInterval)
+        {
+            skipCounter++;
+            return;
+        }
+
+        skipCounter = 0;
+
         // 1. Collect (no structural changes during the query)
         var eligible = new List<Entity>();
         world.Query(in queryDescription, (Entity entity, ref Alive alive) =>
         {
-            // If Sim is 18 or older and not employed, they are eligible
             if (alive.Age >= WorkingAge)
             {
                 eligible.Add(entity);

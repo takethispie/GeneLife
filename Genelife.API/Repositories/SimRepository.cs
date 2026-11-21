@@ -29,6 +29,19 @@ public class SimRepository
         world.Add(entity, networkIds.Allocate(entity));
     }
 
+    public void Add(string name, int age, string playerId)
+    {
+        var entity = world.Create(
+            new GenName(name),
+            new Needs(),
+            new CurrentAction(ActionType.Idle, 0f),
+            new Alive(age),
+            new PlayerControlled(playerId)
+        );
+
+        world.Add(entity, networkIds.Allocate(entity));
+    }
+
     public List<SimStatus> GetAll()
     {
         var sims = new List<SimStatus>();

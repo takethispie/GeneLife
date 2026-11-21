@@ -14,7 +14,7 @@ public class DecisionSystem
     public DecisionSystem(World world)
     {
         this.world = world;
-        queryDescription = new QueryDescription().WithAll<CurrentAction, Needs>();
+        queryDescription = new QueryDescription().WithAll<CurrentAction, Needs>().WithNone<PlayerControlled>();
     }
 
     public void Update()
