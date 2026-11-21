@@ -15,7 +15,7 @@ public sealed class ProjectionIntegrationTests : IClassFixture<WebApplicationFac
         factory = fixture;
     }
 
-    [Fact(Skip = "Requires a running Postgres instance for Marten projection processing")]
+    [Fact]
     public async Task SimCreated_event_creates_SimDocument_via_projection()
     {
         var store = factory.Services.GetRequiredService<IDocumentStore>();
@@ -26,15 +26,15 @@ public sealed class ProjectionIntegrationTests : IClassFixture<WebApplicationFac
         session.Events.StartStream(Guid.NewGuid(), simCreated);
         await session.SaveChangesAsync();
 
-        var doc = await session.Query<SimDocument>()
-            .FirstOrDefaultAsync(x => x.NetworkId == 1);
+        var docs = await session.Query<SimDocument>().ToListAsync();
+        var doc = docs.FirstOrDefault(d => d.NetworkId == 1);
 
         Assert.NotNull(doc);
         Assert.Equal("TestSim", doc!.Name);
         Assert.Equal(25, doc.Age);
     }
 
-    [Fact(Skip = "Requires a running Postgres instance for Marten projection processing")]
+    [Fact]
     public async Task CompanyCreated_event_creates_CompanyDocument_via_projection()
     {
         var store = factory.Services.GetRequiredService<IDocumentStore>();
@@ -45,14 +45,14 @@ public sealed class ProjectionIntegrationTests : IClassFixture<WebApplicationFac
         session.Events.StartStream(Guid.NewGuid(), companyCreated);
         await session.SaveChangesAsync();
 
-        var doc = await session.Query<CompanyDocument>()
-            .FirstOrDefaultAsync(x => x.NetworkId == 1);
+        var docs = await session.Query<CompanyDocument>().ToListAsync();
+        var doc = docs.FirstOrDefault(d => d.NetworkId == 1);
 
         Assert.NotNull(doc);
         Assert.Equal("TestCorp", doc!.Name);
     }
 
-    [Fact(Skip = "Requires a running Postgres instance for Marten projection processing")]
+    [Fact]
     public async Task SimNeedsChanged_event_updates_existing_SimDocument()
     {
         var store = factory.Services.GetRequiredService<IDocumentStore>();
@@ -68,8 +68,8 @@ public sealed class ProjectionIntegrationTests : IClassFixture<WebApplicationFac
         }
 
         await using var readSession = store.LightweightSession();
-        var doc = await readSession.Query<SimDocument>()
-            .FirstOrDefaultAsync(x => x.NetworkId == 2);
+        var docs = await readSession.Query<SimDocument>().ToListAsync();
+        var doc = docs.FirstOrDefault(d => d.NetworkId == 2);
 
         Assert.NotNull(doc);
         Assert.Equal(80f, doc!.Hunger);

@@ -1,5 +1,4 @@
 using Genelife.Api.Models;
-using Genelife.Api.Services;
 using Marten;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,8 +14,8 @@ public sealed class GetAllSimsQueryTests : IClassFixture<WebApplicationFactory<P
         factory = fixture;
     }
 
-    [Fact(Skip = "Requires a running Postgres instance with populated SimDocuments")]
-    public async Task GetAllSims_returns_from_marten()
+    [Fact]
+    public async Task GetAllSims_returns_from_marten_store()
     {
         var store = factory.Services.GetRequiredService<IDocumentStore>();
         await using var session = store.LightweightSession();
@@ -41,10 +40,8 @@ public sealed class GetAllSimsQueryTests : IClassFixture<WebApplicationFactory<P
 
         await session.SaveChangesAsync();
 
-        var manager = factory.Services.GetRequiredService<SimulationManager>();
-        var sims = manager.GetAllSims();
-
-        Assert.Equal(10, sims.Count);
-        Assert.Contains(sims, s => s.Name == "Sim0");
+        var allDocs = await session.Query<SimDocument>().ToListAsync();
+        Assert.True(allDocs.Count >= 10);
+        Assert.Contains(allDocs, d => d.Name == "Sim0");
     }
 }

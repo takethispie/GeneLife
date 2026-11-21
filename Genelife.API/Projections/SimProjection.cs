@@ -20,48 +20,58 @@ public partial class SimProjection : EventProjection
         };
     }
 
-    public void Project(SimActionStarted e, IDocumentOperations ops)
+    public async ValueTask Project(SimActionStarted e, IDocumentOperations ops)
     {
-        var doc = ops.Query<SimDocument>().FirstOrDefault(x => x.NetworkId == e.NetworkId);
-        if (doc != null)
+        await UpdateByNetworkId(ops, e.NetworkId, doc =>
         {
             doc.CurrentAction = e.ActionType;
             doc.ActionTimeRemaining = e.Duration;
             doc.UpdatedAt = DateTimeOffset.UtcNow;
-            ops.Store(doc);
-        }
+        });
     }
 
-    public void Project(SimActionCompleted e, IDocumentOperations ops)
+    public async ValueTask Project(SimActionCompleted e, IDocumentOperations ops)
     {
-        var doc = ops.Query<SimDocument>().FirstOrDefault(x => x.NetworkId == e.NetworkId);
-        if (doc != null)
+        await UpdateByNetworkId(ops, e.NetworkId, doc =>
         {
             doc.CurrentAction = "Idle";
             doc.ActionTimeRemaining = 0f;
             doc.UpdatedAt = DateTimeOffset.UtcNow;
-            ops.Store(doc);
-        }
+        });
     }
 
-    public void Project(SimNeedsChanged e, IDocumentOperations ops)
+    public async ValueTask Project(SimNeedsChanged e, IDocumentOperations ops)
     {
-        var doc = ops.Query<SimDocument>().FirstOrDefault(x => x.NetworkId == e.NetworkId);
-        if (doc != null)
+        await UpdateByNetworkId(ops, e.NetworkId, doc =>
         {
             doc.Hunger = e.Hunger;
             doc.Energy = e.Energy;
             doc.Hygiene = e.Hygiene;
             doc.Bladder = e.Bladder;
             doc.UpdatedAt = DateTimeOffset.UtcNow;
-            ops.Store(doc);
-        }
+        });
     }
 
-    public void Project(SimDeleted e, IDocumentOperations ops)
+    public async ValueTask Project(SimDeleted e, IDocumentOperations ops)
     {
-        var doc = ops.Query<SimDocument>().FirstOrDefault(x => x.NetworkId == e.NetworkId);
+        var doc = await FindByNetworkId(ops, e.NetworkId);
         if (doc != null)
             ops.Delete<SimDocument>(doc.Id);
+    }
+
+    private static async ValueTask<SimDocument?> FindByNetworkId(IDocumentOperations ops, ulong networkId)
+    {
+        var docs = await ops.Query<SimDocument>().ToListAsync();
+        return docs.FirstOrDefault(x => x.NetworkId == networkId);
+    }
+
+    private static async ValueTask UpdateByNetworkId(IDocumentOperations ops, ulong networkId, Action<SimDocument> update)
+    {
+        var doc = await FindByNetworkId(ops, networkId);
+        if (doc != null)
+        {
+            update(doc);
+            ops.Store(doc);
+        }
     }
 }

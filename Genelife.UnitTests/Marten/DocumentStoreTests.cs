@@ -14,7 +14,7 @@ public sealed class DocumentStoreTests : IClassFixture<WebApplicationFactory<Pro
         factory = fixture;
     }
 
-    [Fact(Skip = "Requires a running Postgres instance")]
+    [Fact]
     public async Task Query_simdocument_returns_empty_on_fresh_database()
     {
         var store = factory.Services.GetRequiredService<IDocumentStore>();
@@ -24,7 +24,7 @@ public sealed class DocumentStoreTests : IClassFixture<WebApplicationFactory<Pro
         Assert.NotNull(sims);
     }
 
-    [Fact(Skip = "Requires a running Postgres instance")]
+    [Fact]
     public async Task Query_companydocument_returns_empty_on_fresh_database()
     {
         var store = factory.Services.GetRequiredService<IDocumentStore>();
@@ -34,7 +34,7 @@ public sealed class DocumentStoreTests : IClassFixture<WebApplicationFactory<Pro
         Assert.NotNull(companies);
     }
 
-    [Fact(Skip = "Requires a running Postgres instance")]
+    [Fact]
     public async Task Store_and_query_simdocument_roundtrip()
     {
         var store = factory.Services.GetRequiredService<IDocumentStore>();
