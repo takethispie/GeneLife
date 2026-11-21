@@ -33,30 +33,39 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<WorldRestoreService>();
 builder.Services.AddHostedService<SnapshotBroadcastService>();
 
+var featureFlags = builder.Configuration.GetSection("FeatureFlags");
+var useWolverineEndpoints = featureFlags.GetValue<bool>("UseWolverineEndpoints");
+var useMartenReads = featureFlags.GetValue<bool>("UseMartenReads");
+
 // Marten document store.
 var connectionString = builder.Configuration.GetConnectionString("Postgres")
     ?? "Host=localhost;Port=5432;Database=genelife;Username=genelife;Password=genelife";
 
-builder.Services.AddMarten(opts =>
+if (useMartenReads)
 {
-    opts.Connection(connectionString);
-    opts.DisableNpgsqlLogging = true;
-    opts.AutoCreateSchemaObjects = JasperFx.AutoCreate.CreateOrUpdate;
-    opts.Schema.For<Genelife.Api.Models.SimDocument>().Identity(x => x.Id);
-    opts.Schema.For<Genelife.Api.Models.CompanyDocument>().Identity(x => x.Id);
-    opts.Projections.Add<Genelife.Api.Projections.SimProjection>(JasperFx.Events.Projections.ProjectionLifecycle.Inline);
-    opts.Projections.Add<Genelife.Api.Projections.CompanyProjection>(JasperFx.Events.Projections.ProjectionLifecycle.Inline);
-})
-    .UseLightweightSessions();
+    builder.Services.AddMarten(opts =>
+    {
+        opts.Connection(connectionString);
+        opts.DisableNpgsqlLogging = true;
+        opts.AutoCreateSchemaObjects = JasperFx.AutoCreate.CreateOrUpdate;
+        opts.Schema.For<Genelife.Api.Models.SimDocument>().Identity(x => x.Id);
+        opts.Schema.For<Genelife.Api.Models.CompanyDocument>().Identity(x => x.Id);
+        opts.Projections.Add<Genelife.Api.Projections.SimProjection>(JasperFx.Events.Projections.ProjectionLifecycle.Inline);
+        opts.Projections.Add<Genelife.Api.Projections.CompanyProjection>(JasperFx.Events.Projections.ProjectionLifecycle.Inline);
+    })
+        .UseLightweightSessions();
+}
 
 // Wolverine with in-memory transport.
-builder.Host.UseWolverine(opts =>
+if (useWolverineEndpoints)
 {
-    opts.Discovery.IncludeAssembly(typeof(Program).Assembly);
-    opts.Discovery.IncludeAssembly(typeof(Genelife.Messages.Commands.CreateSim).Assembly);
-});
-
-builder.Services.AddWolverineHttp();
+    builder.Host.UseWolverine(opts =>
+    {
+        opts.Discovery.IncludeAssembly(typeof(Program).Assembly);
+        opts.Discovery.IncludeAssembly(typeof(Genelife.Messages.Commands.CreateSim).Assembly);
+    });
+    builder.Services.AddWolverineHttp();
+}
 
 // Authentication and authorization.
 builder.Services.AddOptions<JwtOptions>()
@@ -159,7 +168,10 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapWolverineEndpoints();
+if (useWolverineEndpoints)
+{
+    app.MapWolverineEndpoints();
+}
 
 app.MapHub<WorldHub>("/hubs/world");
 
