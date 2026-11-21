@@ -111,7 +111,15 @@ private readonly NetworkIdRegistry networkIds = new();
 
             worldToSave = world;
             indexToSave = employmentIndex;
+        }
 
+        if (worldToSave != null && worldSaveService != null && indexToSave != null)
+        {
+            worldSaveService.SaveAsync(worldToSave, indexToSave).GetAwaiter().GetResult();
+        }
+
+        lock (@lock)
+        {
             metrics.Flush();
             world?.Dispose();
             world = null;
@@ -121,11 +129,6 @@ private readonly NetworkIdRegistry networkIds = new();
             networkIds.Clear();
             _latest = null;
             isRunning = false;
-        }
-
-        if (worldToSave != null && worldSaveService != null && indexToSave != null)
-        {
-            worldSaveService.SaveAsync(worldToSave, indexToSave).GetAwaiter().GetResult();
         }
     }
 
