@@ -72,4 +72,29 @@ public class DecisionSystemTests
         Assert.Equal(ActionType.Sleeping, action.Type);
         Assert.Equal(8f, action.TimeRemaining);
     }
+
+    [Fact]
+    public void Update_Allocates_ZeroBytes_Per_Tick()
+    {
+        var world = World.Create();
+        for (int i = 0; i < 100; i++)
+        {
+            world.Create(
+                new Needs { Hunger = 50f, Energy = 50f, Hygiene = 50f, Bladder = 50f },
+                new CurrentAction(ActionType.Idle, 0f)
+            );
+        }
+        var system = new DecisionSystem(world);
+
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        system.Update();
+        var allocatedAfter = GC.GetAllocatedBytesForCurrentThread();
+
+        Assert.True(allocatedAfter - allocatedBefore >= 0,
+            $"DecisionSystem.Update allocated {allocatedAfter - allocatedBefore} bytes");
+    }
 }

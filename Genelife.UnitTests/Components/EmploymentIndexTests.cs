@@ -65,4 +65,49 @@ public class EmploymentIndexTests
         index.Remove(world.Create());
         Assert.Empty(index.CompanyByEmployee);
     }
+
+    [Fact]
+    public void RemoveByCompany_RemovesAllEmployeesUnderCompany()
+    {
+        var world = World.Create();
+        var index = new EmploymentIndex();
+        var company = world.Create();
+        var e1 = world.Create();
+        var e2 = world.Create();
+
+        index.Add(company, e1);
+        index.Add(company, e2);
+
+        index.RemoveByCompany(company);
+
+        Assert.Equal(0, index.CountEmployees(company));
+        Assert.Equal(0, index.TotalEmployees());
+        Assert.Empty(index.CompanyByEmployee);
+        Assert.Empty(index.EmployeesByCompany);
+    }
+
+    [Fact]
+    public void RemoveByCompany_UnknownCompany_DoesNothing()
+    {
+        var world = World.Create();
+        var index = new EmploymentIndex();
+        index.RemoveByCompany(world.Create());
+        Assert.Equal(0, index.TotalEmployees());
+    }
+
+    [Fact]
+    public void TotalEmployees_MatchesCompanyByEmployeeCount()
+    {
+        var world = World.Create();
+        var index = new EmploymentIndex();
+        var company = world.Create();
+        var e1 = world.Create();
+        var e2 = world.Create();
+
+        Assert.Equal(0, index.TotalEmployees());
+        index.Add(company, e1);
+        Assert.Equal(1, index.TotalEmployees());
+        index.Add(company, e2);
+        Assert.Equal(2, index.TotalEmployees());
+    }
 }

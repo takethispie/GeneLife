@@ -16,10 +16,8 @@ public class SimulationEngine : IDisposable
     private HiringSystem? hiringSystem;
     private PayrollSystem? payrollSystem;
     private JobSeekerSystem? jobSeekerSystem;
-    private Timer? timer;
     private bool isRunning;
     private readonly object @lock = new();
-    private const float DeltaTime = 1f;
 
     public bool IsRunning
     {
@@ -54,7 +52,7 @@ public class SimulationEngine : IDisposable
         }
     }
 
-    public void Start()
+    public void Initialize()
     {
         lock (@lock)
         {
@@ -70,20 +68,17 @@ public class SimulationEngine : IDisposable
             hiringSystem = new HiringSystem(world, employmentIndex);
             payrollSystem = new PayrollSystem(world);
             jobSeekerSystem = new JobSeekerSystem(world);
-            timer = new Timer(Tick, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(40));
             isRunning = true;
         }
     }
 
-    public void Stop()
+    public void Shutdown()
     {
         lock (@lock)
         {
             if (!isRunning)
                 return;
 
-            timer?.Dispose();
-            timer = null;
             metrics.Flush();
             world?.Dispose();
             world = null;
@@ -92,18 +87,7 @@ public class SimulationEngine : IDisposable
         }
     }
 
-    public T ExecuteWithWorld<T>(Func<World, T> operation)
-    {
-        lock (@lock)
-        {
-            if (world == null)
-                throw new InvalidOperationException("Simulation is not running");
-
-            return operation(world);
-        }
-    }
-
-    private void Tick(object? state)
+    public void Tick(float deltaTime)
     {
         lock (@lock)
         {
@@ -115,7 +99,7 @@ public class SimulationEngine : IDisposable
             var allocatedStart = GC.GetAllocatedBytesForCurrentThread();
 
             var systemStart = Stopwatch.GetTimestamp();
-            needsDecaySystem?.Update(DeltaTime);
+            needsDecaySystem?.Update(deltaTime);
             metrics.RecordSystem("NeedsDecay", ElapsedMilliseconds(systemStart));
 
             systemStart = Stopwatch.GetTimestamp();
@@ -123,7 +107,7 @@ public class SimulationEngine : IDisposable
             metrics.RecordSystem("Decision", ElapsedMilliseconds(systemStart));
 
             systemStart = Stopwatch.GetTimestamp();
-            actionSystem?.Update(DeltaTime);
+            actionSystem?.Update(deltaTime);
             metrics.RecordSystem("Action", ElapsedMilliseconds(systemStart));
 
             systemStart = Stopwatch.GetTimestamp();
@@ -143,6 +127,17 @@ public class SimulationEngine : IDisposable
         }
     }
 
+    public T ExecuteWithWorld<T>(Func<World, T> operation)
+    {
+        lock (@lock)
+        {
+            if (world == null)
+                throw new InvalidOperationException("Simulation is not running");
+
+            return operation(world);
+        }
+    }
+
     private static double ElapsedMilliseconds(long startTimestamp)
     {
         return Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds;
@@ -150,6 +145,6 @@ public class SimulationEngine : IDisposable
 
     public void Dispose()
     {
-        Stop();
+        Shutdown();
     }
 }

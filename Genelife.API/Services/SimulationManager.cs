@@ -9,9 +9,9 @@ public class SimulationManager : IHostedService, IDisposable
     private readonly SimulationEngine engine;
     private readonly NetworkIdRegistry networkIds;
 
-    public SimulationManager()
+    public SimulationManager(SimulationEngine engine)
     {
-        engine = new SimulationEngine();
+        this.engine = engine;
         networkIds = new NetworkIdRegistry();
     }
 
@@ -24,7 +24,6 @@ public class SimulationManager : IHostedService, IDisposable
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        StopSimulation();
         return Task.CompletedTask;
     }
 
@@ -34,7 +33,7 @@ public class SimulationManager : IHostedService, IDisposable
             return;
 
         networkIds.Clear();
-        engine.Start();
+        engine.Initialize();
     }
 
     public void StopSimulation()
@@ -42,7 +41,7 @@ public class SimulationManager : IHostedService, IDisposable
         if (!engine.IsRunning)
             return;
 
-        engine.Stop();
+        engine.Shutdown();
         networkIds.Clear();
     }
 

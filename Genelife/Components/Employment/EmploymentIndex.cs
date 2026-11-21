@@ -43,4 +43,22 @@ public sealed class EmploymentIndex
     {
         return EmployeesByCompany.TryGetValue(company, out var list) ? list.Count : 0;
     }
+
+    public void RemoveByCompany(Entity company)
+    {
+        if (!EmployeesByCompany.TryGetValue(company, out var employees))
+            return;
+
+        foreach (var employee in employees)
+        {
+            CompanyByEmployee.Remove(employee);
+        }
+
+        EmployeesByCompany.Remove(company);
+    }
+
+    public int TotalEmployees()
+    {
+        return CompanyByEmployee.Count;
+    }
 }

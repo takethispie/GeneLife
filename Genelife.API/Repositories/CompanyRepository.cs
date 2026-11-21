@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using Arch.Core;
+using Arch.Core.Extensions;
 using Genelife.Api.DTOs;
 using Genelife.Api.Services;
 using Genelife.Components.Company;
@@ -65,15 +67,50 @@ public class CompanyRepository
 
     public bool Delete(NetworkId networkId)
     {
-        // Resolve via the registry rather than scanning with a raw Arch entity id.
         if (!networkIds.TryGetEntity(networkId, out var target))
             return false;
 
         if (!world.IsAlive(target) || !world.Has<CompanyName>(target))
             return false;
 
+        if (index.EmployeesByCompany.TryGetValue(target, out var employees))
+        {
+            foreach (var employeeEntity in employees)
+            {
+                if (world.IsAlive(employeeEntity) && world.Has<Employee>(employeeEntity))
+                {
+                    world.Remove<Employee>(employeeEntity);
+                }
+            }
+        }
+
+        index.RemoveByCompany(target);
+
         world.Destroy(target);
         networkIds.Remove(networkId);
+
+        DebugInvariantCheck();
         return true;
+    }
+
+    [Conditional("DEBUG")]
+    private void DebugInvariantCheck()
+    {
+        var query = new QueryDescription().WithAll<Employee>();
+        int ecsCount = 0;
+        world.Query(in query, (ref Employee _) => ecsCount++);
+
+        if (ecsCount != index.TotalEmployees())
+        {
+            Debug.Fail($"Employment invariant broken: ECS has {ecsCount} Employee components, EmploymentIndex tracks {index.TotalEmployees()}");
+        }
+    }
+
+    public bool DebugInvariantPasses()
+    {
+        var query = new QueryDescription().WithAll<Employee>();
+        int ecsCount = 0;
+        world.Query(in query, (ref Employee _) => ecsCount++);
+        return ecsCount == index.TotalEmployees();
     }
 }

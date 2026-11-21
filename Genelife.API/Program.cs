@@ -12,8 +12,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Register SimulationManager as singleton
+// Register SimulationEngine and SimulationManager as singletons
+builder.Services.AddSingleton<SimulationEngine>();
 builder.Services.AddSingleton<SimulationManager>();
+builder.Services.AddHostedService<SimulationLoop>();
 builder.Services.AddHostedService(provider => provider.GetRequiredService<SimulationManager>());
 
 // Authentication and authorization.

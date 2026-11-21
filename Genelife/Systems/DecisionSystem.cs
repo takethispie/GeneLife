@@ -24,27 +24,45 @@ public class DecisionSystem
             if (action.Type != ActionType.Idle)
                 return;
 
-            // Find most critical need
             var lowestNeed = GetLowestNeed(needs);
 
-            if (lowestNeed.value < CriticalThreshold)
+            if (lowestNeed.Value < CriticalThreshold)
             {
-                action.Type = lowestNeed.actionType;
-                action.TimeRemaining = lowestNeed.duration;
+                action.Type = lowestNeed.ActionType;
+                action.TimeRemaining = lowestNeed.Duration;
             }
         });
     }
 
-    private (float value, ActionType actionType, float duration) GetLowestNeed(Needs needs)
+    private static NeedInfo GetLowestNeed(Needs needs)
     {
-        var needsList = new[]
-        {
-            (needs.Hunger, ActionType.Eating, 5f),
-            (needs.Energy, ActionType.Sleeping, 8f),
-            (needs.Hygiene, ActionType.Showering, 3f),
-            (needs.Bladder, ActionType.UsingToilet, 2f)
-        };
+        var lowestValue = needs.Hunger;
+        var lowestAction = ActionType.Eating;
+        var lowestDuration = 5f;
 
-        return needsList.OrderBy(n => n.Item1).First();
+        if (needs.Energy < lowestValue)
+        {
+            lowestValue = needs.Energy;
+            lowestAction = ActionType.Sleeping;
+            lowestDuration = 8f;
+        }
+
+        if (needs.Hygiene < lowestValue)
+        {
+            lowestValue = needs.Hygiene;
+            lowestAction = ActionType.Showering;
+            lowestDuration = 3f;
+        }
+
+        if (needs.Bladder < lowestValue)
+        {
+            lowestValue = needs.Bladder;
+            lowestAction = ActionType.UsingToilet;
+            lowestDuration = 2f;
+        }
+
+        return new NeedInfo(lowestValue, lowestAction, lowestDuration);
     }
+
+    private readonly record struct NeedInfo(float Value, ActionType ActionType, float Duration);
 }

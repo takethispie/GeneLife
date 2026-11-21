@@ -4,6 +4,8 @@ using Genelife.Api.Services;
 using Genelife.Components.Company;
 using Genelife.Components.Employment;
 using Genelife.Components.Gen;
+using Genelife.Enums;
+using Genelife.Systems;
 
 namespace Genelife.UnitTests.Repositories;
 
@@ -67,5 +69,43 @@ public class CompanyRepositoryTests
         Assert.False(deleted);
         Assert.True(world.IsAlive(entity));
         Assert.Single(repository.GetAll());
+    }
+
+    [Fact]
+    public void Delete_ClearsEmployeesAndIndexAfterHire()
+    {
+        var world = World.Create();
+        var index = new EmploymentIndex();
+        var registry = new NetworkIdRegistry();
+        var repository = new CompanyRepository(world, index, registry);
+        var networkId = repository.Add("Acme");
+        Assert.True(registry.TryGetEntity(networkId, out var companyEntity));
+
+        var office = world.Create(new Office("HQ", companyEntity));
+        var posting = world.Create(new JobPosting(companyEntity, office, "Dev", 3000f));
+        world.Create(new OpenPosition(posting));
+        world.Create(
+            new Alive(20),
+            new JobSeeker(true, new List<string>(), 1000f)
+        );
+
+        var hiringSystem = new HiringSystem(world, index);
+        hiringSystem.Update();
+        hiringSystem.Update();
+
+        Assert.Equal(1, index.CountEmployees(companyEntity));
+
+        var deleted = repository.Delete(networkId);
+        Assert.True(deleted);
+        Assert.Equal(0, index.TotalEmployees());
+        Assert.True(repository.DebugInvariantPasses());
+    }
+
+    [Fact]
+    public void DebugInvariant_PassesWithCleanWorld()
+    {
+        var world = World.Create();
+        var repository = new CompanyRepository(world, new EmploymentIndex(), new NetworkIdRegistry());
+        Assert.True(repository.DebugInvariantPasses());
     }
 }
