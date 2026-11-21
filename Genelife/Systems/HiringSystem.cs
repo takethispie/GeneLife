@@ -14,25 +14,25 @@ namespace Genelife.Systems;
 ///
 /// Open seats are represented by <see cref="OpenPosition"/> entities; hiring
 /// destroys one seat per accepted applicant. The <see cref="EmploymentIndex"/>
-/// singleton is the sole derived view of employment relationships.
+/// is the sole derived view of employment relationships.
 /// </summary>
 public class HiringSystem
 {
     private readonly World world;
+    private readonly EmploymentIndex index;
     private readonly QueryDescription jobPostingsQuery;
     private readonly QueryDescription openPositionsQuery;
     private readonly QueryDescription jobSeekersQuery;
     private readonly QueryDescription applicationsQuery;
-    private readonly QueryDescription indexQuery;
 
-    public HiringSystem(World world)
+    public HiringSystem(World world, EmploymentIndex index)
     {
         this.world = world;
+        this.index = index;
         jobPostingsQuery = new QueryDescription().WithAll<JobPosting>();
         openPositionsQuery = new QueryDescription().WithAll<OpenPosition>();
         jobSeekersQuery = new QueryDescription().WithAll<JobSeeker>().WithNone<Employee>();
         applicationsQuery = new QueryDescription().WithAll<JobApplication>();
-        indexQuery = new QueryDescription().WithAll<EmploymentIndex>();
     }
 
     public void Update()
@@ -269,15 +269,7 @@ public class HiringSystem
         }
 
         // Update the derived employment index
-        UpdateIndex(jobPosting.Company, applicantEntity);
-    }
-
-    private void UpdateIndex(Entity company, Entity employee)
-    {
-        world.Query(in indexQuery, (ref EmploymentIndex index) =>
-        {
-            index.Add(company, employee);
-        });
+        index.Add(jobPosting.Company, applicantEntity);
     }
 
     private float CalculateMatchScore(JobSeeker seeker, JobPosting posting)

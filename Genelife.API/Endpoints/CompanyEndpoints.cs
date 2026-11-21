@@ -5,7 +5,7 @@ namespace Genelife.Api.Endpoints;
 
 public static class CompanyEndpoints
 {
-    public static WebApplication MapCompanyEndpoints(this WebApplication app)
+    public static void MapCompanyEndpoints(this WebApplication app)
     {
         app.MapPost("/api/companies", (AddCompanyRequest request, SimulationManager simulationManager) =>
         {
@@ -50,7 +50,5 @@ public static class CompanyEndpoints
             return Results.Ok(new { message = "Company deleted successfully" });
         })
         .WithName("DeleteCompany");
-
-        return app;
     }
 }

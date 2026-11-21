@@ -5,7 +5,7 @@ namespace Genelife.Api.Endpoints;
 
 public static class SimulationEndpoints
 {
-    public static WebApplication MapSimulationEndpoints(this WebApplication app)
+    public static void MapSimulationEndpoints(this WebApplication app)
     {
         app.MapPost("/api/simulation/start", (SimulationManager simulationManager) =>
         {
@@ -60,7 +60,5 @@ public static class SimulationEndpoints
             return Results.Ok(sims);
         })
         .WithName("GetAllSims");
-
-        return app;
     }
 }

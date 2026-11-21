@@ -4,8 +4,9 @@ namespace Genelife.Components.Employment;
 
 /// <summary>
 /// Derived index of employment relationships, maintained by HiringSystem.
-/// Lives on a singleton entity so repositories and other systems can read
-/// it without scanning the Employee archetype.
+/// This is a plain reference type (NOT an ECS component) shared between the
+/// HiringSystem (writer) and repositories (readers) to avoid scanning the
+/// Employee archetype.
 /// </summary>
 public sealed class EmploymentIndex
 {

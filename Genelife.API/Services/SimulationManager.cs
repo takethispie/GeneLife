@@ -58,7 +58,7 @@ public class SimulationManager : IHostedService, IDisposable
     {
         return engine.ExecuteWithWorld(world =>
         {
-            var repository = new CompanyRepository(world);
+            var repository = new CompanyRepository(world, GetIndex());
             return repository.Add(name);
         });
     }
@@ -67,7 +67,7 @@ public class SimulationManager : IHostedService, IDisposable
     {
         return engine.ExecuteWithWorld(world =>
         {
-            var repository = new CompanyRepository(world);
+            var repository = new CompanyRepository(world, GetIndex());
             return repository.Get(entityId);
         });
     }
@@ -76,7 +76,7 @@ public class SimulationManager : IHostedService, IDisposable
     {
         return engine.ExecuteWithWorld(world =>
         {
-            var repository = new CompanyRepository(world);
+            var repository = new CompanyRepository(world, GetIndex());
             return repository.GetAll();
         });
     }
@@ -85,9 +85,15 @@ public class SimulationManager : IHostedService, IDisposable
     {
         return engine.ExecuteWithWorld(world =>
         {
-            var repository = new CompanyRepository(world);
+            var repository = new CompanyRepository(world, GetIndex());
             return repository.Delete(entityId);
         });
+    }
+
+    private Genelife.Components.Employment.EmploymentIndex GetIndex()
+    {
+        return engine.EmploymentIndex
+            ?? throw new InvalidOperationException("Simulation is not running");
     }
 
     public void Dispose()

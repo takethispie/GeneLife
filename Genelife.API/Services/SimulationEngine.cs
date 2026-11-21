@@ -7,6 +7,7 @@ namespace Genelife.Api.Services;
 public class SimulationEngine : IDisposable
 {
     private World? world;
+    private EmploymentIndex? employmentIndex;
     private NeedsDecaySystem? needsDecaySystem;
     private DecisionSystem? decisionSystem;
     private ActionSystem? actionSystem;
@@ -40,6 +41,17 @@ public class SimulationEngine : IDisposable
         }
     }
 
+    public EmploymentIndex? EmploymentIndex
+    {
+        get
+        {
+            lock (@lock)
+            {
+                return employmentIndex;
+            }
+        }
+    }
+
     public void Start()
     {
         lock (@lock)
@@ -48,11 +60,11 @@ public class SimulationEngine : IDisposable
                 return;
 
             world = World.Create();
-            world.Create(new EmploymentIndex());
+            employmentIndex = new EmploymentIndex();
             needsDecaySystem = new NeedsDecaySystem(world);
             decisionSystem = new DecisionSystem(world);
             actionSystem = new ActionSystem(world);
-            hiringSystem = new HiringSystem(world);
+            hiringSystem = new HiringSystem(world, employmentIndex);
             payrollSystem = new PayrollSystem(world);
             jobSeekerSystem = new JobSeekerSystem(world);
             timer = new Timer(Tick, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(40));
@@ -71,6 +83,7 @@ public class SimulationEngine : IDisposable
             timer = null;
             world?.Dispose();
             world = null;
+            employmentIndex = null;
             isRunning = false;
         }
     }

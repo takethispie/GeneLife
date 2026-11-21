@@ -8,10 +8,12 @@ namespace Genelife.Api.Repositories;
 public class CompanyRepository
 {
     private readonly World world;
+    private readonly EmploymentIndex index;
 
-    public CompanyRepository(World world)
+    public CompanyRepository(World world, EmploymentIndex index)
     {
         this.world = world;
+        this.index = index;
     }
 
     public int Add(string name)
@@ -33,7 +35,7 @@ public class CompanyRepository
                 {
                     EntityId = entityId,
                     Name = companyName.Name,
-                    EmployeeCount = CountEmployees(entity)
+                    EmployeeCount = index.CountEmployees(entity)
                 };
             }
         });
@@ -52,7 +54,7 @@ public class CompanyRepository
             {
                 EntityId = entity.Id,
                 Name = companyName.Name,
-                EmployeeCount = CountEmployees(entity)
+                EmployeeCount = index.CountEmployees(entity)
             });
         });
 
@@ -74,16 +76,5 @@ public class CompanyRepository
         });
 
         return deleted;
-    }
-
-    private int CountEmployees(Entity company)
-    {
-        int count = 0;
-        var indexQuery = new QueryDescription().WithAll<EmploymentIndex>();
-        world.Query(in indexQuery, (ref EmploymentIndex index) =>
-        {
-            count = index.CountEmployees(company);
-        });
-        return count;
     }
 }
