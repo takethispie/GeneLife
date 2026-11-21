@@ -10,7 +10,7 @@ namespace Genelife.UnitTests.Systems;
 public class HiringSystemTests
 {
     private static (World World, Entity Company, Entity Office, Entity Posting) SetupPosting(
-        World world, string position = "Dev", float salary = 3000f, List<string>? requirements = null)
+        World world, string position = "Dev", float salary = 3000f, Genelife.Enums.Skill requirements = Genelife.Enums.Skill.None)
     {
         var company = world.Create(new CompanyName("Acme"));
         var office = world.Create(new Office("HQ", company));
@@ -18,7 +18,7 @@ public class HiringSystemTests
         return (world, company, office, posting);
     }
 
-    private static Entity AddSeeker(World world, int age = 20, List<string>? skills = null, float desiredSalary = 1000f)
+    private static Entity AddSeeker(World world, int age = 20, Genelife.Enums.Skill skills = Genelife.Enums.Skill.None, float desiredSalary = 1000f)
     {
         return world.Create(
             new Alive(age),
@@ -152,9 +152,9 @@ public class HiringSystemTests
         var world = World.Create();
         var index = new EmploymentIndex();
         // Requirements that the seeker cannot match, and low salary
-        var (_, _, _, posting) = SetupPosting(world, salary: 10f, requirements: new List<string> { "RareSkill" });
+        var (_, _, _, posting) = SetupPosting(world, salary: 10f, requirements: Genelife.Enums.Skill.Rare);
         world.Create(new OpenPosition(posting));
-        AddSeeker(world, skills: new List<string>(), desiredSalary: 100000f);
+        AddSeeker(world, skills: Genelife.Enums.Skill.None, desiredSalary: 100000f);
 
         var system = new HiringSystem(world, index, 0);
         system.Update();

@@ -23,7 +23,8 @@ public class SimRepository
             new GenName(name),
             new Needs(),
             new CurrentAction(ActionType.Idle, 0f),
-            new Alive(age)
+            new Alive(age),
+            new Location(0f, 0f)
         );
 
         world.Add(entity, networkIds.Allocate(entity));
@@ -36,7 +37,8 @@ public class SimRepository
             new Needs(),
             new CurrentAction(ActionType.Idle, 0f),
             new Alive(age),
-            new PlayerControlled(playerId)
+            new PlayerControlled(playerId),
+            new Location(0f, 0f)
         );
 
         world.Add(entity, networkIds.Allocate(entity));

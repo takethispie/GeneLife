@@ -8,9 +8,17 @@ public class SimulationLoop : BackgroundService
     private readonly ILogger<SimulationLoop>? logger;
     private const float FixedDeltaTime = 1f / 20f;
     private const int MaxCatchUpTicks = 5;
+    private static readonly TimeSpan FixedStep = TimeSpan.FromSeconds(FixedDeltaTime);
+    private static readonly double TickBudgetMs = FixedStep.TotalMilliseconds;
+
+    private readonly FixedStepScheduler scheduler = new(FixedStep, MaxCatchUpTicks);
+    private readonly long startTimestamp = Stopwatch.GetTimestamp();
 
     private long tickCount;
-    private readonly PeriodicTimer timer = new(TimeSpan.FromSeconds(FixedDeltaTime));
+    private long overrunCount;
+    private long droppedTicks;
+    private double lastTickMilliseconds;
+    private readonly PeriodicTimer timer = new(FixedStep);
 
     public SimulationLoop(SimulationEngine engine, ILogger<SimulationLoop>? logger = null)
     {
@@ -19,10 +27,19 @@ public class SimulationLoop : BackgroundService
     }
 
     public long TickCount => Volatile.Read(ref tickCount);
+    public long OverrunCount => Volatile.Read(ref overrunCount);
+    public long DroppedTicks => Volatile.Read(ref droppedTicks);
+    public double LastTickMilliseconds => Volatile.Read(ref lastTickMilliseconds);
+    public double TickBudgetMilliseconds => TickBudgetMs;
+
+    public double EffectiveTickRatePerSecond()
+    {
+        var elapsed = Stopwatch.GetElapsedTime(startTimestamp).TotalSeconds;
+        return elapsed > 0 ? Volatile.Read(ref tickCount) / elapsed : 0;
+    }
 
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)
     {
-        var accumulator = TimeSpan.Zero;
         var sw = Stopwatch.StartNew();
         var lastTime = sw.Elapsed;
 
@@ -41,24 +58,50 @@ public class SimulationLoop : BackgroundService
             var frameDelta = currentTime - lastTime;
             lastTime = currentTime;
 
-            accumulator += frameDelta;
+            var steps = scheduler.Advance(frameDelta, out var discarded);
 
-            var catchUpTicks = 0;
-            while (accumulator >= TimeSpan.FromSeconds(FixedDeltaTime) && catchUpTicks < MaxCatchUpTicks)
+            for (var i = 0; i < steps; i++)
             {
                 engine.Tick(FixedDeltaTime);
                 Interlocked.Increment(ref tickCount);
-                accumulator -= TimeSpan.FromSeconds(FixedDeltaTime);
-                catchUpTicks++;
+
+                var tickMilliseconds = engine.LastTickMilliseconds;
+                Volatile.Write(ref lastTickMilliseconds, tickMilliseconds);
+
+                if (tickMilliseconds > TickBudgetMs)
+                {
+                    Interlocked.Increment(ref overrunCount);
+                    if (logger is not null)
+                        LogOverrun(tickMilliseconds);
+                }
             }
 
-            if (catchUpTicks >= MaxCatchUpTicks)
+            if (discarded > TimeSpan.Zero)
             {
-                logger?.LogWarning("Simulation loop max catch-up reached ({MaxCatchUpTicks} ticks), dropping {ExcessMs:F2}ms",
-                    MaxCatchUpTicks, accumulator.TotalMilliseconds);
-                accumulator = TimeSpan.Zero;
+                var dropped = Math.Max(1, (long)Math.Round(discarded / FixedStep));
+                Interlocked.Add(ref droppedTicks, dropped);
+                logger?.LogWarning(
+                    "Simulation loop dropped {DroppedTicks} catch-up tick(s); backlog exceeded {MaxCatchUp} ticks",
+                    dropped,
+                    MaxCatchUpTicks);
             }
         }
+    }
+
+    private void LogOverrun(double tickMilliseconds)
+    {
+        var metrics = engine.GetMetricsSnapshot();
+        var top = metrics.Systems
+            .OrderByDescending(system => system.AverageMilliseconds)
+            .Take(3)
+            .Select(system => $"{system.Name}={system.AverageMilliseconds:F2}ms/{system.AllocatedBytes}B");
+
+        logger!.LogWarning(
+            "Simulation tick overran budget: {TickMs:F2}ms > {BudgetMs:F2}ms; overruns={Overruns}; top=[{Top}]",
+            tickMilliseconds,
+            TickBudgetMs,
+            OverrunCount,
+            string.Join(", ", top));
     }
 
     public double CurrentTickRatePerSecond()

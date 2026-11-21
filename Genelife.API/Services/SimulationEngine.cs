@@ -17,21 +17,30 @@ public class SimulationEngine : IDisposable
     private World? world;
     private Metrics metrics = new();
     private EmploymentIndex? employmentIndex;
-    private NeedsDecaySystem? needsDecaySystem;
-    private DecisionSystem? decisionSystem;
-    private ActionSystem? actionSystem;
-    private HiringSystem? hiringSystem;
-    private PayrollSystem? payrollSystem;
-    private JobSeekerSystem? jobSeekerSystem;
+    private SystemRegistry? systems;
     private bool isRunning;
     private long tick;
     private WorldSnapshot? _latest;
     private readonly object @lock = new();
+    private readonly NetworkIdRegistry networkIds = new();
+    private readonly SnapshotHistory history = new();
+    private readonly Action<SystemRunResult> recordSystemRun;
+    private static readonly string[] ActionNames = Enum.GetNames<ActionType>();
+
+    public SimulationEngine()
+    {
+        recordSystemRun = result =>
+            metrics.RecordSystem(result.Name, result.Milliseconds, result.AllocatedBytes);
+    }
 
     public bool IsRunning { get { lock (@lock) { return isRunning; } } }
     public World? World { get { lock (@lock) { return world; } } }
     public EmploymentIndex? EmploymentIndex { get { lock (@lock) { return employmentIndex; } } }
+    public NetworkIdRegistry NetworkIds => networkIds;
+    public SnapshotHistory SnapshotHistory => history;
     public long LastSnapshotBuildTimeMs { get; private set; }
+    public double LastTickMilliseconds { get; private set; }
+    public long CurrentTick { get { lock (@lock) { return tick; } } }
 
     public void Initialize()
     {
@@ -41,12 +50,17 @@ public class SimulationEngine : IDisposable
             world = World.Create();
             metrics = new Metrics();
             employmentIndex = new EmploymentIndex();
-            needsDecaySystem = new NeedsDecaySystem(world);
-            decisionSystem = new DecisionSystem(world);
-            actionSystem = new ActionSystem(world);
-            hiringSystem = new HiringSystem(world, employmentIndex);
-            payrollSystem = new PayrollSystem(world);
-            jobSeekerSystem = new JobSeekerSystem(world);
+
+            systems = new SystemRegistry();
+            systems.Register(new NeedsDecaySystem(world));
+            systems.Register(new DecisionSystem(world));
+            systems.Register(new ActionSystem(world));
+            systems.Register(new HiringSystem(world, employmentIndex));
+            systems.Register(new PayrollSystem(world));
+            systems.Register(new JobSeekerSystem(world));
+
+            networkIds.Clear();
+            history.Clear();
             tick = 0;
             isRunning = true;
         }
@@ -63,6 +77,9 @@ public class SimulationEngine : IDisposable
             world?.Dispose();
             world = null;
             employmentIndex = null;
+            systems = null;
+            history.Clear();
+            networkIds.Clear();
             _latest = null;
             isRunning = false;
         }
@@ -80,43 +97,33 @@ public class SimulationEngine : IDisposable
             var currentWorld = world;
             var tickStart = Stopwatch.GetTimestamp();
             var allocatedStart = GC.GetAllocatedBytesForCurrentThread();
+            var context = new SimulationContext(tick, deltaTime);
 
-            var systemStart = Stopwatch.GetTimestamp();
-            needsDecaySystem?.Update(deltaTime);
-            metrics.RecordSystem("NeedsDecay", ElapsedMilliseconds(systemStart));
-
-            systemStart = Stopwatch.GetTimestamp();
-            decisionSystem?.Update();
-            metrics.RecordSystem("Decision", ElapsedMilliseconds(systemStart));
-
-            systemStart = Stopwatch.GetTimestamp();
-            actionSystem?.Update(deltaTime);
-            metrics.RecordSystem("Action", ElapsedMilliseconds(systemStart));
-
-            systemStart = Stopwatch.GetTimestamp();
-            hiringSystem?.Update();
-            metrics.RecordSystem("Hiring", ElapsedMilliseconds(systemStart));
-
-            systemStart = Stopwatch.GetTimestamp();
-            payrollSystem?.Update();
-            metrics.RecordSystem("Payroll", ElapsedMilliseconds(systemStart));
-
-            systemStart = Stopwatch.GetTimestamp();
-            jobSeekerSystem?.Update();
-            metrics.RecordSystem("JobSeeker", ElapsedMilliseconds(systemStart));
+            if (systems != null)
+                systems.Update(in context, recordSystemRun);
 
             var snapshotStart = Stopwatch.GetTimestamp();
             var sims = BuildSimSnapshots(currentWorld);
             var companies = BuildCompanySnapshots(currentWorld, employmentIndex!);
             var next = new WorldSnapshot(tick, WorldSnapshot.CurrentVersion, sims, companies);
-            LastSnapshotBuildTimeMs = Stopwatch.GetElapsedTime(snapshotStart).Milliseconds;
+            LastSnapshotBuildTimeMs = (long)ElapsedMilliseconds(snapshotStart);
 
             Interlocked.Exchange(ref _latest, next);
+            history.Record(next);
 
-            metrics.RecordSystem("SnapshotBuild", LastSnapshotBuildTimeMs);
+            metrics.RecordSystem("SnapshotBuild", LastSnapshotBuildTimeMs, 0);
 
             var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedStart;
-            metrics.RecordTick(ElapsedMilliseconds(tickStart), allocatedBytes, currentWorld.Size);
+            LastTickMilliseconds = ElapsedMilliseconds(tickStart);
+            metrics.RecordTick(LastTickMilliseconds, allocatedBytes, currentWorld.Size);
+        }
+    }
+
+    public MetricsSnapshot GetMetricsSnapshot()
+    {
+        lock (@lock)
+        {
+            return metrics.Snapshot();
         }
     }
 
@@ -145,12 +152,18 @@ public class SimulationEngine : IDisposable
                 return false;
             }
 
+            if (networkIds.TryGetEntity(networkId, out entity) && world.IsAlive(entity))
+                return true;
+
+            // Fallback for entities created without going through the registry
+            // (tests and administrative tooling). Keeps behavior identical to
+            // the previous full scan while the hot path uses the map.
             var result = Entity.Null;
             var found = false;
             var query = new QueryDescription().WithAll<NetworkId>();
             world.Query(in query, (Entity e, ref NetworkId nid) =>
             {
-                if (nid.Value == networkId.Value)
+                if (!found && nid.Value == networkId.Value)
                 {
                     result = e;
                     found = true;
@@ -158,7 +171,7 @@ public class SimulationEngine : IDisposable
             });
 
             entity = result;
-            return found;
+            return found && world.IsAlive(entity);
         }
     }
 
@@ -225,28 +238,28 @@ public class SimulationEngine : IDisposable
         var sims = new List<SimStatus>();
         var query = new QueryDescription().WithAll<GenName, Needs, CurrentAction>();
 
-        world.Query(in query, (ref GenName name, ref Needs needs, ref CurrentAction action) =>
+        world.Query(in query, (Entity entity, ref GenName name, ref Needs needs, ref CurrentAction action) =>
         {
-            sims.Add(new SimStatus
+            var status = new SimStatus
             {
-                NetworkId = 0,
+                NetworkId = world.Has<NetworkId>(entity) ? world.Get<NetworkId>(entity).Value : 0,
                 Name = name.Name,
-                Hunger = needs.Hunger,
-                Energy = needs.Energy,
-                Hygiene = needs.Hygiene,
-                Bladder = needs.Bladder,
-                CurrentAction = action.Type.ToString(),
-                TimeRemaining = action.TimeRemaining
-            });
-        });
+                Hunger = MathF.Round(needs.Hunger, 1),
+                Energy = MathF.Round(needs.Energy, 1),
+                Hygiene = MathF.Round(needs.Hygiene, 1),
+                Bladder = MathF.Round(needs.Bladder, 1),
+                CurrentAction = GetActionName(action.Type),
+                TimeRemaining = MathF.Round(action.TimeRemaining, 2)
+            };
 
-        var netQuery = new QueryDescription().WithAll<GenName, Needs, CurrentAction, NetworkId>();
-        world.Query(in netQuery, (ref NetworkId networkId, ref GenName name) =>
-        {
-            var nameCopy = name.Name;
-            var match = sims.Find(s => s.Name == nameCopy);
-            if (match != null)
-                match.NetworkId = networkId.Value;
+            if (world.Has<Location>(entity))
+            {
+                ref var location = ref world.Get<Location>(entity);
+                status.X = MathF.Round(location.Position.X, 2);
+                status.Y = MathF.Round(location.Position.Y, 2);
+            }
+
+            sims.Add(status);
         });
 
         return sims;
@@ -261,22 +274,10 @@ public class SimulationEngine : IDisposable
         {
             companies.Add(new CompanyStatus
             {
-                NetworkId = 0,
+                NetworkId = world.Has<NetworkId>(entity) ? world.Get<NetworkId>(entity).Value : 0,
                 Name = companyName.Name,
-                EmployeeCount = 0
+                EmployeeCount = index.CountEmployees(entity)
             });
-        });
-
-        var netQuery = new QueryDescription().WithAll<CompanyName, NetworkId>();
-        world.Query(in netQuery, (Entity entity, ref NetworkId networkId, ref CompanyName companyName) =>
-        {
-            var nameCopy = companyName.Name;
-            var match = companies.Find(c => c.Name == nameCopy);
-            if (match != null)
-            {
-                match.NetworkId = networkId.Value;
-                match.EmployeeCount = index.CountEmployees(entity);
-            }
         });
 
         return companies;
@@ -285,6 +286,12 @@ public class SimulationEngine : IDisposable
     private static double ElapsedMilliseconds(long startTimestamp)
     {
         return Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds;
+    }
+
+    private static string GetActionName(ActionType action)
+    {
+        var index = (int)action;
+        return (uint)index < (uint)ActionNames.Length ? ActionNames[index] : action.ToString();
     }
 
     public void Dispose()
@@ -328,6 +335,16 @@ public class SimulationEngine : IDisposable
             {
                 if (simByEntity.TryGetValue(entity, out var sim))
                     sim.IsLookingForWork = js.IsLookingForWork;
+            });
+
+            var locationQuery = new QueryDescription().WithAll<GenName, Location>();
+            world.Query(in locationQuery, (Entity entity, ref Location location) =>
+            {
+                if (simByEntity.TryGetValue(entity, out var sim))
+                {
+                    sim.X = location.Position.X;
+                    sim.Y = location.Position.Y;
+                }
             });
 
             var playerQuery = new QueryDescription().WithAll<GenName, PlayerControlled>();
@@ -385,7 +402,8 @@ public class SimulationEngine : IDisposable
                     new CurrentAction(
                         Enum.TryParse<ActionType>(sim.ActionType, out var at) ? at : ActionType.Idle,
                         sim.TimeRemaining),
-                    new Alive(sim.Age)
+                    new Alive(sim.Age),
+                    new Location(sim.X, sim.Y)
                 );
 
                 if (sim.WalletBalance != 0)

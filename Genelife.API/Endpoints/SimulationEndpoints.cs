@@ -1,5 +1,6 @@
 using Genelife.Api.Auth;
 using Genelife.Api.Services;
+using Genelife.Api.Snapshots;
 using Genelife.Api.DTOs;
 
 namespace Genelife.Api.Endpoints;
@@ -40,6 +41,37 @@ public static class SimulationEndpoints
         })
         .WithName("GetStatus")
         .RequireAuthorization(AuthPolicies.Player);
+
+        app.MapGet("/api/simulation/metrics", (
+            SimulationManager simulationManager,
+            SimulationEngine engine,
+            SimulationLoop loop,
+            ReplicationMetrics replicationMetrics) =>
+        {
+            var metrics = engine.GetMetricsSnapshot();
+            var replication = replicationMetrics.Snapshot();
+
+            return Results.Ok(new
+            {
+                isRunning = simulationManager.IsRunning,
+                tick = engine.CurrentTick,
+                loop = new
+                {
+                    ticks = loop.TickCount,
+                    overruns = loop.OverrunCount,
+                    droppedTicks = loop.DroppedTicks,
+                    lastTickMs = loop.LastTickMilliseconds,
+                    tickBudgetMs = loop.TickBudgetMilliseconds,
+                    targetRatePerSecond = loop.CurrentTickRatePerSecond(),
+                    effectiveRatePerSecond = loop.EffectiveTickRatePerSecond()
+                },
+                metrics,
+                replication,
+                scaling = ScalingTriggers.Evaluate(metrics, replication)
+            });
+        })
+        .WithName("GetSimulationMetrics")
+        .RequireAuthorization(AuthPolicies.Admin);
 
         app.MapPost("/api/simulation/sims", (AddSimRequest request, SimulationManager simulationManager) =>
         {

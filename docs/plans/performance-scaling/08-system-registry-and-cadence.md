@@ -5,11 +5,11 @@
 
 ## Tasks
 
-- [ ] Define `ISimulationSystem { int Order; Cadence Cadence; void Update(...); }`.
-- [ ] Add an ordered registry (explicit order, no reflection/DI auto-order).
-- [ ] Generalize the `PayrollSystem` interval-counter pattern into `Cadence`.
-- [ ] Move manual wiring out of `Start()`/`Tick()`.
-- [ ] Add a test asserting order and cadence.
+- [x] Define `ISimulationSystem { int Order; Cadence Cadence; void Update(...); }`.
+- [x] Add an ordered registry (explicit order, no reflection/DI auto-order).
+- [x] Generalize the `PayrollSystem` interval-counter pattern into `Cadence`.
+- [x] Move manual wiring out of `Start()`/`Tick()`.
+- [x] Add a test asserting order and cadence.
 
 ## Files likely touched
 

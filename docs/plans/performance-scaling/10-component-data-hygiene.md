@@ -5,11 +5,11 @@
 
 ## Tasks
 
-- [ ] Inventory components with `string`/`List<T>` fields.
-- [ ] Replace `JobPosting.Requirements` and `JobSeeker.Skills` with IDs/tokens or side tables.
-- [ ] Keep hot components blittable where practical.
-- [ ] Measure allocation and snapshot serialization before/after.
-- [ ] Migrate tests and repositories.
+- [x] Inventory components with `string`/`List<T>` fields.
+- [x] Replace `JobPosting.Requirements` and `JobSeeker.Skills` with IDs/tokens or side tables.
+- [x] Keep hot components blittable where practical.
+- [x] Measure allocation and snapshot serialization before/after.
+- [x] Migrate tests and repositories.
 
 ## Files likely touched
 

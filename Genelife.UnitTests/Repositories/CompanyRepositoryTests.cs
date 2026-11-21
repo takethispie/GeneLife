@@ -86,7 +86,7 @@ public class CompanyRepositoryTests
         world.Create(new OpenPosition(posting));
         world.Create(
             new Alive(20),
-            new JobSeeker(true, new List<string>(), 1000f)
+            new JobSeeker(true, Genelife.Enums.Skill.None, 1000f)
         );
 
         var hiringSystem = new HiringSystem(world, index, 0);

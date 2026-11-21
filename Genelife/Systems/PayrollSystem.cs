@@ -8,30 +8,28 @@ namespace Genelife.Systems;
 /// <summary>
 /// System that pays employees their salary every X ticks
 /// </summary>
-public class PayrollSystem
+public class PayrollSystem : ISimulationSystem
 {
     private readonly World world;
     private readonly QueryDescription queryDescription;
     private readonly int payrollInterval;
-    private int tickCounter;
 
     public PayrollSystem(World world, int payrollInterval = 300)
     {
         this.world = world;
         this.payrollInterval = payrollInterval;
-        tickCounter = 0;
         queryDescription = new QueryDescription().WithAll<Employee, Wallet>();
     }
 
+    public string Name => "Payroll";
+    public int Order => 500;
+    public Cadence Cadence => new(payrollInterval <= 0 ? 1 : payrollInterval);
+
+    void ISimulationSystem.Update(in SimulationContext context) => Update();
+
     public void Update()
     {
-        tickCounter++;
-
-        if (tickCounter >= payrollInterval)
-        {
-            tickCounter = 0;
-            ProcessPayroll();
-        }
+        ProcessPayroll();
     }
 
     private void ProcessPayroll()

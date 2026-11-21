@@ -1,0 +1,8 @@
+{
+  "entityCount": 1000,
+  "workload": "synthetic",
+  "p95Ms": 0.5,
+  "allocatedBytesPerTick": 95000,
+  "toleranceMultiplier": 3.0,
+  "note": "Stored baseline for the 1k synthetic guardrail tier. Compare measured p95 and allocation; values above tolerance * baseline or the tier budget fail the run."
+}

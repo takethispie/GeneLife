@@ -4,7 +4,7 @@ using Genelife.Components.Gen;
 
 namespace Genelife.Systems;
 
-public class NeedsDecaySystem
+public class NeedsDecaySystem : ISimulationSystem
 {
     private readonly World world;
     private readonly QueryDescription queryDescription;
@@ -14,6 +14,12 @@ public class NeedsDecaySystem
         this.world = world;
         queryDescription = new QueryDescription().WithAll<Needs>();
     }
+
+    public string Name => "NeedsDecay";
+    public int Order => 100;
+    public Cadence Cadence => Cadence.EveryTick;
+
+    void ISimulationSystem.Update(in SimulationContext context) => Update(context.DeltaTime);
 
     public void Update(float deltaTime)
     {

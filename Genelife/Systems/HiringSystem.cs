@@ -1,5 +1,6 @@
 using Arch.Core;
 using Arch.Core.Extensions;
+using System.Numerics;
 using Genelife.Components.Employment;
 using Genelife.Components.Gen;
 using Genelife.Enums;
@@ -16,7 +17,7 @@ namespace Genelife.Systems;
 /// destroys one seat per accepted applicant. The <see cref="EmploymentIndex"/>
 /// is the sole derived view of employment relationships.
 /// </summary>
-public class HiringSystem
+public class HiringSystem : ISimulationSystem
 {
     private readonly World world;
     private readonly EmploymentIndex index;
@@ -24,7 +25,6 @@ public class HiringSystem
     private readonly QueryDescription openPositionsQuery;
     private readonly QueryDescription jobSeekersQuery;
     private readonly QueryDescription applicationsQuery;
-    private int skipCounter;
     private readonly int cadenceInterval;
 
     public HiringSystem(World world, EmploymentIndex index, int cadenceInterval = 25)
@@ -36,19 +36,16 @@ public class HiringSystem
         openPositionsQuery = new QueryDescription().WithAll<OpenPosition>();
         jobSeekersQuery = new QueryDescription().WithAll<JobSeeker>().WithNone<Employee>();
         applicationsQuery = new QueryDescription().WithAll<JobApplication>();
-        skipCounter = 0;
     }
+
+    public string Name => "Hiring";
+    public int Order => 400;
+    public Cadence Cadence => new(cadenceInterval <= 0 ? 1 : cadenceInterval);
+
+    void ISimulationSystem.Update(in SimulationContext context) => Update();
 
     public void Update()
     {
-        if (skipCounter < cadenceInterval)
-        {
-            skipCounter++;
-            return;
-        }
-
-        skipCounter = 0;
-
         // 1. Collect
         var postings = CollectPostings();
         var openSeats = CollectOpenSeats();
@@ -289,11 +286,11 @@ public class HiringSystem
         float score = 0f;
 
         // Skill match (40% weight)
-        if (posting.Requirements.Count > 0)
+        if (posting.Requirements != Skill.None)
         {
-            int matchingSkills = seeker.Skills.Count(skill =>
-                posting.Requirements.Any(req => req.Equals(skill, StringComparison.OrdinalIgnoreCase)));
-            float skillMatch = (float)matchingSkills / posting.Requirements.Count;
+            int required = BitOperations.PopCount((uint)posting.Requirements);
+            int matchingSkills = BitOperations.PopCount((uint)(posting.Requirements & seeker.Skills));
+            float skillMatch = (float)matchingSkills / required;
             score += skillMatch * 0.4f;
         }
         else

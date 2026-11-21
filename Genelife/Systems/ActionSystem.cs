@@ -7,7 +7,7 @@ namespace Genelife.Systems;
 /// <summary>
 /// System that handles action execution and need fulfillment
 /// </summary>
-public class ActionSystem
+public class ActionSystem : ISimulationSystem
 {
     private readonly World world;
     private readonly QueryDescription queryDescription;
@@ -17,6 +17,12 @@ public class ActionSystem
         this.world = world;
         queryDescription = new QueryDescription().WithAll<CurrentAction, Needs>();
     }
+
+    public string Name => "Action";
+    public int Order => 300;
+    public Cadence Cadence => Cadence.EveryTick;
+
+    void ISimulationSystem.Update(in SimulationContext context) => Update(context.DeltaTime);
 
     public void Update(float deltaTime)
     {
