@@ -17,10 +17,7 @@ public class SimulationManager : IHostedService, IDisposable
 
     public bool IsRunning => engine.IsRunning;
 
-    public Task StartAsync(CancellationToken cancellationToken)
-    {
-        return Task.CompletedTask;
-    }
+    public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
@@ -57,6 +54,10 @@ public class SimulationManager : IHostedService, IDisposable
 
     public List<SimStatus> GetAllSims()
     {
+        var snapshot = engine.GetLatestSnapshot();
+        if (snapshot != null)
+            return snapshot.Sims;
+
         return engine.ExecuteWithWorld(world =>
         {
             var repository = new SimRepository(world, networkIds);
@@ -75,6 +76,10 @@ public class SimulationManager : IHostedService, IDisposable
 
     public CompanyStatus? GetCompany(ulong networkId)
     {
+        var snapshot = engine.GetLatestSnapshot();
+        if (snapshot != null)
+            return snapshot.Companies.Find(c => c.NetworkId == networkId);
+
         return engine.ExecuteWithWorld(world =>
         {
             var repository = new CompanyRepository(world, GetIndex(), networkIds);
@@ -84,6 +89,10 @@ public class SimulationManager : IHostedService, IDisposable
 
     public List<CompanyStatus> GetAllCompanies()
     {
+        var snapshot = engine.GetLatestSnapshot();
+        if (snapshot != null)
+            return snapshot.Companies;
+
         return engine.ExecuteWithWorld(world =>
         {
             var repository = new CompanyRepository(world, GetIndex(), networkIds);
@@ -106,8 +115,5 @@ public class SimulationManager : IHostedService, IDisposable
             ?? throw new InvalidOperationException("Simulation is not running");
     }
 
-    public void Dispose()
-    {
-        engine.Dispose();
-    }
+    public void Dispose() => engine.Dispose();
 }

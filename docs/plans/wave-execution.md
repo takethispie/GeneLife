@@ -37,7 +37,7 @@ Integration fixes already applied: `CompanyRepository.Delete(NetworkId)` via reg
 `CompanyEndpoints` auth + networkId routes, unified test csproj, tests adapted to `NetworkId`,
 API directory normalized to `Genelife.API`.
 
-## Wave 2 — tick loop, employment truth, perf baseline
+## Wave 2 — tick loop, employment truth, perf baseline - Done
 
 | Agent | Steps | Owns | Depends |
 |---|---|---|---|

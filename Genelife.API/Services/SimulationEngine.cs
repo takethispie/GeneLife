@@ -1,6 +1,10 @@
 using System.Diagnostics;
 using Arch.Core;
+using Genelife.Api.DTOs;
+using Genelife.Api.Snapshots;
+using Genelife.Components.Company;
 using Genelife.Components.Employment;
+using Genelife.Components.Gen;
 using Genelife.Systems;
 
 namespace Genelife.Api.Services;
@@ -17,48 +21,20 @@ public class SimulationEngine : IDisposable
     private PayrollSystem? payrollSystem;
     private JobSeekerSystem? jobSeekerSystem;
     private bool isRunning;
+    private long tick;
+    private WorldSnapshot? _latest;
     private readonly object @lock = new();
 
-    public bool IsRunning
-    {
-        get
-        {
-            lock (@lock)
-            {
-                return isRunning;
-            }
-        }
-    }
-
-    public World? World
-    {
-        get
-        {
-            lock (@lock)
-            {
-                return world;
-            }
-        }
-    }
-
-    public EmploymentIndex? EmploymentIndex
-    {
-        get
-        {
-            lock (@lock)
-            {
-                return employmentIndex;
-            }
-        }
-    }
+    public bool IsRunning { get { lock (@lock) { return isRunning; } } }
+    public World? World { get { lock (@lock) { return world; } } }
+    public EmploymentIndex? EmploymentIndex { get { lock (@lock) { return employmentIndex; } } }
+    public long LastSnapshotBuildTimeMs { get; private set; }
 
     public void Initialize()
     {
         lock (@lock)
         {
-            if (isRunning)
-                return;
-
+            if (isRunning) return;
             world = World.Create();
             metrics = new Metrics();
             employmentIndex = new EmploymentIndex();
@@ -68,6 +44,7 @@ public class SimulationEngine : IDisposable
             hiringSystem = new HiringSystem(world, employmentIndex);
             payrollSystem = new PayrollSystem(world);
             jobSeekerSystem = new JobSeekerSystem(world);
+            tick = 0;
             isRunning = true;
         }
     }
@@ -83,6 +60,7 @@ public class SimulationEngine : IDisposable
             world?.Dispose();
             world = null;
             employmentIndex = null;
+            _latest = null;
             isRunning = false;
         }
     }
@@ -93,6 +71,8 @@ public class SimulationEngine : IDisposable
         {
             if (!isRunning || world == null)
                 return;
+
+            tick++;
 
             var currentWorld = world;
             var tickStart = Stopwatch.GetTimestamp();
@@ -122,9 +102,24 @@ public class SimulationEngine : IDisposable
             jobSeekerSystem?.Update();
             metrics.RecordSystem("JobSeeker", ElapsedMilliseconds(systemStart));
 
+            var snapshotStart = Stopwatch.GetTimestamp();
+            var sims = BuildSimSnapshots(currentWorld);
+            var companies = BuildCompanySnapshots(currentWorld, employmentIndex!);
+            var next = new WorldSnapshot(tick, WorldSnapshot.CurrentVersion, sims, companies);
+            LastSnapshotBuildTimeMs = Stopwatch.GetElapsedTime(snapshotStart).Milliseconds;
+
+            Interlocked.Exchange(ref _latest, next);
+
+            metrics.RecordSystem("SnapshotBuild", LastSnapshotBuildTimeMs);
+
             var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedStart;
             metrics.RecordTick(ElapsedMilliseconds(tickStart), allocatedBytes, currentWorld.Size);
         }
+    }
+
+    public WorldSnapshot? GetLatestSnapshot()
+    {
+        return Volatile.Read(ref _latest);
     }
 
     public T ExecuteWithWorld<T>(Func<World, T> operation)
@@ -133,9 +128,49 @@ public class SimulationEngine : IDisposable
         {
             if (world == null)
                 throw new InvalidOperationException("Simulation is not running");
-
             return operation(world);
         }
+    }
+
+    private static List<SimStatus> BuildSimSnapshots(World world)
+    {
+        var sims = new List<SimStatus>();
+        var query = new QueryDescription().WithAll<GenName, Needs, CurrentAction, NetworkId>();
+
+        world.Query(in query, (ref GenName name, ref Needs needs, ref CurrentAction action, ref NetworkId networkId) =>
+        {
+            sims.Add(new SimStatus
+            {
+                NetworkId = networkId.Value,
+                Name = name.Name,
+                Hunger = needs.Hunger,
+                Energy = needs.Energy,
+                Hygiene = needs.Hygiene,
+                Bladder = needs.Bladder,
+                CurrentAction = action.Type.ToString(),
+                TimeRemaining = action.TimeRemaining
+            });
+        });
+
+        return sims;
+    }
+
+    private static List<CompanyStatus> BuildCompanySnapshots(World world, EmploymentIndex index)
+    {
+        var companies = new List<CompanyStatus>();
+        var query = new QueryDescription().WithAll<CompanyName, NetworkId>();
+
+        world.Query(in query, (Entity entity, ref CompanyName companyName, ref NetworkId networkId) =>
+        {
+            companies.Add(new CompanyStatus
+            {
+                NetworkId = networkId.Value,
+                Name = companyName.Name,
+                EmployeeCount = index.CountEmployees(entity)
+            });
+        });
+
+        return companies;
     }
 
     private static double ElapsedMilliseconds(long startTimestamp)
