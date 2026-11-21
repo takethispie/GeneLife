@@ -89,7 +89,7 @@ public class CompanyRepositoryTests
             new JobSeeker(true, new List<string>(), 1000f)
         );
 
-        var hiringSystem = new HiringSystem(world, index);
+        var hiringSystem = new HiringSystem(world, index, 0);
         hiringSystem.Update();
         hiringSystem.Update();
 

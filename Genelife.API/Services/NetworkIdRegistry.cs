@@ -52,6 +52,16 @@ public sealed class NetworkIdRegistry
         return true;
     }
 
+    public void AllocateWithValue(Entity entity, NetworkId networkId)
+    {
+        if (entitiesByNetworkId.ContainsKey(networkId))
+            throw new ArgumentException($"NetworkId {networkId.Value} is already mapped");
+        entitiesByNetworkId[networkId] = entity;
+        networkIdsByEntity[entity] = networkId;
+        if (networkId.Value >= nextValue)
+            nextValue = networkId.Value + 1;
+    }
+
     public void Clear()
     {
         entitiesByNetworkId.Clear();

@@ -25,12 +25,13 @@ public class HiringSystem
     private readonly QueryDescription jobSeekersQuery;
     private readonly QueryDescription applicationsQuery;
     private int skipCounter;
-    private const int CadenceInterval = 25;
+    private readonly int cadenceInterval;
 
-    public HiringSystem(World world, EmploymentIndex index)
+    public HiringSystem(World world, EmploymentIndex index, int cadenceInterval = 25)
     {
         this.world = world;
         this.index = index;
+        this.cadenceInterval = cadenceInterval;
         jobPostingsQuery = new QueryDescription().WithAll<JobPosting>();
         openPositionsQuery = new QueryDescription().WithAll<OpenPosition>();
         jobSeekersQuery = new QueryDescription().WithAll<JobSeeker>().WithNone<Employee>();
@@ -40,7 +41,7 @@ public class HiringSystem
 
     public void Update()
     {
-        if (skipCounter < CadenceInterval)
+        if (skipCounter < cadenceInterval)
         {
             skipCounter++;
             return;

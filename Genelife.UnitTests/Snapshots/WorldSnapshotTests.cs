@@ -84,7 +84,7 @@ public class WorldSnapshotTests
         engine.Initialize();
         try
         {
-            engine.ExecuteWithWorld(world => { world.Create(new CompanyName("TestCorp")); return true; });
+            engine.ExecuteWithWorld(world => { world.Create(new CompanyName("TestCorp"), new NetworkId(1)); return true; });
             Tick(engine);
             var snapshot = engine.GetLatestSnapshot();
             Assert.NotNull(snapshot);
@@ -160,7 +160,7 @@ public class WorldSnapshotTests
         engine.Initialize();
         try
         {
-            engine.ExecuteWithWorld(world => { world.Create(new CompanyName("SnapshotCorp")); return true; });
+            engine.ExecuteWithWorld(world => { world.Create(new CompanyName("SnapshotCorp"), new NetworkId(1)); return true; });
             Tick(engine);
             var snapshot = engine.GetLatestSnapshot();
             Assert.NotNull(snapshot);
