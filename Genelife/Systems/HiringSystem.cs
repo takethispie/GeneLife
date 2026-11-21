@@ -54,7 +54,7 @@ public class HiringSystem
             bool hasApplications = false;
             world.Query(in applicationsQuery, (ref JobApplication app) =>
             {
-                if (app.ApplicantEntityId == seekerEntity.Id && app.Status == ApplicationStatus.Pending)
+                if (app.Applicant == seekerEntity && app.Status == ApplicationStatus.Pending)
                 {
                     hasApplications = true;
                 }
@@ -66,7 +66,7 @@ public class HiringSystem
             Entity bestJobEntity = default;
             JobPosting bestJob = default;
             float bestScore = 0f;
-            
+
             foreach (var (jobEnt, jobPosting) in jobPostings)
             {
                 float score = CalculateMatchScore(seeker, jobPosting);
@@ -81,7 +81,7 @@ public class HiringSystem
             // Apply to best matching job if score is reasonable
             if (bestScore > 0.3f)
             {
-                var application = new JobApplication(seekerEntity.Id, bestJobEntity.Id, bestScore);
+                var application = new JobApplication(seekerEntity, bestJobEntity, bestScore);
                 world.Create(application);
             }
         });
@@ -93,7 +93,7 @@ public class HiringSystem
     private void EvaluateAndHire()
     {
         var applicationsToProcess = new List<(Entity entity, JobApplication application)>();
-        
+
         world.Query(in applicationsQuery, (Entity entity, ref JobApplication app) =>
         {
             if (app.Status == ApplicationStatus.Pending)
@@ -104,48 +104,29 @@ public class HiringSystem
 
         // Group applications by job posting
         var applicationsByJob = applicationsToProcess
-            .GroupBy(a => a.application.JobPostingEntityId)
+            .GroupBy(a => a.application.JobPosting)
             .ToDictionary(g => g.Key, g => g.OrderByDescending(a => a.application.MatchScore).ToList());
 
-        foreach (var (jobPostingId, applications) in applicationsByJob)
+        foreach (var (jobPostingEntity, applications) in applicationsByJob)
         {
-            // Find the job posting entity
-            Entity? jobEntity = null;
-            world.Query(in jobPostingsQuery, (Entity entity, ref JobPosting posting) =>
-            {
-                if (entity.Id == jobPostingId)
-                {
-                    jobEntity = entity;
-                }
-            });
-            
-            if (jobEntity == null || !world.IsAlive(jobEntity.Value)) continue;
-            
-            ref var jobPosting = ref world.Get<JobPosting>(jobEntity.Value);
-            
+            if (!world.IsAlive(jobPostingEntity)) continue;
+
+            ref var jobPosting = ref world.Get<JobPosting>(jobPostingEntity);
+
             int hired = 0;
             foreach (var (appEntity, application) in applications)
             {
                 if (hired >= jobPosting.OpenPositions) break;
 
-                // Find the applicant entity
-                Entity? applicantEntity = null;
-                world.Query(in jobSeekersQuery, (Entity entity, ref JobSeeker seeker) =>
-                {
-                    if (entity.Id == application.ApplicantEntityId)
-                    {
-                        applicantEntity = entity;
-                    }
-                });
-                
-                if (applicantEntity == null || !world.IsAlive(applicantEntity.Value)) continue;
+                var applicantEntity = application.Applicant;
+                if (!world.IsAlive(applicantEntity)) continue;
 
                 // Accept application
                 ref var app = ref world.Get<JobApplication>(appEntity);
                 app.Status = ApplicationStatus.Accepted;
 
                 // Hire the applicant
-                HireApplicant(applicantEntity.Value, ref jobPosting);
+                HireApplicant(applicantEntity, ref jobPosting);
                 hired++;
             }
 
@@ -165,7 +146,7 @@ public class HiringSystem
             // Delete job posting if all positions filled
             if (jobPosting.OpenPositions <= 0)
             {
-                world.Destroy(jobEntity.Value);
+                world.Destroy(jobPostingEntity);
             }
         }
     }
@@ -177,8 +158,8 @@ public class HiringSystem
     {
         // Add Employee component
         var employee = new Employee(
-            jobPosting.CompanyEntityId,
-            jobPosting.OfficeEntityId,
+            jobPosting.Company,
+            jobPosting.Office,
             jobPosting.Position,
             jobPosting.Salary
         );
@@ -207,7 +188,7 @@ public class HiringSystem
         // Skill match (40% weight)
         if (posting.Requirements.Count > 0)
         {
-            int matchingSkills = seeker.Skills.Count(skill => 
+            int matchingSkills = seeker.Skills.Count(skill =>
                 posting.Requirements.Any(req => req.Equals(skill, StringComparison.OrdinalIgnoreCase)));
             float skillMatch = (float)matchingSkills / posting.Requirements.Count;
             score += skillMatch * 0.4f;

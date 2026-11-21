@@ -1,3 +1,4 @@
+using Arch.Core;
 using Genelife.Enums;
 
 namespace Genelife.Components.Employment;
@@ -7,16 +8,16 @@ namespace Genelife.Components.Employment;
 /// </summary>
 public record struct JobApplication
 {
-    public int ApplicantEntityId;
-    public int JobPostingEntityId;
+    public Entity Applicant;
+    public Entity JobPosting;
     public DateTime ApplicationDate;
     public ApplicationStatus Status;
     public float MatchScore;
-    
-    public JobApplication(int applicantEntityId, int jobPostingEntityId, float matchScore = 0f)
+
+    public JobApplication(Entity applicant, Entity jobPosting, float matchScore = 0f)
     {
-        ApplicantEntityId = applicantEntityId;
-        JobPostingEntityId = jobPostingEntityId;
+        Applicant = applicant;
+        JobPosting = jobPosting;
         ApplicationDate = DateTime.UtcNow;
         Status = ApplicationStatus.Pending;
         MatchScore = matchScore;

@@ -1,3 +1,5 @@
+using Arch.Core;
+
 namespace Genelife.Components.Company;
 
 /// <summary>
@@ -6,13 +8,13 @@ namespace Genelife.Components.Company;
 public record struct Office
 {
     public string OfficeName;
-    public int CompanyEntityId;
+    public Entity Company;
     public int Capacity;
-    
-    public Office(string officeName, int companyEntityId, int capacity = 50)
+
+    public Office(string officeName, Entity company, int capacity = 50)
     {
         OfficeName = officeName;
-        CompanyEntityId = companyEntityId;
+        Company = company;
         Capacity = capacity;
     }
 }

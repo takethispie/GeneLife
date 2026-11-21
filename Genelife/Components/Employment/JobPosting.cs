@@ -1,3 +1,5 @@
+using Arch.Core;
+
 namespace Genelife.Components.Employment;
 
 /// <summary>
@@ -5,17 +7,17 @@ namespace Genelife.Components.Employment;
 /// </summary>
 public record struct JobPosting
 {
-    public int CompanyEntityId;
-    public int OfficeEntityId;
+    public Entity Company;
+    public Entity Office;
     public string Position;
     public float Salary;
     public int OpenPositions;
     public List<string> Requirements;
-    
-    public JobPosting(int companyEntityId, int officeEntityId, string position, float salary, int openPositions, List<string>? requirements = null)
+
+    public JobPosting(Entity company, Entity office, string position, float salary, int openPositions, List<string>? requirements = null)
     {
-        CompanyEntityId = companyEntityId;
-        OfficeEntityId = officeEntityId;
+        Company = company;
+        Office = office;
         Position = position;
         Salary = salary;
         OpenPositions = openPositions;
