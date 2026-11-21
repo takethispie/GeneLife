@@ -7,7 +7,10 @@ using Genelife.Enums;
 namespace Genelife.Systems;
 
 /// <summary>
-/// System that handles job applications and hiring process
+/// System that handles job applications and hiring process.
+///
+/// Follows a collect -> decide -> apply pipeline so that no structural
+/// changes (Create/Add/Remove/Destroy) happen while iterating a query.
 /// </summary>
 public class HiringSystem
 {
@@ -26,86 +29,150 @@ public class HiringSystem
 
     public void Update()
     {
-        ProcessApplications();
-        EvaluateAndHire();
+        // 1. Collect
+        var postings = CollectPostings();
+        var seekers = CollectSeekers();
+        var pendingApplicants = CollectPendingApplicants();
+
+        // 2. Decide (pure C#, no world access)
+        var newApplications = DecideApplications(postings, seekers, pendingApplicants);
+        var hirePlan = DecideHires(postings);
+
+        // 3. Apply (structural changes only here)
+        foreach (var application in newApplications)
+        {
+            world.Create(application);
+        }
+
+        foreach (var hire in hirePlan.Hires)
+        {
+            if (!world.IsAlive(hire.Applicant)) continue;
+            HireApplicant(hire.Applicant, hire.Posting);
+        }
+
+        foreach (var appEntity in hirePlan.AcceptedApplications)
+        {
+            if (world.IsAlive(appEntity))
+            {
+                ref var app = ref world.Get<JobApplication>(appEntity);
+                app.Status = ApplicationStatus.Accepted;
+            }
+        }
+
+        foreach (var appEntity in hirePlan.RejectedApplications)
+        {
+            if (world.IsAlive(appEntity))
+            {
+                ref var app = ref world.Get<JobApplication>(appEntity);
+                app.Status = ApplicationStatus.Rejected;
+            }
+        }
+
+        foreach (var postingEntity in hirePlan.FilledPostings)
+        {
+            if (world.IsAlive(postingEntity))
+            {
+                world.Destroy(postingEntity);
+            }
+        }
     }
 
-    /// <summary>
-    /// Match job seekers with job postings and create applications
-    /// </summary>
-    private void ProcessApplications()
+    // ---- Collect ----
+
+    private List<(Entity Entity, JobPosting Posting)> CollectPostings()
     {
-        var jobPostings = new List<(Entity entity, JobPosting posting)>();
+        var postings = new List<(Entity Entity, JobPosting Posting)>();
         world.Query(in jobPostingsQuery, (Entity entity, ref JobPosting posting) =>
         {
             if (posting.OpenPositions > 0)
             {
-                jobPostings.Add((entity, posting));
+                postings.Add((entity, posting));
             }
         });
+        return postings;
+    }
 
-        if (jobPostings.Count == 0) return;
-
-        world.Query(in jobSeekersQuery, (Entity seekerEntity, ref JobSeeker seeker) =>
+    private List<(Entity Entity, JobSeeker Seeker)> CollectSeekers()
+    {
+        var seekers = new List<(Entity Entity, JobSeeker Seeker)>();
+        world.Query(in jobSeekersQuery, (Entity entity, ref JobSeeker seeker) =>
         {
-            if (!seeker.IsLookingForWork) return;
-
-            // Check if already applied to any jobs
-            bool hasApplications = false;
-            world.Query(in applicationsQuery, (ref JobApplication app) =>
+            if (seeker.IsLookingForWork)
             {
-                if (app.Applicant == seekerEntity && app.Status == ApplicationStatus.Pending)
-                {
-                    hasApplications = true;
-                }
-            });
+                seekers.Add((entity, seeker));
+            }
+        });
+        return seekers;
+    }
 
-            if (hasApplications) return;
+    private HashSet<Entity> CollectPendingApplicants()
+    {
+        var applicants = new HashSet<Entity>();
+        world.Query(in applicationsQuery, (ref JobApplication app) =>
+        {
+            if (app.Status == ApplicationStatus.Pending)
+            {
+                applicants.Add(app.Applicant);
+            }
+        });
+        return applicants;
+    }
 
-            // Find best matching job
+    // ---- Decide ----
+
+    private List<JobApplication> DecideApplications(
+        List<(Entity Entity, JobPosting Posting)> postings,
+        List<(Entity Entity, JobSeeker Seeker)> seekers,
+        HashSet<Entity> pendingApplicants)
+    {
+        var newApplications = new List<JobApplication>();
+
+        foreach (var (seekerEntity, seeker) in seekers)
+        {
+            // Skip seekers who already have a pending application
+            if (pendingApplicants.Contains(seekerEntity)) continue;
+
             Entity bestJobEntity = default;
             JobPosting bestJob = default;
             float bestScore = 0f;
 
-            foreach (var (jobEnt, jobPosting) in jobPostings)
+            foreach (var (jobEntity, jobPosting) in postings)
             {
                 float score = CalculateMatchScore(seeker, jobPosting);
                 if (score > bestScore)
                 {
                     bestScore = score;
                     bestJob = jobPosting;
-                    bestJobEntity = jobEnt;
+                    bestJobEntity = jobEntity;
                 }
             }
 
-            // Apply to best matching job if score is reasonable
             if (bestScore > 0.3f)
             {
-                var application = new JobApplication(seekerEntity, bestJobEntity, bestScore);
-                world.Create(application);
+                newApplications.Add(new JobApplication(seekerEntity, bestJobEntity, bestScore));
             }
-        });
+        }
+
+        return newApplications;
     }
 
-    /// <summary>
-    /// Evaluate pending applications and hire candidates
-    /// </summary>
-    private void EvaluateAndHire()
+    private HirePlan DecideHires(List<(Entity Entity, JobPosting Posting)> postings)
     {
-        var applicationsToProcess = new List<(Entity entity, JobApplication application)>();
+        var plan = new HirePlan();
 
+        // Collect pending applications grouped by job posting
+        var pending = new List<(Entity AppEntity, JobApplication Application)>();
         world.Query(in applicationsQuery, (Entity entity, ref JobApplication app) =>
         {
             if (app.Status == ApplicationStatus.Pending)
             {
-                applicationsToProcess.Add((entity, app));
+                pending.Add((entity, app));
             }
         });
 
-        // Group applications by job posting
-        var applicationsByJob = applicationsToProcess
-            .GroupBy(a => a.application.JobPosting)
-            .ToDictionary(g => g.Key, g => g.OrderByDescending(a => a.application.MatchScore).ToList());
+        var applicationsByJob = pending
+            .GroupBy(a => a.Application.JobPosting)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(a => a.Application.MatchScore).ToList());
 
         foreach (var (jobPostingEntity, applications) in applicationsByJob)
         {
@@ -118,45 +185,33 @@ public class HiringSystem
             {
                 if (hired >= jobPosting.OpenPositions) break;
 
-                var applicantEntity = application.Applicant;
-                if (!world.IsAlive(applicantEntity)) continue;
+                if (!world.IsAlive(application.Applicant)) continue;
 
-                // Accept application
-                ref var app = ref world.Get<JobApplication>(appEntity);
-                app.Status = ApplicationStatus.Accepted;
-
-                // Hire the applicant
-                HireApplicant(applicantEntity, ref jobPosting);
+                plan.Hires.Add((application.Applicant, jobPosting));
+                plan.AcceptedApplications.Add(appEntity);
                 hired++;
             }
 
-            // Update open positions
-            jobPosting.OpenPositions -= hired;
-
-            // Reject remaining applications
-            foreach (var (appEntity, application) in applications.Skip(hired))
+            // Reject the remaining applications for this posting
+            foreach (var (appEntity, _) in applications.Skip(hired))
             {
-                if (world.IsAlive(appEntity))
-                {
-                    ref var app = ref world.Get<JobApplication>(appEntity);
-                    app.Status = ApplicationStatus.Rejected;
-                }
+                plan.RejectedApplications.Add(appEntity);
             }
 
-            // Delete job posting if all positions filled
-            if (jobPosting.OpenPositions <= 0)
+            // Mark posting for deletion if all positions filled
+            if (jobPosting.OpenPositions - hired <= 0)
             {
-                world.Destroy(jobPostingEntity);
+                plan.FilledPostings.Add(jobPostingEntity);
             }
         }
+
+        return plan;
     }
 
-    /// <summary>
-    /// Hire an applicant by adding Employee component and removing JobSeeker
-    /// </summary>
-    private void HireApplicant(Entity applicantEntity, ref JobPosting jobPosting)
+    // ---- Apply ----
+
+    private void HireApplicant(Entity applicantEntity, JobPosting jobPosting)
     {
-        // Add Employee component
         var employee = new Employee(
             jobPosting.Company,
             jobPosting.Office,
@@ -165,22 +220,17 @@ public class HiringSystem
         );
         world.Add(applicantEntity, employee);
 
-        // Add Wallet if not present
         if (!world.Has<Wallet>(applicantEntity))
         {
             world.Add(applicantEntity, new Wallet(0f));
         }
 
-        // Remove JobSeeker component
         if (world.Has<JobSeeker>(applicantEntity))
         {
             world.Remove<JobSeeker>(applicantEntity);
         }
     }
 
-    /// <summary>
-    /// Calculate match score between job seeker and job posting
-    /// </summary>
     private float CalculateMatchScore(JobSeeker seeker, JobPosting posting)
     {
         float score = 0f;
@@ -204,5 +254,13 @@ public class HiringSystem
         score += salaryScore * 0.6f;
 
         return score;
+    }
+
+    private sealed class HirePlan
+    {
+        public List<(Entity Applicant, JobPosting Posting)> Hires { get; } = new();
+        public List<Entity> AcceptedApplications { get; } = new();
+        public List<Entity> RejectedApplications { get; } = new();
+        public List<Entity> FilledPostings { get; } = new();
     }
 }
