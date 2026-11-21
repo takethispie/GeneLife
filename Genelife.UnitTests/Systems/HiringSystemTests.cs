@@ -45,6 +45,51 @@ public class HiringSystemTests
     }
 
     [Fact]
+    public void Update_StoresPostingDetailsOnApplication()
+    {
+        var world = World.Create();
+        var index = new EmploymentIndex();
+        var (_, company, _, posting) = SetupPosting(world);
+        world.Create(new OpenPosition(posting));
+        AddSeeker(world);
+
+        var system = new HiringSystem(world, index, 0);
+        system.Update();
+
+        var applications = new List<JobApplication>();
+        var query = new QueryDescription().WithAll<JobApplication>();
+        world.Query(in query, (ref JobApplication app) => applications.Add(app));
+
+        var application = Assert.Single(applications);
+        Assert.Equal("Dev", application.Position);
+        Assert.Equal(company, application.Company);
+    }
+
+    [Fact]
+    public void Update_PreservesApplicationDetailsAfterPostingIsDestroyed()
+    {
+        var world = World.Create();
+        var index = new EmploymentIndex();
+        var (_, company, _, posting) = SetupPosting(world);
+        world.Create(new OpenPosition(posting));
+        AddSeeker(world);
+
+        var system = new HiringSystem(world, index, 0);
+        system.Update();
+        system.Update();
+
+        Assert.False(world.IsAlive(posting));
+
+        var applications = new List<JobApplication>();
+        var query = new QueryDescription().WithAll<JobApplication>();
+        world.Query(in query, (ref JobApplication app) => applications.Add(app));
+
+        var application = Assert.Single(applications);
+        Assert.Equal("Dev", application.Position);
+        Assert.Equal(company, application.Company);
+    }
+
+    [Fact]
     public void Update_HiresApplicantAndRemovesJobSeeker()
     {
         var world = World.Create();

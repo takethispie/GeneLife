@@ -1,0 +1,509 @@
+@page "/data"
+@using Genelife.Web.Components
+@using Genelife.Web.Models
+@using Genelife.Web.Services
+@inject GameDataService GameData
+@implements IAsyncDisposable
+
+<PageTitle>Data</PageTitle>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+    <div>
+        <h1 class="mb-1">Data</h1>
+        <p class="text-muted mb-0">Live snapshot of the entities in the running simulation.</p>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+        <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" id="autoRefresh" @bind="autoRefresh" />
+            <label class="form-check-label" for="autoRefresh">Auto-refresh</label>
+        </div>
+        <button class="btn btn-primary" type="button" @onclick="() => RefreshAsync()" disabled="@isLoading">
+            @if (isLoading)
+            {
+                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+            }
+            Refresh
+        </button>
+    </div>
+</div>
+
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3 small text-muted">
+    <span class="badge @StatusBadgeClass">
+        @StatusText
+    </span>
+    <span>Tick @data.Tick</span>
+    <span>&middot;</span>
+    <span>API @GameData.ApiBaseUrl</span>
+    @if (loadedAt is not null)
+    {
+        <span>&middot;</span>
+        <span>Refreshed @loadedAt.Value.ToString("HH:mm:ss")</span>
+    }
+</div>
+
+@if (error is not null)
+{
+    <div class="alert alert-danger d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div>
+            <div class="fw-semibold">Could not load world data.</div>
+            <div class="small">@error</div>
+            <div class="small">Start the API and check <code>ApiBaseUrl</code> in <code>wwwroot/appsettings.json</code>.</div>
+        </div>
+        <button class="btn btn-sm btn-outline-danger" type="button" @onclick="() => RefreshAsync()">Retry</button>
+    </div>
+}
+
+@if (hasLoaded && !data.IsRunning)
+{
+    <div class="alert alert-info">
+        The simulation is stopped. Start it through the API to see live entities.
+    </div>
+}
+
+<div class="row g-3 mb-3">
+    @foreach (var card in SummaryCards)
+    {
+        <div class="col-6 col-md-3 col-xxl-2">
+            <div class="card h-100">
+                <div class="card-body py-2">
+                    <div class="text-muted small">@card.Label</div>
+                    <div class="fs-4 fw-semibold">@card.Value</div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<ul class="nav nav-tabs flex-wrap" role="tablist">
+    @foreach (var tab in Tabs)
+    {
+        <li class="nav-item" role="presentation">
+            <button type="button"
+                    role="tab"
+                    class="nav-link @(activeTab == tab.Tab ? "active" : null)"
+                    aria-selected="@(activeTab == tab.Tab)"
+                    @onclick="() => activeTab = tab.Tab">
+                @tab.Label
+                <span class="badge rounded-pill text-bg-light ms-1">@CountFor(tab.Tab)</span>
+            </button>
+        </li>
+    }
+</ul>
+
+<div class="card border-top-0 rounded-top-0">
+    <div class="card-body p-0">
+        @if (!hasLoaded && isLoading)
+        {
+            <div class="d-flex align-items-center gap-2 p-4 text-muted">
+                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                Loading world data...
+            </div>
+        }
+        else
+        {
+            @switch (activeTab)
+            {
+                case DataTab.Npcs:
+                    @if (Npcs.Count == 0)
+                    {
+                        <EmptyState Message="No NPCs in the world." />
+                    }
+                    else
+                    {
+                        <SimsTable Sims="Npcs" />
+                    }
+                    break;
+
+                case DataTab.Players:
+                    @if (Players.Count == 0)
+                    {
+                        <EmptyState Message="No player-controlled sims in the world." />
+                    }
+                    else
+                    {
+                        <SimsTable Sims="Players" />
+                    }
+                    break;
+
+                case DataTab.Companies:
+                    @if (data.Companies.Count == 0)
+                    {
+                        <EmptyState Message="No companies in the world." />
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped table-hover align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">ID</th>
+                                        <th scope="col">Name</th>
+                                        <th scope="col">Employees</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var company in data.Companies.OrderBy(c => c.NetworkId))
+                                    {
+                                        <tr>
+                                            <td class="font-monospace text-muted">#@company.NetworkId</td>
+                                            <td class="fw-semibold">@company.Name</td>
+                                            <td>@company.EmployeeCount</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    break;
+
+                case DataTab.Offices:
+                    @if (data.Offices.Count == 0)
+                    {
+                        <EmptyState Message="No offices in the world." />
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped table-hover align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Office</th>
+                                        <th scope="col">Company</th>
+                                        <th scope="col">Capacity</th>
+                                        <th scope="col">Employees</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var office in data.Offices.OrderBy(o => o.Name))
+                                    {
+                                        <tr>
+                                            <td class="fw-semibold">@office.Name</td>
+                                            <td>
+                                                @office.Company
+                                                @if (office.CompanyNetworkId != 0)
+                                                {
+                                                    <span class="font-monospace text-muted ms-1">#@office.CompanyNetworkId</span>
+                                                }
+                                            </td>
+                                            <td>@office.Capacity</td>
+                                            <td>@office.EmployeeCount</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    break;
+
+                case DataTab.Employees:
+                    @if (data.Employees.Count == 0)
+                    {
+                        <EmptyState Message="No employees have been hired yet." />
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped table-hover align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Sim</th>
+                                        <th scope="col">Company</th>
+                                        <th scope="col">Position</th>
+                                        <th scope="col">Salary</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var employee in data.Employees.OrderBy(e => e.Company).ThenBy(e => e.Sim))
+                                    {
+                                        <tr>
+                                            <td>
+                                                <span class="fw-semibold">@employee.Sim</span>
+                                                <span class="font-monospace text-muted ms-1">#@employee.SimNetworkId</span>
+                                            </td>
+                                            <td>@employee.Company</td>
+                                            <td>@employee.Position</td>
+                                            <td>@employee.Salary.ToString("0.00")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    break;
+
+                case DataTab.JobPostings:
+                    @if (data.JobPostings.Count == 0)
+                    {
+                        <EmptyState Message="No job postings are open." />
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped table-hover align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Position</th>
+                                        <th scope="col">Company</th>
+                                        <th scope="col">Office</th>
+                                        <th scope="col">Salary</th>
+                                        <th scope="col">Requirements</th>
+                                        <th scope="col">Open seats</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var posting in data.JobPostings.OrderBy(p => p.Company).ThenBy(p => p.Position))
+                                    {
+                                        <tr>
+                                            <td class="fw-semibold">@posting.Position</td>
+                                            <td>
+                                                @posting.Company
+                                                @if (posting.CompanyNetworkId != 0)
+                                                {
+                                                    <span class="font-monospace text-muted ms-1">#@posting.CompanyNetworkId</span>
+                                                }
+                                            </td>
+                                            <td>@posting.Office</td>
+                                            <td>@posting.Salary.ToString("0.00")</td>
+                                            <td>
+                                                @if (posting.Requirements == "None")
+                                                {
+                                                    <span class="text-muted">None</span>
+                                                }
+                                                else
+                                                {
+                                                    @posting.Requirements
+                                                }
+                                            </td>
+                                            <td>@posting.OpenPositions</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    break;
+
+                case DataTab.Applications:
+                    @if (data.JobApplications.Count == 0)
+                    {
+                        <EmptyState Message="No job applications yet." />
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped table-hover align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Applicant</th>
+                                        <th scope="col">Position</th>
+                                        <th scope="col">Company</th>
+                                        <th scope="col">Status</th>
+                                        <th scope="col">Match</th>
+                                        <th scope="col">Applied</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var application in data.JobApplications.OrderByDescending(a => a.ApplicationDate))
+                                    {
+                                        <tr>
+                                            <td>
+                                                <span class="fw-semibold">@application.Applicant</span>
+                                                @if (application.ApplicantNetworkId != 0)
+                                                {
+                                                    <span class="font-monospace text-muted ms-1">#@application.ApplicantNetworkId</span>
+                                                }
+                                            </td>
+                                            <td>@application.Position</td>
+                                            <td>@application.Company</td>
+                                            <td>
+                                                <span class="badge @ApplicationBadgeClass(application.Status)">@application.Status</span>
+                                            </td>
+                                            <td>@application.MatchScore.ToString("0.00")</td>
+                                            <td class="text-nowrap">@application.ApplicationDate.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    break;
+
+                case DataTab.OpenPositions:
+                    @if (data.OpenPositions.Count == 0)
+                    {
+                        <EmptyState Message="No open positions." />
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped table-hover align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Position</th>
+                                        <th scope="col">Company</th>
+                                        <th scope="col">Office</th>
+                                        <th scope="col">Salary</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var position in data.OpenPositions.OrderBy(p => p.Company).ThenBy(p => p.Position))
+                                    {
+                                        <tr>
+                                            <td class="fw-semibold">@position.Position</td>
+                                            <td>@position.Company</td>
+                                            <td>@position.Office</td>
+                                            <td>@position.Salary.ToString("0.00")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    break;
+            }
+        }
+    </div>
+</div>
+
+@code {
+    private enum DataTab
+    {
+        Npcs,
+        Players,
+        Companies,
+        Offices,
+        Employees,
+        JobPostings,
+        Applications,
+        OpenPositions
+    }
+
+    private static readonly (DataTab Tab, string Label)[] Tabs =
+    [
+        (DataTab.Npcs, "NPCs"),
+        (DataTab.Players, "Players"),
+        (DataTab.Companies, "Companies"),
+        (DataTab.Offices, "Offices"),
+        (DataTab.Employees, "Employees"),
+        (DataTab.JobPostings, "Job postings"),
+        (DataTab.Applications, "Applications"),
+        (DataTab.OpenPositions, "Open positions")
+    ];
+
+    private WorldData data = new();
+    private DataTab activeTab = DataTab.Npcs;
+    private bool isLoading;
+    private bool hasLoaded;
+    private bool autoRefresh = true;
+    private string? error;
+    private DateTimeOffset? loadedAt;
+    private CancellationTokenSource? refreshLoop;
+
+    private List<SimData> Npcs => data.Sims.Where(s => !s.IsPlayerControlled).ToList();
+    private List<SimData> Players => data.Sims.Where(s => s.IsPlayerControlled).ToList();
+
+    private string StatusText => !hasLoaded
+        ? "Not loaded"
+        : data.IsRunning ? "Simulation running" : "Simulation stopped";
+
+    private string StatusBadgeClass => !hasLoaded
+        ? "text-bg-secondary"
+        : data.IsRunning ? "text-bg-success" : "text-bg-secondary";
+
+    private IEnumerable<(string Label, int Value)> SummaryCards =>
+    [
+        ("NPCs", Npcs.Count),
+        ("Players", Players.Count),
+        ("Companies", data.Companies.Count),
+        ("Offices", data.Offices.Count),
+        ("Employees", data.Employees.Count),
+        ("Job postings", data.JobPostings.Count),
+        ("Applications", data.JobApplications.Count),
+        ("Open positions", data.OpenPositions.Count)
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshAsync();
+
+        refreshLoop = new CancellationTokenSource();
+        _ = AutoRefreshAsync(refreshLoop.Token);
+    }
+
+    private async Task RefreshAsync(bool silent = false)
+    {
+        if (isLoading)
+            return;
+
+        isLoading = true;
+        if (!silent)
+            error = null;
+
+        try
+        {
+            data = await GameData.GetWorldDataAsync();
+            loadedAt = DateTimeOffset.Now;
+            hasLoaded = true;
+            error = null;
+        }
+        catch (TaskCanceledException)
+        {
+            error = "The request to the API timed out.";
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task AutoRefreshAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
+            while (await timer.WaitForNextTickAsync(cancellationToken))
+            {
+                if (!autoRefresh)
+                    continue;
+
+                await InvokeAsync(async () => await RefreshAsync(silent: true));
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Page was disposed.
+        }
+    }
+
+    private int CountFor(DataTab tab) => tab switch
+    {
+        DataTab.Npcs => Npcs.Count,
+        DataTab.Players => Players.Count,
+        DataTab.Companies => data.Companies.Count,
+        DataTab.Offices => data.Offices.Count,
+        DataTab.Employees => data.Employees.Count,
+        DataTab.JobPostings => data.JobPostings.Count,
+        DataTab.Applications => data.JobApplications.Count,
+        DataTab.OpenPositions => data.OpenPositions.Count,
+        _ => 0
+    };
+
+    private static string ApplicationBadgeClass(string status) => status switch
+    {
+        "Accepted" => "text-bg-success",
+        "Rejected" => "text-bg-danger",
+        _ => "text-bg-warning"
+    };
+
+    public ValueTask DisposeAsync()
+    {
+        refreshLoop?.Cancel();
+        refreshLoop?.Dispose();
+        return ValueTask.CompletedTask;
+    }
+}

@@ -1,4 +1,5 @@
 using Arch.Core;
+using Arch.Core.Extensions;
 using Genelife.Api.DTOs;
 using Genelife.Api.Services;
 using Genelife.Components.Gen;
@@ -86,12 +87,15 @@ public class SimRepository
         var sims = new List<SimStatus>();
         var query = new QueryDescription().WithAll<GenName, Needs, CurrentAction, NetworkId>();
 
-        world.Query(in query, (ref GenName name, ref Needs needs, ref CurrentAction action, ref NetworkId networkId) =>
+        world.Query(in query, (Entity entity, ref GenName name, ref Needs needs, ref CurrentAction action, ref NetworkId networkId) =>
         {
+            var isPlayerControlled = world.Has<PlayerControlled>(entity);
             sims.Add(new SimStatus
             {
                 NetworkId = networkId.Value,
                 Name = name.Name,
+                Age = world.TryGet<Alive>(entity, out var alive) ? alive.Age : 0,
+                IsPlayerControlled = isPlayerControlled,
                 Hunger = needs.Hunger,
                 Energy = needs.Energy,
                 Hygiene = needs.Hygiene,

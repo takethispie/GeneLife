@@ -80,6 +80,8 @@ public sealed class WorldSnapshotDelta
     public static bool SimsEqual(SimStatus a, SimStatus b) =>
         a.NetworkId == b.NetworkId
         && string.Equals(a.Name, b.Name, StringComparison.Ordinal)
+        && a.Age == b.Age
+        && a.IsPlayerControlled == b.IsPlayerControlled
         && a.Hunger.Equals(b.Hunger)
         && a.Energy.Equals(b.Energy)
         && a.Hygiene.Equals(b.Hygiene)

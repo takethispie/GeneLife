@@ -200,6 +200,11 @@ public class SimulationManager : IHostedService, IDisposable
         });
     }
 
+    public WorldDataStatus GetWorldData()
+    {
+        return engine.GetWorldData();
+    }
+
     public List<CompanyStatus> GetAllCompanies()
     {
         if (documentStore != null)
