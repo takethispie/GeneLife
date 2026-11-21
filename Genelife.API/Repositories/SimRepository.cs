@@ -44,6 +44,43 @@ public class SimRepository
         world.Add(entity, networkIds.Allocate(entity));
     }
 
+    public bool Delete(ulong networkId)
+    {
+        if (!networkIds.TryGetEntity(new NetworkId(networkId), out var entity))
+            return false;
+
+        if (!world.IsAlive(entity))
+            return false;
+
+        networkIds.Remove(new NetworkId(networkId));
+        world.Destroy(entity);
+        return true;
+    }
+
+    public bool SetAction(ulong networkId, string actionType)
+    {
+        if (!networkIds.TryGetEntity(new NetworkId(networkId), out var entity))
+            throw new InvalidOperationException($"Sim with NetworkId {networkId} not found");
+
+        if (!world.IsAlive(entity))
+            throw new InvalidOperationException($"Sim with NetworkId {networkId} is no longer alive");
+
+        if (!Enum.TryParse<ActionType>(actionType, ignoreCase: true, out var action))
+            throw new InvalidOperationException($"Unknown action type: {actionType}");
+
+        if (world.Has<CurrentAction>(entity))
+        {
+            ref var currentAction = ref world.Get<CurrentAction>(entity);
+            currentAction = new CurrentAction(action, 0f);
+        }
+        else
+        {
+            world.Add(entity, new CurrentAction(action, 0f));
+        }
+
+        return true;
+    }
+
     public List<SimStatus> GetAll()
     {
         var sims = new List<SimStatus>();

@@ -1,7 +1,9 @@
 using Genelife.Api.DTOs;
+using Genelife.Api.Models;
 using Genelife.Api.Persistence;
 using Genelife.Api.Repositories;
 using Genelife.Components.Gen;
+using Marten;
 
 namespace Genelife.Api.Services;
 
@@ -9,14 +11,16 @@ public class SimulationManager : IHostedService, IDisposable
 {
     private readonly SimulationEngine engine;
     private readonly ISnapshotStore store;
+    private readonly IDocumentStore? documentStore;
     private readonly ILogger<SimulationManager>? logger;
     private PeriodicTimer? saveTimer;
     private CancellationTokenSource? saveCts;
 
-    public SimulationManager(SimulationEngine engine, ISnapshotStore store, ILogger<SimulationManager>? logger = null)
+    public SimulationManager(SimulationEngine engine, ISnapshotStore store, IDocumentStore? documentStore = null, ILogger<SimulationManager>? logger = null)
     {
         this.engine = engine;
         this.store = store;
+        this.documentStore = documentStore;
         this.logger = logger;
     }
 
@@ -133,6 +137,21 @@ public class SimulationManager : IHostedService, IDisposable
 
     public List<SimStatus> GetAllSims()
     {
+        if (documentStore != null)
+        {
+            try
+            {
+                using var session = documentStore.LightweightSession();
+                return session.Query<SimDocument>()
+                    .Select(d => d.ToSimStatus())
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                logger?.LogWarning(ex, "Marten query for GetAllSims failed; falling back to snapshot");
+            }
+        }
+
         var snapshot = engine.GetLatestSnapshot();
         if (snapshot != null)
             return snapshot.Sims;
@@ -155,6 +174,21 @@ public class SimulationManager : IHostedService, IDisposable
 
     public CompanyStatus? GetCompany(ulong networkId)
     {
+        if (documentStore != null)
+        {
+            try
+            {
+                using var session = documentStore.LightweightSession();
+                var doc = session.Query<CompanyDocument>()
+                    .FirstOrDefault(d => d.NetworkId == networkId);
+                return doc?.ToCompanyStatus();
+            }
+            catch (Exception ex)
+            {
+                logger?.LogWarning(ex, "Marten query for GetCompany failed; falling back to snapshot");
+            }
+        }
+
         var snapshot = engine.GetLatestSnapshot();
         if (snapshot != null)
             return snapshot.Companies.Find(c => c.NetworkId == networkId);
@@ -168,6 +202,21 @@ public class SimulationManager : IHostedService, IDisposable
 
     public List<CompanyStatus> GetAllCompanies()
     {
+        if (documentStore != null)
+        {
+            try
+            {
+                using var session = documentStore.LightweightSession();
+                return session.Query<CompanyDocument>()
+                    .Select(d => d.ToCompanyStatus())
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                logger?.LogWarning(ex, "Marten query for GetAllCompanies failed; falling back to snapshot");
+            }
+        }
+
         var snapshot = engine.GetLatestSnapshot();
         if (snapshot != null)
             return snapshot.Companies;
@@ -185,6 +234,25 @@ public class SimulationManager : IHostedService, IDisposable
         {
             var repository = new CompanyRepository(world, GetIndex(), networkIds);
             return repository.Delete(new NetworkId(networkId));
+        });
+    }
+
+    public bool DeleteSim(ulong networkId)
+    {
+        return engine.ExecuteWithWorld(world =>
+        {
+            var repository = new SimRepository(world, networkIds);
+            return repository.Delete(networkId);
+        });
+    }
+
+    public void SetSimAction(ulong networkId, string actionType)
+    {
+        engine.ExecuteWithWorld(world =>
+        {
+            var repository = new SimRepository(world, networkIds);
+            repository.SetAction(networkId, actionType);
+            return true;
         });
     }
 

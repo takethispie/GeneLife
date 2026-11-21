@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Collections.Concurrent;
 using Arch.Core;
 using Arch.Core.Extensions;
 using Genelife.Api.DTOs;
@@ -8,7 +9,10 @@ using Genelife.Components.Company;
 using Genelife.Components.Employment;
 using Genelife.Components.Gen;
 using Genelife.Enums;
+using Genelife.Messages.Events;
 using Genelife.Systems;
+using Marten;
+using Wolverine;
 
 namespace Genelife.Api.Services;
 
@@ -22,13 +26,33 @@ public class SimulationEngine : IDisposable
     private long tick;
     private WorldSnapshot? _latest;
     private readonly object @lock = new();
-    private readonly NetworkIdRegistry networkIds = new();
+private readonly NetworkIdRegistry networkIds = new();
     private readonly SnapshotHistory history = new();
     private readonly Action<SystemRunResult> recordSystemRun;
+    private readonly IMessageBus? messageBus;
+    private readonly ConcurrentQueue<EnqueuedCommand> queuedCommands = new();
+    private readonly HashSet<Guid> processedMessageIds = new(1024);
+    private readonly WorldSaveService? worldSaveService;
+    private readonly IDocumentStore? documentStore;
+    private long lastSaveTick;
+    private const long AutoSaveInterval = 600;
     private static readonly string[] ActionNames = Enum.GetNames<ActionType>();
+    private readonly ConcurrentQueue<EnqueuedCommand> queuedCommands = new();
+    private readonly HashSet<Guid> processedMessageIds = new(1024);
+    private readonly WorldSaveService? worldSaveService;
+    private readonly IDocumentStore? documentStore;
+    private long lastSaveTick;
+    private const long AutoSaveInterval = 600;
 
-    public SimulationEngine()
+    public SimulationEngine(WorldSaveService? worldSaveService = null, IDocumentStore? documentStore = null)
     {
+        this.worldSaveService = worldSaveService;
+        this.documentStore = documentStore;
+    }
+
+    public SimulationEngine(IMessageBus? messageBus = null)
+    {
+        this.messageBus = messageBus;
         recordSystemRun = result =>
             metrics.RecordSystem(result.Name, result.Milliseconds, result.AllocatedBytes);
     }
@@ -41,6 +65,15 @@ public class SimulationEngine : IDisposable
     public long LastSnapshotBuildTimeMs { get; private set; }
     public double LastTickMilliseconds { get; private set; }
     public long CurrentTick { get { lock (@lock) { return tick; } } }
+    public bool SnapshotsEnabled { get; set; } = true;
+    public IMessageBus? MessageBus { get; set; }
+
+    public void EnqueueCommand(EnqueuedCommand command)
+    {
+        queuedCommands.Enqueue(command);
+    }
+
+    public int QueuedCommandCount => queuedCommands.Count;
 
     public void Initialize()
     {
@@ -68,11 +101,25 @@ public class SimulationEngine : IDisposable
 
     public void Shutdown()
     {
+        World? worldToSave = null;
+        EmploymentIndex? indexToSave = null;
+
         lock (@lock)
         {
             if (!isRunning)
                 return;
 
+            worldToSave = world;
+            indexToSave = employmentIndex;
+        }
+
+        if (worldToSave != null && worldSaveService != null && indexToSave != null)
+        {
+            worldSaveService.SaveAsync(worldToSave, indexToSave).GetAwaiter().GetResult();
+        }
+
+        lock (@lock)
+        {
             metrics.Flush();
             world?.Dispose();
             world = null;
@@ -87,6 +134,10 @@ public class SimulationEngine : IDisposable
 
     public void Tick(float deltaTime)
     {
+        List<object> events = new();
+
+        DrainCommands();
+
         lock (@lock)
         {
             if (!isRunning || world == null)
@@ -102,21 +153,168 @@ public class SimulationEngine : IDisposable
             if (systems != null)
                 systems.Update(in context, recordSystemRun);
 
-            var snapshotStart = Stopwatch.GetTimestamp();
-            var sims = BuildSimSnapshots(currentWorld);
-            var companies = BuildCompanySnapshots(currentWorld, employmentIndex!);
-            var next = new WorldSnapshot(tick, WorldSnapshot.CurrentVersion, sims, companies);
-            LastSnapshotBuildTimeMs = (long)ElapsedMilliseconds(snapshotStart);
+            CollectSimEvents(currentWorld, events);
 
-            Interlocked.Exchange(ref _latest, next);
-            history.Record(next);
+if (SnapshotsEnabled)
+            {
+                var snapshotStart = Stopwatch.GetTimestamp();
+                var sims = BuildSimSnapshots(currentWorld);
+                var companies = BuildCompanySnapshots(currentWorld, employmentIndex!);
+                var next = new WorldSnapshot(tick, WorldSnapshot.CurrentVersion, sims, companies);
+                LastSnapshotBuildTimeMs = (long)ElapsedMilliseconds(snapshotStart);
 
-            metrics.RecordSystem("SnapshotBuild", LastSnapshotBuildTimeMs, 0);
+                Interlocked.Exchange(ref _latest, next);
+                history.Record(next);
+
+                metrics.RecordSystem("SnapshotBuild", LastSnapshotBuildTimeMs, 0);
+            }
 
             var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedStart;
             LastTickMilliseconds = ElapsedMilliseconds(tickStart);
             metrics.RecordTick(LastTickMilliseconds, allocatedBytes, currentWorld.Size);
+
+            events.Add(new TickCompleted(tick, currentWorld.Size, ElapsedMilliseconds(tickStart)));
         }
+
+        if (documentStore != null && events.Count > 0)
+        {
+            using var session = documentStore.LightweightSession();
+
+            foreach (var e in events)
+            {
+                session.Events.Append(Guid.NewGuid(), e);
+            }
+
+            session.SaveChangesAsync().GetAwaiter().GetResult();
+        }
+        else if (MessageBus != null && events.Count > 0)
+        {
+            foreach (var e in events)
+            {
+                MessageBus.PublishAsync(e).ConfigureAwait(false).GetAwaiter().GetResult();
+            }
+        }
+
+        if (worldSaveService != null && employmentIndex != null)
+        {
+            var currentTick = Interlocked.Read(ref tick);
+            if (currentTick - Interlocked.Read(ref lastSaveTick) >= AutoSaveInterval)
+            {
+                var w = World;
+                if (w != null)
+                    worldSaveService.SaveAsync(w, employmentIndex).GetAwaiter().GetResult();
+                Interlocked.Exchange(ref lastSaveTick, currentTick);
+            }
+        }
+    }
+
+    private void CollectSimEvents(World world, List<object> events)
+    {
+        var query = new QueryDescription().WithAll<Needs, NetworkId>();
+        world.Query(in query, (ref Needs needs, ref NetworkId nid) =>
+        {
+            events.Add(new SimNeedsChanged(nid.Value, needs.Hunger, needs.Energy, needs.Hygiene, needs.Bladder));
+        });
+    }
+
+    private void DrainCommands()
+    {
+        while (queuedCommands.TryDequeue(out var command))
+        {
+            if (!processedMessageIds.Add(command.MessageId))
+                continue;
+
+            lock (@lock)
+            {
+                if (!isRunning || world == null)
+                    continue;
+
+                switch (command.Type)
+                {
+                    case CommandType.CreateSim:
+                        if (command.Payload != null)
+                        {
+                            var parts = command.Payload.Split('|');
+                            if (parts.Length >= 2)
+                            {
+                                var name = parts[0];
+                                var age = int.TryParse(parts[1], out var a) ? a : 18;
+                                var entity = world.Create(
+                                    new GenName(name),
+                                    new Needs(),
+                                    new CurrentAction(ActionType.Idle, 0f),
+                                    new Alive(age),
+                                    new Location(0f, 0f)
+                                );
+                                var nid = new NetworkId(command.NetworkId.GetValueOrDefault());
+                                world.Add(entity, nid);
+                            }
+                        }
+                        break;
+
+                    case CommandType.DeleteSim:
+                        if (command.NetworkId.HasValue)
+                        {
+                            DestroyByNetworkId(world, command.NetworkId.Value);
+                        }
+                        break;
+
+                    case CommandType.SetAction:
+                        if (command.NetworkId.HasValue && command.Payload != null)
+                        {
+                            SetEntityAction(world, command.NetworkId.Value, command.Payload);
+                        }
+                        break;
+
+                    case CommandType.CreateCompany:
+                        if (command.Payload != null)
+                        {
+                            var entity = world.Create(new CompanyName(command.Payload));
+                            var nid = new NetworkId(command.NetworkId.GetValueOrDefault());
+                            world.Add(entity, nid);
+                        }
+                        break;
+
+                    case CommandType.DeleteCompany:
+                        if (command.NetworkId.HasValue)
+                        {
+                            DestroyByNetworkId(world, command.NetworkId.Value);
+                        }
+                        break;
+                }
+            }
+        }
+    }
+
+    private void DestroyByNetworkId(World world, ulong networkId)
+    {
+        var query = new QueryDescription().WithAll<NetworkId>();
+        world.Query(in query, (Entity entity, ref NetworkId nid) =>
+        {
+            if (nid.Value == networkId)
+                world.Destroy(entity);
+        });
+    }
+
+    private void SetEntityAction(World world, ulong networkId, string actionType)
+    {
+        if (!Enum.TryParse<ActionType>(actionType, ignoreCase: true, out var action))
+            return;
+
+        var query = new QueryDescription().WithAll<NetworkId>();
+        world.Query(in query, (Entity entity, ref NetworkId nid) =>
+        {
+            if (nid.Value == networkId && world.Has<CurrentAction>(entity))
+            {
+                ref var ca = ref world.Get<CurrentAction>(entity);
+                ca = new CurrentAction(action, 0f);
+            }
+        });
+    }
+
+    public WorldSnapshot? GetLatestSnapshot()
+    {
+        return Volatile.Read(ref _latest);
     }
 
     public MetricsSnapshot GetMetricsSnapshot()
@@ -125,11 +323,6 @@ public class SimulationEngine : IDisposable
         {
             return metrics.Snapshot();
         }
-    }
-
-    public WorldSnapshot? GetLatestSnapshot()
-    {
-        return Volatile.Read(ref _latest);
     }
 
     public T ExecuteWithWorld<T>(Func<World, T> operation)
