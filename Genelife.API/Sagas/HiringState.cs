@@ -14,7 +14,7 @@ public class HiringState
     public ulong CompanyId { get; set; }
     public ulong PostingId { get; set; }
     public string Position { get; set; } = string.Empty;
-    public float Salary { get; set; }
+    public long SalaryCents { get; set; }
     public int OpenSeats { get; set; }
     public List<ulong> ApplicantIds { get; set; } = new();
     public List<ulong> FilledSeatSimIds { get; set; } = new();

@@ -19,10 +19,7 @@ public static class SimEndpoints
 
         try
         {
-            simulationManager.AddSim(command.Name, command.Age);
-            var sims = await simulationManager.GetAllSimsAsync();
-            var created = sims.LastOrDefault();
-            var networkId = created?.NetworkId ?? 0UL;
+            var networkId = simulationManager.AddSim(command.Name, command.Age);
             return Results.Accepted("/api/sims/" + networkId, new { networkId });
         }
         catch (InvalidOperationException ex)

@@ -2,6 +2,7 @@ using Arch.Core;
 using Arch.Core.Extensions;
 using Genelife.Components.Employment;
 using Genelife.Components.Gen;
+using Genelife.Values;
 
 namespace Genelife.Systems;
 
@@ -53,7 +54,7 @@ public class JobSeekerSystem : ISimulationSystem
             var jobSeeker = new JobSeeker(
                 isLookingForWork: true,
                 skills: Enums.Skill.None,
-                desiredSalary: 1000f
+                desiredSalary: Money.FromUnits(1000m)
             );
             world.Add(entity, jobSeeker);
         }

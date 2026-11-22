@@ -15,7 +15,7 @@ public class HiringSagaHandler
         state.CompanyId = @event.CompanyId;
         state.PostingId = @event.PostingId;
         state.Position = @event.Position;
-        state.Salary = @event.Salary;
+        state.SalaryCents = @event.SalaryCents;
         state.OpenSeats = @event.OpenSeats;
         state.UpdatedAt = DateTimeOffset.UtcNow;
 

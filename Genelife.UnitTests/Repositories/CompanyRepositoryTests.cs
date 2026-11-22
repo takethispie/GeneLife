@@ -6,6 +6,7 @@ using Genelife.Components.Employment;
 using Genelife.Components.Gen;
 using Genelife.Enums;
 using Genelife.Systems;
+using Genelife.Values;
 
 namespace Genelife.UnitTests.Repositories;
 
@@ -82,11 +83,11 @@ public class CompanyRepositoryTests
         Assert.True(registry.TryGetEntity(networkId, out var companyEntity));
 
         var office = world.Create(new Office("HQ", companyEntity));
-        var posting = world.Create(new JobPosting(companyEntity, office, "Dev", 3000f));
+        var posting = world.Create(new JobPosting(companyEntity, office, "Dev", Money.FromUnits(3000m)));
         world.Create(new OpenPosition(posting));
         world.Create(
             new Alive(20),
-            new JobSeeker(true, Genelife.Enums.Skill.None, 1000f)
+            new JobSeeker(true, Genelife.Enums.Skill.None, Money.FromUnits(1000m))
         );
 
         var hiringSystem = new HiringSystem(world, index, 0);

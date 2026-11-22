@@ -10,4 +10,8 @@
     <PackageReference Include="Arch" Version="2.1.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Genelife.Messages\Genelife.Messages.csproj" />
+  </ItemGroup>
+
 </Project>

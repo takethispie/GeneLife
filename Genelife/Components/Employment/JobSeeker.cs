@@ -1,4 +1,5 @@
 using Genelife.Enums;
+using Genelife.Values;
 
 namespace Genelife.Components.Employment;
 
@@ -10,12 +11,17 @@ public record struct JobSeeker
 {
     public bool IsLookingForWork;
     public Skill Skills;
-    public float DesiredSalary;
+    public Money DesiredSalary;
 
-    public JobSeeker(bool isLookingForWork = true, Skill skills = Skill.None, float desiredSalary = 1000f)
+    public JobSeeker(bool isLookingForWork = true, Skill skills = Skill.None, Money desiredSalary = default)
     {
         IsLookingForWork = isLookingForWork;
         Skills = skills;
         DesiredSalary = desiredSalary;
+    }
+
+    public JobSeeker(bool isLookingForWork, Skill skills, decimal desiredSalaryUnits)
+        : this(isLookingForWork, skills, Money.FromUnits(desiredSalaryUnits))
+    {
     }
 }

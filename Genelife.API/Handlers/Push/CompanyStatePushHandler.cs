@@ -29,7 +29,7 @@ public class CompanyStatePushHandler
             @event.CompanyId,
             @event.SimId,
             @event.Position,
-            @event.Salary
+            @event.SalaryCents
         });
     }
 

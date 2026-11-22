@@ -1,11 +1,14 @@
 namespace Genelife.Systems;
 
 /// <summary>
-/// Per-tick state handed to every simulation system. <see cref="Tick"/> is the
-/// authoritative tick number used for cadence scheduling; <see cref="DeltaTime"/>
-/// is the fixed simulation step in seconds.
+/// Per-tick state handed to every simulation system. Tick is the authoritative
+/// tick number used for cadence scheduling and the optional clock resolves
+/// month/pay-cycle/year boundaries.
 /// </summary>
-public readonly record struct SimulationContext(long Tick, float DeltaTime);
+public readonly record struct SimulationContext(long Tick, float DeltaTime, SimulationClock? Clock = null)
+{
+    public SimulationClock Time => Clock ?? SimulationClock.Default;
+}
 
 /// <summary>
 /// Tick interval for a system. A cadence of 1 (or less) runs every tick.
@@ -19,7 +22,7 @@ public readonly record struct Cadence(int Interval)
 
 /// <summary>
 /// A simulation system with an explicit order and cadence. Systems are ordered
-/// by <see cref="Order"/> only; no reflection or DI auto-ordering is used.
+/// by Order only; no reflection or DI auto-ordering is used.
 /// </summary>
 public interface ISimulationSystem
 {

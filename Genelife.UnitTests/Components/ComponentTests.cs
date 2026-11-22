@@ -3,6 +3,7 @@ using Genelife.Components.Company;
 using Genelife.Components.Employment;
 using Genelife.Components.Gen;
 using Genelife.Enums;
+using Genelife.Values;
 
 namespace Genelife.UnitTests.Components;
 
@@ -30,14 +31,14 @@ public class ComponentTests
     public void Wallet_DefaultsToZero()
     {
         var wallet = new Wallet();
-        Assert.Equal(0f, wallet.Balance);
+        Assert.Equal(Money.Zero, wallet.Balance);
     }
 
     [Fact]
     public void Wallet_StoresBalance()
     {
-        var wallet = new Wallet(123.45f);
-        Assert.Equal(123.45f, wallet.Balance);
+        var wallet = new Wallet(Money.FromUnits(123.45m));
+        Assert.Equal(Money.FromUnits(123.45m), wallet.Balance);
     }
 
     [Fact]
@@ -110,11 +111,11 @@ public class ComponentTests
         var world = World.Create();
         var company = world.Create();
         var office = world.Create();
-        var employee = new Employee(company, office, "Engineer", 5000f);
+        var employee = new Employee(company, office, "Engineer", Money.FromUnits(5000m));
         Assert.Equal(company, employee.Company);
         Assert.Equal(office, employee.Office);
         Assert.Equal("Engineer", employee.Position);
-        Assert.Equal(5000f, employee.Salary);
+        Assert.Equal(Money.FromUnits(5000m), employee.SalaryPerCycle);
     }
 
     [Fact]
@@ -123,16 +124,16 @@ public class ComponentTests
         var seeker = new JobSeeker();
         Assert.False(seeker.IsLookingForWork);
         Assert.Equal(Enums.Skill.None, seeker.Skills);
-        Assert.Equal(0f, seeker.DesiredSalary);
+        Assert.Equal(Money.Zero, seeker.DesiredSalary);
     }
 
     [Fact]
     public void JobSeeker_StoresFields()
     {
-        var seeker = new JobSeeker(false, Enums.Skill.Programming | Enums.Skill.Medical, 2500f);
+        var seeker = new JobSeeker(false, Enums.Skill.Programming | Enums.Skill.Medical, Money.FromUnits(2500m));
         Assert.False(seeker.IsLookingForWork);
         Assert.Equal(Enums.Skill.Programming | Enums.Skill.Medical, seeker.Skills);
-        Assert.Equal(2500f, seeker.DesiredSalary);
+        Assert.Equal(Money.FromUnits(2500m), seeker.DesiredSalary);
     }
 
     [Fact]
@@ -141,11 +142,11 @@ public class ComponentTests
         var world = World.Create();
         var company = world.Create();
         var office = world.Create();
-        var posting = new JobPosting(company, office, "Dev", 3000f, Enums.Skill.Programming);
+        var posting = new JobPosting(company, office, "Dev", Money.FromUnits(3000m), Enums.Skill.Programming);
         Assert.Equal(company, posting.Company);
         Assert.Equal(office, posting.Office);
         Assert.Equal("Dev", posting.Position);
-        Assert.Equal(3000f, posting.Salary);
+        Assert.Equal(Money.FromUnits(3000m), posting.SalaryPerCycle);
         Assert.Equal(Enums.Skill.Programming, posting.Requirements);
     }
 
@@ -155,7 +156,7 @@ public class ComponentTests
         var world = World.Create();
         var company = world.Create();
         var office = world.Create();
-        var posting = new JobPosting(company, office, "Dev", 3000f);
+        var posting = new JobPosting(company, office, "Dev", Money.FromUnits(3000m));
         Assert.Equal(Enums.Skill.None, posting.Requirements);
     }
 

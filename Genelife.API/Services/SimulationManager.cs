@@ -127,13 +127,12 @@ public class SimulationManager : IHostedService, IDisposable
         StartPeriodicSave();
     }
 
-    public void AddSim(string name, int age)
+    public ulong AddSim(string name, int age)
     {
-        engine.ExecuteWithWorld(world =>
+        return engine.ExecuteWithWorld(world =>
         {
             var repository = new SimRepository(world, networkIds);
-            repository.Add(name, age);
-            return true;
+            return repository.Add(name, age).Value;
         });
     }
 
@@ -173,7 +172,7 @@ public class SimulationManager : IHostedService, IDisposable
     {
         return engine.ExecuteWithWorld(world =>
         {
-            var repository = new CompanyRepository(world, GetIndex(), networkIds);
+            var repository = new CompanyRepository(world, GetIndex(), networkIds, engine.Economy);
             return repository.Add(name).Value;
         });
     }
@@ -188,7 +187,8 @@ public class SimulationManager : IHostedService, IDisposable
                 var doc = await session.Query<CompanyDocument>()
                     .OrderByDescending(d => d.UpdatedAt)
                     .FirstOrDefaultAsync(d => d.NetworkId == (long)networkId);
-                return doc?.ToCompanyStatus();
+                if (doc != null)
+                    return doc.ToCompanyStatus();
             }
             catch (Exception ex)
             {
@@ -202,7 +202,7 @@ public class SimulationManager : IHostedService, IDisposable
 
         return engine.ExecuteWithWorld(world =>
         {
-            var repository = new CompanyRepository(world, GetIndex(), networkIds);
+            var repository = new CompanyRepository(world, GetIndex(), networkIds, engine.Economy);
             return repository.Get(new NetworkId(networkId));
         });
     }
@@ -239,7 +239,7 @@ public class SimulationManager : IHostedService, IDisposable
 
         return engine.ExecuteWithWorld(world =>
         {
-            var repository = new CompanyRepository(world, GetIndex(), networkIds);
+            var repository = new CompanyRepository(world, GetIndex(), networkIds, engine.Economy);
             return repository.GetAll();
         });
     }
@@ -248,7 +248,7 @@ public class SimulationManager : IHostedService, IDisposable
     {
         return engine.ExecuteWithWorld(world =>
         {
-            var repository = new CompanyRepository(world, GetIndex(), networkIds);
+            var repository = new CompanyRepository(world, GetIndex(), networkIds, engine.Economy);
             return repository.Delete(new NetworkId(networkId));
         });
     }
