@@ -4,13 +4,15 @@
 **Depends:** H01, H03
 **Estimate:** 2 sessions
 
+**Status:** Done
+
 ## Goal
 
 Define Marten document types for Sim and Company read models. Configure Marten to auto-create tables. Set up inline (synchronous) projections so that when events are published, Marten documents update in the same transaction.
 
 ## Tasks
 
-- [ ] Define `SimDocument`:
+- [x] Define `SimDocument`:
   - `Id` (Guid, Marten identity)
   - `NetworkId` (ulong, indexed)
   - `Name` (string)
@@ -21,15 +23,15 @@ Define Marten document types for Sim and Company read models. Configure Marten t
   - `IsPlayerControlled` (bool)
   - `PlayerId` (string?)
   - `CreatedAt`, `UpdatedAt` (DateTimeOffset)
-- [ ] Define `CompanyDocument`:
+- [x] Define `CompanyDocument`:
   - `Id` (Guid)
   - `NetworkId` (ulong, indexed)
   - `Name` (string)
   - `EmployeeCount` (int)
   - `CreatedAt`, `UpdatedAt` (DateTimeOffset)
-- [ ] Register documents in Marten configuration: `opts.Schema.For<SimDocument>()`
-- [ ] Configure Marten to create/update tables on startup: `opts.AutoCreateSchemaObjects = AutoCreate.CreateOrUpdate`
-- [ ] Create read-only test: `IDocumentSession.Query<SimDocument>()` returns empty list on fresh database
+- [x] Register documents in Marten configuration: `opts.Schema.For<SimDocument>()`
+- [x] Configure Marten to create/update tables on startup: `opts.AutoCreateSchemaObjects = AutoCreate.CreateOrUpdate`
+- [x] Create read-only test: `IDocumentSession.Query<SimDocument>()` returns empty list on fresh database
 
 ## Projections (H07 builds on this)
 

@@ -4,6 +4,8 @@
 **Depends:** H02, H03
 **Estimate:** 2 sessions
 
+**Status:** Done
+
 ## Goal
 
 Implement the first complete command pipeline: a player sends `POST /sims/{networkId}/eat`, it flows through Wolverine validation, reaches a handler that enqueues the mutation to the simulation engine, the engine applies it on the next tick, and a `SimActionStarted` event is emitted.
@@ -16,23 +18,23 @@ The current architecture has no command queue. Player mutations (via `Simulation
 
 ## Tasks
 
-- [ ] Create `EatCommandHandler` in `Genelife.API/Handlers/`:
+- [x] Create `EatCommandHandler` in `Genelife.API/Handlers/`:
   - Accepts `SetSimAction` command
   - Validates the Sim exists via Marten query
   - Pushes the action into a thread-safe `CommandQueue` on the engine
   - Returns immediately (202 Accepted)
-- [ ] Add `CommandQueue` to `SimulationEngine`:
+- [x] Add `CommandQueue` to `SimulationEngine`:
   - `ConcurrentQueue<EnqueuedCommand>` field
   - `Enqueue(ulong networkId, string actionType)` method (lock-free)
   - `DrainCommands()` called at start of each `Tick()`:
     - For each command, resolve entity via `NetworkIdRegistry`
     - Set `CurrentAction` component directly on the entity
     - Track entities modified this tick
-- [ ] After tick, for each modified entity:
+- [x] After tick, for each modified entity:
   - Build a `SimActionStarted` event
   - Publish to Wolverine's `IMessageBus`
-- [ ] Add an event handler that logs `SimActionStarted` events
-- [ ] Write test:
+- [x] Add an event handler that logs `SimActionStarted` events
+- [x] Write test:
   - Create Sim via `SimulationManager`
   - Send `SetSimAction(NetworkId, "Eat")` via Wolverine
   - Wait one tick

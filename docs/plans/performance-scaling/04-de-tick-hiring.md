@@ -3,6 +3,8 @@
 **Depends:** 03
 **Goal:** Take the quadratic hiring work off the every-tick path.
 
+**Status:** Done
+
 ## Context
 
 `DecideApplications` is seekers × postings, runs every 40 ms, and copies components into
@@ -10,11 +12,11 @@ fresh lists each tick.
 
 ## Tasks
 
-- [ ] Run hiring on a warm/cold cadence (e.g., every 1–5 s) or on events (new posting/application).
-- [ ] Index postings by company; early-exit when no applications/seats.
-- [ ] Avoid re-copying `JobPosting`/`JobSeeker` if unchanged; cache IDs.
-- [ ] Add a tick counter/metric for hiring duration.
-- [ ] Verify outcomes match the old behavior.
+- [x] Run hiring on a warm/cold cadence (e.g., every 1–5 s) or on events (new posting/application).
+- [x] Index postings by company; early-exit when no applications/seats.
+- [x] Avoid re-copying `JobPosting`/`JobSeeker` if unchanged; cache IDs.
+- [x] Add a tick counter/metric for hiring duration.
+- [x] Verify outcomes match the old behavior.
 
 ## Files likely touched
 

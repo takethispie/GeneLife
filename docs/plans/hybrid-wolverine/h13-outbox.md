@@ -4,6 +4,8 @@
 **Depends:** H07, H12
 **Estimate:** 1 session
 
+**Status:** Done
+
 ## Goal
 
 Ensure events published from the engine are durable. If the process crashes between publishing an event and Marten committing it, the event is lost. Wolverine's transactional outbox solves this.
@@ -14,15 +16,15 @@ Wolverine + Marten provide a built-in outbox. When you call `IMessageBus.Publish
 
 ## Tasks
 
-- [ ] Wrap event publishing in the existing Marten session scope:
+- [x] Wrap event publishing in the existing Marten session scope:
   - Create an `IDocumentSession` at the start of each tick
   - Run the tick (systems, command drain)
   - Build events list
   - Call `bus.PublishAsync(event)` for each event (this writes to the outbox)
   - Call `session.SaveChangesAsync()` (commits both documents and outbox messages)
-- [ ] Configure Wolverine to use durable outbox: `opts.Durability.Mode = DurabilityMode.Durable`
-- [ ] Add periodic outbox processing: Wolverine's background agent polls the outbox table and sends pending messages
-- [ ] Test: publish event during tick → verify outbox table has a row → verify handler receives the event after commit
+- [x] Configure Wolverine to use durable outbox: `opts.Durability.Mode = DurabilityMode.Durable`
+- [x] Add periodic outbox processing: Wolverine's background agent polls the outbox table and sends pending messages
+- [x] Test: publish event during tick → verify outbox table has a row → verify handler receives the event after commit
 
 ## Key decision
 

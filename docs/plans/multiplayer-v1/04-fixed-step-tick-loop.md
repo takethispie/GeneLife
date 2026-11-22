@@ -3,6 +3,8 @@
 **Depends:** 01
 **Goal:** Replace the wall-clock timer with a robust fixed-step loop and a real delta time.
 
+**Status:** Done
+
 ## Context
 
 `System.Threading.Timer` at 40 ms with `DeltaTime = 1f` produces ~25 sim-seconds/second and
@@ -10,13 +12,13 @@ can queue callbacks when a tick is slow.
 
 ## Tasks
 
-- [ ] Implement `SimulationLoop : BackgroundService` using `PeriodicTimer`.
-- [ ] Use a fixed timestep (e.g., 1/20 s) and pass that constant delta to systems.
-- [ ] Add an accumulator with a max catch-up count; log and drop excess.
-- [ ] Add a tick counter and current tick-rate metric.
-- [ ] Move system orchestration out of `SimulationEngine.Tick` into the loop.
-- [ ] Remove the `System.Threading.Timer` and `const DeltaTime`.
-- [ ] Make `Stop` drain/cancel cleanly.
+- [x] Implement `SimulationLoop : BackgroundService` using `PeriodicTimer`.
+- [x] Use a fixed timestep (e.g., 1/20 s) and pass that constant delta to systems.
+- [x] Add an accumulator with a max catch-up count; log and drop excess.
+- [x] Add a tick counter and current tick-rate metric.
+- [x] Move system orchestration out of `SimulationEngine.Tick` into the loop.
+- [x] Remove the `System.Threading.Timer` and `const DeltaTime`.
+- [x] Make `Stop` drain/cancel cleanly.
 
 ## Files likely touched
 

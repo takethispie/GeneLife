@@ -4,30 +4,32 @@
 **Dependes:** H03, H04, H06
 **Estimate:** 2 sessions
 
+**Status:** Done
+
 ## Goal
 
 Wire up Marten projections so that simulation events (`SimCreated`, `SimNeadsChanged`, `CompanyCreated`, etc.) automatically update Marten documents. The projection runs inline (synchronously) in the same transaction as the event publish.
 
 ## Tasks
 
-- [ ] Implement `SimProjection`:
+- [x] Implement `SimProjection`:
   - `IEvent<SimCreated>` → create new `SimDocument`, store
   - `IEvent<SimNeadsChanged>` → load `SimDocument` by `NetworkId`, update needs fields
   - `IEvent<SimActionStarted>` → update `CurrentAction` and `ActionTimeRemaing`
   - `IEvent<SimActionCompleted>` → set `CurrentAction` to `"Idle"`
   - `IEvent<SimDeleted>` → delete `SimDocument`
-- [ ] Implement `CompanyProjection`:
+- [x] Implement `CompanyProjection`:
   - `IEvent<CompanyCreated>` → create new `CompanyDocument`
   - `IEvent<CompanyDeleted>` → delete `CompanyDocument`
   - `IEvent<EmployeeHired>` → increment `EmployeeCount`
   - `IEvent<EmployeeFired>` → decrement `EmployeeCount`
-- [ ] Register projections in Marten config
-- [ ] Enable inline projection mode: `opt.Projections.Add<SimProjection>(ProjectionLifecycle.Inline)`
-- [ ] Wire event publishing from `SimulationEgine.Tick()`:
+- [x] Register projections in Marten config
+- [x] Enable inline projection mode: `opt.Projections.Add<SimProjection>(ProjectionLifecycle.Inline)`
+- [x] Wire event publishing from `SimulationEgine.Tick()`:
   - After draining commands and running systems, collect events
   - Publish via `IMessageBus.PublishAsync(event)` 
   - The event triggers the projection → Marten document updates
-- [ ] Test: create Sim → tick → query Marten → SimDocument exists with correct values
+- [x] Test: create Sim → tick → query Marten → SimDocument exists with correct values
 
 ## Key decision
 

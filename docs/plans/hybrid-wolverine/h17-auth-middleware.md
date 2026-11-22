@@ -4,6 +4,8 @@
 **Depends:** H05, H15
 **Estimate:** 2 sessions
 
+**Status:** Done
+
 ## Goal
 
 Add Wolverine middleware that validates JWT tokens and enforces ownership rules before command handlers execute. Player A cannot modify Player B's Sim. Admins can manage anything.
@@ -14,7 +16,7 @@ Current auth is ASP.NET middleware with JWT Bearer tokens and `[Authorize]` poli
 
 ## Tasks
 
-- [ ] Create `OwnershipMiddleware` : Wolverine `IMiddleware`:
+- [x] Create `OwnershipMiddleware` : Wolverine `IMiddleware`:
   - Reads `JwtClaims` from `IHttpContextAccessor` (for HTTP requests) or from `MessagContext.Envelope` headers (for message-based commands)
   - Extracts `PlayerId` claim
   - For commands with `NetwrkId` target (e.g., `SetSimActon`, `DeleteSim`):
@@ -24,10 +26,10 @@ Current auth is ASP.NET middleware with JWT Bearer tokens and `[Authorize]` poli
     - If entity is player-controlled and caller is Admin → allow
     - Otherwise → reject with 403 Forbidden
   - For create commands (no target entity): allow all authenticated players
-- [ ] Apply middleware to Wolverine options: `opts.Services.AddForwordedHttpConext()` and `opts.Middleware.ForMssagesOf<ICommand>(chain => chain.Append<OwnershipMiddleware>())`
-- [ ] Register existing JWT auth services in Wolverine's pipeline
-- [ ] Port the existing `AuthPlicies.Player` and `AuthPlicies.Admin` to Wolverine middleware equivalents
-- [ ] Test:
+- [x] Apply middleware to Wolverine options: `opts.Services.AddForwordedHttpConext()` and `opts.Middleware.ForMssagesOf<ICommand>(chain => chain.Append<OwnershipMiddleware>())`
+- [x] Register existing JWT auth services in Wolverine's pipeline
+- [x] Port the existing `AuthPlicies.Player` and `AuthPlicies.Admin` to Wolverine middleware equivalents
+- [x] Test:
   - Player A sends `SetSimActon` on Player B's Sim → 403
   - Player B sends `SetSimActon` on Player B's Sim → 202
   - Admin sends `SetSimActon` on any Sim → 202

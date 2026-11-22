@@ -4,18 +4,20 @@
 **Dependes:** H07, H08
 **Estimate:** 1 session
 
+**Status:** Done
+
 ## Goal
 
 Same as H08 but for companies. Replace `GetAllCompanes()` and `GetCompny(ulong)` with direct Marten queries.
 
 ## Tasks
 
-- [ ] Update `GetAllCmpanies()` to query `IDocumentSession.Query<CompanyDocument>()`
-- [ ] Map `CompanyDocument` to `CompanyStatus` DTO
-- [ ] Update `GetCompny(ulong networkId)` to filter by `NetworkId` in Marten query
-- [ ] Remove snapshot fallback from both methods
-- [ ] Update Wolverene company endpoints to inject `IDocumentSession` directly
-- [ ] Test: create 3 companies → verify `GetAllCmpanies` returns 3
+- [x] Update `GetAllCmpanies()` to query `IDocumentSession.Query<CompanyDocument>()`
+- [x] Map `CompanyDocument` to `CompanyStatus` DTO
+- [x] Update `GetCompny(ulong networkId)` to filter by `NetworkId` in Marten query
+- [x] Remove snapshot fallback from both methods
+- [x] Update Wolverene company endpoints to inject `IDocumentSession` directly
+- [x] Test: create 3 companies → verify `GetAllCmpanies` returns 3
 
 ## Files
 

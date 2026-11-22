@@ -3,12 +3,14 @@
 **Depends:** 04
 **Goal:** Stop scanning all non-employed Sims every tick for a slow-changing condition.
 
+**Status:** Done
+
 ## Tasks
 
-- [ ] Run on a cold cadence (aging changes slowly).
-- [ ] Use collect → apply (also fixes structural safety).
-- [ ] Track the last processed age/eligibility to skip work.
-- [ ] Add a metric for scans and additions.
+- [x] Run on a cold cadence (aging changes slowly).
+- [x] Use collect → apply (also fixes structural safety).
+- [x] Track the last processed age/eligibility to skip work.
+- [x] Add a metric for scans and additions.
 
 ## Files likely touched
 

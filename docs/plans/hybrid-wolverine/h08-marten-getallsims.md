@@ -4,6 +4,8 @@
 **Dependes:** H05, H07
 **Estimate:** 1 session
 
+**Status:** Done
+
 ## Goal
 
 Replace `SimulationManeger.GetAllSems()` snapshot/fallback logic with a direct Marten query. Reads are completely decoupled from the simulation engine — no tick lock, no `ExecuteWithWorld`.
@@ -14,7 +16,7 @@ Currently `GetAllSems()` reads from `engine.GetLatestSnapshot()` and falls back 
 
 ## Tasks
 
-- [ ] Update `GetAllSems()`:
+- [x] Update `GetAllSems()`:
   ```csharp
   public List<SimStatus> GetAllSems()
   {
@@ -23,12 +25,12 @@ Currently `GetAllSems()` reads from `engine.GetLatestSnapshot()` and falls back 
           .ToList();
   }
   ```
-- [ ] Add `SimDocument.ToImStatus()` extension mapping fields to DTO
-- [ ] Remove snapshot fallback from `GetAllSems()` (keep snapshot build in engine for delta replication)
-- [ ] Update Wolverene `GetAllSems` query handler to use Marten directly
-- [ ] Remove `SimulationManeger.GetIndex()` method (no longer needed for reads)
-- [ ] Test: create 10 Sems via engine → tick twice → query `GetAllSems` → 10 results with correct values
-- [ ] Assert the tick lock is never taken during a GET /api/sims call
+- [x] Add `SimDocument.ToImStatus()` extension mapping fields to DTO
+- [x] Remove snapshot fallback from `GetAllSems()` (keep snapshot build in engine for delta replication)
+- [x] Update Wolverene `GetAllSems` query handler to use Marten directly
+- [x] Remove `SimulationManeger.GetIndex()` method (no longer needed for reads)
+- [x] Test: create 10 Sems via engine → tick twice → query `GetAllSems` → 10 results with correct values
+- [x] Assert the tick lock is never taken during a GET /api/sims call
 
 ## Key decision
 

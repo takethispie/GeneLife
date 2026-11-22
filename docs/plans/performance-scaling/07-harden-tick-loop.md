@@ -3,6 +3,8 @@
 **Depends:** 06, multiplayer Step 04
 **Goal:** Keep timing stable as tick cost approaches the tick budget.
 
+**Status:** Done
+
 ## Tasks
 
 - [x] Add fixed-step accumulator with max catch-up.

@@ -4,6 +4,8 @@
 **Depends:** none
 **Estimate:** 1 session
 
+**Status:** Done
+
 ## Goal
 
 Add JasperFx Wolverine and Marten NuGet packages to the solution. Create the project structure for messages, handlers, and projections without changing any existing behavior.
@@ -14,13 +16,13 @@ Wolverine is a mediator + message bus. Marten is a document DB + event store on 
 
 ## Tasks
 
-- [ ] Add `WolverineFx` and `WolverineFx.Marten` NuGet references to `Genelife.API.csproj`
-- [ ] Add `Marten` and `Marten.AspNetCore` NuGet references
-- [ ] Create `Genelife.Messages/` class library project for shared command/event types
-- [ ] Create `Genelife.Messages/Commands/` directory
-- [ ] Create `Genelife.Messages/Events/` directory
-- [ ] Add project reference from `Genelife.API` to `Genelife.Messages`
-- [ ] Build and verify no compilation errors in existing code
+- [x] Add `WolverineFx` and `WolverineFx.Marten` NuGet references to `Genelife.API.csproj`
+- [x] Add `Marten` and `Marten.AspNetCore` NuGet references
+- [x] Create `Genelife.Messages/` class library project for shared command/event types
+- [x] Create `Genelife.Messages/Commands/` directory
+- [x] Create `Genelife.Messages/Events/` directory
+- [x] Add project reference from `Genelife.API` to `Genelife.Messages`
+- [x] Build and verify no compilation errors in existing code
 
 ## Files
 

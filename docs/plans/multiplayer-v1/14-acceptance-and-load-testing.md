@@ -3,6 +3,8 @@
 **Depends:** 11, 12, 13
 **Goal:** Prove V1 meets its definition of done.
 
+**Status:** Done
+
 > Results and measurements: `docs/plans/wave5-results.md`.
 
 ## Tasks

@@ -4,6 +4,8 @@
 **Depends:** H15
 **Estimate:** 3 sessions
 
+**Status:** Partial — event types and a saga handler exist; the live hiring lifecycle and timeout are still owned by HiringSystem.
+
 ## Goal
 
 Replace the `HiringSystem`'s collect → decide → apply pipeline with a Wolverine `Saga<HiringState>`. The saga reacts to events (job posting created, application submitted, seat available) and orchestrates the hire lifecycle.

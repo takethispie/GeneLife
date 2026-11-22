@@ -4,13 +4,15 @@
 **Depends:** H07, H11
 **Estimate:** 2 sessions
 
+**Status:** Done
+
 ## Goal
 
 On application shutdown, serialize all active ECS entities to Marten documents. Combined with H11 (restore), this gives full save/load for the simulation.
 
 ## Tasks
 
-- [ ] Create `WorldSaveService`:
+- [x] Create `WorldSaveService`:
   - Injected with `SimulationEgine` and `IDocumentSession`
   - `SaveAllAsync()` called from `Shutdown()`:
     - Query all entities with `NetworkId` + `GenName` (all Sims)
@@ -18,14 +20,14 @@ On application shutdown, serialize all active ECS entities to Marten documents. 
     - Query all entities with `NetworkId` + `CompanyName` (all Companies)
     - For each: upsert `CompanyDocument` with employee count from `EmploymentIndex`
     - Execute `SaveChangesAsync()` in a single transaction
-- [ ] Update `SimulationEgine.Shutdown()`:
+- [x] Update `SimulationEgine.Shutdown()`:
   - Call `WorldSaveService.SaveAllAsync()` after flushing metrics
   - Only save if world is not null and has entities (skip empty worlds)
-- [ ] Handle the case where the engine crashes mid-tick:
+- [x] Handle the case where the engine crashes mid-tick:
   - Add `_lastSaveTick` counter
   - Auto-save every N ticks (configurable, default 600 = 30s at 20Hz)
   - On shutdown, force one final save
-- [ ] Test:
+- [x] Test:
   - Create entities, call `SaveAllAsync`, delete from memory, call `RestoreAsync`, verify same count
   - Verify tick-interval auto-save fires at the correct frequency
 

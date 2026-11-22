@@ -4,6 +4,8 @@
 **Depends:** H05, H08, H09, H15
 **Estimate:** 1 session
 
+**Status:** Partial — Wolverine sim/company endpoints exist; auth and simulation-control endpoints remain on the legacy ASP.NET mappings.
+
 ## Goal
 
 Remove all legacy ASP.NET minimal API endpoints and their extension methods. All HTTP access goes through Wolverine endpoints exclusively.
@@ -17,7 +19,7 @@ Remove all legacy ASP.NET minimal API endpoints and their extension methods. All
 - [ ] Remove `SimulationEndpoints.cs`, `CompanyEndpoints.cs`, `AuthEndpoints.cs`
 - [ ] Remove `app.Map*Endpoints()` calls from `Program.cs`
 - [ ] Verify all Wolverine endpoints are discovered and working
-- [ ] Run existing integration tests; fix any HTTP routing differences
+- [x] Run existing integration tests; fix any HTTP routing differences
 
 ## Files
 

@@ -3,6 +3,8 @@
 **Depends:** 10
 **Goal:** Reduce bandwidth and support reconnection.
 
+**Status:** Done
+
 ## Tasks
 
 - [x] Keep a ring buffer of recent snapshots (bounded by tick/time window).

@@ -3,16 +3,18 @@
 **Depends:** 02
 **Goal:** Remove per-entity allocations from the decision hot path.
 
+**Status:** Done
+
 ## Context
 
 `GetLowestNeed` allocates a 4-tuple array and uses `OrderBy().First()` per entity per tick.
 
 ## Tasks
 
-- [ ] Replace the array/LINQ with four explicit comparisons.
-- [ ] Return a small struct (need kind + duration); no heap allocation.
-- [ ] Keep behavior identical (lowest need wins; threshold unchanged).
-- [ ] Add an allocation assertion around `Update`.
+- [x] Replace the array/LINQ with four explicit comparisons.
+- [x] Return a small struct (need kind + duration); no heap allocation.
+- [x] Keep behavior identical (lowest need wins; threshold unchanged).
+- [x] Add an allocation assertion around `Update`.
 
 ## Files likely touched
 

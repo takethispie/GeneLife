@@ -4,6 +4,8 @@
 **Depends:** H01
 **Estimate:** 1 session
 
+**Status:** Done
+
 ## Goal
 
 Register Wolverine services in the ASP.NET host alongside the existing `SimulationEngine`, `SimulationLoop`, `SimulationManager` registrations. Wolverine must not interfere with existing services. Configure Wolverine for local (in-memory) transport in Phase 1.
@@ -14,16 +16,16 @@ Wolverine is a drop-in `IHostedService`. It discovers handlers by scanning assem
 
 ## Tasks
 
-- [ ] Add Postgres connection string to `appsettings.json` and `appsettings.Development.json`
-- [ ] Add `builder.Services.AddMarten(...)` with document store configuration
-- [ ] Add `builder.Host.UseWolverine(opts => ...)` with:
+- [x] Add Postgres connection string to `appsettings.json` and `appsettings.Development.json`
+- [x] Add `builder.Services.AddMarten(...)` with document store configuration
+- [x] Add `builder.Host.UseWolverine(opts => ...)` with:
   - Assembly discovery for `Genelife.API` and `Genelife.Messages`
   - In-memory transport for local commands/events
   - Marten integration via `opts.UseMarten()`
-- [ ] Configure Wolverine to NOT auto-publish events (explicit publish only in Phase 1)
-- [ ] Verify `SimulationEngine`, `SimulationLoop`, `SimulationManager` still register and function
-- [ ] Start the app: verify no DI resolution errors
-- [ ] Check that Wolverine health check endpoint returns healthy
+- [x] Configure Wolverine to NOT auto-publish events (explicit publish only in Phase 1)
+- [x] Verify `SimulationEngine`, `SimulationLoop`, `SimulationManager` still register and function
+- [x] Start the app: verify no DI resolution errors
+- [x] Check that Wolverine health check endpoint returns healthy
 
 ## Files
 

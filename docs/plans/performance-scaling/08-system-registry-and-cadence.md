@@ -3,6 +3,8 @@
 **Depends:** 07
 **Goal:** Make adding and scheduling systems explicit and safe.
 
+**Status:** Done
+
 ## Tasks
 
 - [x] Define `ISimulationSystem { int Order; Cadence Cadence; void Update(...); }`.

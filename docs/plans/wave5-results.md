@@ -1,8 +1,8 @@
 # Wave 5 Results
 
 **Branch:** `feature/wave-5` (based on the Wave 4 commit)
-**Status:** implemented and verified locally. Changes are intentionally left uncommitted for the
-coordinator to review and commit once.
+
+**Status:** Done — implemented, verified locally, reviewed, and committed.
 
 ## How to run checks
 

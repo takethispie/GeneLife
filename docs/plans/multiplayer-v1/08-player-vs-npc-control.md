@@ -3,18 +3,20 @@
 **Depends:** 07
 **Goal:** Stop autonomous AI from overriding player-controlled Sims.
 
+**Status:** Done
+
 ## Context
 
 `DecisionSystem` acts on every entity with `Needs + CurrentAction`, so it will fight player input.
 
 ## Tasks
 
-- [ ] Add `PlayerControlled { PlayerId }` or a `ControllerKind` component.
-- [ ] Assign it at spawn based on who owns the Sim.
-- [ ] Make `DecisionSystem` skip player-controlled entities.
-- [ ] Drive player Sims from intents/actions instead.
-- [ ] Define default idle behavior for player Sims.
-- [ ] Keep needs decay and action execution applied to all Sims.
+- [x] Add `PlayerControlled { PlayerId }` or a `ControllerKind` component.
+- [x] Assign it at spawn based on who owns the Sim.
+- [x] Make `DecisionSystem` skip player-controlled entities.
+- [x] Drive player Sims from intents/actions instead.
+- [x] Define default idle behavior for player Sims.
+- [x] Keep needs decay and action execution applied to all Sims.
 
 ## Files likely touched
 

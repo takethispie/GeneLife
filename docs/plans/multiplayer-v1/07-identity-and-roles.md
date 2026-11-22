@@ -3,6 +3,8 @@
 **Depends:** none
 **Goal:** Authenticate players and separate player from admin capabilities.
 
+**Status:** Done
+
 ## Auth decision
 
 **JWT bearer tokens (HMAC-SHA256)** issued and validated by the API. This keeps the
