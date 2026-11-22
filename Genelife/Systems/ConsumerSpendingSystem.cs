@@ -27,7 +27,7 @@ public class ConsumerSpendingSystem : ISimulationSystem
         this.world = world;
         this.economy = economy;
         this.interval = interval ?? economy.Clock.TicksPerMonth;
-        simQuery = new QueryDescription().WithAll<GenName, Wallet>();
+        simQuery = new QueryDescription().WithAll<GenName, Wallet>().WithNone<Components.Gen.Dead>();
     }
 
     public string Name => "ConsumerSpending";

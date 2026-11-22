@@ -1,4 +1,5 @@
 using Arch.Core;
+using Genelife.Enums;
 using Genelife.Values;
 
 namespace Genelife.Components.Employment;
@@ -13,6 +14,8 @@ public record struct Employee
     public Entity Office;
     public string Position;
     public Money SalaryPerCycle;
+    public Seniority Seniority;
+    public long HiredAtTick;
 
     public Employee(Entity company, Entity office, string position, Money salaryPerCycle)
     {
@@ -20,6 +23,8 @@ public record struct Employee
         Office = office;
         Position = position;
         SalaryPerCycle = salaryPerCycle;
+        Seniority = Seniority.Associate;
+        HiredAtTick = 0;
     }
 
     public Employee(Entity company, Entity office, string position, decimal salaryUnits)

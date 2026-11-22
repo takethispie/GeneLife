@@ -16,6 +16,10 @@ public class SimDocument
     public float ActionTimeRemaining { get; set; }
     public bool IsPlayerControlled { get; set; }
     public string? PlayerId { get; set; }
+    public string Stage { get; set; } = string.Empty;
+    public float Health { get; set; } = 100f;
+    public float SkillTotal { get; set; }
+    public string Seniority { get; set; } = string.Empty;
     public long HouseholdNetworkId { get; set; }
     public long HousingUnitNetworkId { get; set; }
     public string Tenure { get; set; } = string.Empty;
@@ -41,7 +45,11 @@ public class SimDocument
             HousingUnitNetworkId = HousingUnitNetworkId == 0 ? null : (ulong)HousingUnitNetworkId,
             Tenure = Tenure,
             HousingTier = HousingTier,
-            Homeless = HousingUnitNetworkId == 0
+            Homeless = HousingUnitNetworkId == 0,
+            Stage = Stage,
+            Health = (decimal)MathF.Round(Health, 1),
+            TopSkill = string.Empty,
+            Seniority = Seniority
         };
     }
 }

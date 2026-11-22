@@ -12,7 +12,7 @@ public class NeedsDecaySystem : ISimulationSystem
     public NeedsDecaySystem(World world)
     {
         this.world = world;
-        queryDescription = new QueryDescription().WithAll<Needs>();
+        queryDescription = new QueryDescription().WithAll<Needs>().WithNone<Components.Gen.Dead>();
     }
 
     public string Name => "NeedsDecay";

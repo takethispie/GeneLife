@@ -13,9 +13,11 @@ using Genelife.Components.Employment;
 using Genelife.Components.Finance;
 using Genelife.Components.Gen;
 using Genelife.Components.Housing;
+using Genelife.Components.Life;
 using Genelife.Economy;
 using Genelife.Enums;
 using Genelife.Housing;
+using Genelife.Life;
 using Genelife.Messages.Events;
 using Genelife.Systems;
 using Genelife.Values;
@@ -105,13 +107,31 @@ private readonly NetworkIdRegistry networkIds = new();
             clock = new SimulationClock(ClockOptions);
             economy = new EconomyContext(world, employmentIndex, clock: clock, randomSeed: RandomSeed);
             economy.Housing.AttachNetworkIdAllocator(entity => networkIds.Allocate(entity));
+            economy.Life.AttachNetworkIdAllocator(entity => networkIds.Allocate(entity));
 
             systems = new SystemRegistry();
             systems.Register(new NeedsDecaySystem(world));
             systems.Register(new HousingModifierSystem(world, economy.Housing));
+            systems.Register(new AgingSystem(world, economy));
+            systems.Register(new HealthSystem(world, economy));
             systems.Register(new DecisionSystem(world));
             systems.Register(new ActionSystem(world));
+            systems.Register(new EducationSystem(world, economy));
+            systems.Register(new EnrollmentSystem(world, economy));
+            systems.Register(new WorkScheduleSystem(world, economy));
+            systems.Register(new AttendanceSystem(world, economy));
+            systems.Register(new CareerSystem(world, economy));
+            systems.Register(new StageProgressionSystem(world, economy));
             systems.Register(new HiringSystem(world, employmentIndex, 25, economy));
+            systems.Register(new PensionSystem(world, economy));
+            systems.Register(new UnemploymentBenefitSystem(world, economy));
+            systems.Register(new ElderDeclineSystem(world, economy));
+            systems.Register(new MortalitySystem(world, economy));
+            systems.Register(new NeedsDeathSystem(world, economy));
+            systems.Register(new DeathProcessingSystem(world, economy));
+            systems.Register(new EstateSettlementSystem(world, economy));
+            systems.Register(new PopulationInflowSystem(world, economy));
+            systems.Register(new PopulationMetricsSystem(world, economy));
             systems.Register(new CompanyRevenueSystem(world, economy));
             systems.Register(new ConsumerSpendingSystem(world, economy));
             systems.Register(new PayrollSystem(world, economy));
@@ -126,7 +146,7 @@ private readonly NetworkIdRegistry networkIds = new();
             systems.Register(new CorporateTaxSystem(world, economy));
             systems.Register(new CreditSystem(world, economy));
             systems.Register(new CompanySolvencySystem(world, economy));
-            systems.Register(new JobSeekerSystem(world));
+            systems.Register(new JobSeekerSystem(world, 100, economy));
             systems.Register(new HousingDevelopmentSystem(world, economy));
             systems.Register(new EconomyMetricsSystem(world, economy));
             systems.Register(new HousingMetricsSystem(world, economy));
@@ -281,10 +301,14 @@ if (SnapshotsEnabled)
                                     new Needs(),
                                     new CurrentAction(ActionType.Idle, 0f),
                                     new Alive(age),
-                                    new Location(0f, 0f)
+                                    new Location(0f, 0f),
+                                    new SkillProfile(),
+                                    new Health(HealthSystem.InitialForAge(age)),
+                                    LifecycleFactory.Create(age, tick, clock, economy.Life.Policy)
                                 );
                                 var nid = new NetworkId(command.NetworkId.GetValueOrDefault());
                                 world.Add(entity, nid);
+                                economy.Life.Index.OnBorn(economy.Life.Policy.StageFor(age));
                             }
                         }
                         break;
@@ -391,6 +415,296 @@ if (SnapshotsEnabled)
         var tick = this.tick;
         switch (command)
         {
+            case CreateSchoolCommand createSchool:
+            {
+                var repository = new SchoolRepository(world, networkIds, economy);
+                var id = repository.Add(
+                    createSchool.Name,
+                    createSchool.District,
+                    createSchool.Capacity,
+                    createSchool.Quality,
+                    createSchool.Emphasis,
+                    createSchool.MonthlyCost,
+                    createSchool.OwnerId ?? 0);
+                return new { schoolId = id.Value };
+            }
+
+            case UpdateSchoolCommand updateSchool:
+            {
+                var repository = new SchoolRepository(world, networkIds, economy);
+                if (!repository.Update(
+                        new NetworkId(updateSchool.SchoolId),
+                        updateSchool.Name,
+                        updateSchool.Capacity,
+                        updateSchool.Quality,
+                        updateSchool.Emphasis,
+                        updateSchool.MonthlyCost))
+                    throw new InvalidOperationException("School not found.");
+                return new { schoolId = updateSchool.SchoolId };
+            }
+
+            case ForceStageCommand force:
+            {
+                var progression = new StageProgressionSystem(world, economy!);
+                if (!progression.ForceStage(force.SimId, force.Stage, tick))
+                    throw new InvalidOperationException("Sim not found.");
+                progression.Update(tick, clock);
+                return new { simId = force.SimId, stage = force.Stage.ToString() };
+            }
+
+            case GraduateSimCommand graduate:
+            {
+                var progression = new StageProgressionSystem(world, economy!);
+                if (!progression.ForceStage(graduate.SimId, LifeStage.Work, tick))
+                    throw new InvalidOperationException("Sim not found.");
+                progression.Update(tick, clock);
+                return new { simId = graduate.SimId, stage = LifeStage.Work.ToString() };
+            }
+
+            case RetireSimCommand retire:
+            {
+                var progression = new StageProgressionSystem(world, economy!);
+                if (!progression.ForceStage(retire.SimId, LifeStage.Retirement, tick))
+                    throw new InvalidOperationException("Sim not found.");
+                progression.Update(tick, clock);
+                return new { simId = retire.SimId, stage = LifeStage.Retirement.ToString() };
+            }
+
+            case GrantCareCommand care:
+            {
+                if (!networkIds.TryGetEntity(new NetworkId(care.SimId), out var entity) ||
+                    !world.IsAlive(entity) || world.Has<Dead>(entity))
+                    throw new InvalidOperationException("Sim not found.");
+
+                if (!world.Has<Health>(entity))
+                    world.Add(entity, new Health(50f));
+
+                var health = world.Get<Health>(entity);
+                var before = health.Value;
+                health.Value = Math.Clamp(health.Value + Math.Max(1f, care.HealthGain), 0f, 100f);
+                health.LastCareTick = tick;
+                world.Get<Health>(entity) = health;
+
+                var cost = Money.FromUnits(25m);
+                var shortfall = Money.Zero;
+                if (economy.Housing.HouseholdBySim.TryGetValue(entity, out var household))
+                {
+                    var finance = new HouseholdFinanceService(world, economy);
+                    finance.TryDebit(household, cost, LedgerKind.MedicalCare, tick, null,
+                        "medical.care", out shortfall);
+                }
+                else if (world.Has<Wallet>(entity))
+                {
+                    ref var wallet = ref world.Get<Wallet>(entity);
+                    var paid = wallet.Balance.Min(cost);
+                    wallet.Balance -= paid;
+                    shortfall = cost - paid;
+                }
+                else
+                {
+                    shortfall = cost;
+                }
+
+                if (shortfall.IsPositive && economy.Government.Balance >= shortfall)
+                {
+                    economy.Government.Balance -= shortfall;
+                    economy.Ledger.Record(Guid.NewGuid(), tick, LedgerKind.MedicalCare,
+                        EconomyAccountIds.Government, care.SimId, shortfall, "medical.care");
+                }
+
+                economy.Emit(new MedicalCarePurchased(care.SimId, cost.Cents, tick));
+                economy.Emit(new HealthRestored(care.SimId, health.Value, tick));
+                return new { simId = care.SimId, healthBefore = before, healthAfter = health.Value };
+            }
+
+            case GeneratePopulationCommand generate:
+            {
+                var generator = new PopulationGenerator(world, networkIds, economy!, employmentIndex!);
+                var result = generator.Generate(
+                    generate.TotalSims,
+                    generate.Seed,
+                    generate.Adults,
+                    generate.Children,
+                    tick);
+                return result;
+            }
+
+            case SetPopulationTargetCommand target:
+            {
+                economy.Life.Immigration.TargetPopulation = Math.Max(0, target.TargetPopulation);
+                economy.Life.Immigration.Enabled = target.Enabled;
+                return new
+                {
+                    targetPopulation = economy.Life.Immigration.TargetPopulation,
+                    enabled = economy.Life.Immigration.Enabled
+                };
+            }
+
+            case PromoteSimCommand promote:
+            {
+                if (!networkIds.TryGetEntity(new NetworkId(promote.SimId), out var entity) ||
+                    !world.IsAlive(entity) || !world.Has<Employee>(entity))
+                    throw new InvalidOperationException("Employee not found.");
+
+                var employee = world.Get<Employee>(entity);
+                if (employee.Seniority >= Seniority.Director)
+                    throw new InvalidOperationException("Employee is already at the top band.");
+                var from = employee.Seniority;
+                employee.Seniority = economy.Life.Careers.Next(from);
+                employee.SalaryPerCycle = employee.SalaryPerCycle
+                    .Multiply(1m + economy.Life.Careers.PromotionRaise)
+                    .Min(economy.Life.Careers.MaximumSalary);
+                world.Get<Employee>(entity) = employee;
+                if (world.Has<EmploymentRecord>(entity))
+                {
+                    var record = world.Get<EmploymentRecord>(entity);
+                    record.HighPerformanceMonths = 0;
+                    world.Get<EmploymentRecord>(entity) = record;
+                }
+                economy.Emit(new PromotionGranted(
+                    promote.SimId,
+                    from.ToString(),
+                    employee.Seniority.ToString(),
+                    employee.SalaryPerCycle.Cents,
+                    tick));
+                return new
+                {
+                    simId = promote.SimId,
+                    seniority = employee.Seniority.ToString(),
+                    salary = employee.SalaryPerCycle.Cents
+                };
+            }
+
+            case SetBenefitEligibilityCommand eligibility:
+            {
+                if (!networkIds.TryGetEntity(new NetworkId(eligibility.SimId), out var entity) ||
+                    !world.IsAlive(entity))
+                    throw new InvalidOperationException("Sim not found.");
+
+                if (world.Has<UnemploymentRecord>(entity))
+                {
+                    var record = world.Get<UnemploymentRecord>(entity);
+                    record.Eligible = eligibility.Eligible;
+                    if (!eligibility.Eligible)
+                        record.BenefitPerCycle = Money.Zero;
+                    world.Get<UnemploymentRecord>(entity) = record;
+                }
+                else if (eligibility.Eligible)
+                {
+                    var seeker = world.Has<JobSeeker>(entity) ? world.Get<JobSeeker>(entity) : default;
+                    world.Add(entity, new UnemploymentRecord(
+                        tick,
+                        seeker.DesiredSalary.Multiply(0.4m),
+                        6,
+                        true));
+                }
+
+                return new { simId = eligibility.SimId, eligible = eligibility.Eligible };
+            }
+
+            case TopUpPensionFundCommand topUp:
+            {
+                if (!topUp.Amount.IsPositive)
+                    throw new InvalidOperationException("Top-up amount must be positive.");
+                var paid = topUp.Amount.Min(economy.Government.Balance);
+                if (!paid.IsPositive)
+                    throw new InvalidOperationException("Government has insufficient funds.");
+                economy.Government.Balance -= paid;
+                economy.Pension.Balance += paid;
+                economy.Ledger.Record(
+                    Guid.NewGuid(),
+                    tick,
+                    LedgerKind.PensionTopUp,
+                    EconomyAccountIds.Government,
+                    EconomyAccountIds.PensionFund,
+                    paid,
+                    "pension.topup");
+                economy.Emit(new PensionFundTopUp(
+                    paid.Cents,
+                    economy.Pension.Balance.Cents,
+                    tick));
+                return new { amount = paid.Cents, fundBalance = economy.Pension.Balance.Cents };
+            }
+
+            case ForceDeathCommand forceDeath:
+            {
+                if (!networkIds.TryGetEntity(new NetworkId(forceDeath.SimId), out var entity) ||
+                    !world.IsAlive(entity))
+                    throw new InvalidOperationException("Sim not found.");
+                if (world.Has<Dead>(entity))
+                    return new { simId = forceDeath.SimId, alreadyDead = true };
+
+                world.Add(entity, new Dead(tick, forceDeath.Cause));
+                economy.Life.DeathQueue.Add(entity);
+                economy.Life.DeathsThisYear++;
+                return new { simId = forceDeath.SimId, cause = forceDeath.Cause.ToString() };
+            }
+
+            case AdvanceAgeCommand advanceAge:
+            {
+                if (!networkIds.TryGetEntity(new NetworkId(advanceAge.SimId), out var entity) ||
+                    !world.IsAlive(entity) || !world.Has<Alive>(entity))
+                    throw new InvalidOperationException("Sim not found.");
+
+                var years = Math.Max(1, advanceAge.Years);
+                var alive = world.Get<Alive>(entity);
+                alive.Age = Math.Min(economy.Life.Policy.MaxAge, alive.Age + years);
+                world.Get<Alive>(entity) = alive;
+                if (world.Has<Lifecycle>(entity))
+                {
+                    var lifecycle = world.Get<Lifecycle>(entity);
+                    lifecycle.AgeTicks = Math.Min(
+                        (long)economy.Life.Policy.MaxAge * clock.TicksPerYear,
+                        lifecycle.AgeTicks + (long)years * clock.TicksPerYear);
+                    lifecycle.LastAgedTick = tick;
+                    world.Get<Lifecycle>(entity) = lifecycle;
+                }
+                else
+                {
+                    world.Add(entity, LifecycleFactory.Create(alive.Age, tick, clock, economy.Life.Policy));
+                }
+
+                new StageProgressionSystem(world, economy).Update(tick, clock);
+                return new { simId = advanceAge.SimId, age = world.Get<Alive>(entity).Age };
+            }
+
+            case PauseImmigrationCommand pause:
+            {
+                economy.Life.ImmigrationState.Paused = pause.Paused;
+                if (pause.Paused)
+                    economy.Emit(new ImmigrationPaused("admin", tick));
+                return new { paused = pause.Paused };
+            }
+
+            case TriggerImmigrationWaveCommand wave:
+            {
+                var count = Math.Max(1, wave.Count);
+                economy.Life.ImmigrationState.ArrivalBudget += count;
+                if (economy.Life.Immigration.TargetPopulation <= 0)
+                    economy.Life.Immigration.TargetPopulation =
+                        economy.Life.Index.TotalLiving + count;
+                var before = economy.Life.ImmigrationState.ArrivalsThisYear;
+                new PopulationInflowSystem(world, economy).Update(tick, clock);
+                return new
+                {
+                    requested = count,
+                    admitted = economy.Life.ImmigrationState.ArrivalsThisYear - before
+                };
+            }
+
+            case SetEnrollmentCommand enrollment:
+            {
+                var repository = new SchoolRepository(world, networkIds, economy);
+                if (!repository.SetEnrollment(enrollment.SimId, enrollment.SchoolId, enrollment.Enrolled))
+                    throw new InvalidOperationException("Enrollment change failed.");
+                return new
+                {
+                    simId = enrollment.SimId,
+                    schoolId = enrollment.SchoolId,
+                    enrolled = enrollment.Enrolled
+                };
+            }
+
             case CreateOfficeCommand create:
             {
                 var repository = new OfficeRepository(world, networkIds, economy);
@@ -990,6 +1304,7 @@ if (SnapshotsEnabled)
 
         result.Economy = BuildEconomyStatus();
         result.Housing = BuildHousingStatus();
+        result.Lifecycle = BuildLifecycleSummary();
         result.RecentLedger = BuildRecentLedger(200);
         return result;
     }
@@ -1222,6 +1537,548 @@ if (SnapshotsEnabled)
                 }).ToList()
             };
         }
+    }
+
+    public LifecycleStatus BuildLifecycleStatus()
+    {
+        lock (@lock)
+        {
+            var status = new LifecycleStatus();
+            if (world is null || economy is null)
+                return status;
+
+            var stages = new int[4];
+            var ages = new List<int>();
+            var healthTotal = 0f;
+            var healthCount = 0;
+
+            world.Query(in new QueryDescription().WithAll<Lifecycle, Alive>().WithNone<Dead>(),
+                (Entity entity, ref Lifecycle lifecycle, ref Alive alive) =>
+                {
+                    stages[(int)lifecycle.Stage]++;
+                    ages.Add(alive.Age);
+                    if (world.Has<Health>(entity))
+                    {
+                        healthTotal += world.Get<Health>(entity).Value;
+                        healthCount++;
+                    }
+                });
+
+            ages.Sort();
+            var total = ages.Count;
+            status.TotalSims = total;
+            status.Education = stages[(int)LifeStage.Education];
+            status.Work = stages[(int)LifeStage.Work];
+            status.Retirement = stages[(int)LifeStage.Retirement];
+            status.Elderly = stages[(int)LifeStage.Elderly];
+            status.AverageAge = total > 0 ? (decimal)ages.Sum() / total : 0m;
+            status.MedianAge = Median(ages);
+            status.AverageHealth = healthCount > 0 ? (decimal)healthTotal / healthCount : 0m;
+
+            var enrolled = 0;
+            var unenrolled = 0;
+            world.Query(in new QueryDescription().WithAll<Enrollment>().WithNone<Dead>(),
+                (ref Enrollment enrollment) =>
+                {
+                    if (enrollment.IsUnenrolled)
+                        unenrolled++;
+                    else
+                        enrolled++;
+                });
+            status.StudentsEnrolled = enrolled;
+            status.UnenrolledStudents = unenrolled;
+            var schoolAge = total > 0 ? ages.Count(age => age >= economy.Life.Policy.SchoolStartAge &&
+                                                          age < economy.Life.Policy.WorkStartAge) : 0;
+            status.EnrollmentRate = schoolAge > 0 ? enrolled / (decimal)schoolAge : 1m;
+
+            var employed = 0;
+            world.Query(in new QueryDescription().WithAll<Employee>().WithNone<Dead>(),
+                (ref Employee _) => employed++);
+            var unemployed = 0;
+            world.Query(in new QueryDescription().WithAll<Lifecycle, JobSeeker>().WithNone<Employee, Dead>(),
+                (ref Lifecycle lifecycle) =>
+                {
+                    if (lifecycle.Stage == LifeStage.Work)
+                        unemployed++;
+                });
+            status.Employed = employed;
+            status.Unemployed = unemployed;
+            status.UnemploymentRate = status.Work > 0 ? unemployed / (decimal)status.Work : 0m;
+
+            world.Query(in new QueryDescription().WithAll<School>(), (ref School _) => status.Schools++);
+
+            var pensions = BuildPensions(includeMembers: false);
+            status.PensionFund = pensions.FundBalance;
+            status.PensionLiabilities = pensions.ProjectedLiabilities;
+            status.PensionFundingRatio = pensions.FundingRatio;
+            status.AveragePension = pensions.AverageMonthlyPension;
+            status.PensionReplacementRate = pensions.ReplacementRate;
+            status.MortalityRecords = economy.Life.MortalityLog.Count;
+            status.RetiredThisYear = economy.Life.RetiredThisYear;
+            status.DeathsThisYear = economy.Life.DeathsThisYear;
+            status.ArrivalsThisYear = economy.Life.ArrivalsThisYear;
+            status.GraduatesThisYear = economy.Life.GraduatesThisYear;
+
+            var workingAge = status.Work;
+            var oldAge = status.Retirement + status.Elderly;
+            status.WorkingAgeShare = total > 0 ? workingAge / (decimal)total : 0m;
+            status.OldAgeDependencyRatio = workingAge > 0 ? oldAge / (decimal)workingAge : 0m;
+
+            var deaths = economy.Life.MortalityLog.Select(record => record.Age).ToList();
+            status.LifeExpectancy = deaths.Count > 0 ? (decimal)deaths.Average() : status.AverageAge;
+
+            var latest = economy.Life.MetricHistory.Count > 0 ? economy.Life.MetricHistory[^1] : null;
+            status.LatestSnapshot = latest is null ? null : MapPopulation(latest);
+
+            var policy = economy.Life.Policy;
+            status.Policy = new StagePolicyStatus
+            {
+                SchoolStartAge = policy.SchoolStartAge,
+                WorkStartAge = policy.WorkStartAge,
+                RetirementAge = policy.RetirementAge,
+                ElderlyAge = policy.ElderlyAge,
+                MaxAge = policy.MaxAge
+            };
+
+            var immigration = economy.Life.Immigration;
+            var state = economy.Life.ImmigrationState;
+            status.Immigration = new ImmigrationStatus
+            {
+                TargetPopulation = immigration.TargetPopulation,
+                Enabled = immigration.Enabled,
+                ArrivalsThisYear = state.ArrivalsThisYear,
+                ArrivalBudget = state.ArrivalBudget,
+                Pending = state.Pending.Count,
+                CancelledThisYear = state.CancelledThisYear,
+                Paused = state.Paused
+            };
+
+            status.Health = PopulationHealth.Evaluate(latest)
+                .Select(check => new LifecycleHealthCheckStatus
+                {
+                    Name = check.Name,
+                    Level = check.Level,
+                    Detail = check.Detail
+                })
+                .ToList();
+
+            return status;
+        }
+    }
+
+    /// <summary>
+    /// Lightweight lifecycle aggregate for the frequently polled world-data
+    /// endpoint. It uses the index and the last yearly snapshot instead of
+    /// scanning every sim and pension account.
+    /// </summary>
+    public LifecycleStatus BuildLifecycleSummary()
+    {
+        lock (@lock)
+        {
+            var status = new LifecycleStatus();
+            if (world is null || economy is null)
+                return status;
+
+            var index = economy.Life.Index;
+            var latest = economy.Life.MetricHistory.Count > 0 ? economy.Life.MetricHistory[^1] : null;
+
+            status.TotalSims = index.TotalLiving;
+            status.Education = index.StageCount(LifeStage.Education);
+            status.Work = index.StageCount(LifeStage.Work);
+            status.Retirement = index.StageCount(LifeStage.Retirement);
+            status.Elderly = index.StageCount(LifeStage.Elderly);
+            status.StudentsEnrolled = index.EnrolledStudents;
+            status.UnenrolledStudents = index.UnenrolledStudents;
+
+            if (latest is not null)
+            {
+                status.AverageAge = latest.AverageAge;
+                status.MedianAge = latest.MedianAge;
+                status.AverageHealth = latest.AverageHealth;
+                status.WorkingAgeShare = latest.WorkingAgeShare;
+                status.OldAgeDependencyRatio = latest.OldAgeDependencyRatio;
+                status.Employed = latest.Employed;
+                status.Unemployed = latest.Unemployed;
+                status.UnemploymentRate = latest.Work > 0
+                    ? latest.Unemployed / (decimal)latest.Work
+                    : 0m;
+                status.EnrollmentRate = latest.StudentsEnrolled > 0
+                    ? latest.StudentsEnrolled / (decimal)Math.Max(1, latest.Education)
+                    : 0m;
+                status.PensionFundingRatio = latest.PensionFundingRatio;
+                status.PensionReplacementRate = latest.PensionReplacementRate;
+                status.LifeExpectancy = latest.LifeExpectancy;
+            }
+
+            status.PensionFund = economy.Pension.Balance.Units;
+            status.GraduatesThisYear = economy.Life.GraduatesThisYear;
+            status.RetiredThisYear = economy.Life.RetiredThisYear;
+            status.DeathsThisYear = economy.Life.DeathsThisYear;
+            status.ArrivalsThisYear = economy.Life.ArrivalsThisYear;
+            status.MortalityRecords = economy.Life.MortalityLog.Count;
+
+            world.Query(in new QueryDescription().WithAll<School>(), (ref School _) => status.Schools++);
+
+            var policy = economy.Life.Policy;
+            status.Policy = new StagePolicyStatus
+            {
+                SchoolStartAge = policy.SchoolStartAge,
+                WorkStartAge = policy.WorkStartAge,
+                RetirementAge = policy.RetirementAge,
+                ElderlyAge = policy.ElderlyAge,
+                MaxAge = policy.MaxAge
+            };
+
+            var immigration = economy.Life.Immigration;
+            var state = economy.Life.ImmigrationState;
+            status.Immigration = new ImmigrationStatus
+            {
+                TargetPopulation = immigration.TargetPopulation,
+                Enabled = immigration.Enabled,
+                ArrivalsThisYear = state.ArrivalsThisYear,
+                ArrivalBudget = state.ArrivalBudget,
+                Pending = state.Pending.Count,
+                CancelledThisYear = state.CancelledThisYear,
+                Paused = state.Paused
+            };
+
+            status.Health = PopulationHealth.Evaluate(latest)
+                .Select(check => new LifecycleHealthCheckStatus
+                {
+                    Name = check.Name,
+                    Level = check.Level,
+                    Detail = check.Detail
+                })
+                .ToList();
+
+            return status;
+        }
+    }
+
+    public List<SimLifecycleStatus> BuildLifecycleSims(int take = 500, int skip = 0, string? stageFilter = null)
+    {
+        lock (@lock)
+        {
+            var result = new List<SimLifecycleStatus>();
+            if (world is null || economy is null)
+                return result;
+
+            LifeStage? filter = Enum.TryParse<LifeStage>(stageFilter, ignoreCase: true, out var parsed)
+                ? parsed
+                : null;
+
+            world.Query(in new QueryDescription().WithAll<GenName, Alive, NetworkId>(),
+                (Entity entity, ref GenName name, ref Alive alive, ref NetworkId nid) =>
+                {
+                    var stage = world.Has<Lifecycle>(entity)
+                        ? world.Get<Lifecycle>(entity).Stage
+                        : economy.Life.Policy.StageFor(alive.Age);
+                    if (filter is { } required && stage != required)
+                        return;
+                    var row = new SimLifecycleStatus
+                    {
+                        NetworkId = nid.Value,
+                        Name = name.Name,
+                        Age = alive.Age,
+                        Stage = stage.ToString(),
+                        Health = world.Has<Health>(entity) ? (decimal)world.Get<Health>(entity).Value : 0m,
+                        IsDead = world.Has<Dead>(entity)
+                    };
+
+                    if (world.Has<Lifecycle>(entity))
+                    {
+                        var lifecycle = world.Get<Lifecycle>(entity);
+                        row.AgeTicks = lifecycle.AgeTicks;
+                        row.StageEnteredTick = lifecycle.StageEnteredTick;
+                        row.LastTransitionCause = lifecycle.LastCause.ToString();
+                    }
+
+                    if (world.Has<SkillProfile>(entity))
+                    {
+                        var profile = world.Get<SkillProfile>(entity);
+                        row.SkillTotal = (decimal)profile.Total;
+                        row.TopSkill = TopSkill(profile);
+                    }
+
+                    if (world.Has<Enrollment>(entity))
+                    {
+                        var enrollment = world.Get<Enrollment>(entity);
+                        row.IsUnenrolled = enrollment.IsUnenrolled;
+                        row.IsEnrolled = !enrollment.IsUnenrolled;
+                        row.Attendance = (decimal)enrollment.Attendance;
+                        row.MonthsAttended = enrollment.MonthsAttended;
+                        if (world.IsAlive(enrollment.School) && world.Has<School>(enrollment.School))
+                        {
+                            row.School = world.Get<School>(enrollment.School).Name;
+                            row.SchoolNetworkId = GetNetworkId(world, enrollment.School);
+                        }
+                    }
+
+                    if (world.Has<Employee>(entity))
+                    {
+                        var employee = world.Get<Employee>(entity);
+                        row.IsEmployed = true;
+                        row.Position = employee.Position;
+                        row.Seniority = employee.Seniority.ToString();
+                        row.Salary = employee.SalaryPerCycle.Units;
+                        if (world.IsAlive(employee.Company) && world.Has<CompanyName>(employee.Company))
+                            row.Employer = world.Get<CompanyName>(employee.Company).Name;
+                    }
+
+                    if (world.Has<EmploymentRecord>(entity))
+                    {
+                        var record = world.Get<EmploymentRecord>(entity);
+                        row.Performance = (decimal)record.Performance;
+                        row.Warnings = record.Warnings;
+                    }
+
+                    if (world.Has<WorkSchedule>(entity))
+                        row.IsAtWork = world.Get<WorkSchedule>(entity).IsAtWork;
+
+                    row.IsLookingForWork = world.Has<JobSeeker>(entity);
+                    if (world.Has<RetirementIncome>(entity))
+                    {
+                        var income = world.Get<RetirementIncome>(entity);
+                        row.MonthlyPension = income.MonthlyPension.Units;
+                        row.RetirementFund = income.FundReference;
+                        row.PensionReduced = income.Reduced;
+                    }
+
+                    if (world.Has<UnemploymentRecord>(entity))
+                        row.UnemploymentCycle = world.Get<UnemploymentRecord>(entity).CyclesClaimed;
+
+                    if (economy.Housing.HouseholdBySim.TryGetValue(entity, out var household))
+                        row.HouseholdNetworkId = GetNetworkId(world, household);
+
+                    result.Add(row);
+                });
+
+            return result
+                .OrderBy(row => row.Stage)
+                .ThenBy(row => row.NetworkId)
+                .Skip(Math.Max(0, skip))
+                .Take(Math.Clamp(take, 1, 2_000))
+                .ToList();
+        }
+    }
+
+    public List<SchoolStatus> BuildSchools()
+    {
+        lock (@lock)
+        {
+            var result = new List<SchoolStatus>();
+            if (world is null)
+                return result;
+
+            var attendance = new Dictionary<Entity, (float Total, int Count)>();
+            world.Query(in new QueryDescription().WithAll<Enrollment>().WithNone<Dead>(),
+                (ref Enrollment enrollment) =>
+                {
+                    if (enrollment.IsUnenrolled)
+                        return;
+                    attendance.TryGetValue(enrollment.School, out var stat);
+                    attendance[enrollment.School] = (stat.Total + enrollment.Attendance, stat.Count + 1);
+                });
+
+            world.Query(in new QueryDescription().WithAll<School, NetworkId>(),
+                (Entity entity, ref School school, ref NetworkId nid) =>
+                {
+                    var owner = string.Empty;
+                    if (world.IsAlive(school.Owner) && world.Has<CompanyName>(school.Owner))
+                        owner = world.Get<CompanyName>(school.Owner).Name;
+
+                    var average = attendance.TryGetValue(entity, out var stat) && stat.Count > 0
+                        ? stat.Total / stat.Count
+                        : 0f;
+
+                    result.Add(new SchoolStatus
+                    {
+                        NetworkId = nid.Value,
+                        Name = school.Name,
+                        District = school.District,
+                        Capacity = school.Capacity,
+                        Enrolled = school.Enrolled,
+                        Attendance = (decimal)average,
+                        Quality = (decimal)school.Quality,
+                        Emphasis = school.Emphasis.ToString(),
+                        MonthlyCost = school.MonthlyCost.Units,
+                        OwnerNetworkId = school.Owner == Entity.Null ? null : GetNetworkId(world, school.Owner),
+                        Owner = owner
+                    });
+                });
+
+            return result.OrderBy(row => row.Name).ToList();
+        }
+    }
+
+    public PensionStatus BuildPensions(bool includeMembers = true)
+    {
+        lock (@lock)
+        {
+            var status = new PensionStatus();
+            if (world is null || economy is null)
+                return status;
+
+            status.FundBalance = economy.Pension.Balance.Units;
+            status.PaidThisCycle = economy.Pension.PayoutsThisCycle.Units;
+            status.ShortfallThisCycle = economy.Pension.Shortfall.Units;
+            status.FundingRatio = economy.Life.PensionFundingRatio(economy.Pension.Balance);
+
+            var pensionTotal = Money.Zero;
+            var pensionCount = 0;
+            var reduced = 0;
+
+            world.Query(in new QueryDescription().WithAll<GenName, Alive, NetworkId, PensionAccount>().WithNone<Dead>(),
+                (Entity entity, ref GenName name, ref Alive alive, ref NetworkId nid,
+                    ref PensionAccount account) =>
+                {
+                    var contributions = account.EmployeeContributions + account.EmployerContributions;
+                    status.Members++;
+                    status.TotalContributions += contributions.Units;
+                    status.ProjectedLiabilities += economy.Life.Pensions
+                        .ProjectedLiability(account, economy.Life.Policy).Units;
+
+                    if (world.Has<RetirementIncome>(entity))
+                    {
+                        var income = world.Get<RetirementIncome>(entity);
+                        pensionTotal += income.MonthlyPension;
+                        pensionCount++;
+                        if (income.Reduced)
+                            reduced++;
+                        if (includeMembers)
+                        {
+                            status.MemberDetail.Add(new PensionMemberStatus
+                            {
+                                NetworkId = nid.Value,
+                                Name = name.Name,
+                                Age = alive.Age,
+                                MonthlyPension = income.MonthlyPension.Units,
+                                Contributions = contributions.Units,
+                                ContributingCycles = account.ContributingCycles,
+                                MeansTested = income.MeansTested,
+                                Reduced = income.Reduced
+                            });
+                        }
+                    }
+                });
+
+            status.AverageMonthlyPension = pensionCount > 0
+                ? pensionTotal.Units / pensionCount
+                : 0m;
+            var monthsPerCycle = Math.Max(1, clock.TicksPerPayCycle / clock.TicksPerMonth);
+            var monthlyBase = economy.Life.Careers.BaseSalary.Units / monthsPerCycle;
+            status.ReplacementRate = monthlyBase > 0 ? status.AverageMonthlyPension / monthlyBase : 0m;
+            status.ReducedThisCycle = reduced;
+            status.MemberDetail = status.MemberDetail
+                .OrderByDescending(member => member.MonthlyPension)
+                .ThenBy(member => member.Name)
+                .ToList();
+            return status;
+        }
+    }
+
+    public List<MortalityRecordStatus> BuildMortality(int take = 100)
+    {
+        lock (@lock)
+        {
+            if (economy is null)
+                return new List<MortalityRecordStatus>();
+
+            return economy.Life.MortalityLog
+                .OrderByDescending(record => record.Tick)
+                .ThenByDescending(record => record.SimNetworkId)
+                .Take(Math.Clamp(take, 1, 1000))
+                .Select(record => new MortalityRecordStatus
+                {
+                    Tick = record.Tick,
+                    SimNetworkId = record.SimNetworkId,
+                    Name = record.Name,
+                    Age = record.Age,
+                    Cause = record.Cause.ToString(),
+                    Wealth = record.Wealth
+                })
+                .ToList();
+        }
+    }
+
+    public List<PopulationSnapshotStatus> BuildPopulationHistory(int years = 20)
+    {
+        lock (@lock)
+        {
+            if (economy is null)
+                return new List<PopulationSnapshotStatus>();
+
+            return economy.Life.MetricHistory
+                .TakeLast(Math.Clamp(years, 1, 50))
+                .Select(MapPopulation)
+                .ToList();
+        }
+    }
+
+    public LifecycleOverviewResponse BuildLifecycleOverview() => new()
+    {
+        Status = BuildLifecycleStatus(),
+        Schools = BuildSchools(),
+        Pensions = BuildPensions(),
+        Mortality = BuildMortality(100),
+        PopulationHistory = BuildPopulationHistory(20)
+    };
+
+    private static PopulationSnapshotStatus MapPopulation(PopulationSnapshot snapshot) => new()
+    {
+        Tick = snapshot.Tick,
+        Year = snapshot.Year,
+        Total = snapshot.Total,
+        Education = snapshot.Education,
+        Work = snapshot.Work,
+        Retirement = snapshot.Retirement,
+        Elderly = snapshot.Elderly,
+        StudentsEnrolled = snapshot.StudentsEnrolled,
+        GraduatesThisYear = snapshot.GraduatesThisYear,
+        Employed = snapshot.Employed,
+        Unemployed = snapshot.Unemployed,
+        RetiredThisYear = snapshot.RetiredThisYear,
+        DeathsThisYear = snapshot.DeathsThisYear,
+        ArrivalsThisYear = snapshot.ArrivalsThisYear,
+        AverageAge = snapshot.AverageAge,
+        MedianAge = snapshot.MedianAge,
+        AverageHealth = snapshot.AverageHealth,
+        AverageAgeAtDeath = snapshot.AverageAgeAtDeath,
+        LifeExpectancy = snapshot.LifeExpectancy,
+        PensionReplacementRate = snapshot.PensionReplacementRate,
+        PensionFundingRatio = snapshot.PensionFundingRatio,
+        WorkingAgeShare = snapshot.WorkingAgeShare,
+        OldAgeDependencyRatio = snapshot.OldAgeDependencyRatio,
+        PyramidBuckets = snapshot.PyramidBuckets.ToList(),
+        DeathCauses = snapshot.DeathCauses
+            .Select(cause => new DeathCauseStatus { Cause = cause.Cause, Count = cause.Count })
+            .ToList()
+    };
+
+    private static decimal Median(List<int> values)
+    {
+        if (values.Count == 0)
+            return 0m;
+        var middle = values.Count / 2;
+        return values.Count % 2 == 0
+            ? (values[middle - 1] + values[middle]) / 2m
+            : values[middle];
+    }
+
+    private static string TopSkill(SkillProfile profile)
+    {
+        var best = string.Empty;
+        var value = 0f;
+        foreach (var skill in SkillProfile.Families)
+        {
+            var proficiency = profile.Get(skill);
+            if (proficiency > value)
+            {
+                value = proficiency;
+                best = skill.ToString();
+            }
+        }
+        return best;
     }
 
     public List<HousingPropertyStatus> BuildHousingProperties()
@@ -1828,7 +2685,10 @@ if (SnapshotsEnabled)
             world.Query(in jobSeekerQuery, (Entity entity, ref JobSeeker js) =>
             {
                 if (simByEntity.TryGetValue(entity, out var sim))
+                {
                     sim.IsLookingForWork = js.IsLookingForWork;
+                    sim.DesiredSalaryCents = js.DesiredSalary.Cents;
+                }
             });
 
             var locationQuery = new QueryDescription().WithAll<GenName, Location>();
@@ -1893,6 +2753,8 @@ if (SnapshotsEnabled)
                 sim.OfficeNetworkId = GetNetworkId(world, employee.Office);
                 sim.Position = employee.Position;
                 sim.SalaryCents = employee.SalaryPerCycle.Cents;
+                sim.Seniority = employee.Seniority.ToString();
+                sim.HiredAtTick = employee.HiredAtTick;
             });
 
             var claimQuery = new QueryDescription().WithAll<WageClaim>();
@@ -1907,6 +2769,138 @@ if (SnapshotsEnabled)
                 sim.ClaimCycles = claim.CyclesInArrears;
                 sim.ClaimFirstTick = claim.FirstMissedTick;
             });
+
+            var lifecycleQuery = new QueryDescription().WithAll<GenName, Lifecycle>();
+            world.Query(in lifecycleQuery, (Entity entity, ref Lifecycle lifecycle) =>
+            {
+                if (!simByEntity.TryGetValue(entity, out var sim))
+                    return;
+                sim.Stage = lifecycle.Stage.ToString();
+                sim.AgeTicks = lifecycle.AgeTicks;
+                sim.StageEnteredTick = lifecycle.StageEnteredTick;
+                sim.StageCause = lifecycle.LastCause.ToString();
+                sim.LastAgedTick = lifecycle.LastAgedTick;
+                sim.MaxAgeFlagged = lifecycle.MaxAgeFlagged;
+            });
+
+            world.Query(in new QueryDescription().WithAll<GenName, SkillProfile>(),
+                (Entity entity, ref SkillProfile profile) =>
+                {
+                    if (!simByEntity.TryGetValue(entity, out var sim))
+                        return;
+                    sim.SkillProgramming = profile.Programming;
+                    sim.SkillArt = profile.Art;
+                    sim.SkillCooking = profile.Cooking;
+                    sim.SkillMedical = profile.Medical;
+                    sim.SkillEngineering = profile.Engineering;
+                    sim.SkillSales = profile.Sales;
+                });
+
+            world.Query(in new QueryDescription().WithAll<GenName, Health>(),
+                (Entity entity, ref Health health) =>
+                {
+                    if (!simByEntity.TryGetValue(entity, out var sim))
+                        return;
+                    sim.HealthValue = health.Value;
+                    sim.HealthDeclineRate = health.DeclineRate;
+                    sim.HealthLastCareTick = health.LastCareTick;
+                    sim.ChronicConditions = health.ChronicConditions;
+                });
+
+            world.Query(in new QueryDescription().WithAll<GenName, Enrollment>(),
+                (Entity entity, ref Enrollment enrollment) =>
+                {
+                    if (!simByEntity.TryGetValue(entity, out var sim))
+                        return;
+                    sim.EnrollmentSchoolNetworkId = GetNetworkId(world, enrollment.School);
+                    sim.EnrollmentAttendance = enrollment.Attendance;
+                    sim.EnrollmentMonths = enrollment.MonthsAttended;
+                    sim.IsUnenrolled = enrollment.IsUnenrolled;
+                });
+
+            world.Query(in new QueryDescription().WithAll<GenName, EmploymentRecord>(),
+                (Entity entity, ref EmploymentRecord record) =>
+                {
+                    if (!simByEntity.TryGetValue(entity, out var sid))
+                        return;
+                    sid.EmploymentAttendance = record.Attendance;
+                    sid.EmploymentPerformance = record.Performance;
+                    sid.EmploymentTenureCycles = record.TenureCycles;
+                    sid.EmploymentWarnings = record.Warnings;
+                    sid.EmploymentShiftsCompleted = record.ShiftsCompleted;
+                    sid.EmploymentShiftsExpected = record.ShiftsExpected;
+                    sid.EmploymentInterruptions = record.Interruptions;
+                    sid.EmploymentConsecutiveLowMonths = record.ConsecutiveLowMonths;
+                    sid.EmploymentHighPerformanceMonths = record.HighPerformanceMonths;
+                    sid.EmploymentLastReviewTick = record.LastReviewTick;
+                });
+
+            world.Query(in new QueryDescription().WithAll<GenName, WorkSchedule>(),
+                (Entity entity, ref WorkSchedule schedule) =>
+                {
+                    if (!simByEntity.TryGetValue(entity, out var sid))
+                        return;
+                    sid.WorkOfficeNetworkId = GetNetworkId(world, schedule.Office);
+                    sid.IsAtWork = schedule.IsAtWork;
+                    sid.ShiftTicksRemaining = schedule.ShiftTicksRemaining;
+                    sid.LastShiftStartTick = schedule.LastShiftStartTick;
+                    sid.LastShiftEndTick = schedule.LastShiftEndTick;
+                    sid.WorkShiftsCompleted = schedule.ShiftsCompleted;
+                    sid.WorkShiftsInterrupted = schedule.ShiftsInterrupted;
+                });
+
+            world.Query(in new QueryDescription().WithAll<GenName, RetirementIncome>(),
+                (Entity entity, ref RetirementIncome income) =>
+                {
+                    if (!simByEntity.TryGetValue(entity, out var sid))
+                        return;
+                    sid.RetirementMonthlyCents = income.MonthlyPension.Cents;
+                    sid.RetirementStartedTick = income.StartedTick;
+                    sid.RetirementReduced = income.Reduced;
+                    sid.RetirementMeansTested = income.MeansTested;
+                    sid.RetirementFund = income.FundReference;
+                });
+
+            world.Query(in new QueryDescription().WithAll<GenName, UnemploymentRecord>(),
+                (Entity entity, ref UnemploymentRecord record) =>
+                {
+                    if (!simByEntity.TryGetValue(entity, out var sid))
+                        return;
+                    sid.UnemploymentStartedTick = record.StartedTick;
+                    sid.UnemploymentBenefitCents = record.BenefitPerCycle.Cents;
+                    sid.UnemploymentCyclesClaimed = record.CyclesClaimed;
+                    sid.UnemploymentMaxCycles = record.MaxCycles;
+                    sid.UnemploymentEligible = record.Eligible;
+                    sid.UnemploymentUnpaidCycles = record.UnpaidCycles;
+                });
+
+            world.Query(in new QueryDescription().WithAll<GenName, Dead>(),
+                (Entity entity, ref Dead dead) =>
+                {
+                    if (!simByEntity.TryGetValue(entity, out var sid))
+                        return;
+                    sid.IsDead = true;
+                    sid.DeathTick = dead.Tick;
+                    sid.DeathCause = dead.Cause.ToString();
+                });
+
+            var schools = new List<PersistedSchool>();
+            world.Query(in new QueryDescription().WithAll<School, NetworkId>(),
+                (Entity entity, ref School school, ref NetworkId nid) =>
+                {
+                    schools.Add(new PersistedSchool
+                    {
+                        NetworkId = nid.Value,
+                        Name = school.Name,
+                        District = school.District,
+                        Capacity = school.Capacity,
+                        Quality = school.Quality,
+                        Emphasis = (int)school.Emphasis,
+                        MonthlyCostCents = school.MonthlyCost.Cents,
+                        OwnerNetworkId = GetNetworkId(world, school.Owner),
+                        Enrolled = school.Enrolled
+                    });
+                });
 
             var companyQuery = new QueryDescription().WithAll<CompanyName, NetworkId>();
             world.Query(in companyQuery, (Entity entity, ref CompanyName cname, ref NetworkId nid) =>
@@ -2216,12 +3210,100 @@ if (SnapshotsEnabled)
                 });
             }
 
+            var lifecycleMetrics = economy.Life.MetricHistory.Select(snapshot => new PersistedPopulationSnapshot
+            {
+                Tick = snapshot.Tick,
+                Year = snapshot.Year,
+                Total = snapshot.Total,
+                Education = snapshot.Education,
+                Work = snapshot.Work,
+                Retirement = snapshot.Retirement,
+                Elderly = snapshot.Elderly,
+                StudentsEnrolled = snapshot.StudentsEnrolled,
+                GraduatesThisYear = snapshot.GraduatesThisYear,
+                Employed = snapshot.Employed,
+                Unemployed = snapshot.Unemployed,
+                RetiredThisYear = snapshot.RetiredThisYear,
+                DeathsThisYear = snapshot.DeathsThisYear,
+                ArrivalsThisYear = snapshot.ArrivalsThisYear,
+                AverageAge = snapshot.AverageAge,
+                MedianAge = snapshot.MedianAge,
+                AverageHealth = snapshot.AverageHealth,
+                AverageAgeAtDeath = snapshot.AverageAgeAtDeath,
+                LifeExpectancy = snapshot.LifeExpectancy,
+                PensionReplacementRate = snapshot.PensionReplacementRate,
+                PensionFundingRatio = snapshot.PensionFundingRatio,
+                WorkingAgeShare = snapshot.WorkingAgeShare,
+                OldAgeDependencyRatio = snapshot.OldAgeDependencyRatio,
+                PyramidBuckets = snapshot.PyramidBuckets.ToList(),
+                DeathCauses = snapshot.DeathCauses.Select(cause => new PersistedDeathCauseCount
+                {
+                    Cause = cause.Cause,
+                    Count = cause.Count
+                }).ToList()
+            }).ToList();
+
+            var mortalityLog = economy.Life.MortalityLog.Select(record => new PersistedMortalityRecord
+            {
+                Tick = record.Tick,
+                SimNetworkId = record.SimNetworkId,
+                Name = record.Name,
+                Age = record.Age,
+                Cause = record.Cause.ToString(),
+                Wealth = record.Wealth
+            }).ToList();
+
+            var estateQueue = economy.Life.EstateQueue.Select(request => new PersistedEstateRequest
+            {
+                SimNetworkId = request.SimNetworkId,
+                HouseholdNetworkId = GetNetworkId(world, request.Household),
+                UnitNetworkId = GetNetworkId(world, request.Unit),
+                OwnedUnitNetworkId = GetNetworkId(world, request.OwnedUnit),
+                Tick = request.Tick,
+                Name = request.Name,
+                Age = request.Age,
+                Cause = request.Cause.ToString(),
+                Heirs = request.Heirs.Select(heir => GetNetworkId(world, heir)).Where(id => id != 0).ToList(),
+                HouseholdRentArrears = request.HouseholdRentArrears,
+                HouseholdUtilityArrears = request.HouseholdUtilityArrears
+            }).ToList();
+
+            var immigration = new PersistedImmigration
+            {
+                TargetPopulation = economy.Life.Immigration.TargetPopulation,
+                Enabled = economy.Life.Immigration.Enabled,
+                ArrivalsThisYear = economy.Life.ImmigrationState.ArrivalsThisYear,
+                ArrivalBudget = economy.Life.ImmigrationState.ArrivalBudget,
+                Year = economy.Life.ImmigrationState.Year,
+                CancelledThisYear = economy.Life.ImmigrationState.CancelledThisYear,
+                Paused = economy.Life.ImmigrationState.Paused,
+                Pending = economy.Life.ImmigrationState.Pending.Select(pending => new PersistedPendingArrival
+                {
+                    Name = pending.Name,
+                    Age = pending.Age,
+                    QueuedTick = pending.QueuedTick,
+                    ExpiresTick = pending.ExpiresTick,
+                    SkillProgramming = pending.Profile.Programming,
+                    SkillArt = pending.Profile.Art,
+                    SkillCooking = pending.Profile.Cooking,
+                    SkillMedical = pending.Profile.Medical,
+                    SkillEngineering = pending.Profile.Engineering,
+                    SkillSales = pending.Profile.Sales
+                }).ToList()
+            };
+
             return new PersistedWorldState
             {
                 SchemaVersion = PersistedWorldState.CurrentSchemaVersion,
                 Tick = currentTick,
                 RandomSeed = economy.Random.Seed,
                 HousingMigrated = true,
+                LifecycleMigrated = true,
+                Schools = schools,
+                LifecycleMetricHistory = lifecycleMetrics,
+                MortalityLog = mortalityLog,
+                EstateQueue = estateQueue,
+                Immigration = immigration,
                 Sims = sims,
                 Companies = companies,
                 Offices = offices,
@@ -2346,8 +3428,57 @@ if (SnapshotsEnabled)
                     world.Create(new OpenPosition(entity));
             }
 
+            var schoolEntities = new Dictionary<ulong, Entity>();
+            foreach (var school in state.Schools)
+            {
+                Entity owner = Entity.Null;
+                if (school.OwnerNetworkId != 0)
+                    companyEntities.TryGetValue(school.OwnerNetworkId, out owner);
+
+                var component = new Genelife.Components.Life.School(
+                    school.Name,
+                    school.District,
+                    school.Capacity,
+                    school.Quality,
+                    (Skill)school.Emphasis,
+                    new Money(school.MonthlyCostCents),
+                    owner)
+                {
+                    Enrolled = school.Enrolled
+                };
+                var entity = world!.Create(component);
+                var networkId = new NetworkId(school.NetworkId);
+                world.Add(entity, networkId);
+                networkIds.AllocateWithValue(entity, networkId);
+                schoolEntities[school.NetworkId] = entity;
+            }
+
+            var restoredTick = state.Tick;
             foreach (var sim in state.Sims)
             {
+                var stage = Enum.TryParse<LifeStage>(sim.Stage, out var savedStage)
+                    ? savedStage
+                    : LifecycleClassifier.Classify(sim.Age, economy.Life.Policy);
+                var ageTicks = sim.AgeTicks > 0
+                    ? sim.AgeTicks
+                    : LifecycleFactory.Create(sim.Age, restoredTick, clock, economy.Life.Policy, sim.NetworkId.GetHashCode()).AgeTicks;
+                var cause = Enum.TryParse<StageTransitionCause>(sim.StageCause, out var savedCause)
+                    ? savedCause
+                    : StageTransitionCause.Restored;
+                var lastAgedTick = !state.LifecycleMigrated && sim.LastAgedTick == 0
+                    ? restoredTick
+                    : sim.LastAgedTick;
+
+                var profile = new SkillProfile
+                {
+                    Programming = sim.SkillProgramming,
+                    Art = sim.SkillArt,
+                    Cooking = sim.SkillCooking,
+                    Medical = sim.SkillMedical,
+                    Engineering = sim.SkillEngineering,
+                    Sales = sim.SkillSales
+                };
+
                 var entity = world!.Create(
                     new GenName(sim.Name),
                     new Needs { Hunger = sim.Hunger, Energy = sim.Energy, Hygiene = sim.Hygiene, Bladder = sim.Bladder },
@@ -2355,7 +3486,18 @@ if (SnapshotsEnabled)
                         Enum.TryParse<ActionType>(sim.ActionType, out var at) ? at : ActionType.Idle,
                         sim.TimeRemaining),
                     new Alive(sim.Age),
-                    new Location(sim.X, sim.Y)
+                    new Location(sim.X, sim.Y),
+                    profile,
+                    new Health(sim.HealthValue <= 0f ? HealthSystem.InitialForAge(sim.Age) : sim.HealthValue)
+                    {
+                        DeclineRate = sim.HealthDeclineRate,
+                        LastCareTick = sim.HealthLastCareTick,
+                        ChronicConditions = sim.ChronicConditions
+                    },
+                    new Lifecycle(stage, ageTicks, sim.StageEnteredTick, cause, lastAgedTick)
+                    {
+                        MaxAgeFlagged = sim.MaxAgeFlagged
+                    }
                 );
 
                 var walletCents = sim.WalletBalanceCents != 0
@@ -2394,10 +3536,36 @@ if (SnapshotsEnabled)
                 simEntities[sim.NetworkId] = entity;
 
                 if (sim.IsLookingForWork)
-                    world.Add(entity, new JobSeeker(true, Skill.None, Money.FromUnits(1000m)));
+                    world.Add(entity, new JobSeeker(
+                        true,
+                        profile.ToMask(),
+                        sim.DesiredSalaryCents > 0 ? new Money(sim.DesiredSalaryCents) : Money.FromUnits(1000m)));
 
                 if (sim.PlayerId != null)
                     world.Add(entity, new PlayerControlled(sim.PlayerId));
+
+                if (sim.EnrollmentSchoolNetworkId != 0 || sim.IsUnenrolled)
+                {
+                    var schoolEntity = sim.EnrollmentSchoolNetworkId != 0 &&
+                                       schoolEntities.TryGetValue(sim.EnrollmentSchoolNetworkId, out var school)
+                        ? school
+                        : Entity.Null;
+                    world.Add(entity, new Enrollment(
+                        schoolEntity,
+                        sim.StageEnteredTick,
+                        sim.EnrollmentAttendance <= 0f ? 0.5f : sim.EnrollmentAttendance,
+                        sim.IsUnenrolled || schoolEntity == Entity.Null)
+                    {
+                        MonthsAttended = sim.EnrollmentMonths
+                    });
+                }
+
+                if (sim.IsDead)
+                {
+                    world.Add(entity, new Dead(
+                        sim.DeathTick == 0 ? restoredTick : sim.DeathTick,
+                        Enum.TryParse<DeathCause>(sim.DeathCause, out var deathCause) ? deathCause : DeathCause.Other));
+                }
             }
 
             foreach (var sim in state.Sims)
@@ -2410,11 +3578,48 @@ if (SnapshotsEnabled)
                     continue;
                 officeEntities.TryGetValue(sim.OfficeNetworkId, out var office);
 
-                world!.Add(entity, new Employee(
+                var employee = new Employee(
                     company,
                     office,
                     sim.Position,
-                    new Money(sim.SalaryCents)));
+                    new Money(sim.SalaryCents))
+                {
+                    Seniority = Enum.TryParse<Seniority>(sim.Seniority, out var seniority)
+                        ? seniority
+                        : Seniority.Associate,
+                    HiredAtTick = sim.HiredAtTick
+                };
+                world!.Add(entity, employee);
+                world.Add(entity, new EmploymentRecord(sim.HiredAtTick)
+                {
+                    Attendance = sim.EmploymentAttendance,
+                    Performance = sim.EmploymentPerformance,
+                    TenureCycles = sim.EmploymentTenureCycles,
+                    Warnings = sim.EmploymentWarnings,
+                    ShiftsCompleted = sim.EmploymentShiftsCompleted,
+                    ShiftsExpected = sim.EmploymentShiftsExpected,
+                    Interruptions = sim.EmploymentInterruptions,
+                    ConsecutiveLowMonths = sim.EmploymentConsecutiveLowMonths,
+                    HighPerformanceMonths = sim.EmploymentHighPerformanceMonths,
+                    LastReviewTick = sim.EmploymentLastReviewTick
+                });
+                if (sim.WorkOfficeNetworkId != 0 &&
+                    officeEntities.TryGetValue(sim.WorkOfficeNetworkId, out var workOffice))
+                {
+                    world.Add(entity, new WorkSchedule(workOffice)
+                    {
+                        IsAtWork = sim.IsAtWork,
+                        ShiftTicksRemaining = sim.ShiftTicksRemaining,
+                        LastShiftStartTick = sim.LastShiftStartTick,
+                        LastShiftEndTick = sim.LastShiftEndTick,
+                        ShiftsCompleted = sim.WorkShiftsCompleted,
+                        ShiftsInterrupted = sim.WorkShiftsInterrupted
+                    });
+                }
+                else
+                {
+                    world.Add(entity, new WorkSchedule(office));
+                }
                 employmentIndex!.Add(company, entity);
             }
 
@@ -2438,6 +3643,37 @@ if (SnapshotsEnabled)
                     Severance = new Money(sim.SeveranceCents),
                     CyclesInArrears = sim.ClaimCycles
                 });
+            }
+
+            foreach (var sim in state.Sims)
+            {
+                if (!simEntities.TryGetValue(sim.NetworkId, out var entity))
+                    continue;
+
+                if (sim.RetirementMonthlyCents != 0)
+                {
+                    world!.Add(entity, new RetirementIncome(
+                        new Money(sim.RetirementMonthlyCents),
+                        sim.RetirementStartedTick,
+                        sim.RetirementFund,
+                        sim.RetirementMeansTested)
+                    {
+                        Reduced = sim.RetirementReduced
+                    });
+                }
+
+                if (sim.UnemploymentMaxCycles > 0 || sim.UnemploymentBenefitCents != 0)
+                {
+                    world.Add(entity, new UnemploymentRecord(
+                        sim.UnemploymentStartedTick,
+                        new Money(sim.UnemploymentBenefitCents),
+                        sim.UnemploymentMaxCycles,
+                        sim.UnemploymentEligible)
+                    {
+                        CyclesClaimed = sim.UnemploymentCyclesClaimed,
+                        UnpaidCycles = sim.UnemploymentUnpaidCycles
+                    });
+                }
             }
 
             foreach (var application in state.Applications)
@@ -2680,6 +3916,218 @@ if (SnapshotsEnabled)
                 var assigner = new HouseholdAssigner(world!, networkIds, economy);
                 assigner.AssignExistingHomeless(state.RandomSeed, state.Tick);
             }
+
+            economy.Life.Immigration.TargetPopulation = state.Immigration.TargetPopulation;
+            economy.Life.Immigration.Enabled = state.Immigration.Enabled;
+            economy.Life.ImmigrationState.ArrivalsThisYear = state.Immigration.ArrivalsThisYear;
+            economy.Life.ImmigrationState.ArrivalBudget = state.Immigration.ArrivalBudget;
+            economy.Life.ImmigrationState.Year = state.Immigration.Year;
+            economy.Life.ImmigrationState.CancelledThisYear = state.Immigration.CancelledThisYear;
+            economy.Life.ImmigrationState.Paused = state.Immigration.Paused;
+            foreach (var pending in state.Immigration.Pending)
+            {
+                economy.Life.ImmigrationState.Pending.Add(new PendingArrival
+                {
+                    Name = pending.Name,
+                    Age = pending.Age,
+                    QueuedTick = pending.QueuedTick,
+                    ExpiresTick = pending.ExpiresTick,
+                    Profile = new SkillProfile
+                    {
+                        Programming = pending.SkillProgramming,
+                        Art = pending.SkillArt,
+                        Cooking = pending.SkillCooking,
+                        Medical = pending.SkillMedical,
+                        Engineering = pending.SkillEngineering,
+                        Sales = pending.SkillSales
+                    }
+                });
+            }
+
+            foreach (var row in state.MortalityLog)
+            {
+                economy.Life.MortalityLog.Add(new MortalityRecord(
+                    row.Tick,
+                    row.SimNetworkId,
+                    row.Name,
+                    row.Age,
+                    Enum.TryParse<DeathCause>(row.Cause, out var deathCause) ? deathCause : DeathCause.Other,
+                    row.Wealth));
+            }
+
+            foreach (var row in state.LifecycleMetricHistory)
+            {
+                economy.Life.MetricHistory.Add(new PopulationSnapshot(
+                    row.Tick,
+                    row.Year,
+                    row.Total,
+                    row.Education,
+                    row.Work,
+                    row.Retirement,
+                    row.Elderly,
+                    row.StudentsEnrolled,
+                    row.GraduatesThisYear,
+                    row.Employed,
+                    row.Unemployed,
+                    row.RetiredThisYear,
+                    row.DeathsThisYear,
+                    row.ArrivalsThisYear,
+                    row.AverageAge,
+                    row.MedianAge,
+                    row.AverageHealth,
+                    row.AverageAgeAtDeath,
+                    row.LifeExpectancy,
+                    row.PensionReplacementRate,
+                    row.PensionFundingRatio,
+                    row.WorkingAgeShare,
+                    row.OldAgeDependencyRatio,
+                    row.PyramidBuckets,
+                    row.DeathCauses.Select(cause => new DeathCauseCount(cause.Cause, cause.Count)).ToList()));
+            }
+
+            if (!state.LifecycleMigrated)
+            {
+                foreach (var sim in state.Sims)
+                {
+                    if (!simEntities.TryGetValue(sim.NetworkId, out var entity) || sim.IsDead)
+                        continue;
+
+                    var stage = economy.Life.Policy.StageFor(sim.Age);
+                    if (stage != LifeStage.Work && world!.Has<Employee>(entity))
+                    {
+                        LifeSystemHelpers.RemoveEmployment(
+                            world,
+                            employmentIndex!,
+                            economy,
+                            entity,
+                            state.Tick);
+                    }
+
+                    if (stage != LifeStage.Work && world.Has<JobSeeker>(entity))
+                        world.Remove<JobSeeker>(entity);
+                    if (stage != LifeStage.Work && world.Has<UnemploymentRecord>(entity))
+                        world.Remove<UnemploymentRecord>(entity);
+
+                    if (stage is LifeStage.Retirement or LifeStage.Elderly &&
+                        !world.Has<RetirementIncome>(entity))
+                    {
+                        var account = world.Has<PensionAccount>(entity)
+                            ? world.Get<PensionAccount>(entity)
+                            : default;
+                        var (pension, meansTested) = economy.Life.Pensions.EntitlementFor(
+                            account,
+                            economy.Life.Policy);
+                        world.Add(entity, new RetirementIncome(
+                            pension,
+                            state.Tick,
+                            meansTested ? "means-tested" : "statement",
+                            meansTested));
+                    }
+
+                    if (stage == LifeStage.Work && !world.Has<Employee>(entity) &&
+                        !world.Has<JobSeeker>(entity))
+                    {
+                        var profile = world.Has<SkillProfile>(entity)
+                            ? world.Get<SkillProfile>(entity)
+                            : new SkillProfile();
+                        world.Add(entity, new JobSeeker(
+                            true,
+                            profile.ToMask(),
+                            economy.Life.Careers.SalaryForSkills(profile.Total)));
+                    }
+                }
+            }
+
+            var estateRequests = new List<EstateRequest>();
+            var queuedDeaths = new HashSet<ulong>();
+            foreach (var row in state.EstateQueue)
+            {
+                if (!simEntities.TryGetValue(row.SimNetworkId, out var deadSim) ||
+                    !world!.IsAlive(deadSim))
+                    continue;
+
+                Entity household = Entity.Null;
+                Entity unit = Entity.Null;
+                Entity ownedUnit = Entity.Null;
+                if (row.HouseholdNetworkId != 0)
+                    householdEntities.TryGetValue(row.HouseholdNetworkId, out household);
+                if (row.UnitNetworkId != 0)
+                    unitEntities.TryGetValue(row.UnitNetworkId, out unit);
+                if (row.OwnedUnitNetworkId != 0)
+                    unitEntities.TryGetValue(row.OwnedUnitNetworkId, out ownedUnit);
+
+                var heirs = new List<Entity>();
+                foreach (var heirId in row.Heirs)
+                {
+                    if (simEntities.TryGetValue(heirId, out var heir) && world.IsAlive(heir))
+                        heirs.Add(heir);
+                }
+
+                estateRequests.Add(new EstateRequest
+                {
+                    Sim = deadSim,
+                    Household = household,
+                    Unit = unit,
+                    OwnedUnit = ownedUnit,
+                    Tick = row.Tick,
+                    Name = row.Name,
+                    SimNetworkId = row.SimNetworkId,
+                    Age = row.Age,
+                    Cause = Enum.TryParse<DeathCause>(row.Cause, out var estateCause)
+                        ? estateCause
+                        : DeathCause.Other,
+                    Heirs = heirs,
+                    HouseholdRentArrears = row.HouseholdRentArrears,
+                    HouseholdUtilityArrears = row.HouseholdUtilityArrears
+                });
+                queuedDeaths.Add(row.SimNetworkId);
+            }
+
+            foreach (var sim in state.Sims.Where(sim => sim.IsDead))
+            {
+                if (queuedDeaths.Contains(sim.NetworkId) ||
+                    !simEntities.TryGetValue(sim.NetworkId, out var deadSim) ||
+                    !world!.IsAlive(deadSim))
+                    continue;
+
+                economy.Life.DeathQueue.Add(deadSim);
+            }
+
+            if (economy.Life.DeathQueue.Count > 0)
+                new DeathProcessingSystem(world!, economy).Update(state.Tick);
+
+            economy.Life.EstateQueue.AddRange(estateRequests);
+            if (economy.Life.EstateQueue.Count > 0)
+                new EstateSettlementSystem(world!, economy).Update(state.Tick);
+
+            foreach (var sim in state.Sims.Where(sim => sim.IsDead))
+            {
+                if (simEntities.TryGetValue(sim.NetworkId, out var deadSim) && world!.IsAlive(deadSim))
+                    economy.Life.QueueDestroy(deadSim, restoredTick + 1);
+            }
+
+            economy.Life.Index.Rebuild(world!);
+
+            if (state.LifecycleMigrated)
+                new StageProgressionSystem(world!, economy).Update(state.Tick, clock);
+
+            economy.Life.Index.Rebuild(world!);
+
+            world!.Query(in new QueryDescription().WithAll<Alive, Lifecycle>().WithNone<Dead>(),
+                (Entity entity, ref Alive alive, ref Lifecycle lifecycle) =>
+                {
+                    if (lifecycle.Stage != economy.Life.Policy.StageFor(alive.Age))
+                        throw new InvalidOperationException(
+                            "Lifecycle restore mismatch for sim " +
+                            $"{GetNetworkId(world!, entity)}: {lifecycle.Stage} at age {alive.Age}");
+                });
+
+            state.LifecycleMigrated = true;
+
+            var lifecycleIssues = LifecycleInvariants.Verify(world!, economy.Life.Policy);
+            if (lifecycleIssues.Count > 0)
+                throw new InvalidOperationException("Lifecycle restore validation failed: " +
+                                                    string.Join("; ", lifecycleIssues));
 
             var issues = economy.Housing.Verify();
             if (issues.Count > 0)

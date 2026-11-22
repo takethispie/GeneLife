@@ -22,4 +22,9 @@ public class SimStatus
     public string Tenure { get; set; } = string.Empty;
     public string HousingTier { get; set; } = string.Empty;
     public bool Homeless { get; set; }
+    public string Stage { get; set; } = string.Empty;
+    public decimal Health { get; set; }
+    public string TopSkill { get; set; } = string.Empty;
+    public string Seniority { get; set; } = string.Empty;
+    public bool IsDead { get; set; }
 }

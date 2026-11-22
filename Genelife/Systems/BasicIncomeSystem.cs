@@ -25,7 +25,7 @@ public class BasicIncomeSystem : ISimulationSystem
         this.world = world;
         this.economy = economy;
         this.interval = interval ?? economy.Options.BasicIncomeIntervalTicks;
-        simQuery = new QueryDescription().WithAll<GenName>();
+        simQuery = new QueryDescription().WithAll<GenName>().WithNone<Components.Gen.Dead>();
     }
 
     public string Name => "BasicIncome";

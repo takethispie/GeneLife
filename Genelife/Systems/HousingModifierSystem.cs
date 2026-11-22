@@ -23,7 +23,7 @@ public class HousingModifierSystem : ISimulationSystem
         this.world = world;
         this.registry = registry;
         this.interval = interval ?? 100;
-        simQuery = new QueryDescription().WithAll<Needs>();
+        simQuery = new QueryDescription().WithAll<Needs>().WithNone<Components.Gen.Dead>();
     }
 
     public string Name => "HousingModifier";

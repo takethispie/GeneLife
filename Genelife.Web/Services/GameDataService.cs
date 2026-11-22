@@ -198,6 +198,79 @@ public sealed class GameDataService
             },
             cancellationToken);
 
+    public async Task<LifecycleData> GetLifecycleAsync(CancellationToken cancellationToken = default)
+    {
+        using var response = await SendWithAuthRetryAsync(
+            () => http.GetAsync("api/lifecycle/overview", cancellationToken), cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<LifecycleData>(cancellationToken: cancellationToken)
+            ?? new LifecycleData();
+    }
+
+    public async Task<List<SimLifecycleData>> GetLifecycleSimsAsync(CancellationToken cancellationToken = default)
+    {
+        using var response = await SendWithAuthRetryAsync(
+            () => http.GetAsync("api/lifecycle/sims", cancellationToken), cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<List<SimLifecycleData>>(cancellationToken: cancellationToken)
+            ?? new List<SimLifecycleData>();
+    }
+
+    public Task CreateSchoolAsync(
+        string name,
+        string district,
+        int capacity,
+        string emphasis,
+        decimal monthlyCost,
+        CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(
+            HttpMethod.Post,
+            "api/lifecycle/schools",
+            new { name, district, capacity, quality = 0.65f, emphasis, monthlyCost },
+            cancellationToken);
+
+    public Task GraduateAsync(ulong simId, CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(HttpMethod.Post, $"api/lifecycle/sims/{simId}/graduate", null, cancellationToken);
+
+    public Task RetireAsync(ulong simId, CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(HttpMethod.Post, $"api/lifecycle/sims/{simId}/retire", null, cancellationToken);
+
+    public Task ForceStageAsync(ulong simId, string stage, CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(
+            HttpMethod.Post,
+            $"api/lifecycle/sims/{simId}/stage",
+            new { stage },
+            cancellationToken);
+
+    public Task GrantCareAsync(ulong simId, float healthGain = 25f, CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(
+            HttpMethod.Post,
+            $"api/lifecycle/sims/{simId}/care",
+            new { healthGain },
+            cancellationToken);
+
+    public Task GeneratePopulationAsync(
+        int totalSims,
+        int seed = 1,
+        int? adults = null,
+        int? children = null,
+        CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(
+            HttpMethod.Post,
+            "api/lifecycle/generate",
+            new { totalSims, seed, adults, children },
+            cancellationToken);
+
+    public Task SetPopulationTargetAsync(
+        int targetPopulation,
+        bool enabled = true,
+        CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(
+            HttpMethod.Post,
+            "api/lifecycle/population/target",
+            new { targetPopulation, enabled },
+            cancellationToken);
+
     private async Task SendAdminJsonAsync(
         HttpMethod method,
         string path,

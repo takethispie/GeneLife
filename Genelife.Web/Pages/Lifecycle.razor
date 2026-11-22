@@ -1,0 +1,477 @@
+@page "/lifecycle"
+@using Genelife.Web.Models
+@using Genelife.Web.Services
+@inject GameDataService GameData
+@implements IAsyncDisposable
+
+<PageTitle>Life Stages</PageTitle>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+    <div>
+        <h1 class="mb-1">Life Stages</h1>
+        <p class="text-muted mb-0">Education, work, retirement, health, mortality and population balance.</p>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+        <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" id="autoRefreshLife" @bind="autoRefresh" />
+            <label class="form-check-label" for="autoRefreshLife">Auto-refresh</label>
+        </div>
+        <button class="btn btn-primary" type="button" @onclick="() => RefreshAsync()" disabled="@isLoading">
+            @if (isLoading)
+            {
+                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+            }
+            Refresh
+        </button>
+    </div>
+</div>
+
+@if (error is not null)
+{
+    <div class="alert alert-danger">
+        <div class="fw-semibold">Could not load lifecycle data.</div>
+        <div class="small">@error</div>
+    </div>
+}
+
+@if (message is not null)
+{
+    <div class="alert alert-info py-2">@message</div>
+}
+
+@if (lifecycle is not null)
+{
+    var status = lifecycle.Status;
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3 small text-muted">
+        <span>@status.TotalSims sims</span>
+        <span>&middot;</span>
+        <span>Average age @status.AverageAge.ToString("0.0") / median @status.MedianAge.ToString("0.0")</span>
+        <span>&middot;</span>
+        <span>Policy @status.Policy.WorkStartAge-@status.Policy.RetirementAge-@status.Policy.ElderlyAge</span>
+        @if (loadedAt is not null)
+        {
+            <span>&middot;</span>
+            <span>Refreshed @loadedAt.Value.ToString("HH:mm:ss")</span>
+        }
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="card h-100"><div class="card-body">
+                <div class="text-muted small">Stage mix</div>
+                <div class="fs-3 fw-semibold">@status.Education / @status.Work / @status.Retirement / @status.Elderly</div>
+                <div class="small text-muted">Education / Work / Retirement / Elderly</div>
+            </div></div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="card h-100"><div class="card-body">
+                <div class="text-muted small">Dependency</div>
+                <div class="fs-3 fw-semibold">@Percent(status.WorkingAgeShare)</div>
+                <div class="small text-muted">Working age &middot; old-age ratio @status.OldAgeDependencyRatio.ToString("0.00")</div>
+            </div></div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="card h-100"><div class="card-body">
+                <div class="text-muted small">Schooling</div>
+                <div class="fs-3 fw-semibold">@status.StudentsEnrolled</div>
+                <div class="small text-muted">@Percent(status.EnrollmentRate) enrollment &middot; @status.UnenrolledStudents unenrolled &middot; @status.GraduatesThisYear graduates</div>
+            </div></div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="card h-100"><div class="card-body">
+                <div class="text-muted small">Pension fund</div>
+                <div class="fs-3 fw-semibold">@Money(status.PensionFund)</div>
+                <div class="small text-muted">Funding @Percent(status.PensionFundingRatio) &middot; replacement @Percent(status.PensionReplacementRate)</div>
+            </div></div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-xl-7">
+            <div class="card h-100"><div class="card-body">
+                <h2 class="h6 text-uppercase text-muted">Population health</h2>
+                <div class="d-flex flex-wrap gap-2">
+                    @foreach (var check in status.Health)
+                    {
+                        <span class="badge @Badge(check.Level)" title="@check.Detail">@check.Name: @check.Detail</span>
+                    }
+                </div>
+                <div class="small text-muted mt-2">
+                    Employed @status.Employed &middot; unemployed @status.Unemployed (@Percent(status.UnemploymentRate)) &middot;
+                    deaths @status.DeathsThisYear &middot; arrivals @status.ArrivalsThisYear &middot;
+                    life expectancy @status.LifeExpectancy.ToString("0.0")
+                </div>
+            </div></div>
+        </div>
+        <div class="col-12 col-xl-5">
+            <div class="card h-100"><div class="card-body">
+                <h2 class="h6 text-uppercase text-muted">Immigration control</h2>
+                <div class="small text-muted mb-2">
+                    Target @status.Immigration.TargetPopulation &middot; budget @status.Immigration.ArrivalBudget &middot;
+                    arrivals @status.Immigration.ArrivalsThisYear &middot; pending @status.Immigration.Pending &middot;
+                    cancelled @status.Immigration.CancelledThisYear
+                    @if (status.Immigration.Paused)
+                    {
+                        <span class="badge text-bg-warning">Paused</span>
+                    }
+                </div>
+                <div class="d-flex gap-2 align-items-end">
+                    <div class="flex-grow-1">
+                        <label class="form-label small mb-1">Target population</label>
+                        <input class="form-control form-control-sm" type="number" min="0" @bind="targetPopulation" />
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary" type="button" @onclick="SetTargetAsync" disabled="@isBusy">Set</button>
+                </div>
+            </div></div>
+        </div>
+    </div>
+
+    <div class="card mb-4"><div class="card-body">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
+            <h2 class="h6 text-uppercase text-muted mb-0">Sim lifecycle</h2>
+            <div class="d-flex gap-2">
+                <select class="form-select form-select-sm" @bind="stageFilter">
+                    <option value="">All stages</option>
+                    <option value="Education">Education</option>
+                    <option value="Work">Work</option>
+                    <option value="Retirement">Retirement</option>
+                    <option value="Elderly">Elderly</option>
+                </select>
+                <input class="form-control form-control-sm" placeholder="Filter name" @bind="nameFilter" />
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm table-striped align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Sim</th><th>Age</th><th>Stage</th><th>Health</th><th>Role</th><th>School / pension</th><th>Performance</th><th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var sim in FilteredSims)
+                    {
+                        <tr class="@(sim.IsDead ? "table-secondary" : null)">
+                            <td>@sim.Name <span class="small text-muted">#@sim.NetworkId</span></td>
+                            <td>@sim.Age</td>
+                            <td><span class="badge @StageBadge(sim.Stage)">@sim.Stage</span></td>
+                            <td>@sim.Health.ToString("0.0")</td>
+                            <td>
+                                @if (sim.IsEmployed)
+                                {
+                                    <span>@sim.Position @sim.Seniority at @sim.Employer</span>
+                                    @if (sim.IsAtWork)
+                                    {
+                                        <span class="badge text-bg-primary">On shift</span>
+                                    }
+                                }
+                                else if (sim.IsLookingForWork)
+                                {
+                                    <span class="text-muted">Looking for work</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">@sim.TopSkill</span>
+                                }
+                            </td>
+                            <td>
+                                @if (sim.IsEnrolled)
+                                {
+                                    <span>@sim.School &middot; attendance @Percent(sim.Attendance)</span>
+                                }
+                                else if (sim.IsUnenrolled)
+                                {
+                                    <span class="text-warning">Unenrolled</span>
+                                }
+                                else if (sim.MonthlyPension is { } pension)
+                                {
+                                    <span>Pension @Money(pension) @if (sim.PensionReduced) { <span class="badge text-bg-warning">Reduced</span> }</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">&mdash;</span>
+                                }
+                            </td>
+                            <td>
+                                @if (sim.IsEmployed)
+                                {
+                                    <span>@Percent(sim.Performance) @if (sim.Warnings > 0) { <span class="badge text-bg-warning">@sim.Warnings warnings</span> }</span>
+                                }
+                                else if (sim.UnemploymentCycle is { } cycle)
+                                {
+                                    <span class="small text-muted">Benefit cycle @cycle</span>
+                                }
+                            </td>
+                            <td class="text-end">
+                                @if (!sim.IsDead)
+                                {
+                                    <div class="btn-group btn-group-sm">
+                                        @if (sim.Stage == "Education")
+                                        {
+                                            <button class="btn btn-outline-secondary" type="button" @onclick="() => GraduateAsync(sim.NetworkId)" disabled="@isBusy">Graduate</button>
+                                        }
+                                        @if (sim.Stage == "Work")
+                                        {
+                                            <button class="btn btn-outline-secondary" type="button" @onclick="() => RetireAsync(sim.NetworkId)" disabled="@isBusy">Retire</button>
+                                        }
+                                        <button class="btn btn-outline-primary" type="button" @onclick="() => CareAsync(sim.NetworkId)" disabled="@isBusy">Care</button>
+                                    </div>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="small text-muted mt-2">Showing @FilteredSims.Count() of @sims.Count sims.</div>
+    </div></div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-xl-7">
+            <div class="card h-100"><div class="card-body">
+                <h2 class="h6 text-uppercase text-muted">Schools</h2>
+                <div class="table-responsive">
+                    <table class="table table-sm mb-2">
+                        <thead><tr><th>School</th><th>District</th><th>Enrolled</th><th>Attendance</th><th>Quality</th><th>Emphasis</th><th>Cost</th></tr></thead>
+                        <tbody>
+                            @foreach (var school in lifecycle.Schools)
+                            {
+                                <tr>
+                                    <td>@school.Name</td>
+                                    <td>@school.District</td>
+                                    <td>@school.Enrolled / @school.Capacity</td>
+                                    <td>@Percent(school.Attendance)</td>
+                                    <td>@school.Quality.ToString("0.00")</td>
+                                    <td>@school.Emphasis</td>
+                                    <td>@Money(school.MonthlyCost)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="row g-2 align-items-end">
+                    <div class="col-6 col-md-3"><label class="form-label small mb-1">Name</label><input class="form-control form-control-sm" @bind="schoolName" /></div>
+                    <div class="col-6 col-md-2"><label class="form-label small mb-1">District</label><input class="form-control form-control-sm" @bind="schoolDistrict" /></div>
+                    <div class="col-4 col-md-2"><label class="form-label small mb-1">Capacity</label><input class="form-control form-control-sm" type="number" min="1" @bind="schoolCapacity" /></div>
+                    <div class="col-4 col-md-2"><label class="form-label small mb-1">Emphasis</label>
+                        <select class="form-select form-select-sm" @bind="schoolEmphasis">
+                            <option value="Programming">Programming</option>
+                            <option value="Art">Art</option>
+                            <option value="Cooking">Cooking</option>
+                            <option value="Medical">Medical</option>
+                            <option value="Engineering">Engineering</option>
+                            <option value="Sales">Sales</option>
+                        </select>
+                    </div>
+                    <div class="col-4 col-md-2"><label class="form-label small mb-1">Cost</label><input class="form-control form-control-sm" type="number" min="0" @bind="schoolCost" /></div>
+                    <div class="col-12 col-md-1"><button class="btn btn-sm btn-primary w-100" type="button" @onclick="CreateSchoolAsync" disabled="@isBusy">Add</button></div>
+                </div>
+            </div></div>
+        </div>
+        <div class="col-12 col-xl-5">
+            <div class="card h-100"><div class="card-body">
+                <h2 class="h6 text-uppercase text-muted">Population generator</h2>
+                <p class="small text-muted mb-2">Creates schools, companies, housing, households and an age pyramid. Additive.</p>
+                <div class="row g-2 align-items-end">
+                    <div class="col-4"><label class="form-label small mb-1">Total</label><input class="form-control form-control-sm" type="number" min="1" @bind="generateTotal" /></div>
+                    <div class="col-4"><label class="form-label small mb-1">Seed</label><input class="form-control form-control-sm" type="number" @bind="generateSeed" /></div>
+                    <div class="col-4"><button class="btn btn-sm btn-primary w-100" type="button" @onclick="GenerateAsync" disabled="@isBusy">Generate</button></div>
+                </div>
+                <hr />
+                <h2 class="h6 text-uppercase text-muted">Pension</h2>
+                <div class="small">
+                    Fund @Money(lifecycle.Pensions.FundBalance) &middot; liabilities @Money(lifecycle.Pensions.ProjectedLiabilities) &middot;
+                    funding @Percent(lifecycle.Pensions.FundingRatio) &middot; paid @Money(lifecycle.Pensions.PaidThisCycle)
+                </div>
+                <div class="small text-muted">Members @lifecycle.Pensions.Members &middot; average pension @Money(lifecycle.Pensions.AverageMonthlyPension) &middot; reduced @lifecycle.Pensions.ReducedThisCycle</div>
+            </div></div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-xl-6">
+            <div class="card h-100"><div class="card-body">
+                <h2 class="h6 text-uppercase text-muted">Recent deaths</h2>
+                <div class="table-responsive" style="max-height: 18rem;">
+                    <table class="table table-sm mb-0">
+                        <thead><tr><th>Tick</th><th>Sim</th><th>Age</th><th>Cause</th><th>Wealth</th></tr></thead>
+                        <tbody>
+                            @foreach (var death in lifecycle.Mortality.Take(25))
+                            {
+                                <tr><td>@death.Tick</td><td>@death.Name</td><td>@death.Age</td><td>@death.Cause</td><td>@Money(death.Wealth)</td></tr>
+                            }
+                            @if (lifecycle.Mortality.Count == 0)
+                            {
+                                <tr><td colspan="5" class="text-muted">No deaths recorded.</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div></div>
+        </div>
+        <div class="col-12 col-xl-6">
+            <div class="card h-100"><div class="card-body">
+                <h2 class="h6 text-uppercase text-muted">Population history</h2>
+                <div class="table-responsive" style="max-height: 18rem;">
+                    <table class="table table-sm mb-0">
+                        <thead><tr><th>Year</th><th>Total</th><th>Edu</th><th>Work</th><th>Ret</th><th>Elderly</th><th>Deaths</th><th>Arrivals</th></tr></thead>
+                        <tbody>
+                            @foreach (var snapshot in lifecycle.PopulationHistory.AsEnumerable().Reverse().Take(25))
+                            {
+                                <tr>
+                                    <td>@snapshot.Year</td><td>@snapshot.Total</td><td>@snapshot.Education</td><td>@snapshot.Work</td>
+                                    <td>@snapshot.Retirement</td><td>@snapshot.Elderly</td><td>@snapshot.DeathsThisYear</td><td>@snapshot.ArrivalsThisYear</td>
+                                </tr>
+                            }
+                            @if (lifecycle.PopulationHistory.Count == 0)
+                            {
+                                <tr><td colspan="8" class="text-muted">No yearly snapshot yet.</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div></div>
+        </div>
+    </div>
+}
+
+@code {
+    private LifecycleData? lifecycle;
+    private List<SimLifecycleData> sims = new();
+    private Timer? timer;
+    private bool isLoading;
+    private bool isBusy;
+    private bool autoRefresh = true;
+    private string? error;
+    private string? message;
+    private DateTimeOffset? loadedAt;
+
+    private string stageFilter = string.Empty;
+    private string nameFilter = string.Empty;
+
+    private string schoolName = "New School";
+    private string schoolDistrict = "Central";
+    private int schoolCapacity = 60;
+    private string schoolEmphasis = "Programming";
+    private decimal schoolCost = 50m;
+
+    private int targetPopulation;
+    private int generateTotal = 200;
+    private int generateSeed = 1;
+
+    private IEnumerable<SimLifecycleData> FilteredSims => sims
+        .Where(sim => string.IsNullOrEmpty(stageFilter) || sim.Stage == stageFilter)
+        .Where(sim => string.IsNullOrWhiteSpace(nameFilter) ||
+                      sim.Name.Contains(nameFilter, StringComparison.OrdinalIgnoreCase))
+        .OrderBy(sim => sim.Stage)
+        .ThenBy(sim => sim.Age)
+        .Take(200);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshAsync();
+        timer = new Timer(_ => InvokeAsync(OnTimerAsync), null,
+            TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
+    }
+
+    private async Task OnTimerAsync()
+    {
+        if (autoRefresh && !isLoading && !isBusy)
+            await RefreshAsync();
+    }
+
+    private async Task RefreshAsync()
+    {
+        isLoading = true;
+        error = null;
+        try
+        {
+            lifecycle = await GameData.GetLifecycleAsync();
+            sims = await GameData.GetLifecycleSimsAsync();
+            targetPopulation = lifecycle.Status.Immigration.TargetPopulation;
+            loadedAt = DateTimeOffset.Now;
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task RunAsync(Func<Task> action, string success)
+    {
+        isBusy = true;
+        error = null;
+        message = null;
+        try
+        {
+            await action();
+            message = success;
+            await Task.Delay(250);
+            await RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private Task GraduateAsync(ulong simId) =>
+        RunAsync(() => GameData.GraduateAsync(simId), "Graduation queued.");
+
+    private Task RetireAsync(ulong simId) =>
+        RunAsync(() => GameData.RetireAsync(simId), "Retirement queued.");
+
+    private Task CareAsync(ulong simId) =>
+        RunAsync(() => GameData.GrantCareAsync(simId), "Care queued.");
+
+    private Task CreateSchoolAsync() =>
+        RunAsync(
+            () => GameData.CreateSchoolAsync(schoolName, schoolDistrict, schoolCapacity, schoolEmphasis, schoolCost),
+            "School creation queued.");
+
+    private Task GenerateAsync() =>
+        RunAsync(
+            () => GameData.GeneratePopulationAsync(generateTotal, generateSeed),
+            "Population generation queued.");
+
+    private Task SetTargetAsync() =>
+        RunAsync(
+            () => GameData.SetPopulationTargetAsync(targetPopulation),
+            "Population target updated.");
+
+    private static string Percent(decimal value) => (value * 100m).ToString("0.0") + "%";
+
+    private static string Percent(float value) => Percent((decimal)value);
+
+    private static string Money(decimal value) => value.ToString("N0");
+
+    private static string Badge(string? level) => level switch
+    {
+        "Pass" => "text-bg-success",
+        "Warn" => "text-bg-warning",
+        "Fail" => "text-bg-danger",
+        _ => "text-bg-secondary"
+    };
+
+    private static string StageBadge(string stage) => stage switch
+    {
+        "Education" => "text-bg-info",
+        "Work" => "text-bg-primary",
+        "Retirement" => "text-bg-warning",
+        "Elderly" => "text-bg-secondary",
+        _ => "text-bg-light"
+    };
+
+    public ValueTask DisposeAsync()
+    {
+        timer?.Dispose();
+        return ValueTask.CompletedTask;
+    }
+}

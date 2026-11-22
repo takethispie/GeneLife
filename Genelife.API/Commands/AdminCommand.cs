@@ -197,6 +197,108 @@ public sealed record SellHomeCommand(
     ulong UnitId,
     ulong BuyerHouseholdId) : AdminCommand(CommandId, IssuedBy);
 
+public sealed record CreateSchoolCommand(
+    Guid CommandId,
+    string IssuedBy,
+    string Name,
+    string District,
+    int Capacity,
+    float Quality,
+    Skill Emphasis,
+    Money MonthlyCost,
+    ulong? OwnerId) : AdminCommand(CommandId, IssuedBy);
+
+public sealed record UpdateSchoolCommand(
+    Guid CommandId,
+    string IssuedBy,
+    ulong SchoolId,
+    string? Name,
+    int? Capacity,
+    float? Quality,
+    Skill? Emphasis,
+    Money? MonthlyCost) : AdminCommand(CommandId, IssuedBy);
+
+public sealed record ForceStageCommand(
+    Guid CommandId,
+    string IssuedBy,
+    ulong SimId,
+    LifeStage Stage) : AdminCommand(CommandId, IssuedBy);
+
+public sealed record GraduateSimCommand(
+    Guid CommandId,
+    string IssuedBy,
+    ulong SimId) : AdminCommand(CommandId, IssuedBy);
+
+public sealed record RetireSimCommand(
+    Guid CommandId,
+    string IssuedBy,
+    ulong SimId) : AdminCommand(CommandId, IssuedBy);
+
+public sealed record GrantCareCommand(
+    Guid CommandId,
+    string IssuedBy,
+    ulong SimId,
+    float HealthGain) : AdminCommand(CommandId, IssuedBy);
+
+public sealed record GeneratePopulationCommand(
+    Guid CommandId,
+    string IssuedBy,
+    int TotalSims,
+    int Seed,
+    int? Adults,
+    int? Children) : AdminCommand(CommandId, IssuedBy);
+
+public sealed record SetPopulationTargetCommand(
+    Guid CommandId,
+    string IssuedBy,
+    int TargetPopulation,
+    bool Enabled) : AdminCommand(CommandId, IssuedBy);
+
+public sealed record PromoteSimCommand(
+    Guid CommandId,
+    string IssuedBy,
+    ulong SimId) : AdminCommand(CommandId, IssuedBy);
+
+public sealed record SetBenefitEligibilityCommand(
+    Guid CommandId,
+    string IssuedBy,
+    ulong SimId,
+    bool Eligible) : AdminCommand(CommandId, IssuedBy);
+
+public sealed record TopUpPensionFundCommand(
+    Guid CommandId,
+    string IssuedBy,
+    Money Amount) : AdminCommand(CommandId, IssuedBy);
+
+public sealed record ForceDeathCommand(
+    Guid CommandId,
+    string IssuedBy,
+    ulong SimId,
+    DeathCause Cause) : AdminCommand(CommandId, IssuedBy);
+
+public sealed record AdvanceAgeCommand(
+    Guid CommandId,
+    string IssuedBy,
+    ulong SimId,
+    int Years) : AdminCommand(CommandId, IssuedBy);
+
+public sealed record PauseImmigrationCommand(
+    Guid CommandId,
+    string IssuedBy,
+    bool Paused) : AdminCommand(CommandId, IssuedBy);
+
+public sealed record TriggerImmigrationWaveCommand(
+    Guid CommandId,
+    string IssuedBy,
+    int Count) : AdminCommand(CommandId, IssuedBy);
+
+public sealed record SetEnrollmentCommand(
+    Guid CommandId,
+    string IssuedBy,
+    ulong SimId,
+    ulong SchoolId,
+    bool Enrolled) : AdminCommand(CommandId, IssuedBy);
+
 public sealed record CommandResult(
     Guid CommandId,
     bool Accepted,

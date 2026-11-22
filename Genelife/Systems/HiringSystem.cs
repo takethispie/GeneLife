@@ -5,6 +5,7 @@ using Genelife.Components.Company;
 using Genelife.Components.Employment;
 using Genelife.Components.Finance;
 using Genelife.Components.Gen;
+using Genelife.Components.Life;
 using Genelife.Economy;
 using Genelife.Enums;
 using Genelife.Messages.Events;
@@ -38,7 +39,7 @@ public class HiringSystem : ISimulationSystem
         this.cadenceInterval = cadenceInterval;
         jobPostingsQuery = new QueryDescription().WithAll<JobPosting>();
         openPositionsQuery = new QueryDescription().WithAll<OpenPosition>();
-        jobSeekersQuery = new QueryDescription().WithAll<JobSeeker>().WithNone<Employee>();
+        jobSeekersQuery = new QueryDescription().WithAll<JobSeeker>().WithNone<Employee, Components.Gen.Dead>();
         applicationsQuery = new QueryDescription().WithAll<JobApplication>();
     }
 
@@ -165,7 +166,7 @@ public class HiringSystem : ISimulationSystem
 
             foreach (var (jobEntity, jobPosting) in postings)
             {
-                var score = CalculateMatchScore(seeker, jobPosting);
+                var score = CalculateMatchScore(seekerEntity, seeker, jobPosting);
                 if (score > bestScore)
                 {
                     bestScore = score;
@@ -284,6 +285,7 @@ public class HiringSystem : ISimulationSystem
             hire.Posting.Position,
             hire.Posting.SalaryPerCycle);
 
+        employee.HiredAtTick = tick;
         world.Add(hire.Applicant, employee);
 
         if (!world.Has<Wallet>(hire.Applicant))
@@ -291,6 +293,20 @@ public class HiringSystem : ISimulationSystem
 
         if (world.Has<JobSeeker>(hire.Applicant))
             world.Remove<JobSeeker>(hire.Applicant);
+
+        if (!world.Has<EmploymentRecord>(hire.Applicant))
+            world.Add(hire.Applicant, new EmploymentRecord(tick));
+        if (!world.Has<WorkSchedule>(hire.Applicant))
+            world.Add(hire.Applicant, new WorkSchedule(hire.Posting.Office));
+
+        if (world.Has<UnemploymentRecord>(hire.Applicant))
+        {
+            world.Remove<UnemploymentRecord>(hire.Applicant);
+            economy?.Emit(new UnemploymentEnded(
+                CompanyAccountService.NetworkIdOf(world, hire.Applicant),
+                "hired",
+                tick));
+        }
 
         index.Add(hire.Posting.Company, hire.Applicant);
 
@@ -315,7 +331,7 @@ public class HiringSystem : ISimulationSystem
             world.Get<JobApplication>(appEntity).Status = ApplicationStatus.Rejected;
     }
 
-    private static float CalculateMatchScore(JobSeeker seeker, JobPosting posting)
+    private float CalculateMatchScore(Entity seekerEntity, JobSeeker seeker, JobPosting posting)
     {
         var score = 0f;
 
@@ -323,8 +339,18 @@ public class HiringSystem : ISimulationSystem
         {
             var required = BitOperations.PopCount((uint)posting.Requirements);
             var matchingSkills = BitOperations.PopCount((uint)(posting.Requirements & seeker.Skills));
-            var skillMatch = (float)matchingSkills / required;
-            score += skillMatch * 0.4f;
+            var skillMatch = required > 0 ? (float)matchingSkills / required : 1f;
+
+            if (world.Has<SkillProfile>(seekerEntity))
+            {
+                var profile = world.Get<SkillProfile>(seekerEntity);
+                var proficiency = RequiredProficiency(profile, posting.Requirements);
+                score += skillMatch * 0.25f + Math.Clamp(proficiency, 0f, 1f) * 0.15f;
+            }
+            else
+            {
+                score += skillMatch * 0.4f;
+            }
         }
         else
         {
@@ -336,6 +362,20 @@ public class HiringSystem : ISimulationSystem
         score += Math.Min(salaryRatio, 1f) * 0.6f;
 
         return score;
+    }
+
+    private static float RequiredProficiency(SkillProfile profile, Skill requirements)
+    {
+        var total = 0f;
+        var count = 0;
+        foreach (var family in SkillProfile.Families)
+        {
+            if (!requirements.HasFlag(family))
+                continue;
+            total += profile.Get(family);
+            count++;
+        }
+        return count > 0 ? total / count : 0f;
     }
 
     private sealed class HirePlan

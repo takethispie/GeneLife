@@ -2,13 +2,14 @@ namespace Genelife.Api.Persistence;
 
 public sealed class PersistedWorldState
 {
-    public const int CurrentSchemaVersion = 3;
+    public const int CurrentSchemaVersion = 4;
 
     public int SchemaVersion { get; set; }
     public long Tick { get; set; }
     public int RandomSeed { get; set; } = 1;
     public int MigratedFromVersion { get; set; }
     public bool HousingMigrated { get; set; }
+    public bool LifecycleMigrated { get; set; }
     public List<PersistedSim> Sims { get; set; } = [];
     public List<PersistedCompany> Companies { get; set; } = [];
     public List<PersistedOffice> Offices { get; set; } = [];
@@ -24,6 +25,11 @@ public sealed class PersistedWorldState
     public List<PersistedConstructionProject> ConstructionProjects { get; set; } = [];
     public List<PersistedHousingSnapshot> HousingMetricHistory { get; set; } = [];
     public PersistedHousingMarket HousingMarket { get; set; } = new();
+    public List<PersistedSchool> Schools { get; set; } = [];
+    public List<PersistedPopulationSnapshot> LifecycleMetricHistory { get; set; } = [];
+    public List<PersistedMortalityRecord> MortalityLog { get; set; } = [];
+    public List<PersistedEstateRequest> EstateQueue { get; set; } = [];
+    public PersistedImmigration Immigration { get; set; } = new();
     public PersistedFiscal Fiscal { get; set; } = new();
 }
 
@@ -41,6 +47,7 @@ public sealed class PersistedSim
     public float X { get; set; }
     public float Y { get; set; }
     public bool IsLookingForWork { get; set; }
+    public long DesiredSalaryCents { get; set; }
     public string? PlayerId { get; set; }
 
     // v1 compatibility: float units. v2 writes cents.
@@ -71,6 +78,167 @@ public sealed class PersistedSim
     public ulong HouseholdUnitNetworkId { get; set; }
     public string Tenure { get; set; } = string.Empty;
     public string HousingTier { get; set; } = string.Empty;
+
+    public string Stage { get; set; } = string.Empty;
+    public long AgeTicks { get; set; }
+    public long StageEnteredTick { get; set; }
+    public string StageCause { get; set; } = "AgedUp";
+    public long LastAgedTick { get; set; }
+    public bool MaxAgeFlagged { get; set; }
+
+    public float SkillProgramming { get; set; }
+    public float SkillArt { get; set; }
+    public float SkillCooking { get; set; }
+    public float SkillMedical { get; set; }
+    public float SkillEngineering { get; set; }
+    public float SkillSales { get; set; }
+
+    public float HealthValue { get; set; } = 100f;
+    public float HealthDeclineRate { get; set; }
+    public long HealthLastCareTick { get; set; }
+    public int ChronicConditions { get; set; }
+
+    public ulong EnrollmentSchoolNetworkId { get; set; }
+    public float EnrollmentAttendance { get; set; } = 1f;
+    public int EnrollmentMonths { get; set; }
+    public bool IsUnenrolled { get; set; }
+
+    public string Seniority { get; set; } = "Associate";
+    public long HiredAtTick { get; set; }
+    public float EmploymentAttendance { get; set; } = 1f;
+    public float EmploymentPerformance { get; set; } = 0.5f;
+    public int EmploymentTenureCycles { get; set; }
+    public int EmploymentWarnings { get; set; }
+    public int EmploymentShiftsCompleted { get; set; }
+    public int EmploymentShiftsExpected { get; set; }
+    public int EmploymentInterruptions { get; set; }
+    public int EmploymentConsecutiveLowMonths { get; set; }
+    public int EmploymentHighPerformanceMonths { get; set; }
+    public long EmploymentLastReviewTick { get; set; }
+
+    public ulong WorkOfficeNetworkId { get; set; }
+    public bool IsAtWork { get; set; }
+    public int ShiftTicksRemaining { get; set; }
+    public long LastShiftStartTick { get; set; }
+    public long LastShiftEndTick { get; set; }
+    public int WorkShiftsCompleted { get; set; }
+    public int WorkShiftsInterrupted { get; set; }
+
+    public long RetirementMonthlyCents { get; set; }
+    public long RetirementStartedTick { get; set; }
+    public bool RetirementReduced { get; set; }
+    public bool RetirementMeansTested { get; set; }
+    public string RetirementFund { get; set; } = "pension";
+
+    public long UnemploymentStartedTick { get; set; }
+    public long UnemploymentBenefitCents { get; set; }
+    public int UnemploymentCyclesClaimed { get; set; }
+    public int UnemploymentMaxCycles { get; set; }
+    public bool UnemploymentEligible { get; set; }
+    public int UnemploymentUnpaidCycles { get; set; }
+
+    public bool IsDead { get; set; }
+    public long DeathTick { get; set; }
+    public string DeathCause { get; set; } = "Other";
+}
+
+public sealed class PersistedSchool
+{
+    public ulong NetworkId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string District { get; set; } = string.Empty;
+    public int Capacity { get; set; }
+    public float Quality { get; set; } = 0.5f;
+    public int Emphasis { get; set; }
+    public long MonthlyCostCents { get; set; }
+    public ulong OwnerNetworkId { get; set; }
+    public int Enrolled { get; set; }
+}
+
+public sealed class PersistedPopulationSnapshot
+{
+    public long Tick { get; set; }
+    public int Year { get; set; }
+    public int Total { get; set; }
+    public int Education { get; set; }
+    public int Work { get; set; }
+    public int Retirement { get; set; }
+    public int Elderly { get; set; }
+    public int StudentsEnrolled { get; set; }
+    public int GraduatesThisYear { get; set; }
+    public int Employed { get; set; }
+    public int Unemployed { get; set; }
+    public int RetiredThisYear { get; set; }
+    public int DeathsThisYear { get; set; }
+    public int ArrivalsThisYear { get; set; }
+    public decimal AverageAge { get; set; }
+    public decimal MedianAge { get; set; }
+    public decimal AverageHealth { get; set; }
+    public decimal AverageAgeAtDeath { get; set; }
+    public decimal LifeExpectancy { get; set; }
+    public decimal PensionReplacementRate { get; set; }
+    public decimal PensionFundingRatio { get; set; }
+    public decimal WorkingAgeShare { get; set; }
+    public decimal OldAgeDependencyRatio { get; set; }
+    public List<int> PyramidBuckets { get; set; } = [];
+    public List<PersistedDeathCauseCount> DeathCauses { get; set; } = [];
+}
+
+public sealed class PersistedDeathCauseCount
+{
+    public string Cause { get; set; } = string.Empty;
+    public int Count { get; set; }
+}
+
+public sealed class PersistedMortalityRecord
+{
+    public long Tick { get; set; }
+    public ulong SimNetworkId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public int Age { get; set; }
+    public string Cause { get; set; } = "Other";
+    public decimal Wealth { get; set; }
+}
+
+public sealed class PersistedEstateRequest
+{
+    public ulong SimNetworkId { get; set; }
+    public ulong HouseholdNetworkId { get; set; }
+    public ulong UnitNetworkId { get; set; }
+    public ulong OwnedUnitNetworkId { get; set; }
+    public long Tick { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public int Age { get; set; }
+    public string Cause { get; set; } = "Other";
+    public List<ulong> Heirs { get; set; } = [];
+    public decimal HouseholdRentArrears { get; set; }
+    public decimal HouseholdUtilityArrears { get; set; }
+}
+
+public sealed class PersistedImmigration
+{
+    public int TargetPopulation { get; set; }
+    public bool Enabled { get; set; } = true;
+    public int ArrivalsThisYear { get; set; }
+    public int ArrivalBudget { get; set; }
+    public int Year { get; set; }
+    public int CancelledThisYear { get; set; }
+    public bool Paused { get; set; }
+    public List<PersistedPendingArrival> Pending { get; set; } = [];
+}
+
+public sealed class PersistedPendingArrival
+{
+    public string Name { get; set; } = string.Empty;
+    public int Age { get; set; }
+    public long QueuedTick { get; set; }
+    public long ExpiresTick { get; set; }
+    public float SkillProgramming { get; set; }
+    public float SkillArt { get; set; }
+    public float SkillCooking { get; set; }
+    public float SkillMedical { get; set; }
+    public float SkillEngineering { get; set; }
+    public float SkillSales { get; set; }
 }
 
 public sealed class PersistedCompany

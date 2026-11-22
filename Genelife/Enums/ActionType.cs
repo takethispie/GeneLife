@@ -5,5 +5,6 @@ public enum ActionType
     Sleeping,
     Showering,
     Eating,
-    UsingToilet
+    UsingToilet,
+    Working
 }
