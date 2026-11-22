@@ -7,5 +7,5 @@ public sealed class EmployeeStatus
     public ulong CompanyNetworkId { get; set; }
     public string Company { get; set; } = string.Empty;
     public string Position { get; set; } = string.Empty;
-    public float Salary { get; set; }
+    public decimal Salary { get; set; }
 }

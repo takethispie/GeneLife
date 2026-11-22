@@ -1,0 +1,290 @@
+@page "/economy"
+@using Genelife.Web.Models
+@using Genelife.Web.Services
+@inject GameDataService GameData
+@implements IAsyncDisposable
+
+<PageTitle>Economy</PageTitle>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+    <div>
+        <h1 class="mb-1">Economy</h1>
+        <p class="text-muted mb-0">Closed money loop, fiscal accounts, household cash and company solvency.</p>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+        <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" id="autoRefresh" @bind="autoRefresh" />
+            <label class="form-check-label" for="autoRefresh">Auto-refresh</label>
+        </div>
+        <button class="btn btn-primary" type="button" @onclick="() => RefreshAsync()" disabled="@isLoading">
+            @if (isLoading)
+            {
+                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+            }
+            Refresh
+        </button>
+    </div>
+</div>
+
+@if (error is not null)
+{
+    <div class="alert alert-danger">
+        <div class="fw-semibold">Could not load economy data.</div>
+        <div class="small">@error</div>
+    </div>
+}
+
+@if (economy is not null)
+{
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3 small text-muted">
+        <span>Year @economy.Year</span>
+        <span>&middot;</span>
+        <span>Month @(economy.Month + 1)</span>
+        <span>&middot;</span>
+        <span>Money supply @Money(economy.TotalMoneySupply)</span>
+        @if (loadedAt is not null)
+        {
+            <span>&middot;</span>
+            <span>Refreshed @loadedAt.Value.ToString("HH:mm:ss")</span>
+        }
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="card h-100"><div class="card-body">
+                <div class="text-muted small">Household cash + savings</div>
+                <div class="fs-3 fw-semibold">@Money(economy.HouseholdCash + economy.HouseholdSavings)</div>
+            </div></div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="card h-100"><div class="card-body">
+                <div class="text-muted small">Company cash</div>
+                <div class="fs-3 fw-semibold">@Money(economy.CompanyCash)</div>
+                <div class="small text-muted">Debt @Money(economy.CompanyDebt)</div>
+            </div></div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="card h-100"><div class="card-body">
+                <div class="text-muted small">Public + pension</div>
+                <div class="fs-3 fw-semibold">@Money(economy.GovernmentFund + economy.PensionFund)</div>
+                <div class="small text-muted">Bank @Money(economy.BankFunds)</div>
+            </div></div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="card h-100"><div class="card-body">
+                <div class="text-muted small">Wages / revenue this year</div>
+                <div class="fs-3 fw-semibold">@Money(economy.WagesPaidThisYear)</div>
+                <div class="small text-muted">Revenue @Money(economy.RevenueThisYear) &middot; tax @Money(economy.TaxThisYear)</div>
+            </div></div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-lg-4">
+            <div class="card h-100">
+                <div class="card-header fw-semibold">Health checks</div>
+                <div class="list-group list-group-flush">
+                    @foreach (var check in economy.Health)
+                    {
+                        <div class="list-group-item d-flex justify-content-between gap-2">
+                            <span>@check.Name</span>
+                            <span class="badge @Badge(check.Level)">@check.Level</span>
+                        </div>
+                        <div class="px-3 pb-2 small text-muted">@check.Detail</div>
+                    }
+                    @if (economy.Health.Count == 0)
+                    {
+                        <div class="list-group-item text-muted">No year-end snapshot yet.</div>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-8">
+            <div class="card h-100">
+                <div class="card-header fw-semibold">Current flows</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-6 col-md-3"><div class="text-muted small">UBI</div><div class="fw-semibold">@Money(economy.BasicIncomeThisYear)</div></div>
+                        <div class="col-6 col-md-3"><div class="text-muted small">Arrears</div><div class="fw-semibold">@Money(economy.Arrears)</div></div>
+                        <div class="col-6 col-md-3"><div class="text-muted small">Unemployment</div><div class="fw-semibold">@Percent(economy.UnemploymentRate)</div></div>
+                        <div class="col-6 col-md-3"><div class="text-muted small">Vacancy</div><div class="fw-semibold">@Percent(economy.VacancyRate)</div></div>
+                        <div class="col-6 col-md-3"><div class="text-muted small">Wage share</div><div class="fw-semibold">@Percent(economy.WageShare)</div></div>
+                    </div>
+                    @if (fiscal is not null)
+                    {
+                        <hr />
+                        <div class="row g-3">
+                            <div class="col-6 col-md-3"><div class="text-muted small">Government</div><div class="fw-semibold">@Money(fiscal.GovernmentBalance)</div></div>
+                            <div class="col-6 col-md-3"><div class="text-muted small">Pension fund</div><div class="fw-semibold">@Money(fiscal.PensionBalance)</div></div>
+                            <div class="col-6 col-md-3"><div class="text-muted small">Loans out</div><div class="fw-semibold">@Money(fiscal.TotalLoanOutstanding)</div></div>
+                            <div class="col-6 col-md-3"><div class="text-muted small">Bank interest pool</div><div class="fw-semibold">@Money(fiscal.BankInterestPool)</div></div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header fw-semibold">Companies</div>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead><tr><th>Company</th><th>Solvency</th><th class="text-end">Cash</th><th class="text-end">Reserved</th><th class="text-end">Arrears</th><th class="text-end">Revenue</th><th class="text-end">Wages</th><th class="text-end">Employees</th></tr></thead>
+                        <tbody>
+                        @foreach (var company in companies)
+                        {
+                            <tr>
+                                <td>@company.Name</td>
+                                <td><span class="badge @SolvencyBadge(company.Solvency)">@company.Solvency</span></td>
+                                <td class="text-end">@Money(company.Balance)</td>
+                                <td class="text-end">@Money(company.ReservedForPayroll)</td>
+                                <td class="text-end">@Money(company.Arrears)</td>
+                                <td class="text-end">@Money(company.RevenueLastCycle)</td>
+                                <td class="text-end">@Money(company.WagesLastCycle)</td>
+                                <td class="text-end">@company.EmployeeCount</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-12 col-xl-7">
+            <div class="card h-100">
+                <div class="card-header fw-semibold">Recent ledger</div>
+                <div class="table-responsive" style="max-height: 420px; overflow-y: auto;">
+                    <table class="table table-sm mb-0">
+                        <thead><tr><th>Tick</th><th>Kind</th><th class="text-end">Amount</th><th>From</th><th>To</th><th>Reference</th></tr></thead>
+                        <tbody>
+                        @foreach (var entry in ledger)
+                        {
+                            <tr>
+                                <td>@entry.Tick</td>
+                                <td>@entry.Kind</td>
+                                <td class="text-end">@Money(entry.Amount)</td>
+                                <td>@(entry.FromNetworkId?.ToString() ?? "source")</td>
+                                <td>@(entry.ToNetworkId?.ToString() ?? "sink")</td>
+                                <td class="small text-muted">@entry.Reference</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-xl-5">
+            <div class="card h-100">
+                <div class="card-header fw-semibold">Yearly history</div>
+                <div class="table-responsive" style="max-height: 420px; overflow-y: auto;">
+                    <table class="table table-sm mb-0">
+                        <thead><tr><th>Year</th><th class="text-end">Supply</th><th class="text-end">Wages</th><th class="text-end">Gini</th><th class="text-end">Unemp.</th></tr></thead>
+                        <tbody>
+                        @foreach (var snapshot in history)
+                        {
+                            <tr>
+                                <td>@snapshot.Year</td>
+                                <td class="text-end">@Money(snapshot.TotalMoneySupply)</td>
+                                <td class="text-end">@Money(snapshot.WagesPaid)</td>
+                                <td class="text-end">@snapshot.Gini.ToString("0.00")</td>
+                                <td class="text-end">@Percent(snapshot.UnemploymentRate)</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private EconomyData? economy;
+    private FiscalData? fiscal;
+    private List<CompanyData> companies = new();
+    private List<LedgerEntryData> ledger = new();
+    private List<EconomySnapshotData> history = new();
+    private bool isLoading;
+    private bool autoRefresh = true;
+    private string? error;
+    private DateTimeOffset? loadedAt;
+    private CancellationTokenSource? refreshCts;
+    private Timer? timer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        timer = new Timer(async _ => await TimerTickAsync(), null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
+        await RefreshAsync();
+    }
+
+    private async Task TimerTickAsync()
+    {
+        if (!autoRefresh || isLoading)
+            return;
+        await InvokeAsync(RefreshAsync);
+    }
+
+    private async Task RefreshAsync()
+    {
+        if (isLoading)
+            return;
+
+        isLoading = true;
+        refreshCts?.Cancel();
+        refreshCts = new CancellationTokenSource();
+        var token = refreshCts.Token;
+
+        try
+        {
+            var world = await GameData.GetWorldDataAsync(token);
+            economy = world.Economy;
+            companies = world.Companies;
+            ledger = world.RecentLedger;
+            fiscal = await GameData.GetFiscalAsync(token);
+            history = await GameData.GetEconomyHistoryAsync(token);
+            loadedAt = DateTimeOffset.Now;
+            error = null;
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private static string Money(decimal value) => value.ToString("N2");
+    private static string Percent(decimal value) => value.ToString("P1");
+
+    private static string Badge(string level) => level switch
+    {
+        "Pass" => "text-bg-success",
+        "Warn" => "text-bg-warning",
+        "Fail" => "text-bg-danger",
+        _ => "text-bg-secondary"
+    };
+
+    private static string SolvencyBadge(string solvency) => solvency switch
+    {
+        "Healthy" => "text-bg-success",
+        "Tight" => "text-bg-info",
+        "Arrears" => "text-bg-warning",
+        "Insolvent" => "text-bg-danger",
+        "Bankrupt" => "text-bg-dark",
+        _ => "text-bg-secondary"
+    };
+
+    public ValueTask DisposeAsync()
+    {
+        timer?.Dispose();
+        refreshCts?.Cancel();
+        refreshCts?.Dispose();
+        return ValueTask.CompletedTask;
+    }
+}

@@ -4,6 +4,8 @@ The current simulation pays wages into `Wallet` without taking the money from an
 
 V1 treats money as a finite quantity owned by somebody at all times.
 
+INPUT FROM USER: every NPC and player should get 50 buck every 100 tick no matter their status, it is the only not-closed part of the economy
+
 ## Principles
 
 1. **Conservation.** Wages debit a company account. Spending credits a company account. Rent credits a landlord. Tax credits the government. Only explicit sources create money: initial company capital and initial household cash.

@@ -14,4 +14,7 @@ public class SimStatus
     public float TimeRemaining { get; set; }
     public float X { get; set; }
     public float Y { get; set; }
+    public decimal WalletBalance { get; set; }
+    public decimal SavingsBalance { get; set; }
+    public decimal UnmetDemand { get; set; }
 }

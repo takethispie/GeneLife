@@ -1,0 +1,148 @@
+using Arch.Core;
+using Arch.Core.Extensions;
+using Genelife.Api.Services;
+using Genelife.Components.Company;
+using Genelife.Components.Employment;
+using Genelife.Components.Finance;
+using Genelife.Components.Gen;
+using Genelife.Economy;
+using Genelife.Messages.Events;
+using Genelife.Values;
+
+namespace Genelife.Api.Repositories;
+
+/// <summary>
+/// Company-initiated and worker-initiated separations. Severance is paid when
+/// cash exists, otherwise it becomes a WageClaim; the seat is recreated only
+/// when an open posting for the same company/office/position still exists.
+/// </summary>
+public sealed class EmploymentRepository
+{
+    private readonly World world;
+    private readonly EmploymentIndex index;
+    private readonly NetworkIdRegistry networkIds;
+    private readonly EconomyContext? economy;
+
+    public EmploymentRepository(
+        World world,
+        EmploymentIndex index,
+        NetworkIdRegistry networkIds,
+        EconomyContext? economy = null)
+    {
+        this.world = world;
+        this.index = index;
+        this.networkIds = networkIds;
+        this.economy = economy;
+    }
+
+    public bool Fire(ulong simNetworkId, long tick, bool companyInitiated = true)
+        => Separate(simNetworkId, tick, companyInitiated);
+
+    public bool Resign(ulong simNetworkId, long tick)
+        => Separate(simNetworkId, tick, companyInitiated: false);
+
+    private bool Separate(ulong simNetworkId, long tick, bool companyInitiated)
+    {
+        if (!networkIds.TryGetEntity(new NetworkId(simNetworkId), out var sim) ||
+            !world.IsAlive(sim) ||
+            !world.Has<Employee>(sim))
+            return false;
+
+        var employee = world.Get<Employee>(sim);
+        var company = employee.Company;
+        var severance = companyInitiated
+            ? employee.SalaryPerCycle * (economy?.Options.SeveranceCycles ?? 2)
+            : Money.Zero;
+
+        world.Remove<Employee>(sim);
+        index.Remove(sim);
+        OfficeSeatAccounting.RefreshUsedSeats(world, employee.Office);
+
+        if (!world.Has<Wallet>(sim))
+            world.Add(sim, new Wallet(Money.Zero));
+
+        var paid = Money.Zero;
+        if (severance.IsPositive && economy is not null)
+        {
+            if (economy.Accounts.TryGet(company, out var account) && account.Balance >= severance)
+            {
+                economy.Accounts.TryDebit(
+                    company,
+                    severance,
+                    LedgerKind.SeverancePaid,
+                    Guid.NewGuid(),
+                    CompanyAccountService.NetworkIdOf(world, sim),
+                    "severance",
+                    tick);
+                ref var wallet = ref world.Get<Wallet>(sim);
+                wallet.Balance += severance;
+                paid = severance;
+            }
+            else if (severance.IsPositive)
+            {
+                AddSeveranceClaim(sim, company, severance, tick);
+            }
+        }
+
+        ReopenSeatIfPostingExists(employee);
+
+        economy?.Emit(new EmployeeFired(
+            CompanyAccountService.NetworkIdOf(world, company),
+            simNetworkId));
+
+        if (!companyInitiated)
+            economy?.Emit(new EmployeeResigned(
+                CompanyAccountService.NetworkIdOf(world, company),
+                simNetworkId));
+
+        return true;
+    }
+
+    private void AddSeveranceClaim(Entity sim, Entity company, Money severance, long tick)
+    {
+        if (world.Has<WageClaim>(sim))
+        {
+            ref var claim = ref world.Get<WageClaim>(sim);
+            claim.Severance += severance;
+            claim.Company = company;
+            return;
+        }
+
+        world.Add(sim, new WageClaim(company, Money.Zero, Money.Zero, tick)
+        {
+            Severance = severance
+        });
+    }
+
+    private void ReopenSeatIfPostingExists(Employee employee)
+    {
+        Entity postingEntity = Entity.Null;
+        JobPosting posting = default;
+        var query = new QueryDescription().WithAll<JobPosting>();
+        world.Query(in query, (Entity entity, ref JobPosting candidate) =>
+        {
+            if (postingEntity != Entity.Null)
+                return;
+            if (candidate.Company != employee.Company ||
+                candidate.Office != employee.Office ||
+                candidate.IsClosed ||
+                !string.Equals(candidate.Position, employee.Position, StringComparison.Ordinal))
+                return;
+            postingEntity = entity;
+            posting = candidate;
+        });
+
+        if (postingEntity == Entity.Null)
+            return;
+
+        world.Create(new OpenPosition(postingEntity));
+        posting.OpenSeats++;
+        posting.TotalSeats++;
+        if (world.IsAlive(postingEntity))
+            world.Get<JobPosting>(postingEntity) = posting;
+        OfficeSeatAccounting.RefreshUsedSeats(world, employee.Office);
+        economy?.Emit(new JobSeatReserved(
+            world.Has<NetworkId>(postingEntity) ? world.Get<NetworkId>(postingEntity).Value : 0UL,
+            1));
+    }
+}

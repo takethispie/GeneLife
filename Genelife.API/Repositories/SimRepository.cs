@@ -18,7 +18,7 @@ public class SimRepository
         this.networkIds = networkIds;
     }
 
-    public void Add(string name, int age)
+    public NetworkId Add(string name, int age)
     {
         var entity = world.Create(
             new GenName(name),
@@ -28,10 +28,12 @@ public class SimRepository
             new Location(0f, 0f)
         );
 
-        world.Add(entity, networkIds.Allocate(entity));
+        var networkId = networkIds.Allocate(entity);
+        world.Add(entity, networkId);
+        return networkId;
     }
 
-    public void Add(string name, int age, string playerId)
+    public NetworkId Add(string name, int age, string playerId)
     {
         var entity = world.Create(
             new GenName(name),
@@ -42,7 +44,9 @@ public class SimRepository
             new Location(0f, 0f)
         );
 
-        world.Add(entity, networkIds.Allocate(entity));
+        var networkId = networkIds.Allocate(entity);
+        world.Add(entity, networkId);
+        return networkId;
     }
 
     public bool Delete(ulong networkId)

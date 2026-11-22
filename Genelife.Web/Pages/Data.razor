@@ -136,6 +136,8 @@
                                         <th scope="col">ID</th>
                                         <th scope="col">Name</th>
                                         <th scope="col">Employees</th>
+                                        <th scope="col" class="text-end">Cash</th>
+                                        <th scope="col">Solvency</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -145,6 +147,8 @@
                                             <td class="font-monospace text-muted">#@company.NetworkId</td>
                                             <td class="fw-semibold">@company.Name</td>
                                             <td>@company.EmployeeCount</td>
+                                            <td class="text-end">@company.Balance.ToString("0.00")</td>
+                                            <td>@company.Solvency</td>
                                         </tr>
                                     }
                                 </tbody>
@@ -168,6 +172,8 @@
                                         <th scope="col">Company</th>
                                         <th scope="col">Capacity</th>
                                         <th scope="col">Employees</th>
+                                        <th scope="col" class="text-end">Cash</th>
+                                        <th scope="col">Solvency</th>
                                     </tr>
                                 </thead>
                                 <tbody>

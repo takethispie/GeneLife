@@ -2,6 +2,7 @@ using Arch.Core;
 using Genelife.Components.Employment;
 using Genelife.Components.Gen;
 using Genelife.Systems;
+using Genelife.Values;
 
 namespace Genelife.UnitTests.Systems;
 
@@ -41,7 +42,7 @@ public class JobSeekerSystemTests
         var office = world.Create();
         var entity = world.Create(
             new Alive(25),
-            new Employee(company, office, "Dev", 3000f)
+            new Employee(company, office, "Dev", Money.FromUnits(3000m))
         );
         var system = new JobSeekerSystem(world, 0);
 

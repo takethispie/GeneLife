@@ -1,36 +1,40 @@
 using Arch.Core;
 using Arch.Core.Extensions;
 using System.Numerics;
+using Genelife.Components.Company;
 using Genelife.Components.Employment;
+using Genelife.Components.Finance;
 using Genelife.Components.Gen;
+using Genelife.Economy;
 using Genelife.Enums;
+using Genelife.Messages.Events;
+using Genelife.Values;
 
 namespace Genelife.Systems;
 
 /// <summary>
-/// System that handles job applications and hiring process.
+/// Job application and hiring pipeline. Hiring charges a recruitment fee,
+/// respects company solvency and freezes, and updates the EmploymentIndex.
 ///
-/// Follows a collect -> decide -> apply pipeline so that no structural
-/// changes (Create/Add/Remove/Destroy) happen while iterating a query.
-///
-/// Open seats are represented by <see cref="OpenPosition"/> entities; hiring
-/// destroys one seat per accepted applicant. The <see cref="EmploymentIndex"/>
-/// is the sole derived view of employment relationships.
+/// Follows collect -> decide -> apply so no structural changes happen while
+/// iterating a query.
 /// </summary>
 public class HiringSystem : ISimulationSystem
 {
     private readonly World world;
     private readonly EmploymentIndex index;
+    private readonly EconomyContext? economy;
     private readonly QueryDescription jobPostingsQuery;
     private readonly QueryDescription openPositionsQuery;
     private readonly QueryDescription jobSeekersQuery;
     private readonly QueryDescription applicationsQuery;
     private readonly int cadenceInterval;
 
-    public HiringSystem(World world, EmploymentIndex index, int cadenceInterval = 25)
+    public HiringSystem(World world, EmploymentIndex index, int cadenceInterval = 25, EconomyContext? economy = null)
     {
         this.world = world;
         this.index = index;
+        this.economy = economy;
         this.cadenceInterval = cadenceInterval;
         jobPostingsQuery = new QueryDescription().WithAll<JobPosting>();
         openPositionsQuery = new QueryDescription().WithAll<OpenPosition>();
@@ -42,75 +46,66 @@ public class HiringSystem : ISimulationSystem
     public int Order => 400;
     public Cadence Cadence => new(cadenceInterval <= 0 ? 1 : cadenceInterval);
 
-    void ISimulationSystem.Update(in SimulationContext context) => Update();
+    void ISimulationSystem.Update(in SimulationContext context) => Update(context.Tick);
 
-    public void Update()
+    public void Update() => Update(0);
+
+    public void Update(long tick)
     {
-        // 1. Collect
         var postings = CollectPostings();
         var openSeats = CollectOpenSeats();
         var seekers = CollectSeekers();
         var pendingApplicants = CollectPendingApplicants();
 
-        // 2. Decide (pure C#, no world access)
         var newApplications = DecideApplications(postings, seekers, pendingApplicants);
         var hirePlan = DecideHires(postings, openSeats);
 
-        // 3. Apply (structural changes only here)
         foreach (var application in newApplications)
-        {
             world.Create(application);
-        }
 
         foreach (var hire in hirePlan.Hires)
         {
-            if (!world.IsAlive(hire.Applicant)) continue;
-            HireApplicant(hire.Applicant, hire.Posting);
-        }
-
-        foreach (var appEntity in hirePlan.AcceptedApplications)
-        {
-            if (world.IsAlive(appEntity))
+            if (!world.IsAlive(hire.Applicant) || !world.IsAlive(hire.PostingEntity))
             {
-                ref var app = ref world.Get<JobApplication>(appEntity);
-                app.Status = ApplicationStatus.Accepted;
+                Reject(hire.ApplicationEntity);
+                continue;
+            }
+
+            if (!TryHire(tick, hire))
+            {
+                Reject(hire.ApplicationEntity);
+                continue;
+            }
+
+            Accept(hire.ApplicationEntity);
+
+            if (world.IsAlive(hire.SeatEntity))
+                world.Destroy(hire.SeatEntity);
+
+            ref var posting = ref world.Get<JobPosting>(hire.PostingEntity);
+            posting.OpenSeats = Math.Max(0, posting.OpenSeats - 1);
+            if (posting.OpenSeats == 0)
+            {
+                var postingNetworkId = world.Has<NetworkId>(hire.PostingEntity)
+                    ? world.Get<NetworkId>(hire.PostingEntity).Value
+                    : 0UL;
+                var companyNetworkId = CompanyAccountService.NetworkIdOf(world, posting.Company);
+                world.Destroy(hire.PostingEntity);
+                economy?.Emit(new JobPostingClosed(postingNetworkId, companyNetworkId));
             }
         }
 
         foreach (var appEntity in hirePlan.RejectedApplications)
-        {
-            if (world.IsAlive(appEntity))
-            {
-                ref var app = ref world.Get<JobApplication>(appEntity);
-                app.Status = ApplicationStatus.Rejected;
-            }
-        }
-
-        foreach (var seatEntity in hirePlan.FilledSeats)
-        {
-            if (world.IsAlive(seatEntity))
-            {
-                world.Destroy(seatEntity);
-            }
-        }
-
-        foreach (var postingEntity in hirePlan.FilledPostings)
-        {
-            if (world.IsAlive(postingEntity))
-            {
-                world.Destroy(postingEntity);
-            }
-        }
+            Reject(appEntity);
     }
-
-    // ---- Collect ----
 
     private List<(Entity Entity, JobPosting Posting)> CollectPostings()
     {
         var postings = new List<(Entity Entity, JobPosting Posting)>();
         world.Query(in jobPostingsQuery, (Entity entity, ref JobPosting posting) =>
         {
-            postings.Add((entity, posting));
+            if (!posting.IsClosed)
+                postings.Add((entity, posting));
         });
         return postings;
     }
@@ -136,9 +131,7 @@ public class HiringSystem : ISimulationSystem
         world.Query(in jobSeekersQuery, (Entity entity, ref JobSeeker seeker) =>
         {
             if (seeker.IsLookingForWork)
-            {
                 seekers.Add((entity, seeker));
-            }
         });
         return seekers;
     }
@@ -149,14 +142,10 @@ public class HiringSystem : ISimulationSystem
         world.Query(in applicationsQuery, (ref JobApplication app) =>
         {
             if (app.Status == ApplicationStatus.Pending)
-            {
                 applicants.Add(app.Applicant);
-            }
         });
         return applicants;
     }
-
-    // ---- Decide ----
 
     private List<JobApplication> DecideApplications(
         List<(Entity Entity, JobPosting Posting)> postings,
@@ -167,8 +156,8 @@ public class HiringSystem : ISimulationSystem
 
         foreach (var (seekerEntity, seeker) in seekers)
         {
-            // Skip seekers who already have a pending application
-            if (pendingApplicants.Contains(seekerEntity)) continue;
+            if (pendingApplicants.Contains(seekerEntity))
+                continue;
 
             Entity bestJobEntity = default;
             JobPosting bestJob = default;
@@ -176,7 +165,7 @@ public class HiringSystem : ISimulationSystem
 
             foreach (var (jobEntity, jobPosting) in postings)
             {
-                float score = CalculateMatchScore(seeker, jobPosting);
+                var score = CalculateMatchScore(seeker, jobPosting);
                 if (score > bestScore)
                 {
                     bestScore = score;
@@ -205,14 +194,11 @@ public class HiringSystem : ISimulationSystem
     {
         var plan = new HirePlan();
 
-        // Collect pending applications grouped by job posting
         var pending = new List<(Entity AppEntity, JobApplication Application)>();
         world.Query(in applicationsQuery, (Entity entity, ref JobApplication app) =>
         {
             if (app.Status == ApplicationStatus.Pending)
-            {
                 pending.Add((entity, app));
-            }
         });
 
         var applicationsByJob = pending
@@ -221,102 +207,147 @@ public class HiringSystem : ISimulationSystem
 
         foreach (var (jobPostingEntity, applications) in applicationsByJob)
         {
-            if (!world.IsAlive(jobPostingEntity)) continue;
+            if (!world.IsAlive(jobPostingEntity))
+                continue;
 
             ref var jobPosting = ref world.Get<JobPosting>(jobPostingEntity);
-
-            // Available seats for this posting
-            if (!openSeats.TryGetValue(jobPostingEntity, out var seats))
+            if (jobPosting.IsClosed)
             {
-                seats = new List<Entity>();
+                foreach (var (appEntity, _) in applications)
+                    plan.RejectedApplications.Add(appEntity);
+                continue;
             }
 
-            int hired = 0;
+            if (!openSeats.TryGetValue(jobPostingEntity, out var seats))
+                seats = new List<Entity>();
+
+            var hired = 0;
             foreach (var (appEntity, application) in applications)
             {
-                if (hired >= seats.Count) break;
+                if (hired >= seats.Count)
+                    break;
+                if (!world.IsAlive(application.Applicant))
+                    continue;
 
-                if (!world.IsAlive(application.Applicant)) continue;
-
-                plan.Hires.Add((application.Applicant, jobPosting));
-                plan.AcceptedApplications.Add(appEntity);
-                plan.FilledSeats.Add(seats[hired]);
+                plan.Hires.Add(new HireDecision(
+                    application.Applicant,
+                    jobPostingEntity,
+                    jobPosting,
+                    seats[hired],
+                    appEntity));
                 hired++;
             }
 
-            // Reject the remaining applications for this posting
             foreach (var (appEntity, _) in applications.Skip(hired))
-            {
                 plan.RejectedApplications.Add(appEntity);
-            }
-
-            // Mark posting for deletion if all seats are filled
-            if (hired >= seats.Count)
-            {
-                plan.FilledPostings.Add(jobPostingEntity);
-            }
         }
 
         return plan;
     }
 
-    // ---- Apply ----
-
-    private void HireApplicant(Entity applicantEntity, JobPosting jobPosting)
+    private bool TryHire(long tick, HireDecision hire)
     {
+        if (economy is not null)
+        {
+            if (!economy.Accounts.TryGet(hire.Posting.Company, out var account))
+                return false;
+
+            if (account.State is CompanySolvency.Insolvent or CompanySolvency.Bankrupt ||
+                account.HiringFrozen ||
+                account.Arrears.IsPositive)
+                return false;
+
+            var fee = (hire.Posting.SalaryPerCycle * economy.Options.RecruitmentRate)
+                .Max(Money.FromUnits(1m));
+
+            if (!economy.Accounts.TryDebit(
+                    hire.Posting.Company,
+                    fee,
+                    LedgerKind.RecruitmentCost,
+                    Guid.NewGuid(),
+                    EconomyAccountIds.Government,
+                    "recruitment.fee",
+                    tick))
+                return false;
+
+            economy.Government.Balance += fee;
+            economy.Emit(new RecruitmentFeeCharged(
+                CompanyAccountService.NetworkIdOf(world, hire.Posting.Company),
+                CompanyAccountService.NetworkIdOf(world, hire.Applicant),
+                fee.Cents,
+                tick));
+        }
+
         var employee = new Employee(
-            jobPosting.Company,
-            jobPosting.Office,
-            jobPosting.Position,
-            jobPosting.Salary
-        );
-        world.Add(applicantEntity, employee);
+            hire.Posting.Company,
+            hire.Posting.Office,
+            hire.Posting.Position,
+            hire.Posting.SalaryPerCycle);
 
-        if (!world.Has<Wallet>(applicantEntity))
-        {
-            world.Add(applicantEntity, new Wallet(0f));
-        }
+        world.Add(hire.Applicant, employee);
 
-        if (world.Has<JobSeeker>(applicantEntity))
-        {
-            world.Remove<JobSeeker>(applicantEntity);
-        }
+        if (!world.Has<Wallet>(hire.Applicant))
+            world.Add(hire.Applicant, new Wallet(Money.Zero));
 
-        // Update the derived employment index
-        index.Add(jobPosting.Company, applicantEntity);
+        if (world.Has<JobSeeker>(hire.Applicant))
+            world.Remove<JobSeeker>(hire.Applicant);
+
+        index.Add(hire.Posting.Company, hire.Applicant);
+
+        economy?.Emit(new EmployeeHired(
+            CompanyAccountService.NetworkIdOf(world, hire.Posting.Company),
+            CompanyAccountService.NetworkIdOf(world, hire.Applicant),
+            hire.Posting.Position,
+            hire.Posting.SalaryPerCycle.Cents));
+
+        return true;
     }
 
-    private float CalculateMatchScore(JobSeeker seeker, JobPosting posting)
+    private void Accept(Entity appEntity)
     {
-        float score = 0f;
+        if (world.IsAlive(appEntity))
+            world.Get<JobApplication>(appEntity).Status = ApplicationStatus.Accepted;
+    }
 
-        // Skill match (40% weight)
+    private void Reject(Entity appEntity)
+    {
+        if (world.IsAlive(appEntity))
+            world.Get<JobApplication>(appEntity).Status = ApplicationStatus.Rejected;
+    }
+
+    private static float CalculateMatchScore(JobSeeker seeker, JobPosting posting)
+    {
+        var score = 0f;
+
         if (posting.Requirements != Skill.None)
         {
-            int required = BitOperations.PopCount((uint)posting.Requirements);
-            int matchingSkills = BitOperations.PopCount((uint)(posting.Requirements & seeker.Skills));
-            float skillMatch = (float)matchingSkills / required;
+            var required = BitOperations.PopCount((uint)posting.Requirements);
+            var matchingSkills = BitOperations.PopCount((uint)(posting.Requirements & seeker.Skills));
+            var skillMatch = (float)matchingSkills / required;
             score += skillMatch * 0.4f;
         }
         else
         {
-            score += 0.4f; // No requirements means anyone qualifies
+            score += 0.4f;
         }
 
-        // Salary match (60% weight)
-        float salaryRatio = posting.Salary / Math.Max(seeker.DesiredSalary, 1f);
-        float salaryScore = Math.Min(salaryRatio, 1f); // Cap at 1.0
-        score += salaryScore * 0.6f;
+        var desired = Math.Max(seeker.DesiredSalary.Cents, 1L);
+        var salaryRatio = posting.SalaryPerCycle.Cents / (float)desired;
+        score += Math.Min(salaryRatio, 1f) * 0.6f;
 
         return score;
     }
 
     private sealed class HirePlan
     {
-        public List<(Entity Applicant, JobPosting Posting)> Hires { get; } = new();
-        public List<Entity> AcceptedApplications { get; } = new();
+        public List<HireDecision> Hires { get; } = new();
         public List<Entity> RejectedApplications { get; } = new();
-        public List<Entity> FilledSeats { get; } = new();
-        public List<Entity> FilledPostings { get; } = new();
     }
+
+    private readonly record struct HireDecision(
+        Entity Applicant,
+        Entity PostingEntity,
+        JobPosting Posting,
+        Entity SeatEntity,
+        Entity ApplicationEntity);
 }

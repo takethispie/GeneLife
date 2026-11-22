@@ -4,25 +4,26 @@ using Genelife.Components.Employment;
 using Genelife.Components.Gen;
 using Genelife.Enums;
 using Genelife.Systems;
+using Genelife.Values;
 
 namespace Genelife.UnitTests.Systems;
 
 public class HiringSystemTests
 {
     private static (World World, Entity Company, Entity Office, Entity Posting) SetupPosting(
-        World world, string position = "Dev", float salary = 3000f, Genelife.Enums.Skill requirements = Genelife.Enums.Skill.None)
+        World world, string position = "Dev", decimal salary = 3000m, Genelife.Enums.Skill requirements = Genelife.Enums.Skill.None)
     {
         var company = world.Create(new CompanyName("Acme"));
         var office = world.Create(new Office("HQ", company));
-        var posting = world.Create(new JobPosting(company, office, position, salary, requirements));
+        var posting = world.Create(new JobPosting(company, office, position, Money.FromUnits(salary), requirements));
         return (world, company, office, posting);
     }
 
-    private static Entity AddSeeker(World world, int age = 20, Genelife.Enums.Skill skills = Genelife.Enums.Skill.None, float desiredSalary = 1000f)
+    private static Entity AddSeeker(World world, int age = 20, Genelife.Enums.Skill skills = Genelife.Enums.Skill.None, decimal desiredSalary = 1000m)
     {
         return world.Create(
             new Alive(age),
-            new JobSeeker(true, skills, desiredSalary)
+            new JobSeeker(true, skills, Money.FromUnits(desiredSalary))
         );
     }
 
@@ -197,9 +198,9 @@ public class HiringSystemTests
         var world = World.Create();
         var index = new EmploymentIndex();
         // Requirements that the seeker cannot match, and low salary
-        var (_, _, _, posting) = SetupPosting(world, salary: 10f, requirements: Genelife.Enums.Skill.Rare);
+        var (_, _, _, posting) = SetupPosting(world, salary: 10m, requirements: Genelife.Enums.Skill.Rare);
         world.Create(new OpenPosition(posting));
-        AddSeeker(world, skills: Genelife.Enums.Skill.None, desiredSalary: 100000f);
+        AddSeeker(world, skills: Genelife.Enums.Skill.None, desiredSalary: 100000m);
 
         var system = new HiringSystem(world, index, 0);
         system.Update();

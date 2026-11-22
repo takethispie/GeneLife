@@ -53,6 +53,42 @@ public sealed class GameDataService
             ?? new SimulationStatus();
     }
 
+    public async Task<EconomyData> GetEconomyAsync(CancellationToken cancellationToken = default)
+    {
+        using var response = await SendWithAuthRetryAsync(
+            () => http.GetAsync("api/economy/overview", cancellationToken), cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<EconomyData>(cancellationToken: cancellationToken)
+            ?? new EconomyData();
+    }
+
+    public async Task<FiscalData> GetFiscalAsync(CancellationToken cancellationToken = default)
+    {
+        using var response = await SendWithAuthRetryAsync(
+            () => http.GetAsync("api/economy/fiscal", cancellationToken), cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<FiscalData>(cancellationToken: cancellationToken)
+            ?? new FiscalData();
+    }
+
+    public async Task<List<EconomySnapshotData>> GetEconomyHistoryAsync(CancellationToken cancellationToken = default)
+    {
+        using var response = await SendWithAuthRetryAsync(
+            () => http.GetAsync("api/economy/metrics/history", cancellationToken), cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<List<EconomySnapshotData>>(cancellationToken: cancellationToken)
+            ?? new List<EconomySnapshotData>();
+    }
+
+    public async Task<List<LedgerEntryData>> GetLedgerAsync(int take = 200, CancellationToken cancellationToken = default)
+    {
+        using var response = await SendWithAuthRetryAsync(
+            () => http.GetAsync($"api/economy/ledger?take={take}", cancellationToken), cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<List<LedgerEntryData>>(cancellationToken: cancellationToken)
+            ?? new List<LedgerEntryData>();
+    }
+
     public Task StartSimulationAsync(CancellationToken cancellationToken = default)
         => SendAdminCommandAsync("api/simulation/start", cancellationToken);
 

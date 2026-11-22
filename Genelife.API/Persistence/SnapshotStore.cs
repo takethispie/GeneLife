@@ -95,12 +95,19 @@ public sealed class SnapshotStore : ISnapshotStore, IDisposable
                 $"Snapshot schema version {schemaVersion} is newer than supported version {PersistedWorldState.CurrentSchemaVersion}. "
                 + "Upgrade the application or use a compatible snapshot.");
 
-        if (schemaVersion < PersistedWorldState.CurrentSchemaVersion)
+        if (schemaVersion < 1)
             throw new InvalidOperationException(
                 $"Snapshot schema version {schemaVersion} is older than current version {PersistedWorldState.CurrentSchemaVersion}. "
                 + "Manual migration may be required.");
 
-        return JsonSerializer.Deserialize<PersistedWorldState>(json, JsonOptions);
+        var state = JsonSerializer.Deserialize<PersistedWorldState>(json, JsonOptions);
+        if (state is null)
+            return null;
+
+        if (schemaVersion < PersistedWorldState.CurrentSchemaVersion)
+            SnapshotMigrations.Upgrade(state, schemaVersion);
+
+        return state;
     }
 
     public void Dispose()

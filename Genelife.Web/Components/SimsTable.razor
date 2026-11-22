@@ -8,6 +8,7 @@
                 <th scope="col">Name</th>
                 <th scope="col">Age</th>
                 <th scope="col">Controller</th>
+                <th scope="col" class="text-end">Wallet</th>
                 <th scope="col">Hunger</th>
                 <th scope="col">Energy</th>
                 <th scope="col">Hygiene</th>
@@ -34,6 +35,7 @@
                             <span class="badge text-bg-secondary">NPC</span>
                         }
                     </td>
+                    <td class="text-end">@sim.WalletBalance.ToString("0.00")</td>
                     <td class="@NeedClass(sim.Hunger)">@sim.Hunger.ToString("0.0")</td>
                     <td class="@NeedClass(sim.Energy)">@sim.Energy.ToString("0.0")</td>
                     <td class="@NeedClass(sim.Hygiene)">@sim.Hygiene.ToString("0.0")</td>

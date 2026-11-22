@@ -1,0 +1,98 @@
+using Arch.Core;
+using Genelife.Api.Repositories;
+using Genelife.Api.Services;
+using Genelife.Components.Company;
+using Genelife.Components.Employment;
+using Genelife.Components.Finance;
+using Genelife.Components.Gen;
+using Genelife.Enums;
+using Genelife.Values;
+
+namespace Genelife.UnitTests.Persistence;
+
+public class EconomyPersistenceTests
+{
+    [Fact]
+    public void CaptureAndRestore_PreservesAccountsOfficesPostingsEmploymentAndWallets()
+    {
+        var engine = new SimulationEngine();
+        engine.Initialize();
+        var world = engine.World!;
+        var economy = engine.Economy!;
+        var registry = engine.NetworkIds;
+
+        var companyRepository = new CompanyRepository(world, economy.Employment, registry, economy);
+        var officeRepository = new OfficeRepository(world, registry, economy);
+        var postingRepository = new JobPostingRepository(world, registry, economy);
+        var simRepository = new SimRepository(world, registry);
+
+        var companyId = companyRepository.Add("Acme");
+        var officeId = officeRepository.Add(companyId, "Main", 5, Money.FromUnits(50m));
+        var postingId = postingRepository.Open(companyId, officeId, "Dev", Money.FromUnits(1000m), Skill.Programming, 1);
+        var simId = simRepository.Add("Alice", 30);
+
+        registry.TryGetEntity(companyId, out var company);
+        registry.TryGetEntity(officeId, out var office);
+        registry.TryGetEntity(simId, out var sim);
+
+        world.Add(sim, new Employee(company, office, "Dev", Money.FromUnits(1000m)));
+        world.Add(sim, new SavingsAccount(Money.FromUnits(250m)));
+        economy.Employment.Add(company, sim);
+
+        var account = world.Get<CompanyAccount>(company);
+        account.Balance = Money.FromUnits(7_500m);
+        account.Arrears = Money.FromUnits(25m);
+        account.State = CompanySolvency.Arrears;
+        world.Get<CompanyAccount>(company) = account;
+
+        var state = engine.CaptureState(registry);
+        engine.Shutdown();
+
+        var restored = new SimulationEngine();
+        restored.Restore(state, restored.NetworkIds);
+        var restoredWorld = restored.World!;
+        var restoredEconomy = restored.Economy!;
+
+        Assert.True(restored.NetworkIds.TryGetEntity(companyId, out var restoredCompany));
+        Assert.True(restored.NetworkIds.TryGetEntity(simId, out var restoredSim));
+        Assert.True(restoredEconomy.Accounts.TryGet(restoredCompany, out var restoredAccount));
+        Assert.Equal(Money.FromUnits(7_500m), restoredAccount.Balance);
+        Assert.Equal(Money.FromUnits(25m), restoredAccount.Arrears);
+        Assert.Equal(CompanySolvency.Arrears, restoredAccount.State);
+        Assert.Equal(Money.FromUnits(250m), restoredWorld.Get<SavingsAccount>(restoredSim).Balance);
+        Assert.True(restoredWorld.Has<Employee>(restoredSim));
+        Assert.Equal(1, restoredEconomy.Employment.CountEmployees(restoredCompany));
+        Assert.True(restored.NetworkIds.TryGetEntity(postingId, out var restoredPosting));
+        Assert.Equal(1, restoredWorld.Get<JobPosting>(restoredPosting).TotalSeats);
+        restored.Shutdown();
+    }
+
+    [Fact]
+    public void CaptureAndRestore_PreservesPendingConsumerRevenue()
+    {
+        var engine = new SimulationEngine();
+        engine.Initialize();
+        var world = engine.World!;
+        var economy = engine.Economy!;
+        var registry = engine.NetworkIds;
+
+        var companyRepository = new CompanyRepository(world, economy.Employment, registry, economy);
+        var simRepository = new SimRepository(world, registry);
+        var companyId = companyRepository.Add("Shop");
+        var simId = simRepository.Add("Buyer", 30);
+        registry.TryGetEntity(companyId, out var company);
+
+        economy.BookRevenue(company, "Food", simId.Value, Money.FromUnits(40m), 100);
+        var before = economy.TotalMoneySupply();
+
+        var state = engine.CaptureState(registry);
+        engine.Shutdown();
+
+        var restored = new SimulationEngine();
+        restored.Restore(state, restored.NetworkIds);
+
+        Assert.Equal(before, restored.Economy!.TotalMoneySupply());
+        Assert.Single(restored.Economy.PendingRevenue);
+        restored.Shutdown();
+    }
+}
