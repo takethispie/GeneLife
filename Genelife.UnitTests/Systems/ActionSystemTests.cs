@@ -107,6 +107,29 @@ public class ActionSystemTests
         Assert.Equal(0f, action.TimeRemaining);
     }
 
+    [Theory]
+    [InlineData(ActionType.Sleeping)]
+    [InlineData(ActionType.Showering)]
+    [InlineData(ActionType.Eating)]
+    [InlineData(ActionType.UsingToilet)]
+    public void Update_CompletedActionFillsTargetedNeed(ActionType actionType)
+    {
+        var world = World.Create();
+        var entity = world.Create(
+            new Needs { Hunger = 40f, Energy = 40f, Hygiene = 40f, Bladder = 40f },
+            new CurrentAction(actionType, 0.5f)
+        );
+        var system = new ActionSystem(world);
+
+        system.Update(1f);
+
+        ref var needs = ref world.Get<Needs>(entity);
+        Assert.Equal(actionType == ActionType.Eating ? 100f : 40f, needs.Hunger);
+        Assert.Equal(actionType == ActionType.Sleeping ? 100f : 40f, needs.Energy);
+        Assert.Equal(actionType == ActionType.Showering ? 100f : 40f, needs.Hygiene);
+        Assert.Equal(actionType == ActionType.UsingToilet ? 100f : 40f, needs.Bladder);
+    }
+
     [Fact]
     public void Update_ClampsNeedAtHundred()
     {

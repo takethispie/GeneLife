@@ -52,6 +52,24 @@ public class ActionSystem : ISimulationSystem
 
             // Action completed
             if (action.TimeRemaining > 0) return;
+
+            // Fulfill the targeted need completely once the action finishes
+            switch (action.Type)
+            {
+                case ActionType.Sleeping:
+                    needs.Energy = 100f;
+                    break;
+                case ActionType.Showering:
+                    needs.Hygiene = 100f;
+                    break;
+                case ActionType.Eating:
+                    needs.Hunger = 100f;
+                    break;
+                case ActionType.UsingToilet:
+                    needs.Bladder = 100f;
+                    break;
+            }
+
             action.Type = ActionType.Idle;
             action.TimeRemaining = 0;
         });
