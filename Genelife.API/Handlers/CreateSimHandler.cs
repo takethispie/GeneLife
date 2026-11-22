@@ -6,7 +6,7 @@ namespace Genelife.Api.Handlers;
 
 public static class CreateSimHandler
 {
-    public static IResult Handle(CreateSim command, SimulationManager simulationManager)
+    public static async Task<IResult> Handle(CreateSim command, SimulationManager simulationManager)
     {
         if (string.IsNullOrWhiteSpace(command.Name))
             return Results.BadRequest(new { message = "Name is required" });
@@ -14,7 +14,7 @@ public static class CreateSimHandler
         try
         {
             simulationManager.AddSim(command.Name, command.Age);
-            var sims = simulationManager.GetAllSims();
+            var sims = await simulationManager.GetAllSimsAsync();
             var created = sims.LastOrDefault();
             var networkId = created?.NetworkId ?? 0UL;
             return Results.Accepted("/api/sims/" + networkId, new { networkId });

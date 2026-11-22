@@ -1,3 +1,4 @@
+using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Options;
@@ -51,6 +52,33 @@ public static class AuthEndpoints
         })
         .AllowAnonymous()
         .WithName("IssueToken");
+
+        app.MapPost("/api/auth/local-admin", (
+            HttpContext context,
+            JwtTokenService tokenService,
+            IOptions<JwtOptions> jwtOptions) =>
+        {
+            if (!jwtOptions.Value.AllowLocalAdmin)
+                return Results.Forbid();
+
+            if (context.Connection.RemoteIpAddress is not { } remoteAddress ||
+                !IPAddress.IsLoopback(remoteAddress))
+            {
+                return Results.Forbid();
+            }
+
+            var issued = tokenService.CreateToken("local-admin", isAdmin: true);
+            return Results.Ok(new
+            {
+                accessToken = issued.Token,
+                tokenType = "Bearer",
+                expiresAt = issued.ExpiresAt,
+                playerId = "local-admin",
+                roles = new[] { AuthRoles.Player, AuthRoles.Admin }
+            });
+        })
+        .AllowAnonymous()
+        .WithName("IssueLocalAdminToken");
     }
 
     private static bool SecretsMatch(string provided, string expected)

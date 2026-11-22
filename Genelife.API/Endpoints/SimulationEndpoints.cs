@@ -32,12 +32,12 @@ public static class SimulationEndpoints
         .WithName("StopSimulation")
         .RequireAuthorization(AuthPolicies.Admin);
 
-        app.MapGet("/api/simulation/status", (SimulationManager simulationManager) =>
+        app.MapGet("/api/simulation/status", async (SimulationManager simulationManager) =>
         {
             return Results.Ok(new
             {
                 isRunning = simulationManager.IsRunning,
-                sims = simulationManager.GetAllSims()
+                sims = await simulationManager.GetAllSimsAsync()
             });
         })
         .WithName("GetStatus")
@@ -92,9 +92,9 @@ public static class SimulationEndpoints
         .WithName("AddSim")
         .RequireAuthorization(AuthPolicies.Admin);
 
-        app.MapGet("/api/simulation/sims", (SimulationManager simulationManager) =>
+        app.MapGet("/api/simulation/sims", async (SimulationManager simulationManager) =>
         {
-            var sims = simulationManager.GetAllSims();
+            var sims = await simulationManager.GetAllSimsAsync();
             return Results.Ok(sims);
         })
         .WithName("GetAllSims")

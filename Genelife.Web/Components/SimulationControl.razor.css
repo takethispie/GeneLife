@@ -1,0 +1,11 @@
+.simulation-status-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background-color: currentColor;
+    flex: 0 0 auto;
+}
+
+.simulation-error {
+    max-width: 24rem;
+}

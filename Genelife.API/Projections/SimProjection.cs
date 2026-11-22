@@ -11,8 +11,8 @@ public partial class SimProjection : EventProjection
     {
         return new SimDocument
         {
-            Id = Guid.NewGuid(),
-            NetworkId = e.NetworkId,
+            Id = DocumentIds.ForNetworkId(e.NetworkId),
+            NetworkId = (long)e.NetworkId,
             Name = e.Name,
             Age = e.Age,
             CreatedAt = DateTimeOffset.UtcNow,
@@ -59,10 +59,9 @@ public partial class SimProjection : EventProjection
             ops.Delete<SimDocument>(doc.Id);
     }
 
-    private static async ValueTask<SimDocument?> FindByNetworkId(IDocumentOperations ops, ulong networkId)
+    private static Task<SimDocument?> FindByNetworkId(IDocumentOperations ops, ulong networkId)
     {
-        var docs = await ops.Query<SimDocument>().ToListAsync();
-        return docs.FirstOrDefault(x => x.NetworkId == networkId);
+        return ops.Query<SimDocument>().FirstOrDefaultAsync(x => x.NetworkId == (long)networkId);
     }
 
     private static async ValueTask UpdateByNetworkId(IDocumentOperations ops, ulong networkId, Action<SimDocument> update)

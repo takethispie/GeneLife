@@ -12,15 +12,17 @@ public class SimulationManager : IHostedService, IDisposable
     private readonly SimulationEngine engine;
     private readonly ISnapshotStore store;
     private readonly IDocumentStore? documentStore;
+    private readonly WorldSaveService? worldSaveService;
     private readonly ILogger<SimulationManager>? logger;
     private PeriodicTimer? saveTimer;
     private CancellationTokenSource? saveCts;
 
-    public SimulationManager(SimulationEngine engine, ISnapshotStore store, IDocumentStore? documentStore = null, ILogger<SimulationManager>? logger = null)
+    public SimulationManager(SimulationEngine engine, ISnapshotStore store, IDocumentStore? documentStore = null, WorldSaveService? worldSaveService = null, ILogger<SimulationManager>? logger = null)
     {
         this.engine = engine;
         this.store = store;
         this.documentStore = documentStore;
+        this.worldSaveService = worldSaveService;
         this.logger = logger;
     }
 
@@ -135,15 +137,19 @@ public class SimulationManager : IHostedService, IDisposable
         });
     }
 
-    public List<SimStatus> GetAllSims()
+    public async Task<List<SimStatus>> GetAllSimsAsync()
     {
         if (documentStore != null)
         {
             try
             {
-                using var session = documentStore.LightweightSession();
-                return session.Query<SimDocument>()
+                await using var session = documentStore.LightweightSession();
+                var docs = await session.Query<SimDocument>().ToListAsync();
+                return docs
+                    .GroupBy(d => d.NetworkId)
+                    .Select(group => group.MaxBy(d => d.UpdatedAt)!)
                     .Select(d => d.ToSimStatus())
+                    .OrderBy(sim => sim.NetworkId)
                     .ToList();
             }
             catch (Exception ex)
@@ -172,15 +178,16 @@ public class SimulationManager : IHostedService, IDisposable
         });
     }
 
-    public CompanyStatus? GetCompany(ulong networkId)
+    public async Task<CompanyStatus?> GetCompanyAsync(ulong networkId)
     {
         if (documentStore != null)
         {
             try
             {
-                using var session = documentStore.LightweightSession();
-                var doc = session.Query<CompanyDocument>()
-                    .FirstOrDefault(d => d.NetworkId == networkId);
+                await using var session = documentStore.LightweightSession();
+                var doc = await session.Query<CompanyDocument>()
+                    .OrderByDescending(d => d.UpdatedAt)
+                    .FirstOrDefaultAsync(d => d.NetworkId == (long)networkId);
                 return doc?.ToCompanyStatus();
             }
             catch (Exception ex)
@@ -205,15 +212,19 @@ public class SimulationManager : IHostedService, IDisposable
         return engine.GetWorldData();
     }
 
-    public List<CompanyStatus> GetAllCompanies()
+    public async Task<List<CompanyStatus>> GetAllCompaniesAsync()
     {
         if (documentStore != null)
         {
             try
             {
-                using var session = documentStore.LightweightSession();
-                return session.Query<CompanyDocument>()
+                await using var session = documentStore.LightweightSession();
+                var docs = await session.Query<CompanyDocument>().ToListAsync();
+                return docs
+                    .GroupBy(d => d.NetworkId)
+                    .Select(group => group.MaxBy(d => d.UpdatedAt)!)
                     .Select(d => d.ToCompanyStatus())
+                    .OrderBy(company => company.NetworkId)
                     .ToList();
             }
             catch (Exception ex)
@@ -307,6 +318,25 @@ public class SimulationManager : IHostedService, IDisposable
             {
                 logger?.LogError(ex, "Periodic snapshot save failed");
             }
+
+            await SaveWorldDocumentsAsync();
+        }
+    }
+
+    private async Task SaveWorldDocumentsAsync()
+    {
+        if (worldSaveService == null)
+            return;
+
+        try
+        {
+            var batch = engine.PrepareSave();
+            if (batch != null)
+                await worldSaveService.SaveBatchAsync(batch);
+        }
+        catch (Exception ex)
+        {
+            logger?.LogError(ex, "Periodic world save to Marten failed");
         }
     }
 

@@ -20,5 +20,7 @@ public sealed class JwtOptions
     /// </summary>
     public string? AdminSecret { get; set; }
 
+    public bool AllowLocalAdmin { get; set; }
+
     public int TokenLifetimeMinutes { get; set; } = 60;
 }

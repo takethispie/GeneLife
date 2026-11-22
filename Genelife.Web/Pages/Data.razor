@@ -28,9 +28,6 @@
 </div>
 
 <div class="d-flex flex-wrap align-items-center gap-2 mb-3 small text-muted">
-    <span class="badge @StatusBadgeClass">
-        @StatusText
-    </span>
     <span>Tick @data.Tick</span>
     <span>&middot;</span>
     <span>API @GameData.ApiBaseUrl</span>
@@ -56,7 +53,7 @@
 @if (hasLoaded && !data.IsRunning)
 {
     <div class="alert alert-info">
-        The simulation is stopped. Start it through the API to see live entities.
+        The simulation is stopped. Use the Start button in the top bar to see live entities.
     </div>
 }
 
@@ -401,14 +398,6 @@
 
     private List<SimData> Npcs => data.Sims.Where(s => !s.IsPlayerControlled).ToList();
     private List<SimData> Players => data.Sims.Where(s => s.IsPlayerControlled).ToList();
-
-    private string StatusText => !hasLoaded
-        ? "Not loaded"
-        : data.IsRunning ? "Simulation running" : "Simulation stopped";
-
-    private string StatusBadgeClass => !hasLoaded
-        ? "text-bg-secondary"
-        : data.IsRunning ? "text-bg-success" : "text-bg-secondary";
 
     private IEnumerable<(string Label, int Value)> SummaryCards =>
     [

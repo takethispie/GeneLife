@@ -5,7 +5,7 @@ namespace Genelife.Api.Models;
 public class CompanyDocument
 {
     public Guid Id { get; set; }
-    public ulong NetworkId { get; set; }
+    public long NetworkId { get; set; }
     public string Name { get; set; } = string.Empty;
     public int EmployeeCount { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
@@ -15,7 +15,7 @@ public class CompanyDocument
     {
         return new CompanyStatus
         {
-            NetworkId = NetworkId,
+            NetworkId = (ulong)NetworkId,
             Name = Name,
             EmployeeCount = EmployeeCount
         };

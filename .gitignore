@@ -9,3 +9,9 @@ launchsettings.json
 .VSCodeCounter
 .DS_Store
 TestResults
+
+# VS Code C# Dev Tools - Auto-generated runners
+.vscodecsdt/Runners/
+
+# Local secrets
+.env

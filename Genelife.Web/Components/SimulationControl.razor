@@ -1,0 +1,167 @@
+@implements IAsyncDisposable
+@inject GameDataService GameData
+
+<div class="d-flex flex-wrap align-items-center justify-content-end gap-2">
+    @if (!string.IsNullOrEmpty(DisplayedError))
+    {
+        <span class="small text-danger text-truncate simulation-error" title="@DisplayedError">@DisplayedError</span>
+    }
+
+    <span class="badge rounded-pill @StatusBadgeClass d-inline-flex align-items-center gap-2">
+        <span class="simulation-status-dot" aria-hidden="true"></span>
+        @StatusText
+    </span>
+
+    @if (isRunning == true)
+    {
+        <button type="button" class="btn btn-sm btn-outline-danger" @onclick="StopAsync" disabled="@isBusy">
+            @if (isBusy)
+            {
+                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+            }
+            Stop
+        </button>
+    }
+    else
+    {
+        <button type="button" class="btn btn-sm btn-success" @onclick="StartAsync" disabled="@(isBusy || isRunning is null)">
+            @if (isBusy)
+            {
+                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+            }
+            Start
+        </button>
+    }
+</div>
+
+@code {
+    private bool? isRunning;
+    private bool isBusy;
+    private string? statusError;
+    private string? commandError;
+    private int statusGeneration;
+    private CancellationTokenSource? pollLoop;
+
+    private string? DisplayedError => commandError ?? statusError;
+
+    private string StatusText => isRunning switch
+    {
+        true => "Simulation running",
+        false => "Simulation stopped",
+        null => string.IsNullOrEmpty(DisplayedError) ? "Checking simulation..." : "Simulation status unknown"
+    };
+
+    private string StatusBadgeClass => isRunning == true ? "text-bg-success" : "text-bg-secondary";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshStatusAsync();
+
+        pollLoop = new CancellationTokenSource();
+        _ = PollAsync(pollLoop.Token);
+    }
+
+    private async Task RefreshStatusAsync(CancellationToken cancellationToken = default)
+    {
+        var generation = statusGeneration;
+
+        try
+        {
+            var status = await GameData.GetSimulationStatusAsync(cancellationToken);
+            if (generation != statusGeneration)
+                return;
+
+            isRunning = status.IsRunning;
+            statusError = null;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (TaskCanceledException)
+        {
+            if (generation == statusGeneration)
+            {
+                isRunning = null;
+                statusError = "The request to the API timed out.";
+            }
+        }
+        catch (Exception ex)
+        {
+            if (generation == statusGeneration)
+            {
+                isRunning = null;
+                statusError = ex.Message;
+            }
+        }
+    }
+
+    private async Task PollAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
+            while (await timer.WaitForNextTickAsync(cancellationToken))
+            {
+                if (isBusy)
+                    continue;
+
+                await InvokeAsync(async () =>
+                {
+                    if (isBusy)
+                        return;
+
+                    await RefreshStatusAsync(cancellationToken);
+                    StateHasChanged();
+                });
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Component was disposed.
+        }
+    }
+
+    private Task StartAsync() => RunCommandAsync(running: true);
+
+    private Task StopAsync() => RunCommandAsync(running: false);
+
+    private async Task RunCommandAsync(bool running)
+    {
+        if (isBusy)
+            return;
+
+        isBusy = true;
+        commandError = null;
+        statusGeneration++;
+
+        try
+        {
+            if (running)
+                await GameData.StartSimulationAsync();
+            else
+                await GameData.StopSimulationAsync();
+
+            isRunning = running;
+            statusError = null;
+            await RefreshStatusAsync();
+        }
+        catch (Exception ex)
+        {
+            commandError = ex.Message;
+            await RefreshStatusAsync();
+        }
+        finally
+        {
+            isBusy = false;
+            StateHasChanged();
+        }
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        pollLoop?.Cancel();
+        pollLoop?.Dispose();
+        return ValueTask.CompletedTask;
+    }
+}

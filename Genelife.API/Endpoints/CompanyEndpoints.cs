@@ -27,9 +27,9 @@ public static class CompanyEndpoints
         .WithName("CreateCompany")
         .RequireAuthorization(AuthPolicies.Admin);
 
-        app.MapGet("/api/companies/{networkId}", (ulong networkId, SimulationManager simulationManager) =>
+        app.MapGet("/api/companies/{networkId}", async (ulong networkId, SimulationManager simulationManager) =>
         {
-            var company = simulationManager.GetCompany(networkId);
+            var company = await simulationManager.GetCompanyAsync(networkId);
             if (company == null)
                 return Results.NotFound(new { message = "Company not found" });
 
@@ -38,9 +38,9 @@ public static class CompanyEndpoints
         .WithName("GetCompany")
         .RequireAuthorization(AuthPolicies.Player);
 
-        app.MapGet("/api/companies", (SimulationManager simulationManager) =>
+        app.MapGet("/api/companies", async (SimulationManager simulationManager) =>
         {
-            var companies = simulationManager.GetAllCompanies();
+            var companies = await simulationManager.GetAllCompaniesAsync();
             return Results.Ok(companies);
         })
         .WithName("GetAllCompanies")

@@ -19,7 +19,7 @@ public class WorldRestoreService
         this.logger = logger;
     }
 
-    public (List<EntityBlueprint> entities, int simCount, int companyCount) Restore(
+    public async Task<(List<EntityBlueprint> entities, int simCount, int companyCount)> RestoreAsync(
         NetworkIdRegistry networkIds,
         EmploymentIndex employmentIndex)
     {
@@ -33,16 +33,16 @@ public class WorldRestoreService
 
         try
         {
-            using var session = documentStore.LightweightSession();
+            await using var session = documentStore.LightweightSession();
 
-            var simDocs = session.Query<SimDocument>().ToList();
-            var companyDocs = session.Query<CompanyDocument>().ToList();
+            var simDocs = await session.Query<SimDocument>().ToListAsync();
+            var companyDocs = await session.Query<CompanyDocument>().ToListAsync();
 
             foreach (var sim in simDocs)
             {
                 blueprints.Add(new EntityBlueprint(
                     EntityType.Sim,
-                    sim.NetworkId,
+                    (ulong)sim.NetworkId,
                     sim.Name,
                     sim.Age,
                     sim.Hunger,
@@ -60,7 +60,7 @@ public class WorldRestoreService
             {
                 blueprints.Add(new EntityBlueprint(
                     EntityType.Company,
-                    company.NetworkId,
+                    (ulong)company.NetworkId,
                     company.Name,
                     0, 0, 0, 0, 0, "Idle", 0, false, null
                 ));
