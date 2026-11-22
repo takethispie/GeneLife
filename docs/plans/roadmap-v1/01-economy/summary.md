@@ -1,6 +1,8 @@
 # Economy — Summary
 
 **Folder:** `01-economy/`
+**Status:** Implemented (V1)
+
 **Depends on:** existing `Office`, `JobPosting`, `OpenPosition`, `JobApplication`, `Employee`, `HiringSystem`, `PayrollSystem`, `Wallet`
 **Blocks:** housing (rent needs income), life stages (work and pensions need accounts)
 
@@ -15,7 +17,7 @@ Turn the current labour-market skeleton into a closed, auditable economy:
 - insolvency is a real state with consequences;
 - the admin UI can inspect and operate every part.
 
-## Starting point
+## Baseline before V1
 
 | Piece | Today | Gap |
 |---|---|---|

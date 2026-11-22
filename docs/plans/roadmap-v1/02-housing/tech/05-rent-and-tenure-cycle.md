@@ -3,7 +3,7 @@
 **Phase:** 3 — Tenancy
 **Depends:** H03, E05, E06, E07
 **Estimate:** 2–3 sessions
-**Status:** Planned
+**Status:** Implemented (V1)
 
 ## Goal
 

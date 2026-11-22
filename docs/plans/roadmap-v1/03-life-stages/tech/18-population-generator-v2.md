@@ -3,7 +3,7 @@
 **Phase:** 7 — Continuity
 **Depends:** L01–L17, H04, E03–E12
 **Estimate:** 3 sessions
-**Status:** Planned
+**Status:** Implemented (V1)
 
 ## Goal
 

@@ -9,32 +9,15 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Genelife.UnitTests.Auth;
 
-public sealed class AuthorizationTests : IClassFixture<WebApplicationFactory<Program>>
+public sealed class AuthorizationTests : IClassFixture<TestApplicationFactory>
 {
-    private const string TestKey = "integration-test-signing-key-0123456789abcdef";
-    private const string TestAdminSecret = "integration-test-admin-secret";
 
-    private readonly WebApplicationFactory<Program> factory;
+    private readonly TestApplicationFactory factory;
     private readonly JwtTokenService tokenService;
 
-    public AuthorizationTests(WebApplicationFactory<Program> fixture)
+    public AuthorizationTests(TestApplicationFactory fixture)
     {
-        factory = fixture.WithWebHostBuilder(builder =>
-        {
-            builder.ConfigureAppConfiguration((_, config) =>
-            {
-                config.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["Auth:Jwt:Issuer"] = "genelife-tests",
-                    ["Auth:Jwt:Audience"] = "genelife-tests",
-                    ["Auth:Jwt:Key"] = TestKey,
-                    ["Auth:Jwt:AdminSecret"] = TestAdminSecret,
-                    ["Auth:Jwt:TokenLifetimeMinutes"] = "60",
-                    ["Logging:LogLevel:Default"] = "Warning",
-                    ["Logging:LogLevel:Microsoft.AspNetCore"] = "Warning"
-                });
-            });
-        });
+        factory = fixture;
 
         tokenService = factory.Services.GetRequiredService<JwtTokenService>();
     }
@@ -222,7 +205,7 @@ public sealed class AuthorizationTests : IClassFixture<WebApplicationFactory<Pro
     {
         var response = await CreateClient().PostAsJsonAsync(
             "/api/auth/token",
-            new { playerId = "admin-42", adminSecret = TestAdminSecret },
+            new { playerId = "admin-42", adminSecret = TestApplicationFactory.AdminSecret },
             CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);

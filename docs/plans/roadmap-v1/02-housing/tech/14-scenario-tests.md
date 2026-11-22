@@ -3,7 +3,7 @@
 **Phase:** 11 — Verification
 **Depends:** all housing steps
 **Estimate:** 2 sessions
-**Status:** Planned
+**Status:** Implemented (V1)
 
 ## Goal
 

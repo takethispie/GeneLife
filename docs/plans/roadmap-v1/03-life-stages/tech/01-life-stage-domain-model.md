@@ -3,7 +3,7 @@
 **Phase:** 1 — Foundation
 **Depends:** E01 (`Money`), E02 (`SimulationClock`)
 **Estimate:** 2 sessions
-**Status:** Planned
+**Status:** Implemented (V1)
 
 ## Goal
 

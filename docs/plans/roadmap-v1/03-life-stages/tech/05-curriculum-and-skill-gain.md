@@ -3,7 +3,7 @@
 **Phase:** 2 — Education
 **Depends:** L04
 **Estimate:** 2–3 sessions
-**Status:** Planned
+**Status:** Implemented (V1)
 
 ## Goal
 

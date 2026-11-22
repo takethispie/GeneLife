@@ -3,7 +3,7 @@
 **Phase:** 8 — Resilience
 **Depends:** E13
 **Estimate:** 2 sessions
-**Status:** Planned
+**Status:** Implemented (V1)
 
 ## Goal
 

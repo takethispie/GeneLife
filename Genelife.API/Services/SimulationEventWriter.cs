@@ -1,4 +1,5 @@
 using System.Threading.Channels;
+using Genelife.Messages.Events;
 using Marten;
 
 namespace Genelife.Api.Services;
@@ -113,6 +114,28 @@ public sealed class SimulationEventWriter : BackgroundService
     }
 
     private async Task FlushAsync(List<object> batch, CancellationToken cancellationToken)
+    {
+        // Create documents in a separate transaction so inline update
+        // projections can see them. Without this, a SimCreated followed by
+        // SimNeedsChanged in the same batch updates a document that is still
+        // pending in the session and silently loses the update.
+        var creates = new List<object>();
+        var updates = new List<object>();
+        foreach (var e in batch)
+        {
+            if (e is SimCreated or CompanyCreated)
+                creates.Add(e);
+            else
+                updates.Add(e);
+        }
+
+        if (creates.Count > 0)
+            await AppendBatchAsync(creates, cancellationToken);
+        if (updates.Count > 0)
+            await AppendBatchAsync(updates, cancellationToken);
+    }
+
+    private async Task AppendBatchAsync(List<object> batch, CancellationToken cancellationToken)
     {
         await using var session = documentStore!.LightweightSession();
 

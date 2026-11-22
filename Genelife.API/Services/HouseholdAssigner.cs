@@ -165,6 +165,7 @@ public sealed class HouseholdAssigner
 
         var id = networkIds.Allocate(entity);
         world.Add(entity, id);
+        economy.Emit(new SimCreated(id.Value, name, age));
         return entity;
     }
 

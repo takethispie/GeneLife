@@ -37,6 +37,18 @@ public class PerformanceGuardrailTests
     }
 
     [Fact]
+    public void Fixture_2k_MeetsTierBudget()
+    {
+        var report = LoadHarness.RunHarness(2_000, synthetic: true);
+
+        var budgetFailure = PerformanceThresholds.Evaluate(
+            2_000,
+            report.Results.P95TickMs,
+            report.Results.AllocatedBytesPerTick);
+        Assert.True(budgetFailure is null, budgetFailure);
+    }
+
+    [Fact]
     public void Fixture_5k_MeetsTierBudget()
     {
         var report = LoadHarness.RunHarness(5_000, synthetic: true);

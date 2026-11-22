@@ -3,7 +3,7 @@
 **Phase:** 11 — Verification
 **Depends:** H01–H14
 **Estimate:** 1 session
-**Status:** Planned
+**Status:** Implemented (V1)
 
 ## Goal
 

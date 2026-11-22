@@ -3,7 +3,7 @@
 **Phase:** 12 — Admin
 **Depends:** E17, E19
 **Estimate:** 2–3 sessions
-**Status:** Planned
+**Status:** Implemented (V1)
 
 ## Goal
 

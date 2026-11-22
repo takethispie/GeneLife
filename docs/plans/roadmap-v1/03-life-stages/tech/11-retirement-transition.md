@@ -3,7 +3,7 @@
 **Phase:** 4 — Retirement
 **Depends:** L03, L09, E07, E13
 **Estimate:** 2 sessions
-**Status:** Planned
+**Status:** Implemented (V1)
 
 ## Goal
 

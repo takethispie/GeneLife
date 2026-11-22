@@ -19,7 +19,7 @@ public partial class CompanyProjection : EventProjection
         };
     }
 
-    public async ValueTask Project(EmployeeHired e, IDocumentOperations ops)
+    public async Task Project(EmployeeHired e, IDocumentOperations ops)
     {
         var doc = await FindByNetworkId(ops, e.CompanyId);
         if (doc != null)
@@ -30,7 +30,7 @@ public partial class CompanyProjection : EventProjection
         }
     }
 
-    public async ValueTask Project(EmployeeFired e, IDocumentOperations ops)
+    public async Task Project(EmployeeFired e, IDocumentOperations ops)
     {
         var doc = await FindByNetworkId(ops, e.CompanyId);
         if (doc != null)
@@ -41,7 +41,7 @@ public partial class CompanyProjection : EventProjection
         }
     }
 
-    public async ValueTask Project(CompanyDeleted e, IDocumentOperations ops)
+    public async Task Project(CompanyDeleted e, IDocumentOperations ops)
     {
         var doc = await FindByNetworkId(ops, e.NetworkId);
         if (doc != null)

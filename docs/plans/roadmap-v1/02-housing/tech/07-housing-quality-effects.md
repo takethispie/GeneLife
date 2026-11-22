@@ -3,7 +3,7 @@
 **Phase:** 4 — Quality
 **Depends:** H05, H06
 **Estimate:** 2 sessions
-**Status:** Planned
+**Status:** Implemented (V1)
 
 ## Goal
 

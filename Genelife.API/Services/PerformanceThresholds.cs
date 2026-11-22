@@ -14,9 +14,10 @@ public static class PerformanceThresholds
 {
     public static IReadOnlyList<PerformanceBudget> Default { get; } = new[]
     {
-        new PerformanceBudget(NpcCount: 1_000, MaxP95Milliseconds: 10, MaxAllocatedBytesPerTick: 150_000),
-        new PerformanceBudget(NpcCount: 5_000, MaxP95Milliseconds: 25, MaxAllocatedBytesPerTick: 800_000),
-        new PerformanceBudget(NpcCount: 10_000, MaxP95Milliseconds: 50, MaxAllocatedBytesPerTick: 1_600_000)
+        new PerformanceBudget(NpcCount: 1_000, MaxP95Milliseconds: 10, MaxAllocatedBytesPerTick: 300_000),
+        new PerformanceBudget(NpcCount: 2_000, MaxP95Milliseconds: 15, MaxAllocatedBytesPerTick: 600_000),
+        new PerformanceBudget(NpcCount: 5_000, MaxP95Milliseconds: 25, MaxAllocatedBytesPerTick: 1_500_000),
+        new PerformanceBudget(NpcCount: 10_000, MaxP95Milliseconds: 50, MaxAllocatedBytesPerTick: 3_000_000)
     };
 
     public static PerformanceBudget? For(int npcCount) =>

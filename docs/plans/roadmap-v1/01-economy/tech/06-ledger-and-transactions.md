@@ -3,7 +3,7 @@
 **Phase:** 3 — Money
 **Depends:** E01, E05
 **Estimate:** 2–3 sessions
-**Status:** Planned
+**Status:** Implemented (V1)
 
 ## Goal
 

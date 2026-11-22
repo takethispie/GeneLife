@@ -187,6 +187,7 @@ public class PopulationInflowSystem : ISimulationSystem
         }
 
         var networkId = LifeSystemHelpers.NetworkIdOf(world, sim);
+        economy.Emit(new SimCreated(networkId, name, age));
         if (policy.ImmigrantStartingCash.IsPositive)
         {
             economy.Ledger.Record(

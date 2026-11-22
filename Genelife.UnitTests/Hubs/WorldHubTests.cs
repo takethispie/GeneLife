@@ -11,33 +11,16 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Genelife.UnitTests.Hubs;
 
-public sealed class WorldHubTests : IClassFixture<WebApplicationFactory<Program>>, IAsyncDisposable
+public sealed class WorldHubTests : IClassFixture<TestApplicationFactory>, IAsyncDisposable
 {
-    private const string TestKey = "integration-test-signing-key-0123456789abcdef";
-    private const string TestAdminSecret = "integration-test-admin-secret";
 
-    private readonly WebApplicationFactory<Program> factory;
+    private readonly TestApplicationFactory factory;
     private readonly JwtTokenService tokenService;
     private readonly List<HubConnection> connections = new();
 
-    public WorldHubTests(WebApplicationFactory<Program> fixture)
+    public WorldHubTests(TestApplicationFactory fixture)
     {
-        factory = fixture.WithWebHostBuilder(builder =>
-        {
-            builder.ConfigureAppConfiguration((_, config) =>
-            {
-                config.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["Auth:Jwt:Issuer"] = "genelife-tests",
-                    ["Auth:Jwt:Audience"] = "genelife-tests",
-                    ["Auth:Jwt:Key"] = TestKey,
-                    ["Auth:Jwt:AdminSecret"] = TestAdminSecret,
-                    ["Auth:Jwt:TokenLifetimeMinutes"] = "60",
-                    ["Logging:LogLevel:Default"] = "Warning",
-                    ["Logging:LogLevel:Microsoft.AspNetCore"] = "Warning"
-                });
-            });
-        });
+        factory = fixture;
 
         tokenService = factory.Services.GetRequiredService<JwtTokenService>();
     }

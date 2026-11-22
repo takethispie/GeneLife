@@ -1,6 +1,8 @@
 # Life Stages — Summary
 
 **Folder:** `03-life-stages/`
+**Status:** Implemented (V1)
+
 **Depends on:** economy labour market (`01-economy/tech/03`, `04`, `07`, `09`, `13`), housing (`02-housing/tech/03`, `07`)
 **Feeds:** population metrics, immigration, estate settlement, health-driven mortality
 
@@ -19,7 +21,7 @@ Give every NPC a full lifecycle: education, working life, retirement and elderly
 
 Four stages only. Children are the early part of Education; there is no separate Child stage.
 
-## Starting point
+## Baseline before V1
 
 - `Alive` stores `Age` but nothing increments it.
 - `JobSeekerSystem` creates job seekers for `Age >= 18` (`Genelife/Systems/JobSeekerSystem.cs:42`) with hard-coded skills and desired salary.

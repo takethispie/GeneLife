@@ -15,39 +15,19 @@ namespace Genelife.UnitTests.Performance;
 /// receive snapshots, submit intents, resume reconnects with deltas, and survive
 /// a save/stop/restore cycle.
 /// </summary>
-public sealed class MultiplayerAcceptanceTests : IClassFixture<WebApplicationFactory<Program>>, IAsyncDisposable
+public sealed class MultiplayerAcceptanceTests : IClassFixture<TestApplicationFactory>, IAsyncDisposable
 {
     private const int PlayerCount = 32;
-    private const string TestKey = "acceptance-test-signing-key-0123456789abcdef";
-    private const string TestAdminSecret = "acceptance-test-admin-secret";
 
     private static CancellationToken CancellationToken => TestContext.Current.CancellationToken;
 
-    private readonly WebApplicationFactory<Program> factory;
+    private readonly TestApplicationFactory factory;
     private readonly JwtTokenService tokenService;
     private readonly List<HubConnection> connections = new();
-    private readonly string databasePath =
-        Path.Combine(Path.GetTempPath(), $"genelife-acceptance-{Guid.NewGuid():N}.db");
 
-    public MultiplayerAcceptanceTests(WebApplicationFactory<Program> fixture)
+    public MultiplayerAcceptanceTests(TestApplicationFactory fixture)
     {
-        factory = fixture.WithWebHostBuilder(builder =>
-        {
-            builder.ConfigureAppConfiguration((_, config) =>
-            {
-                config.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["Auth:Jwt:Issuer"] = "genelife-tests",
-                    ["Auth:Jwt:Audience"] = "genelife-tests",
-                    ["Auth:Jwt:Key"] = TestKey,
-                    ["Auth:Jwt:AdminSecret"] = TestAdminSecret,
-                    ["Auth:Jwt:TokenLifetimeMinutes"] = "60",
-                    ["Persistence:DatabasePath"] = databasePath,
-                    ["Logging:LogLevel:Default"] = "Warning",
-                    ["Logging:LogLevel:Microsoft.AspNetCore"] = "Warning"
-                });
-            });
-        });
+        factory = fixture;
 
         tokenService = factory.Services.GetRequiredService<JwtTokenService>();
     }
@@ -305,10 +285,5 @@ public sealed class MultiplayerAcceptanceTests : IClassFixture<WebApplicationFac
         }
 
         connections.Clear();
-
-        if (File.Exists(databasePath))
-        {
-            try { File.Delete(databasePath); } catch { }
-        }
     }
 }

@@ -3,7 +3,7 @@
 **Phase:** 8 — Durability
 **Depends:** L01–L18, E19, H11
 **Estimate:** 3 sessions
-**Status:** Planned
+**Status:** Implemented (V1)
 
 ## Goal
 

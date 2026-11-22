@@ -3,7 +3,7 @@
 **Phase:** 6 — Mobility
 **Depends:** H05, H08
 **Estimate:** 2 sessions
-**Status:** Planned
+**Status:** Implemented (V1)
 
 ## Goal
 

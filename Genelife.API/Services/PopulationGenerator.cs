@@ -173,7 +173,9 @@ public sealed class PopulationGenerator
             new Health(HealthSystem.InitialForAge(age)),
             LifecycleFactory.Create(age, tick, economy.Clock, economy.Life.Policy, random.Next()));
 
-        world.Add(entity, networkIds.Allocate(entity));
+        var networkId = networkIds.Allocate(entity);
+        world.Add(entity, networkId);
+        economy.Emit(new SimCreated(networkId.Value, name, age));
 
         if (lookingForWork)
             world.Add(entity, new JobSeeker(true, profile.ToMask(),

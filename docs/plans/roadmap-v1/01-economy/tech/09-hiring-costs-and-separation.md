@@ -3,7 +3,7 @@
 **Phase:** 5 — Labour market economics
 **Depends:** E07
 **Estimate:** 2 sessions
-**Status:** Planned
+**Status:** Implemented (V1)
 
 ## Goal
 

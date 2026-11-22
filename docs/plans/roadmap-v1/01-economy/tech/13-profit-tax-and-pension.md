@@ -3,7 +3,7 @@
 **Phase:** 7 — Fiscal layer
 **Depends:** E07, E12
 **Estimate:** 2 sessions
-**Status:** Planned
+**Status:** Implemented (V1)
 
 ## Goal
 

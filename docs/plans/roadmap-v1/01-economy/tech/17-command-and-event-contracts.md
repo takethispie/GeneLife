@@ -3,7 +3,7 @@
 **Phase:** 10 — Plumbing
 **Depends:** E03, E04, E05
 **Estimate:** 2 sessions
-**Status:** Planned
+**Status:** Implemented (V1)
 
 ## Goal
 
