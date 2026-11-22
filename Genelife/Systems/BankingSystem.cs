@@ -24,7 +24,7 @@ public class BankingSystem : ISimulationSystem
         this.world = world;
         this.economy = economy;
         this.interval = interval ?? economy.Clock.TicksPerPayCycle;
-        simQuery = new QueryDescription().WithAll<GenName, Wallet>();
+        simQuery = new QueryDescription().WithAll<GenName, Wallet>().WithNone<Components.Gen.Dead>();
     }
 
     public string Name => "Banking";
@@ -101,7 +101,7 @@ public class BankingSystem : ISimulationSystem
         if (!economy.Bank.InterestPool.IsPositive)
             return;
 
-        var savingsQuery = new QueryDescription().WithAll<SavingsAccount>();
+        var savingsQuery = new QueryDescription().WithAll<SavingsAccount>().WithNone<Components.Gen.Dead>();
         var totalSavings = Money.Zero;
         world.Query(in savingsQuery, (ref SavingsAccount savings) =>
         {

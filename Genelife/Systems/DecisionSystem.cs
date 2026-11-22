@@ -1,6 +1,7 @@
 using Arch.Core;
 using Arch.Core.Extensions;
 using Genelife.Components.Gen;
+using Genelife.Components.Life;
 using Genelife.Enums;
 
 namespace Genelife.Systems;
@@ -14,7 +15,9 @@ public class DecisionSystem : ISimulationSystem
     public DecisionSystem(World world)
     {
         this.world = world;
-        queryDescription = new QueryDescription().WithAll<CurrentAction, Needs>().WithNone<PlayerControlled>();
+        queryDescription = new QueryDescription()
+            .WithAll<CurrentAction, Needs>()
+            .WithNone<PlayerControlled, Dead>();
     }
 
     public string Name => "Decision";
@@ -25,14 +28,24 @@ public class DecisionSystem : ISimulationSystem
 
     public void Update()
     {
-        world.Query(in queryDescription, (ref CurrentAction action, ref Needs needs) =>
+        world.Query(in queryDescription, (Entity entity, ref CurrentAction action, ref Needs needs) =>
         {
             if (action.Type != ActionType.Idle)
                 return;
 
+            // A work shift owns the working action; WorkScheduleSystem decides
+            // whether a critical need interrupts the shift.
+            if (world.Has<WorkSchedule>(entity) && world.Get<WorkSchedule>(entity).IsAtWork)
+                return;
+
+            var threshold = world.Has<Lifecycle>(entity) &&
+                            world.Get<Lifecycle>(entity).Stage == LifeStage.Work
+                ? 15f
+                : CriticalThreshold;
+
             var lowestNeed = GetLowestNeed(needs);
 
-            if (lowestNeed.Value < CriticalThreshold)
+            if (lowestNeed.Value < threshold)
             {
                 action.Type = lowestNeed.ActionType;
                 action.TimeRemaining = lowestNeed.Duration;

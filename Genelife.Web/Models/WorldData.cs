@@ -16,6 +16,7 @@ public sealed class WorldData
     public List<OpenPositionData> OpenPositions { get; set; } = new();
     public EconomyData Economy { get; set; } = new();
     public HousingData Housing { get; set; } = new();
+    public LifecycleData Lifecycle { get; set; } = new();
     public List<LedgerEntryData> RecentLedger { get; set; } = new();
 }
 
@@ -41,6 +42,11 @@ public sealed class SimData
     public string Tenure { get; set; } = string.Empty;
     public string HousingTier { get; set; } = string.Empty;
     public bool Homeless { get; set; }
+    public string Stage { get; set; } = string.Empty;
+    public decimal Health { get; set; }
+    public string TopSkill { get; set; } = string.Empty;
+    public string Seniority { get; set; } = string.Empty;
+    public bool IsDead { get; set; }
 }
 
 public sealed class CompanyData

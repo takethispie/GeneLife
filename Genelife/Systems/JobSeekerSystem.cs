@@ -2,30 +2,38 @@ using Arch.Core;
 using Arch.Core.Extensions;
 using Genelife.Components.Employment;
 using Genelife.Components.Gen;
+using Genelife.Components.Life;
+using Genelife.Economy;
+using Genelife.Enums;
+using Genelife.Life;
 using Genelife.Values;
 
 namespace Genelife.Systems;
 
 /// <summary>
-/// System that automatically makes Sims job seekers when they reach working age.
+/// Safety net that makes a Work-stage sim a job seeker when they have neither an
+/// employee role nor an active search. Stage progression usually adds the seeker
+/// directly at graduation; this system exists to recover from restored or
+/// manually modified worlds.
 ///
-/// Follows a collect -> apply pipeline so that no structural changes
-/// (Create/Add/Remove/Destroy) happen while iterating a query.
+/// Follows a collect -> apply pipeline so no structural changes happen while
+/// iterating a query.
 /// </summary>
 public class JobSeekerSystem : ISimulationSystem
 {
     private readonly World world;
+    private readonly EconomyContext? economy;
     private readonly QueryDescription queryDescription;
-    private const int WorkingAge = 18;
     private readonly int cadenceInterval;
 
-    public JobSeekerSystem(World world, int cadenceInterval = 100)
+    public JobSeekerSystem(World world, int cadenceInterval = 100, EconomyContext? economy = null)
     {
         this.world = world;
+        this.economy = economy;
         this.cadenceInterval = cadenceInterval;
         queryDescription = new QueryDescription()
             .WithAll<Alive>()
-            .WithNone<Employee, JobSeeker>();
+            .WithNone<Employee, JobSeeker, Dead>();
     }
 
     public string Name => "JobSeeker";
@@ -36,27 +44,32 @@ public class JobSeekerSystem : ISimulationSystem
 
     public void Update()
     {
-        // 1. Collect (no structural changes during the query)
         var eligible = new List<Entity>();
         world.Query(in queryDescription, (Entity entity, ref Alive alive) =>
         {
-            if (alive.Age >= WorkingAge)
+            if (world.Has<Lifecycle>(entity))
             {
-                eligible.Add(entity);
+                if (world.Get<Lifecycle>(entity).Stage == LifeStage.Work)
+                    eligible.Add(entity);
+                return;
             }
+
+            // Legacy sims without lifecycle state keep the old age fallback.
+            var policy = economy?.Life.Policy ?? LifeStagePolicy.Default;
+            if (alive.Age >= policy.WorkStartAge && alive.Age < policy.RetirementAge)
+                eligible.Add(entity);
         });
 
-        // 2. Apply (structural changes only here, after the query completes)
         foreach (var entity in eligible)
         {
-            if (!world.IsAlive(entity)) continue;
+            if (!world.IsAlive(entity))
+                continue;
 
-            var jobSeeker = new JobSeeker(
-                isLookingForWork: true,
-                skills: Enums.Skill.None,
-                desiredSalary: Money.FromUnits(1000m)
-            );
-            world.Add(entity, jobSeeker);
+            var profile = world.Has<SkillProfile>(entity) ? world.Get<SkillProfile>(entity) : new SkillProfile();
+            var careers = economy?.Life.Careers ?? CareerPolicy.Default;
+            var salary = profile.Total > 0f ? careers.SalaryForSkills(profile.Total) : Money.FromUnits(1_000m);
+
+            world.Add(entity, new JobSeeker(true, profile.ToMask(), salary));
         }
     }
 }

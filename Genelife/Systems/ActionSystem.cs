@@ -1,5 +1,6 @@
 using Arch.Core;
 using Genelife.Components.Gen;
+using Genelife.Components.Life;
 using Genelife.Enums;
 
 namespace Genelife.Systems;
@@ -15,7 +16,7 @@ public class ActionSystem : ISimulationSystem
     public ActionSystem(World world)
     {
         this.world = world;
-        queryDescription = new QueryDescription().WithAll<CurrentAction, Needs>();
+        queryDescription = new QueryDescription().WithAll<CurrentAction, Needs>().WithNone<Dead>();
     }
 
     public string Name => "Action";
@@ -28,9 +29,15 @@ public class ActionSystem : ISimulationSystem
     {
         world.Query(in queryDescription, (Entity entity, ref CurrentAction action, ref Needs needs) =>
         {
+            if (action.Type == ActionType.Working)
+                return;
+
             var modifier = world.Has<NeedsModifier>(entity)
                 ? world.Get<NeedsModifier>(entity)
                 : NeedsModifier.Neutral;
+            var healthFactor = world.Has<Health>(entity)
+                ? 0.6f + world.Get<Health>(entity).Value / 250f
+                : 1f;
 
             action.TimeRemaining -= deltaTime;
 
@@ -44,13 +51,13 @@ public class ActionSystem : ISimulationSystem
                 switch (action.Type)
                 {
                     case ActionType.Sleeping:
-                        needs.Energy = Math.Min(100f, needs.Energy + 5f * modifier.SleepRecovery * deltaTime);
+                        needs.Energy = Math.Min(100f, needs.Energy + 5f * modifier.SleepRecovery * healthFactor * deltaTime);
                         break;
                     case ActionType.Showering:
-                        needs.Hygiene = Math.Min(100f, needs.Hygiene + 10f * modifier.HygieneRecovery * deltaTime);
+                        needs.Hygiene = Math.Min(100f, needs.Hygiene + 10f * modifier.HygieneRecovery * healthFactor * deltaTime);
                         break;
                     case ActionType.Eating:
-                        needs.Hunger = Math.Min(100f, needs.Hunger + 8f * deltaTime);
+                        needs.Hunger = Math.Min(100f, needs.Hunger + 8f * healthFactor * deltaTime);
                         break;
                     case ActionType.UsingToilet:
                         needs.Bladder = Math.Min(100f, needs.Bladder + 15f * deltaTime);

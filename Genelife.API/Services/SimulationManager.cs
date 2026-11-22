@@ -53,7 +53,8 @@ public class SimulationManager : IHostedService, IDisposable
         }
         catch (Exception ex)
         {
-            logger?.LogWarning(ex, "Failed to restore from snapshot; starting fresh");
+            logger?.LogError(ex, "Failed to restore from snapshot; resetting simulation and starting fresh");
+            engine.Shutdown();
         }
     }
 
@@ -131,7 +132,7 @@ public class SimulationManager : IHostedService, IDisposable
     {
         return engine.ExecuteWithWorld(world =>
         {
-            var repository = new SimRepository(world, networkIds);
+            var repository = new SimRepository(world, networkIds, engine.Economy);
             return repository.Add(name, age).Value;
         });
     }
@@ -163,7 +164,7 @@ public class SimulationManager : IHostedService, IDisposable
 
         return engine.ExecuteWithWorld(world =>
         {
-            var repository = new SimRepository(world, networkIds);
+            var repository = new SimRepository(world, networkIds, engine.Economy);
             return repository.GetAll();
         });
     }
@@ -257,7 +258,7 @@ public class SimulationManager : IHostedService, IDisposable
     {
         return engine.ExecuteWithWorld(world =>
         {
-            var repository = new SimRepository(world, networkIds);
+            var repository = new SimRepository(world, networkIds, engine.Economy);
             return repository.Delete(networkId);
         });
     }
@@ -266,7 +267,7 @@ public class SimulationManager : IHostedService, IDisposable
     {
         engine.ExecuteWithWorld(world =>
         {
-            var repository = new SimRepository(world, networkIds);
+            var repository = new SimRepository(world, networkIds, engine.Economy);
             repository.SetAction(networkId, actionType);
             return true;
         });

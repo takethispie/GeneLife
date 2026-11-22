@@ -92,6 +92,14 @@ public sealed class HouseholdFinanceService
         {
             if (world.Has<Employee>(member))
                 income += new Money(world.Get<Employee>(member).SalaryPerCycle.Cents / monthsPerPayCycle);
+            if (world.Has<RetirementIncome>(member))
+                income += world.Get<RetirementIncome>(member).MonthlyPension;
+            if (world.Has<UnemploymentRecord>(member))
+            {
+                var benefit = world.Get<UnemploymentRecord>(member);
+                if (benefit.Eligible && !benefit.IsExhausted)
+                    income += new Money(benefit.BenefitPerCycle.Cents / monthsPerPayCycle);
+            }
             income += economy.Options.UniversalBasicIncome;
         }
         return income;

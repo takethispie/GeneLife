@@ -5,6 +5,9 @@ using Genelife.Components.Company;
 using Genelife.Components.Employment;
 using Genelife.Components.Finance;
 using Genelife.Components.Gen;
+using Genelife.Components.Life;
+using Genelife.Enums;
+using Genelife.Systems;
 using Genelife.Economy;
 using Genelife.Messages.Events;
 using Genelife.Values;
@@ -54,12 +57,19 @@ public sealed class EmploymentRepository
             ? employee.SalaryPerCycle * (economy?.Options.SeveranceCycles ?? 2)
             : Money.Zero;
 
-        world.Remove<Employee>(sim);
-        index.Remove(sim);
-        OfficeSeatAccounting.RefreshUsedSeats(world, employee.Office);
+        LifeSystemHelpers.RemoveEmployment(world, index, economy, sim, tick);
 
         if (!world.Has<Wallet>(sim))
             world.Add(sim, new Wallet(Money.Zero));
+
+        var isWorkStage = !world.Has<Lifecycle>(sim) || world.Get<Lifecycle>(sim).Stage == LifeStage.Work;
+        if (isWorkStage && !world.Has<JobSeeker>(sim))
+        {
+            var profile = world.Has<SkillProfile>(sim) ? world.Get<SkillProfile>(sim) : new SkillProfile();
+            var desired = (employee.SalaryPerCycle * 0.9m)
+                .Max(economy?.Life.Careers.MinimumSalary ?? Money.FromUnits(500m));
+            world.Add(sim, new JobSeeker(true, profile.ToMask(), desired));
+        }
 
         var paid = Money.Zero;
         if (severance.IsPositive && economy is not null)

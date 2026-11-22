@@ -29,7 +29,7 @@ public class PayrollSystem : ISimulationSystem
         this.world = world;
         this.economy = economy;
         this.payrollInterval = payrollInterval ?? economy.Clock.TicksPerPayCycle;
-        employeeQuery = new QueryDescription().WithAll<Employee>();
+        employeeQuery = new QueryDescription().WithAll<Employee>().WithNone<Components.Gen.Dead>();
         claimQuery = new QueryDescription().WithAll<WageClaim>();
     }
 
@@ -230,6 +230,12 @@ public class PayrollSystem : ISimulationSystem
         account.EmployerContributions += employer;
         account.ContributingCycles++;
         account.LastContributionTick = tick;
+        economy.Emit(new PensionAccrued(
+            CompanyAccountService.NetworkIdOf(world, line.Entity),
+            employee.Cents,
+            employer.Cents,
+            account.ContributingCycles,
+            tick));
     }
 
     private void RecordClaim(PayLine line, Entity company, Money unpaidGross, Money unpaidNet, long tick)

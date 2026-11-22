@@ -5,10 +5,13 @@ using Genelife.Api.Services;
 using Genelife.Components.Employment;
 using Genelife.Components.Gen;
 using Genelife.Components.Housing;
+using Genelife.Components.Life;
 using Genelife.Economy;
 using Genelife.Enums;
 using Genelife.Housing;
 using Genelife.Messages.Events;
+using Genelife.Life;
+using Genelife.Systems;
 using Genelife.Values;
 
 namespace Genelife.Api.Services;
@@ -48,13 +51,13 @@ public sealed class HouseholdAssigner
         for (var i = 0; i < plan.Adults; i++)
         {
             var age = random.Next(19, 66);
-            adults.Add(CreateSim($"Adult {i + 1}", age, random, isAdult: true));
+            adults.Add(CreateSim($"Adult {i + 1}", age, random, isAdult: true, tick));
         }
 
         for (var i = 0; i < plan.Children; i++)
         {
             var age = random.Next(1, 18);
-            children.Add(CreateSim($"Child {i + 1}", age, random, isAdult: false));
+            children.Add(CreateSim($"Child {i + 1}", age, random, isAdult: false, tick));
         }
 
         var householdIds = FormHouseholds(adults, random, tick);
@@ -136,7 +139,7 @@ public sealed class HouseholdAssigner
         return SummarizeHousehold(household, tick);
     }
 
-    private Entity CreateSim(string name, int age, Random random, bool isAdult)
+    private Entity CreateSim(string name, int age, Random random, bool isAdult, long tick)
     {
         var entity = world.Create(
             new GenName(name),
@@ -145,7 +148,12 @@ public sealed class HouseholdAssigner
             new Alive(age),
             new Location(0f, 0f),
             new Wallet(Money.FromUnits(400 + random.Next(0, 200))),
-            new ConsumptionState());
+            new ConsumptionState(),
+            new SkillProfile(),
+            new Health(HealthSystem.InitialForAge(age)),
+            LifecycleFactory.Create(age, tick, economy.Clock, economy.Life.Policy, age * 31 + name.Length + (name.Length > 0 ? name[0] : 0)));
+
+        economy.Life.Index.OnBorn(economy.Life.Policy.StageFor(age));
 
         if (isAdult)
         {

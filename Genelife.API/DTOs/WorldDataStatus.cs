@@ -16,5 +16,6 @@ public sealed class WorldDataStatus
     public List<OpenPositionStatus> OpenPositions { get; set; } = new();
     public EconomyStatus Economy { get; set; } = new();
     public HousingStatus Housing { get; set; } = new();
+    public LifecycleStatus Lifecycle { get; set; } = new();
     public List<LedgerEntryStatus> RecentLedger { get; set; } = new();
 }
