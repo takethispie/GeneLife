@@ -6,6 +6,7 @@ using Genelife.Components.Life;
 using Genelife.Economy;
 using Genelife.Enums;
 using Genelife.Life;
+using Genelife.Map;
 using Genelife.Systems;
 using Genelife.Values;
 
@@ -20,12 +21,14 @@ public sealed class SchoolRepository
     private readonly World world;
     private readonly NetworkIdRegistry networkIds;
     private readonly EconomyContext? economy;
+    private readonly MapContext? map;
 
-    public SchoolRepository(World world, NetworkIdRegistry networkIds, EconomyContext? economy = null)
+    public SchoolRepository(World world, NetworkIdRegistry networkIds, EconomyContext? economy = null, MapContext? map = null)
     {
         this.world = world;
         this.networkIds = networkIds;
         this.economy = economy;
+        this.map = map;
     }
 
     public NetworkId Add(
@@ -51,6 +54,24 @@ public sealed class SchoolRepository
             owner));
         var id = networkIds.Allocate(entity);
         world.Add(entity, id);
+
+        if (map is not null)
+        {
+            var placement = map.Placement.TryPlace(
+                entity,
+                id,
+                BuildingKind.School,
+                BuildingFootprints.ForSchool(capacity),
+                district);
+            if (!placement.Success)
+            {
+                networkIds.Remove(entity);
+                world.Destroy(entity);
+                throw new InvalidOperationException(
+                    $"Unable to place school '{name}': {placement.Error} {placement.Message}");
+            }
+        }
+
         return id;
     }
 

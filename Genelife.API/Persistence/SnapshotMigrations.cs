@@ -3,7 +3,8 @@ namespace Genelife.Api.Persistence;
 /// <summary>
 /// Upgrades older snapshots in memory. v1 stored wallet balances as float units;
 /// v2 stores integer cents and adds accounts, offices, postings and employment.
-/// v3 adds housing and v4 adds lifecycle state.
+/// v3 adds housing, v4 adds lifecycle state and v5 adds the spatial map and
+/// building placements.
 /// </summary>
 public static class SnapshotMigrations
 {
@@ -53,6 +54,12 @@ public static class SnapshotMigrations
             state.LifecycleMetricHistory.Clear();
             state.MortalityLog.Clear();
             state.Immigration = new PersistedImmigration();
+        }
+
+        if (fromVersion <= 4)
+        {
+            state.Map = new PersistedMap();
+            state.Placements.Clear();
         }
 
         state.SchemaVersion = PersistedWorldState.CurrentSchemaVersion;

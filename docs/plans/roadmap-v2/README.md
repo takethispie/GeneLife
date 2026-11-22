@@ -4,6 +4,8 @@
 
 **Target:** every building has one validated footprint on a deterministic tile map; every human-controlled sim has a server-authoritative position, movement target and replication contract; clients receive a static map layout plus dynamic sim positions without turning the tick snapshot into a map dump.
 
+> Implementation status: the V2 core is implemented. See [STATUS.md](STATUS.md) for completed areas and remaining work.
+
 **Builds on:** V1 economy, housing, life stages, snapshots, SignalR replication and the existing `Location`, `SpatialIndex`, `AoiFilter`, `PlayerControlled`, `MoveIntent` and command queues.
 
 ---

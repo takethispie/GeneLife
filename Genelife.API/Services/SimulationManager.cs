@@ -133,7 +133,7 @@ public class SimulationManager : IHostedService, IDisposable
     {
         var networkId = engine.ExecuteWithWorld(world =>
         {
-            var repository = new SimRepository(world, networkIds, engine.Economy);
+            var repository = new SimRepository(world, networkIds, engine.Economy, engine.MapContext);
             return repository.Add(name, age).Value;
         });
         engine.Emit(new SimCreated(networkId, name, age));
@@ -167,7 +167,7 @@ public class SimulationManager : IHostedService, IDisposable
 
         return engine.ExecuteWithWorld(world =>
         {
-            var repository = new SimRepository(world, networkIds, engine.Economy);
+            var repository = new SimRepository(world, networkIds, engine.Economy, engine.MapContext);
             return repository.GetAll();
         });
     }
@@ -176,7 +176,7 @@ public class SimulationManager : IHostedService, IDisposable
     {
         var networkId = engine.ExecuteWithWorld(world =>
         {
-            var repository = new CompanyRepository(world, GetIndex(), networkIds, engine.Economy);
+            var repository = new CompanyRepository(world, GetIndex(), networkIds, engine.Economy, map: engine.MapContext);
             return repository.Add(name).Value;
         });
         engine.Emit(new CompanyCreated(networkId, name));
@@ -208,7 +208,7 @@ public class SimulationManager : IHostedService, IDisposable
 
         return engine.ExecuteWithWorld(world =>
         {
-            var repository = new CompanyRepository(world, GetIndex(), networkIds, engine.Economy);
+            var repository = new CompanyRepository(world, GetIndex(), networkIds, engine.Economy, map: engine.MapContext);
             return repository.Get(new NetworkId(networkId));
         });
     }
@@ -217,6 +217,17 @@ public class SimulationManager : IHostedService, IDisposable
     {
         return engine.GetWorldData();
     }
+
+    public MapStatus GetMapStatus() => engine.BuildMapStatus();
+
+    public MapHealthStatus GetMapHealth() => engine.BuildMapHealth();
+
+    public IReadOnlyList<Genelife.Systems.MapMetricsSnapshot> GetMapMetrics() => engine.MapMetricsHistory;
+
+    public MapViewportStatus? GetMapViewport(int minX, int minY, int maxX, int maxY) =>
+        engine.BuildMapViewport(minX, minY, maxX, maxY);
+
+    public MapBuildingStatus? GetMapBuilding(ulong networkId) => engine.BuildMapBuilding(networkId);
 
     public async Task<List<CompanyStatus>> GetAllCompaniesAsync()
     {
@@ -245,7 +256,7 @@ public class SimulationManager : IHostedService, IDisposable
 
         return engine.ExecuteWithWorld(world =>
         {
-            var repository = new CompanyRepository(world, GetIndex(), networkIds, engine.Economy);
+            var repository = new CompanyRepository(world, GetIndex(), networkIds, engine.Economy, map: engine.MapContext);
             return repository.GetAll();
         });
     }
@@ -254,7 +265,7 @@ public class SimulationManager : IHostedService, IDisposable
     {
         return engine.ExecuteWithWorld(world =>
         {
-            var repository = new CompanyRepository(world, GetIndex(), networkIds, engine.Economy);
+            var repository = new CompanyRepository(world, GetIndex(), networkIds, engine.Economy, map: engine.MapContext);
             return repository.Delete(new NetworkId(networkId));
         });
     }
@@ -263,7 +274,7 @@ public class SimulationManager : IHostedService, IDisposable
     {
         return engine.ExecuteWithWorld(world =>
         {
-            var repository = new SimRepository(world, networkIds, engine.Economy);
+            var repository = new SimRepository(world, networkIds, engine.Economy, engine.MapContext);
             return repository.Delete(networkId);
         });
     }
@@ -272,7 +283,7 @@ public class SimulationManager : IHostedService, IDisposable
     {
         engine.ExecuteWithWorld(world =>
         {
-            var repository = new SimRepository(world, networkIds, engine.Economy);
+            var repository = new SimRepository(world, networkIds, engine.Economy, engine.MapContext);
             repository.SetAction(networkId, actionType);
             return true;
         });

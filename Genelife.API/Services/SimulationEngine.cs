@@ -14,10 +14,12 @@ using Genelife.Components.Finance;
 using Genelife.Components.Gen;
 using Genelife.Components.Housing;
 using Genelife.Components.Life;
+using Genelife.Components.Map;
 using Genelife.Economy;
 using Genelife.Enums;
 using Genelife.Housing;
 using Genelife.Life;
+using Genelife.Map;
 using Genelife.Messages.Events;
 using Genelife.Systems;
 using Genelife.Values;
@@ -31,6 +33,11 @@ public class SimulationEngine : IDisposable
     private World? world;
     private Metrics metrics = new();
     private EconomyContext? economy;
+    private MapContext? mapContext;
+    private MovementIndex? movementIndex;
+    private MapMetricsSystem? mapMetrics;
+    private readonly ICommandQueue? commandQueue;
+    private readonly Dictionary<string, long> lastIntentSequence = new(StringComparer.Ordinal);
     private SimulationClock clock = SimulationClock.Default;
     private EmploymentIndex? employmentIndex;
     private SystemRegistry? systems;
@@ -58,10 +65,14 @@ private readonly NetworkIdRegistry networkIds = new();
     private readonly WorldSaveService? worldSaveService;
     private static readonly string[] ActionNames = Enum.GetNames<ActionType>();
 
-    public SimulationEngine(WorldSaveService? worldSaveService = null, IDocumentStore? documentStore = null)
+    public SimulationEngine(
+        WorldSaveService? worldSaveService = null,
+        IDocumentStore? documentStore = null,
+        ICommandQueue? commandQueue = null)
     {
         this.worldSaveService = worldSaveService;
         this.documentStore = documentStore;
+        this.commandQueue = commandQueue;
         recordSystemRun = result =>
             metrics.RecordSystem(result.Name, result.Milliseconds, result.AllocatedBytes);
     }
@@ -71,6 +82,13 @@ private readonly NetworkIdRegistry networkIds = new();
     public EconomyContext? Economy { get { lock (@lock) { return economy; } } }
     public SimulationClock Clock => clock;
     public SimulationClockOptions ClockOptions { get; set; } = new();
+    public Genelife.Map.MapOptions MapOptions { get; set; } = Genelife.Map.MapOptions.Default;
+    public Genelife.Map.MapGenerationOptions MapGenerationOptions { get; set; } = Genelife.Map.MapGenerationOptions.Default;
+    public Genelife.Map.MovementOptions MovementOptions { get; set; } = Genelife.Map.MovementOptions.Default;
+    public MapContext? MapContext { get { lock (@lock) { return mapContext; } } }
+    public MovementIndex? MovementIndex { get { lock (@lock) { return movementIndex; } } }
+    public IReadOnlyList<MapMetricsSnapshot> MapMetricsHistory => mapMetrics?.History ?? Array.Empty<MapMetricsSnapshot>();
+    public int MapVersion { get { lock (@lock) { return mapContext?.Version ?? 0; } } }
     public int RandomSeed { get; set; } = 1;
     public EmploymentIndex? EmploymentIndex { get { lock (@lock) { return employmentIndex; } } }
     public NetworkIdRegistry NetworkIds => networkIds;
@@ -108,6 +126,10 @@ private readonly NetworkIdRegistry networkIds = new();
         {
             if (isRunning) return;
             world = World.Create();
+            mapContext = MapContext.Generate(world, MapOptions, MapGenerationOptions);
+            movementIndex = new MovementIndex();
+            mapMetrics = new MapMetricsSystem(world, mapContext.Map);
+            lastIntentSequence.Clear();
             metrics = new Metrics();
             employmentIndex = new EmploymentIndex();
             clock = new SimulationClock(ClockOptions);
@@ -117,6 +139,9 @@ private readonly NetworkIdRegistry networkIds = new();
 
             systems = new SystemRegistry();
             systems.Register(new NeedsDecaySystem(world));
+            systems.Register(new PathfindingSystem(world, mapContext.Map, movementIndex, MovementOptions.PathRequestBudgetPerTick));
+            systems.Register(new MovementSystem(world, mapContext.Map, movementIndex, MovementOptions.PlayerSpeedTilesPerSecond));
+            systems.Register(mapMetrics);
             systems.Register(new HousingModifierSystem(world, economy.Housing));
             systems.Register(new AgingSystem(world, economy));
             systems.Register(new HealthSystem(world, economy));
@@ -124,7 +149,7 @@ private readonly NetworkIdRegistry networkIds = new();
             systems.Register(new ActionSystem(world));
             systems.Register(new EducationSystem(world, economy));
             systems.Register(new EnrollmentSystem(world, economy));
-            systems.Register(new WorkScheduleSystem(world, economy));
+            systems.Register(new WorkScheduleSystem(world, economy, mapContext));
             systems.Register(new AttendanceSystem(world, economy));
             systems.Register(new CareerSystem(world, economy));
             systems.Register(new StageProgressionSystem(world, economy));
@@ -136,7 +161,7 @@ private readonly NetworkIdRegistry networkIds = new();
             systems.Register(new NeedsDeathSystem(world, economy));
             systems.Register(new DeathProcessingSystem(world, economy));
             systems.Register(new EstateSettlementSystem(world, economy));
-            systems.Register(new PopulationInflowSystem(world, economy));
+            systems.Register(new PopulationInflowSystem(world, economy, mapContext));
             systems.Register(new PopulationMetricsSystem(world, economy));
             systems.Register(new CompanyRevenueSystem(world, economy));
             systems.Register(new ConsumerSpendingSystem(world, economy));
@@ -153,7 +178,7 @@ private readonly NetworkIdRegistry networkIds = new();
             systems.Register(new CreditSystem(world, economy));
             systems.Register(new CompanySolvencySystem(world, economy));
             systems.Register(new JobSeekerSystem(world, 100, economy));
-            systems.Register(new HousingDevelopmentSystem(world, economy));
+            systems.Register(new HousingDevelopmentSystem(world, economy, mapContext));
             systems.Register(new EconomyMetricsSystem(world, economy));
             systems.Register(new HousingMetricsSystem(world, economy));
 
@@ -180,6 +205,9 @@ private readonly NetworkIdRegistry networkIds = new();
             world?.Dispose();
             world = null;
             economy = null;
+            mapContext = null;
+            movementIndex = null;
+            mapMetrics = null;
             employmentIndex = null;
             systems = null;
             history.Clear();
@@ -215,6 +243,7 @@ private readonly NetworkIdRegistry networkIds = new();
 
         DrainCommands();
         DrainAdminCommands();
+        DrainPlayerIntents();
 
         lock (@lock)
         {
@@ -314,6 +343,8 @@ if (SnapshotsEnabled)
                                 );
                                 var nid = new NetworkId(command.NetworkId.GetValueOrDefault());
                                 world.Add(entity, nid);
+                                if (mapContext is not null)
+                                    MapSpawner.PlaceSim(world, entity, mapContext, nid.Value);
                                 economy.Life.Index.OnBorn(economy.Life.Policy.StageFor(age));
                             }
                         }
@@ -365,6 +396,204 @@ if (SnapshotsEnabled)
     public CommandResult? GetCommandResult(Guid commandId)
     {
         return commandResults.TryGetValue(commandId, out var result) ? result : null;
+    }
+
+    private void DrainPlayerIntents()
+    {
+        if (commandQueue is null)
+            return;
+
+        commandQueue.Drain(intent =>
+        {
+            lock (@lock)
+            {
+                if (!isRunning || world is null || mapContext is null || movementIndex is null)
+                    return;
+
+                if (intent is MoveIntent move)
+                    ApplyMoveIntent(move);
+                else if (intent is UseBuildingIntent use)
+                    ApplyUseBuildingIntent(use);
+            }
+        });
+    }
+
+    private void ApplyMoveIntent(MoveIntent intent)
+    {
+        if (world is null || mapContext is null || movementIndex is null)
+            return;
+        if (string.IsNullOrWhiteSpace(intent.PlayerId))
+            return;
+
+        if (lastIntentSequence.TryGetValue(intent.PlayerId, out var last) && intent.Sequence > 0 && intent.Sequence <= last)
+            return;
+        if (intent.Sequence > 0)
+            lastIntentSequence[intent.PlayerId] = intent.Sequence;
+
+        var sim = ResolvePlayerSim(intent.PlayerId, intent.SimNetworkId);
+        if (sim == Entity.Null || !world.IsAlive(sim) || world.Has<Dead>(sim))
+            return;
+
+        var owner = world.Has<PlayerControlled>(sim) ? world.Get<PlayerControlled>(sim).PlayerId : null;
+        if (!string.Equals(owner, intent.PlayerId, StringComparison.Ordinal))
+            return;
+
+        var target = intent.TargetTileX.HasValue && intent.TargetTileY.HasValue
+            ? new TileCoord(intent.TargetTileX.Value, intent.TargetTileY.Value)
+            : mapContext.Options.ToTile(intent.X, intent.Y);
+
+        if (!mapContext.Options.Bounds.Contains(target) || !mapContext.Map.IsWalkable(target))
+            return;
+
+        var current = world.Has<TilePosition>(sim)
+            ? world.Get<TilePosition>(sim).Tile
+            : mapContext.Options.ToTile(
+                world.Has<Location>(sim) ? world.Get<Location>(sim).Position.X : 0f,
+                world.Has<Location>(sim) ? world.Get<Location>(sim).Position.Y : 0f);
+
+        if (!mapContext.Options.Bounds.Contains(current) || !mapContext.Map.IsWalkable(current))
+        {
+            current = MapSpawner.FindSpawn(mapContext, world.Has<NetworkId>(sim) ? world.Get<NetworkId>(sim).Value : 0);
+            MapSpawner.PlaceSimAt(world, sim, mapContext, current);
+        }
+
+        if (!world.Has<MovementState>(sim))
+            world.Add(sim, new MovementState(MovementOptions.PlayerSpeedTilesPerSecond));
+
+        if (current == target)
+        {
+            if (world.Has<MoveTarget>(sim))
+            {
+                var existing = world.Get<MoveTarget>(sim);
+                existing.HasTarget = false;
+                world.Get<MoveTarget>(sim) = existing;
+            }
+            movementIndex.Clear(sim);
+            return;
+        }
+
+        var moveTarget = new MoveTarget(target, tick, movementIndex.PathVersion);
+        if (world.Has<MoveTarget>(sim))
+            world.Get<MoveTarget>(sim) = moveTarget;
+        else
+            world.Add(sim, moveTarget);
+
+        movementIndex.RequestPath(sim, current, target, mapContext.Version);
+    }
+
+    private void ApplyUseBuildingIntent(UseBuildingIntent intent)
+    {
+        if (world is null || mapContext is null)
+            return;
+        if (string.IsNullOrWhiteSpace(intent.PlayerId))
+            return;
+        if (!networkIds.TryGetEntity(new NetworkId(intent.BuildingNetworkId), out var building) ||
+            !world.IsAlive(building))
+            return;
+        if (!world.Has<Placement>(building))
+            return;
+
+        var sim = ResolvePlayerSim(intent.PlayerId, intent.SimNetworkId);
+        if (sim == Entity.Null || !world.IsAlive(sim) || world.Has<Dead>(sim))
+            return;
+        var owner = world.Has<PlayerControlled>(sim) ? world.Get<PlayerControlled>(sim).PlayerId : null;
+        if (!string.Equals(owner, intent.PlayerId, StringComparison.Ordinal))
+            return;
+
+        var placement = world.Get<Placement>(building);
+        if (world.Get<TilePosition>(sim).Tile.ChebyshevDistanceTo(placement.Entry) > 1)
+            return;
+
+        ActionType? action = null;
+        if (world.Has<Property>(building))
+        {
+            action = ActionType.Sleeping;
+        }
+        else if (world.Has<Office>(building))
+        {
+            if (!world.Has<Employee>(sim) || world.Get<Employee>(sim).Office != building)
+                return;
+            action = ActionType.Working;
+        }
+        else if (world.Has<School>(building))
+        {
+            action = ActionType.Idle;
+        }
+
+        if (action is null)
+            return;
+
+        var current = world.Has<CurrentAction>(sim)
+            ? world.Get<CurrentAction>(sim)
+            : new CurrentAction(ActionType.Idle, 0f);
+        current = new CurrentAction(action.Value, 0f);
+        if (world.Has<CurrentAction>(sim))
+            world.Get<CurrentAction>(sim) = current;
+        else
+            world.Add(sim, current);
+
+        if (!world.Has<MoveTarget>(sim))
+            return;
+        var target = world.Get<MoveTarget>(sim);
+        target.HasTarget = false;
+        world.Get<MoveTarget>(sim) = target;
+        movementIndex?.Clear(sim);
+    }
+
+    private Entity ResolvePlayerSim(string playerId, ulong networkId)    {
+        if (world is null)
+            return Entity.Null;
+        if (networkId != 0 && networkIds.TryGetEntity(new NetworkId(networkId), out var entity))
+            return entity;
+
+        var found = Entity.Null;
+        var query = new QueryDescription().WithAll<PlayerControlled, NetworkId>();
+        world.Query(in query, (Entity candidate, ref PlayerControlled controlled, ref NetworkId _) =>
+        {
+            if (found == Entity.Null && string.Equals(controlled.PlayerId, playerId, StringComparison.Ordinal))
+                found = candidate;
+        });
+        return found;
+    }
+
+    public ulong GetPlayerSimNetworkId(string playerId)
+    {
+        lock (@lock)
+        {
+            if (world is null || string.IsNullOrWhiteSpace(playerId))
+                return 0;
+            var sim = ResolvePlayerSim(playerId, 0);
+            return sim != Entity.Null && world.IsAlive(sim) && world.Has<NetworkId>(sim)
+                ? world.Get<NetworkId>(sim).Value
+                : 0;
+        }
+    }
+
+    public void EnsurePlayerSpawn(string playerId)
+    {        lock (@lock)
+        {
+            if (world is null || economy is null || mapContext is null)
+                return;
+
+            var sim = ResolvePlayerSim(playerId, 0);
+            if (sim == Entity.Null || !world.IsAlive(sim))
+                return;
+
+            if (world.Has<TilePosition>(sim) && mapContext.Map.IsWalkable(world.Get<TilePosition>(sim).Tile))
+                return;
+
+            var networkId = world.Has<NetworkId>(sim) ? world.Get<NetworkId>(sim).Value : 0;
+            PlayerSpawnService.PlaceAt(world, sim, economy.Housing, mapContext, networkId);
+            if (!world.Has<MovementState>(sim))
+                world.Add(sim, new MovementState(MovementOptions.PlayerSpeedTilesPerSecond));
+        }
+    }
+
+    private void RebuildMovementRequests()
+    {
+        if (world is null || mapContext is null || movementIndex is null)
+            return;
+        movementIndex.RebuildRequests(world, mapContext.Version);
     }
 
     private void DrainAdminCommands()
@@ -421,9 +650,69 @@ if (SnapshotsEnabled)
         var tick = this.tick;
         switch (command)
         {
+            case PlaceBuildingCommand place:
+            {
+                if (mapContext is null)
+                    throw new InvalidOperationException("Map is not initialized.");
+                if (!networkIds.TryGetEntity(new NetworkId(place.BuildingId), out var building) ||
+                    !world.IsAlive(building))
+                    throw new InvalidOperationException("Building not found.");
+                if (world.Has<Placement>(building))
+                    throw new InvalidOperationException("Building already has a placement.");
+
+                BuildingKind kind;
+                string district;
+                if (world.Has<Property>(building))
+                {
+                    var property = world.Get<Property>(building);
+                    kind = property.IsShelter ? BuildingKind.Civic : BuildingKind.Residential;
+                    district = property.District;
+                }
+                else if (world.Has<Office>(building))
+                {
+                    kind = BuildingKind.Office;
+                    district = "Central";
+                }
+                else if (world.Has<School>(building))
+                {
+                    kind = BuildingKind.School;
+                    district = world.Get<School>(building).District;
+                }
+                else
+                {
+                    throw new InvalidOperationException("Entity is not a placeable building.");
+                }
+
+                var footprint = new Footprint(place.Width, place.Height);
+                var result = mapContext.Placement.TryPlace(
+                    building,
+                    new NetworkId(place.BuildingId),
+                    kind,
+                    footprint,
+                    district,
+                    new TileCoord(place.X, place.Y),
+                    new TileCoord(place.EntryX, place.EntryY));
+                if (!result.Success)
+                    throw new InvalidOperationException($"{result.Error}: {result.Message}");
+
+                return new
+                {
+                    buildingId = place.BuildingId,
+                    placement = new
+                    {
+                        x = result.Placement.Anchor.X,
+                        y = result.Placement.Anchor.Y,
+                        width = result.Placement.Footprint.Width,
+                        height = result.Placement.Footprint.Height,
+                        entryX = result.Placement.Entry.X,
+                        entryY = result.Placement.Entry.Y
+                    }
+                };
+            }
+
             case CreateSchoolCommand createSchool:
             {
-                var repository = new SchoolRepository(world, networkIds, economy);
+                var repository = new SchoolRepository(world, networkIds, economy, mapContext);
                 var id = repository.Add(
                     createSchool.Name,
                     createSchool.District,
@@ -437,7 +726,7 @@ if (SnapshotsEnabled)
 
             case UpdateSchoolCommand updateSchool:
             {
-                var repository = new SchoolRepository(world, networkIds, economy);
+                var repository = new SchoolRepository(world, networkIds, economy, mapContext);
                 if (!repository.Update(
                         new NetworkId(updateSchool.SchoolId),
                         updateSchool.Name,
@@ -525,7 +814,7 @@ if (SnapshotsEnabled)
 
             case GeneratePopulationCommand generate:
             {
-                var generator = new PopulationGenerator(world, networkIds, economy!, employmentIndex!);
+                var generator = new PopulationGenerator(world, networkIds, economy!, employmentIndex!, mapContext);
                 var result = generator.Generate(
                     generate.TotalSims,
                     generate.Seed,
@@ -700,7 +989,7 @@ if (SnapshotsEnabled)
 
             case SetEnrollmentCommand enrollment:
             {
-                var repository = new SchoolRepository(world, networkIds, economy);
+                var repository = new SchoolRepository(world, networkIds, economy, mapContext);
                 if (!repository.SetEnrollment(enrollment.SimId, enrollment.SchoolId, enrollment.Enrolled))
                     throw new InvalidOperationException("Enrollment change failed.");
                 return new
@@ -713,7 +1002,7 @@ if (SnapshotsEnabled)
 
             case CreateOfficeCommand create:
             {
-                var repository = new OfficeRepository(world, networkIds, economy);
+                var repository = new OfficeRepository(world, networkIds, economy, mapContext);
                 var id = repository.Add(
                     new NetworkId(create.CompanyId),
                     create.Name,
@@ -725,7 +1014,7 @@ if (SnapshotsEnabled)
 
             case UpdateOfficeCommand update:
             {
-                var repository = new OfficeRepository(world, networkIds, economy);
+                var repository = new OfficeRepository(world, networkIds, economy, mapContext);
                 if (!repository.Update(
                         new NetworkId(update.OfficeId),
                         update.Name,
@@ -738,7 +1027,7 @@ if (SnapshotsEnabled)
 
             case CloseOfficeCommand close:
             {
-                var repository = new OfficeRepository(world, networkIds, economy);
+                var repository = new OfficeRepository(world, networkIds, economy, mapContext);
                 if (!repository.Close(new NetworkId(close.OfficeId)))
                     throw new InvalidOperationException("Office not found.");
                 return new { officeId = close.OfficeId };
@@ -784,7 +1073,7 @@ if (SnapshotsEnabled)
 
             case InjectCapitalCommand capital:
             {
-                var repository = new CompanyRepository(world, employmentIndex!, networkIds, economy);
+                var repository = new CompanyRepository(world, employmentIndex!, networkIds, economy, map: mapContext);
                 if (!repository.InjectCapital(new NetworkId(capital.CompanyId), capital.Amount, tick))
                     throw new InvalidOperationException("Company not found.");
                 return new { companyId = capital.CompanyId, amount = capital.Amount.Cents };
@@ -1043,6 +1332,198 @@ if (SnapshotsEnabled)
         return Volatile.Read(ref _latest);
     }
 
+    public MapStatus BuildMapStatus()
+    {
+        lock (@lock)
+        {
+            if (mapContext is null)
+                return new MapStatus();
+
+            var map = mapContext.Map;
+            var options = map.Options;
+            var result = new MapStatus
+            {
+                MapId = options.MapId,
+                Version = map.Version,
+                Width = options.Width,
+                Height = options.Height,
+                TileSize = options.TileSize,
+                MinX = options.Bounds.MinX,
+                MinY = options.Bounds.MinY,
+                MaxX = options.Bounds.MaxX,
+                MaxY = options.Bounds.MaxY,
+                Buildings = map.Placements.Count,
+                OccupiedTiles = map.OccupiedTileCount,
+                ReservedTiles = map.ReservedTileCount,
+                UnplacedBuildings = CountUnplacedBuildings()
+            };
+
+            if (world is null)
+                return result;
+
+            foreach (var pair in map.Placements.OrderBy(pair => pair.Key.Value))
+                result.BuildingList.Add(BuildMapBuilding(pair.Key, pair.Value));
+
+            result.HealthIssues = map.Reconcile(world).Count;
+            return result;
+        }
+    }
+
+    public MapHealthStatus BuildMapHealth()
+    {
+        lock (@lock)
+        {
+            if (mapContext is null || world is null)
+                return new MapHealthStatus();
+
+            var issues = mapContext.Map.Reconcile(world);
+            return new MapHealthStatus
+            {
+                Issues = issues.Count,
+                Items = issues.Select(issue => new MapIssueStatus
+                {
+                    NetworkId = issue.NetworkId,
+                    Code = issue.Code,
+                    Message = issue.Message,
+                    X = issue.Tile?.X,
+                    Y = issue.Tile?.Y
+                }).ToList()
+            };
+        }
+    }
+
+    public MapViewportStatus? BuildMapViewport(int minX, int minY, int maxX, int maxY)
+    {
+        lock (@lock)
+        {
+            if (mapContext is null)
+                return null;
+
+            var bounds = new MapBounds(minX, minY, maxX, maxY);
+            if (!mapContext.Options.Bounds.Contains(bounds) || bounds.Area > 4096)
+                return null;
+
+            var map = mapContext.Map;
+            var result = new MapViewportStatus
+            {
+                MinX = minX,
+                MinY = minY,
+                MaxX = maxX,
+                MaxY = maxY
+            };
+
+            foreach (var id in map.BuildingsInBounds(bounds).OrderBy(id => id.Value))
+            {
+                if (map.TryGetPlacement(id, out var placement))
+                    result.Buildings.Add(BuildMapBuilding(id, placement));
+            }
+
+            if (world is not null)
+            {
+                for (var y = minY; y <= maxY; y++)
+                {
+                    for (var x = minX; x <= maxX; x++)
+                    {
+                        var flags = map.FlagsAt(new TileCoord(x, y));
+                        if (flags == TileFlags.None)
+                            continue;
+                        result.Tiles.Add(new MapTileStatus { X = x, Y = y, Flags = flags.ToString() });
+                    }
+                }
+            }
+
+            return result;
+        }
+    }
+
+    public MapBuildingStatus? BuildMapBuilding(ulong networkId)
+    {
+        lock (@lock)
+        {
+            if (mapContext is null || !mapContext.Map.TryGetPlacement(new NetworkId(networkId), out var placement))
+                return null;
+            return BuildMapBuilding(new NetworkId(networkId), placement);
+        }
+    }
+
+    private MapBuildingStatus BuildMapBuilding(NetworkId networkId, Placement placement)
+    {
+        var status = new MapBuildingStatus
+        {
+            NetworkId = networkId.Value,
+            Kind = placement.Kind.ToString(),
+            Name = placement.Kind.ToString(),
+            District = string.Empty,
+            X = placement.Anchor.X,
+            Y = placement.Anchor.Y,
+            Width = placement.Footprint.Width,
+            Height = placement.Footprint.Height,
+            EntryX = placement.Entry.X,
+            EntryY = placement.Entry.Y
+        };
+
+        if (world is null || networkIds.TryGetEntity(networkId, out var entity) is false || !world.IsAlive(entity))
+            return status;
+
+        if (world.Has<Property>(entity))
+        {
+            var property = world.Get<Property>(entity);
+            status.Name = property.Name;
+            status.District = property.District;
+            if (property.Owner != Entity.Null && world.IsAlive(property.Owner) &&
+                networkIds.TryGetNetworkId(property.Owner, out var ownerId))
+                status.OwnerNetworkId = ownerId.Value;
+        }
+        else if (world.Has<Office>(entity))
+        {
+            var office = world.Get<Office>(entity);
+            status.Name = office.OfficeName;
+            status.District = "Central";
+            if (world.IsAlive(office.Company) &&
+                networkIds.TryGetNetworkId(office.Company, out var companyId))
+                status.OwnerNetworkId = companyId.Value;
+        }
+        else if (world.Has<School>(entity))
+        {
+            var school = world.Get<School>(entity);
+            status.Name = school.Name;
+            status.District = school.District;
+        }
+
+        return status;
+    }
+
+    private int CountUnplacedBuildings()
+    {
+        if (world is null)
+            return 0;
+
+        var count = 0;
+        var propertyQuery = new QueryDescription().WithAll<Property>().WithNone<Placement>();
+        world.Query(in propertyQuery, (ref Property _) => count++);
+        var officeQuery = new QueryDescription().WithAll<Office>().WithNone<Placement>();
+        world.Query(in officeQuery, (ref Office _) => count++);
+        var schoolQuery = new QueryDescription().WithAll<School>().WithNone<Placement>();
+        world.Query(in schoolQuery, (ref School _) => count++);
+        return count;
+    }
+
+    private MapSummaryStatus? BuildMapSummary()
+    {
+        var status = BuildMapStatus();
+        if (mapContext is null)
+            return null;
+        return new MapSummaryStatus
+        {
+            MapId = status.MapId,
+            Version = status.Version,
+            Buildings = status.Buildings,
+            OccupiedTiles = status.OccupiedTiles,
+            UnplacedBuildings = status.UnplacedBuildings,
+            HealthIssues = status.HealthIssues
+        };
+    }
+
     public WorldDataStatus GetWorldData()
     {
         WorldSnapshot? snapshot;
@@ -1070,7 +1551,8 @@ if (SnapshotsEnabled)
                     Year = clock.YearOf(currentTick),
                     Month = clock.MonthOfYear(currentTick),
                     IsRunning = running,
-                    CapturedAt = DateTimeOffset.UtcNow
+                    CapturedAt = DateTimeOffset.UtcNow,
+                    Map = BuildMapSummary()
                 };
             }
 
@@ -1158,7 +1640,8 @@ if (SnapshotsEnabled)
             Month = clock.MonthOfYear(currentTick),
             IsRunning = running,
             CapturedAt = DateTimeOffset.UtcNow,
-            Sims = sims
+            Sims = sims,
+            Map = BuildMapSummary()
         };
 
         var simNames = new Dictionary<ulong, string>();
@@ -2533,6 +3016,21 @@ if (SnapshotsEnabled)
                 status.Y = MathF.Round(location.Position.Y, 2);
             }
 
+            if (world.Has<TilePosition>(entity))
+            {
+                var tile = world.Get<TilePosition>(entity).Tile;
+                status.TileX = tile.X;
+                status.TileY = tile.Y;
+            }
+
+            if (world.Has<MoveTarget>(entity))
+            {
+                var target = world.Get<MoveTarget>(entity);
+                status.HasMoveTarget = target.HasTarget;
+                status.MoveTargetX = target.Tile.X;
+                status.MoveTargetY = target.Tile.Y;
+            }
+
             if (world.Has<Wallet>(entity))
                 status.WalletBalance = world.Get<Wallet>(entity).Balance.Units;
             if (world.Has<SavingsAccount>(entity))
@@ -2704,6 +3202,47 @@ if (SnapshotsEnabled)
                 {
                     sim.X = location.Position.X;
                     sim.Y = location.Position.Y;
+                }
+            });
+
+            var tileQuery = new QueryDescription().WithAll<GenName, TilePosition>();
+            world.Query(in tileQuery, (Entity entity, ref TilePosition position) =>
+            {
+                if (simByEntity.TryGetValue(entity, out var sim))
+                {
+                    sim.HasTilePosition = true;
+                    sim.TileX = position.Tile.X;
+                    sim.TileY = position.Tile.Y;
+                }
+            });
+
+            var moveTargetQuery = new QueryDescription().WithAll<GenName, MoveTarget>();
+            world.Query(in moveTargetQuery, (Entity entity, ref MoveTarget target) =>
+            {
+                if (simByEntity.TryGetValue(entity, out var sim))
+                {
+                    sim.HasMoveTarget = target.HasTarget;
+                    sim.MoveTargetX = target.Tile.X;
+                    sim.MoveTargetY = target.Tile.Y;
+                }
+            });
+
+            var movementQuery = new QueryDescription().WithAll<GenName, MovementState>();
+            world.Query(in movementQuery, (Entity entity, ref MovementState movement) =>
+            {
+                if (simByEntity.TryGetValue(entity, out var sim))
+                {
+                    sim.MoveFromX = movement.From.X;
+                    sim.MoveFromY = movement.From.Y;
+                    sim.MoveToX = movement.To.X;
+                    sim.MoveToY = movement.To.Y;
+                    sim.MoveProgress = movement.Progress;
+                    sim.SubTileX = movement.IsMoving
+                        ? movement.From.X + (movement.To.X - movement.From.X) * movement.Progress
+                        : 0f;
+                    sim.SubTileY = movement.IsMoving
+                        ? movement.From.Y + (movement.To.Y - movement.From.Y) * movement.Progress
+                        : 0f;
                 }
             });
 
@@ -3298,11 +3837,63 @@ if (SnapshotsEnabled)
                 }).ToList()
             };
 
+            var mapState = new PersistedMap();
+            var persistedPlacements = new List<PersistedPlacement>();
+            if (mapContext is not null)
+            {
+                var options = mapContext.Options;
+                var generated = mapContext.Generated;
+                mapState = new PersistedMap
+                {
+                    MapId = options.MapId,
+                    Version = mapContext.Version,
+                    Seed = options.Seed,
+                    Width = options.Width,
+                    Height = options.Height,
+                    TileSize = options.TileSize,
+                    Tiles = generated.Tiles.Select(flags => (byte)flags).ToArray(),
+                    CanonicalSignature = generated.CanonicalSignature,
+                    Lots = generated.Lots.Select(lot => new PersistedLot
+                    {
+                        Id = lot.Id.Value,
+                        MinX = lot.Bounds.MinX,
+                        MinY = lot.Bounds.MinY,
+                        MaxX = lot.Bounds.MaxX,
+                        MaxY = lot.Bounds.MaxY,
+                        Zone = lot.Zone.ToString()
+                    }).ToList(),
+                    SpawnPoints = generated.SpawnPoints.Select(tile => new PersistedCoord
+                    {
+                        X = tile.X,
+                        Y = tile.Y
+                    }).ToList()
+                };
+
+                foreach (var pair in mapContext.Map.Placements.OrderBy(pair => pair.Key.Value))
+                {
+                    var placement = pair.Value;
+                    persistedPlacements.Add(new PersistedPlacement
+                    {
+                        NetworkId = pair.Key.Value,
+                        Kind = placement.Kind.ToString(),
+                        X = placement.Anchor.X,
+                        Y = placement.Anchor.Y,
+                        Width = placement.Footprint.Width,
+                        Height = placement.Footprint.Height,
+                        EntryX = placement.Entry.X,
+                        EntryY = placement.Entry.Y,
+                        Rotation = placement.Rotation
+                    });
+                }
+            }
+
             return new PersistedWorldState
             {
                 SchemaVersion = PersistedWorldState.CurrentSchemaVersion,
                 Tick = currentTick,
                 RandomSeed = economy.Random.Seed,
+                Map = mapState,
+                Placements = persistedPlacements,
                 HousingMigrated = true,
                 LifecycleMigrated = true,
                 Schools = schools,
@@ -3346,6 +3937,114 @@ if (SnapshotsEnabled)
         }
     }
 
+    private TileCoord ResolveRestoredTile(PersistedSim sim)
+    {
+        if (mapContext is null)
+            return new TileCoord(sim.TileX, sim.TileY);
+
+        var tile = sim.HasTilePosition
+            ? new TileCoord(sim.TileX, sim.TileY)
+            : mapContext.Options.ToTile(sim.X, sim.Y);
+
+        if (!mapContext.Options.Bounds.Contains(tile) || !mapContext.Map.IsWalkable(tile))
+            tile = MapSpawner.FindSpawn(mapContext, sim.NetworkId);
+
+        return tile;
+    }
+
+    private void RestorePlacements(
+        PersistedWorldState state,
+        Dictionary<ulong, Entity> properties,
+        Dictionary<ulong, Entity> offices,
+        Dictionary<ulong, Entity> schools)
+    {
+        if (mapContext is null || world is null)
+            return;
+
+        var entities = new Dictionary<ulong, Entity>();
+        foreach (var pair in properties)
+            entities[pair.Key] = pair.Value;
+        foreach (var pair in offices)
+            entities[pair.Key] = pair.Value;
+        foreach (var pair in schools)
+            entities[pair.Key] = pair.Value;
+
+        foreach (var persisted in state.Placements)
+        {
+            if (!entities.TryGetValue(persisted.NetworkId, out var entity) || !world.IsAlive(entity))
+                continue;
+            if (world.Has<Placement>(entity))
+                continue;
+
+            var kind = Enum.TryParse<BuildingKind>(persisted.Kind, out var parsedKind)
+                ? parsedKind
+                : BuildingKind.Residential;
+            var placement = new Placement(
+                new TileCoord(persisted.X, persisted.Y),
+                new Footprint(persisted.Width, persisted.Height),
+                new TileCoord(persisted.EntryX, persisted.EntryY),
+                kind,
+                persisted.Rotation);
+
+            var result = mapContext.Placement.RestorePlacement(
+                entity,
+                new NetworkId(persisted.NetworkId),
+                placement);
+            if (!result.Success)
+                throw new InvalidOperationException(
+                    $"Map restore rejected building {persisted.NetworkId}: {result.Error} {result.Message}");
+        }
+
+        foreach (var pair in entities.OrderBy(pair => pair.Key))
+        {
+            var entity = pair.Value;
+            if (!world.IsAlive(entity) || world.Has<Placement>(entity))
+                continue;
+
+            var networkId = new NetworkId(pair.Key);
+            BuildingKind kind;
+            Footprint footprint;
+            string district;
+
+            if (world.Has<Property>(entity))
+            {
+                var property = world.Get<Property>(entity);
+                kind = property.IsShelter ? BuildingKind.Civic : BuildingKind.Residential;
+                footprint = BuildingFootprints.ForProperty(property.UnitCount, property.IsShelter);
+                district = property.District;
+            }
+            else if (world.Has<Office>(entity))
+            {
+                var office = world.Get<Office>(entity);
+                kind = BuildingKind.Office;
+                footprint = BuildingFootprints.ForOffice(office.Capacity);
+                district = "Central";
+            }
+            else if (world.Has<School>(entity))
+            {
+                var school = world.Get<School>(entity);
+                kind = BuildingKind.School;
+                footprint = BuildingFootprints.ForSchool(school.Capacity);
+                district = school.District;
+            }
+            else
+            {
+                continue;
+            }
+
+            var result = mapContext.Placement.TryPlace(entity, networkId, kind, footprint, district);
+            if (!result.Success)
+                throw new InvalidOperationException(
+                    $"Map migration could not place building {pair.Key}: {result.Error} {result.Message}");
+        }
+
+        var issues = mapContext.Map.Reconcile(world);
+        if (issues.Count > 0)
+            throw new InvalidOperationException(
+                "Map restore verification failed: " +
+                string.Join("; ", issues.Take(10).Select(issue => $"{issue.Code}: {issue.Message}")));
+    }
+
     public void Restore(PersistedWorldState state, NetworkIdRegistry networkIds)
     {
         lock (@lock)
@@ -3359,6 +4058,33 @@ if (SnapshotsEnabled)
 
             RandomSeed = state.RandomSeed == 0 ? 1 : state.RandomSeed;
             Initialize();
+
+            if (state.Map.Tiles.Length > 0)
+            {
+                var options = new Genelife.Map.MapOptions
+                {
+                    MapId = state.Map.MapId,
+                    Version = state.Map.Version,
+                    Seed = state.Map.Seed,
+                    Width = state.Map.Width,
+                    Height = state.Map.Height,
+                    TileSize = state.Map.TileSize
+                };
+                var generated = new GeneratedMap
+                {
+                    Options = options,
+                    Tiles = state.Map.Tiles.Select(flags => (TileFlags)flags).ToArray(),
+                    Lots = state.Map.Lots.Select(lot => new MapLot
+                    {
+                        Id = new LotId(lot.Id),
+                        Bounds = new MapBounds(lot.MinX, lot.MinY, lot.MaxX, lot.MaxY),
+                        Zone = Enum.TryParse<MapZone>(lot.Zone, out var zone) ? zone : MapZone.Mixed
+                    }).ToList(),
+                    SpawnPoints = state.Map.SpawnPoints.Select(point => new TileCoord(point.X, point.Y)).ToList(),
+                    CanonicalSignature = state.Map.CanonicalSignature
+                };
+                mapContext!.LoadRestored(generated, state.Map.Version);
+            }
 
             var simEntities = new Dictionary<ulong, Entity>();
             var companyEntities = new Dictionary<ulong, Entity>();
@@ -3485,6 +4211,11 @@ if (SnapshotsEnabled)
                     Sales = sim.SkillSales
                 };
 
+                var spawnTile = ResolveRestoredTile(sim);
+                var (spawnX, spawnY) = mapContext is not null
+                    ? mapContext.Options.ToWorld(spawnTile)
+                    : (sim.X, sim.Y);
+
                 var entity = world!.Create(
                     new GenName(sim.Name),
                     new Needs { Hunger = sim.Hunger, Energy = sim.Energy, Hygiene = sim.Hygiene, Bladder = sim.Bladder },
@@ -3492,7 +4223,7 @@ if (SnapshotsEnabled)
                         Enum.TryParse<ActionType>(sim.ActionType, out var at) ? at : ActionType.Idle,
                         sim.TimeRemaining),
                     new Alive(sim.Age),
-                    new Location(sim.X, sim.Y),
+                    new Location(spawnX, spawnY),
                     profile,
                     new Health(sim.HealthValue <= 0f ? HealthSystem.InitialForAge(sim.Age) : sim.HealthValue)
                     {
@@ -3540,6 +4271,23 @@ if (SnapshotsEnabled)
                 world.Add(entity, networkId);
                 networkIds.AllocateWithValue(entity, networkId);
                 simEntities[sim.NetworkId] = entity;
+
+                if (mapContext is not null)
+                {
+                    world.Add(entity, new TilePosition(spawnTile));
+                    if (sim.HasMoveTarget)
+                        world.Add(entity, new MoveTarget(new TileCoord(sim.MoveTargetX, sim.MoveTargetY)));
+
+                    var movement = new MovementState(MovementOptions.PlayerSpeedTilesPerSecond);
+                    if (sim.MoveProgress > 0f || sim.MoveToX != 0 || sim.MoveToY != 0)
+                    {
+                        movement.From = new TileCoord(sim.MoveFromX, sim.MoveFromY);
+                        movement.To = new TileCoord(sim.MoveToX, sim.MoveToY);
+                        movement.Progress = sim.MoveProgress;
+                        movement.IsMoving = sim.MoveProgress > 0f;
+                    }
+                    world.Add(entity, movement);
+                }
 
                 if (sim.IsLookingForWork)
                     world.Add(entity, new JobSeeker(
@@ -3865,6 +4613,9 @@ if (SnapshotsEnabled)
                 world.Add(entity, networkId);
                 networkIds.AllocateWithValue(entity, networkId);
             }
+
+            RestorePlacements(state, propertyEntities, officeEntities, schoolEntities);
+            RebuildMovementRequests();
 
             economy!.Housing.Rebuild(world!);
 

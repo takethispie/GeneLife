@@ -17,5 +17,6 @@ public sealed class WorldDataStatus
     public EconomyStatus Economy { get; set; } = new();
     public HousingStatus Housing { get; set; } = new();
     public LifecycleStatus Lifecycle { get; set; } = new();
+    public MapSummaryStatus? Map { get; set; }
     public List<LedgerEntryStatus> RecentLedger { get; set; } = new();
 }

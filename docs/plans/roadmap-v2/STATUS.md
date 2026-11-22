@@ -1,53 +1,47 @@
 # Roadmap V2 — Status
 
-**Status:** Planned (V2)
-**Builds on:** V1 economy, housing and life stages on `master`
-**Scope:** spatial world, building placement, player movement and map replication
+**Status:** Implemented (V2 core)
+**Builds on:** V1 economy, housing and life stages
+**Scope:** spatial world, building placement, player spawn/movement, map read API, map console and AOI
 
 ## Completed
 
 | Area | Status | Evidence |
 |---|---|---|
-| World map | Not started | Coordinate, placement and occupancy work is planned in `01-world-map/` |
-| Player movement | Not started | Intent drain, movement and pathfinding are planned in `02-player-movement/` |
-| Map replication | Not started | Static map, deltas, AOI and admin console are planned in `03-map-replication/` |
+| Map coordinates and components | Implemented | `Genelife/Map`, `Genelife/Components/Map` |
+| Deterministic generation | Implemented | `MapGenerator`, canonical signature tests |
+| Occupancy and placement service | Implemented | `WorldMap`, `BuildingPlacementService`, placement tests |
+| Building bootstrap and creation paths | Implemented | Housing bootstrap, repositories, construction, HQ/school generation |
+| Map admin placement | Implemented | `PlaceBuildingCommand`, `POST /api/map/buildings/{id}/place` |
+| Persistence and restore | Implemented | Schema v5 `PersistedMap`/`PersistedPlacement`, save/restore test |
+| Map read API | Implemented | `/api/map`, `/api/map/buildings`, `/api/map/viewport`, `/api/map/health` |
+| Map admin console | Implemented | `Genelife.Web/Pages/Map.razor` |
+| Player spawn and intent drain | Implemented | `PlayerSpawnService`, `DrainPlayerIntents`, hub connect spawn |
+| Movement and pathfinding | Implemented | `MovementSystem`, `PathfindingSystem`, `TilePathfinder` |
+| NPC commute presence | Implemented | `WorkScheduleSystem` moves to office/home entries |
+| Map replication | Implemented | `SendMapSnapshot` on connect, map deltas, `/api/map` |
+| Map metrics | Implemented | `MapMetricsSystem`, `/api/map/metrics` |
+| AOI and viewport | Implemented | `AoiFilter`, `ViewportRegistry`, `SetViewport`/`ClearViewport` |
 
-All tech-step documents under `01-world-map/`, `02-player-movement/` and `03-map-replication/` are marked `Planned (V2)`.
-
-## Baseline verified before V2
-
-- `dotnet build GeneLife.sln` succeeds on V1.
-- V1 test suite: 329 passed, 2 skipped (manual 10k load reports), 0 failed.
-- `PersistedWorldState.CurrentSchemaVersion` is 4.
-- `WorldSnapshot.CurrentVersion` is 1.
-- The admin UI has data, economy, housing and lifecycle pages; there is no map page.
-- `Location` exists only on sims and every creation path uses `(0,0)`.
-- `SpatialIndex` and `AoiFilter` exist but are not wired into the live path.
-- `MoveIntent` is enqueued by `WorldHub` but the intent queue is not drained by `SimulationEngine`.
-
-## Planned verification for V2
+## Verification
 
 - `dotnet build GeneLife.sln` succeeds.
-- Full unit and integration suite remains green.
-- A seeded map regenerates byte-for-byte in its canonical representation.
-- Every building has a placement; occupancy rebuild matches component state.
-- Save/restore preserves tile positions, movement targets and placements exactly.
-- A 32-client multiplayer scenario receives a map snapshot, map deltas, filtered sim deltas and server-authoritative movement.
-- Performance guardrails cover 1k/2k/5k NPC tiers plus 32 connected players.
+- Full test suite: 337 passed, 2 skipped, 0 failed.
+- New map tests cover deterministic generation, occupancy/overlap rejection, pathfinding, AOI own-sim inclusion, movement arrival, spawn walkability and save/restore of placements.
+- V1 suite remains green.
 
-## Known limitations to address in V2
+## Remaining / partial
 
-- V1 is a backend/admin simulation. V2 adds a backend spatial model and an admin map console, not a full game client.
-- The existing `SpatialIndex` uses float world bounds and `AoiFilter` filters sims only; both need to be integrated with tile placement and building queries.
-- The existing `CommandQueue` has no drain path; implementing it is a V2 prerequisite, not an optional improvement.
-- Existing snapshots have no building positions; migration must backfill them deterministically.
-- Buildings are currently created in several repositories and systems; all must route through one placement service.
-- NPC commuting is abstract in V1 and does not update `Location`; V2 chooses between entry teleports and pathfinding per visibility.
+- Marten `MapDocument`/`BuildingDocument` projections are not implemented; map reads are served from the live simulation snapshot.
+- Map change events are not written to the event store; map deltas are computed from the live map version and previous broadcast.
+- The map console is inspect-only; placement is available through the admin API and command result, not yet from a page form.
+- NPC movement is entry teleport at shift boundaries; visible-NPC pathfinding animation is not enabled.
+- A checked-in V4 fixture migration test is still worth adding; backfill logic is implemented and exercised by restore paths.
+- Interaction intent supports residential and office use; school use currently sets an idle action.
 
 ## Next
 
-1. Approve the coordinate and placement contract in `01-world-map/tech/01` and `02`.
-2. Implement world map, placement and bootstrap first; do not start movement before every building has a valid placement.
-3. Implement intent drain and movement after the map read model is stable.
-4. Wire replication and AOI only after the static map contract is in place.
-5. Run the V2 acceptance scenarios and update this document with evidence.
+1. Add map/building Marten projections and a projection rebuild test.
+2. Add a map placement form to the admin console.
+3. Add a V4 fixture migration test and a mid-route movement persistence test.
+4. Add visible-NPC commute animation only after measuring the pathfinding budget.

@@ -144,6 +144,17 @@ public sealed record StartConstructionCommand(
     HousingTier Tier,
     int Units) : AdminCommand(CommandId, IssuedBy);
 
+public sealed record PlaceBuildingCommand(
+    Guid CommandId,
+    string IssuedBy,
+    ulong BuildingId,
+    int X,
+    int Y,
+    int Width,
+    int Height,
+    int EntryX,
+    int EntryY) : AdminCommand(CommandId, IssuedBy);
+
 public sealed record CancelConstructionCommand(
     Guid CommandId,
     string IssuedBy,

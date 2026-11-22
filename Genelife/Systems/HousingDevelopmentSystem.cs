@@ -7,6 +7,7 @@ using Genelife.Components.Housing;
 using Genelife.Economy;
 using Genelife.Enums;
 using Genelife.Housing;
+using Genelife.Map;
 using Genelife.Messages.Events;
 using Genelife.Values;
 
@@ -22,13 +23,15 @@ public class HousingDevelopmentSystem : ISimulationSystem
     private readonly World world;
     private readonly EconomyContext economy;
     private readonly HousingRegistry registry;
+    private readonly MapContext? map;
     private readonly int interval;
 
-    public HousingDevelopmentSystem(World world, EconomyContext economy, int? interval = null)
+    public HousingDevelopmentSystem(World world, EconomyContext economy, MapContext? map = null, int? interval = null)
     {
         this.world = world;
         this.economy = economy;
         registry = economy.Housing;
+        this.map = map;
         this.interval = interval ?? Math.Max(1, economy.Clock.TicksPerPayCycle);
     }
 
@@ -215,6 +218,22 @@ public class HousingDevelopmentSystem : ISimulationSystem
             project.Tier == HousingTier.Shelter));
         var propertyId = registry.AllocateNetworkId(property);
         registry.AddProperty(property, project.Developer);
+
+        if (map is not null)
+        {
+            var footprint = BuildingFootprints.ForProperty(project.Units, project.Tier == HousingTier.Shelter);
+            var kind = project.Tier == HousingTier.Shelter ? BuildingKind.Civic : BuildingKind.Residential;
+            var placement = map.Placement.TryPlace(property, propertyId, kind, footprint, project.District);
+            if (!placement.Success)
+            {
+                registry.DetachNetworkId(property);
+                world.Destroy(property);
+                economy.Emit(new ConstructionCancelled(project.ProjectId, "no-placement", tick));
+                registry.DetachNetworkId(entity);
+                world.Destroy(entity);
+                return;
+            }
+        }
 
         for (var i = 0; i < project.Units; i++)
         {

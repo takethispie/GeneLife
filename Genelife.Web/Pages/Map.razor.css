@@ -1,0 +1,11 @@
+.map-canvas {
+    display: block;
+    width: 100%;
+    height: min(72vh, 760px);
+    background: #f8f9fa;
+    cursor: crosshair;
+}
+
+.map-building {
+    cursor: pointer;
+}

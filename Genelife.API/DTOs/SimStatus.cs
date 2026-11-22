@@ -14,6 +14,11 @@ public class SimStatus
     public float TimeRemaining { get; set; }
     public float X { get; set; }
     public float Y { get; set; }
+    public int TileX { get; set; }
+    public int TileY { get; set; }
+    public bool HasMoveTarget { get; set; }
+    public int MoveTargetX { get; set; }
+    public int MoveTargetY { get; set; }
     public decimal WalletBalance { get; set; }
     public decimal SavingsBalance { get; set; }
     public decimal UnmetDemand { get; set; }

@@ -89,7 +89,12 @@ public sealed class WorldSnapshotDelta
         && string.Equals(a.CurrentAction, b.CurrentAction, StringComparison.Ordinal)
         && a.TimeRemaining.Equals(b.TimeRemaining)
         && a.X.Equals(b.X)
-        && a.Y.Equals(b.Y);
+        && a.Y.Equals(b.Y)
+        && a.TileX == b.TileX
+        && a.TileY == b.TileY
+        && a.HasMoveTarget == b.HasMoveTarget
+        && a.MoveTargetX == b.MoveTargetX
+        && a.MoveTargetY == b.MoveTargetY;
 
     public static bool CompaniesEqual(CompanyStatus a, CompanyStatus b) =>
         a.NetworkId == b.NetworkId

@@ -1,0 +1,249 @@
+@page "/map"
+@using Genelife.Web.Models
+@using Genelife.Web.Services
+@inject GameDataService GameData
+@implements IAsyncDisposable
+
+<PageTitle>Map</PageTitle>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+    <div>
+        <h1 class="mb-1">Map</h1>
+        <p class="text-muted mb-0">Generated world layout, building footprints and live player positions.</p>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+        <select class="form-select form-select-sm" @bind="kindFilter">
+            <option value="">All kinds</option>
+            @foreach (var kind in Kinds)
+            {
+                <option value="@kind">@kind</option>
+            }
+        </select>
+        <button class="btn btn-primary" type="button" @onclick="() => RefreshAsync()" disabled="@isLoading">
+            @if (isLoading)
+            {
+                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+            }
+            Refresh
+        </button>
+    </div>
+</div>
+
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3 small text-muted">
+    <span>@map.MapId v@map.Version</span>
+    <span>&middot;</span>
+    <span>@map.Width &times; @map.Height tiles</span>
+    @if (loadedAt is not null)
+    {
+        <span>&middot;</span>
+        <span>Refreshed @loadedAt.Value.ToString("HH:mm:ss")</span>
+    }
+</div>
+
+@if (error is not null)
+{
+    <div class="alert alert-danger">
+        <div class="fw-semibold">Could not load the map.</div>
+        <div class="small">@error</div>
+    </div>
+}
+
+@if (hasLoaded && !world.IsRunning)
+{
+    <div class="alert alert-info">The simulation is stopped. The last map and positions are shown.</div>
+}
+
+<div class="row g-3 mb-3">
+    @foreach (var card in SummaryCards)
+    {
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card h-100">
+                <div class="card-body py-2">
+                    <div class="text-muted small">@card.Label</div>
+                    <div class="fs-4 fw-semibold">@card.Value</div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<div class="row g-3">
+    <div class="col-12 col-xl-8">
+        <div class="card">
+            <div class="card-body p-2">
+                @if (!hasLoaded && isLoading)
+                {
+                    <div class="d-flex align-items-center gap-2 p-4 text-muted">
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        Loading map...
+                    </div>
+                }
+                else
+                {
+                    <svg class="map-canvas" viewBox="@ViewBox" preserveAspectRatio="xMidYMid meet" role="img"
+                         aria-label="World map">
+                        <defs>
+                            <pattern id="mapGrid" width="12" height="12" patternUnits="userSpaceOnUse">
+                                <path d="M 12 0 L 0 0 0 12" fill="none" stroke="#dee2e6" stroke-width="0.18" />
+                            </pattern>
+                        </defs>
+                        <rect x="@map.MinX" y="@map.MinY" width="@map.Width" height="@map.Height" fill="#f8f9fa" />
+                        <rect x="@map.MinX" y="@map.MinY" width="@map.Width" height="@map.Height" fill="url(#mapGrid)" />
+                        @foreach (var building in VisibleBuildings)
+                        {
+                            <g @onclick="() => Select(building)" class="map-building">
+                                <title>@building.Name (@building.Kind) @building.X,@building.Y</title>
+                                <rect x="@building.X" y="@building.Y" width="@building.Width" height="@building.Height"
+                                      rx="0.4" fill="@ColorFor(building.Kind)" fill-opacity="0.78"
+                                      stroke="#212529" stroke-width="0.22" />
+                                <circle cx="@(building.EntryX + 0.5)" cy="@(building.EntryY + 0.5)" r="0.8"
+                                        fill="#212529" />
+                            </g>
+                        }
+                        @foreach (var player in Players)
+                        {
+                            <g>
+                                <title>@player.Name @(player.TileX),@(player.TileY)</title>
+                                <circle cx="@(player.X + 0.5)" cy="@(player.Y + 0.5)" r="1.8" fill="#0d6efd"
+                                        stroke="#ffffff" stroke-width="0.5" />
+                            </g>
+                        }
+                    </svg>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-xl-4">
+        <div class="card">
+            <div class="card-header">Selected building</div>
+            <div class="card-body">
+                @if (selected is null)
+                {
+                    <div class="text-muted small">Select a building on the map.</div>
+                }
+                else
+                {
+                    <div class="fw-semibold">@selected.Name</div>
+                    <div class="small text-muted mb-2">@selected.Kind @(string.IsNullOrEmpty(selected.District) ? "" : $"· {selected.District}")</div>
+                    <dl class="row small mb-0">
+                        <dt class="col-5">Network id</dt>
+                        <dd class="col-7">@selected.NetworkId</dd>
+                        <dt class="col-5">Footprint</dt>
+                        <dd class="col-7">@selected.X,@selected.Y · @selected.Width&times;@selected.Height</dd>
+                        <dt class="col-5">Entry</dt>
+                        <dd class="col-7">@selected.EntryX,@selected.EntryY</dd>
+                        @if (selected.OwnerNetworkId is not null)
+                        {
+                            <dt class="col-5">Owner</dt>
+                            <dd class="col-7">@selected.OwnerNetworkId</dd>
+                        }
+                    </dl>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private static readonly string[] Kinds = { "Residential", "Office", "School", "Civic", "Store" };
+    private static readonly Dictionary<string, string> KindColors = new()
+    {
+        ["Residential"] = "#198754",
+        ["Office"] = "#0d6efd",
+        ["School"] = "#6f42c1",
+        ["Civic"] = "#fd7e14",
+        ["Store"] = "#ffc107"
+    };
+
+    private MapStatusData map = new();
+    private WorldData world = new();
+    private MapBuildingData? selected;
+    private string kindFilter = string.Empty;
+    private bool isLoading;
+    private bool hasLoaded;
+    private string? error;
+    private DateTimeOffset? loadedAt;
+    private CancellationTokenSource cts = new();
+
+    private string ViewBox => $"{map.MinX} {map.MinY} {Math.Max(1, map.Width)} {Math.Max(1, map.Height)}";
+
+    private IEnumerable<MapBuildingData> VisibleBuildings =>
+        map.BuildingList.Where(building => string.IsNullOrEmpty(kindFilter) || building.Kind == kindFilter);
+
+    private IEnumerable<SimData> Players =>
+        world.Sims.Where(sim => sim.IsPlayerControlled && !sim.IsDead);
+
+    private IEnumerable<(string Label, string Value)> SummaryCards => new[]
+    {
+        ("Buildings", map.Buildings.ToString()),
+        ("Occupied tiles", map.OccupiedTiles.ToString()),
+        ("Reserved tiles", map.ReservedTiles.ToString()),
+        ("Unplaced", map.UnplacedBuildings.ToString()),
+        ("Health issues", map.HealthIssues.ToString()),
+        ("Players", Players.Count().ToString())
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshAsync();
+        _ = RefreshLoopAsync(cts.Token);
+    }
+
+    private async Task RefreshLoopAsync(CancellationToken cancellationToken)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(2));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(cancellationToken))
+                await InvokeAsync(RefreshAsync);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private async Task RefreshAsync()
+    {
+        if (isLoading)
+            return;
+
+        isLoading = true;
+        try
+        {
+            var mapTask = GameData.GetMapAsync(cts.Token);
+            var worldTask = GameData.GetWorldDataAsync(cts.Token);
+            await Task.WhenAll(mapTask, worldTask);
+            map = await mapTask;
+            world = await worldTask;
+            if (selected is not null)
+                selected = map.BuildingList.FirstOrDefault(building => building.NetworkId == selected.NetworkId);
+            error = null;
+            hasLoaded = true;
+            loadedAt = DateTimeOffset.Now;
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+            hasLoaded = true;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void Select(MapBuildingData building) => selected = building;
+
+    private static string ColorFor(string kind) =>
+        KindColors.TryGetValue(kind, out var color) ? color : "#6c757d";
+
+    public ValueTask DisposeAsync()
+    {
+        cts.Cancel();
+        cts.Dispose();
+        return ValueTask.CompletedTask;
+    }
+}

@@ -2,12 +2,14 @@ namespace Genelife.Api.Persistence;
 
 public sealed class PersistedWorldState
 {
-    public const int CurrentSchemaVersion = 4;
+    public const int CurrentSchemaVersion = 5;
 
     public int SchemaVersion { get; set; }
     public long Tick { get; set; }
     public int RandomSeed { get; set; } = 1;
     public int MigratedFromVersion { get; set; }
+    public PersistedMap Map { get; set; } = new();
+    public List<PersistedPlacement> Placements { get; set; } = [];
     public bool HousingMigrated { get; set; }
     public bool LifecycleMigrated { get; set; }
     public List<PersistedSim> Sims { get; set; } = [];
@@ -34,8 +36,7 @@ public sealed class PersistedWorldState
 }
 
 public sealed class PersistedSim
-{
-    public string Name { get; set; } = string.Empty;
+{    public string Name { get; set; } = string.Empty;
     public int Age { get; set; }
     public ulong NetworkId { get; set; }
     public float Hunger { get; set; }
@@ -46,6 +47,19 @@ public sealed class PersistedSim
     public float TimeRemaining { get; set; }
     public float X { get; set; }
     public float Y { get; set; }
+    public bool HasTilePosition { get; set; }
+    public int TileX { get; set; }
+    public int TileY { get; set; }
+    public float SubTileX { get; set; }
+    public float SubTileY { get; set; }
+    public bool HasMoveTarget { get; set; }
+    public int MoveTargetX { get; set; }
+    public int MoveTargetY { get; set; }
+    public int MoveFromX { get; set; }
+    public int MoveFromY { get; set; }
+    public int MoveToX { get; set; }
+    public int MoveToY { get; set; }
+    public float MoveProgress { get; set; }
     public bool IsLookingForWork { get; set; }
     public long DesiredSalaryCents { get; set; }
     public string? PlayerId { get; set; }
@@ -487,4 +501,47 @@ public sealed class PersistedHousingSnapshot
     public int ConstructionUnits { get; set; }
     public decimal MedianRentBurden { get; set; }
     public decimal ShelterOccupancy { get; set; }
+}
+
+public sealed class PersistedMap
+{
+    public string MapId { get; set; } = "world";
+    public int Version { get; set; } = 1;
+    public int Seed { get; set; } = 1;
+    public int Width { get; set; } = 256;
+    public int Height { get; set; } = 256;
+    public float TileSize { get; set; } = 1f;
+    public byte[] Tiles { get; set; } = [];
+    public string CanonicalSignature { get; set; } = string.Empty;
+    public List<PersistedLot> Lots { get; set; } = [];
+    public List<PersistedCoord> SpawnPoints { get; set; } = [];
+}
+
+public sealed class PersistedLot
+{
+    public int Id { get; set; }
+    public int MinX { get; set; }
+    public int MinY { get; set; }
+    public int MaxX { get; set; }
+    public int MaxY { get; set; }
+    public string Zone { get; set; } = "Mixed";
+}
+
+public sealed class PersistedCoord
+{
+    public int X { get; set; }
+    public int Y { get; set; }
+}
+
+public sealed class PersistedPlacement
+{
+    public ulong NetworkId { get; set; }
+    public string Kind { get; set; } = "Residential";
+    public int X { get; set; }
+    public int Y { get; set; }
+    public int Width { get; set; }
+    public int Height { get; set; }
+    public int EntryX { get; set; }
+    public int EntryY { get; set; }
+    public int Rotation { get; set; }
 }

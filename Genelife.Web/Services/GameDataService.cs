@@ -43,8 +43,16 @@ public sealed class GameDataService
             ?? new WorldData();
     }
 
-    public async Task<SimulationStatus> GetSimulationStatusAsync(CancellationToken cancellationToken = default)
+    public async Task<MapStatusData> GetMapAsync(CancellationToken cancellationToken = default)
     {
+        using var response = await SendWithAuthRetryAsync(
+            () => http.GetAsync("api/map", cancellationToken), cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<MapStatusData>(cancellationToken: cancellationToken)
+            ?? new MapStatusData();
+    }
+
+    public async Task<SimulationStatus> GetSimulationStatusAsync(CancellationToken cancellationToken = default)    {
         using var response = await SendWithAuthRetryAsync(
             () => http.GetAsync("api/simulation/status", cancellationToken), cancellationToken);
 

@@ -6,6 +6,8 @@ using Genelife.Components.Life;
 using Genelife.Economy;
 using Genelife.Enums;
 using Genelife.Messages.Events;
+using Genelife.Map;
+using Genelife.Components.Map;
 
 namespace Genelife.Systems;
 
@@ -22,13 +24,15 @@ public class WorkScheduleSystem : ISimulationSystem
 
     private readonly World world;
     private readonly EconomyContext economy;
+    private readonly MapContext? map;
     private readonly QueryDescription query;
     private readonly int interval;
 
-    public WorkScheduleSystem(World world, EconomyContext economy, int? interval = null)
+    public WorkScheduleSystem(World world, EconomyContext economy, MapContext? map = null, int? interval = null)
     {
         this.world = world;
         this.economy = economy;
+        this.map = map;
         this.interval = interval ?? 25;
         query = new QueryDescription()
             .WithAll<Employee, Lifecycle, Needs, CurrentAction>()
@@ -75,6 +79,7 @@ public class WorkScheduleSystem : ISimulationSystem
                     record.Interruptions++;
                     world.Get<WorkSchedule>(entity) = schedule;
                     world.Get<CurrentAction>(entity) = action;
+                    MoveHome(entity);
                     if (world.Has<EmploymentRecord>(entity))
                         world.Get<EmploymentRecord>(entity) = record;
                     events.Add(new ShiftInterrupted(LifeSystemHelpers.NetworkIdOf(world, entity), critical.ToString(), tick));
@@ -93,6 +98,7 @@ public class WorkScheduleSystem : ISimulationSystem
                     record.ShiftsCompleted++;
                     world.Get<WorkSchedule>(entity) = schedule;
                     world.Get<CurrentAction>(entity) = action;
+                    MoveHome(entity);
                     if (world.Has<EmploymentRecord>(entity))
                         world.Get<EmploymentRecord>(entity) = record;
                     events.Add(new ShiftEnded(LifeSystemHelpers.NetworkIdOf(world, entity),
@@ -115,6 +121,7 @@ public class WorkScheduleSystem : ISimulationSystem
             record.ShiftsExpected++;
             world.Get<WorkSchedule>(entity) = schedule;
             world.Get<CurrentAction>(entity) = action;
+            MoveToOffice(entity, employee.Office);
             if (world.Has<EmploymentRecord>(entity))
                 world.Get<EmploymentRecord>(entity) = record;
 
@@ -135,6 +142,48 @@ public class WorkScheduleSystem : ISimulationSystem
 
         foreach (var @event in events)
             economy.Emit(@event);
+    }
+
+    private void MoveToOffice(Entity sim, Entity office)
+    {
+        if (map is null || office == Entity.Null || !world.IsAlive(office))
+            return;
+        if (world.Has<Placement>(office))
+            MoveTo(sim, world.Get<Placement>(office).Entry);
+    }
+
+    private void MoveHome(Entity sim)
+    {
+        if (map is null)
+            return;
+
+        if (economy.Housing.TryGetUnitForSim(sim, out var unit) &&
+            world.IsAlive(unit) &&
+            world.Has<Genelife.Components.Housing.HousingUnit>(unit))
+        {
+            var property = world.Get<Genelife.Components.Housing.HousingUnit>(unit).Property;
+            if (world.IsAlive(property) && world.Has<Placement>(property))
+            {
+                MoveTo(sim, world.Get<Placement>(property).Entry);
+                return;
+            }
+        }
+
+        var id = world.Has<NetworkId>(sim) ? world.Get<NetworkId>(sim).Value : 0;
+        MoveTo(sim, MapSpawner.FindSpawn(map, id));
+    }
+
+    private void MoveTo(Entity sim, TileCoord tile)
+    {
+        if (!map!.Map.IsWalkable(tile) || !world.Has<TilePosition>(sim))
+            return;
+
+        world.Get<TilePosition>(sim) = new TilePosition(tile);
+        if (world.Has<Location>(sim))
+        {
+            var (x, y) = map.Options.ToWorld(tile);
+            world.Get<Location>(sim) = new Location(x, y);
+        }
     }
 
     private static ActionType CriticalNeed(Needs needs)

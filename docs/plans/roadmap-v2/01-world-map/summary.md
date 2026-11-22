@@ -1,7 +1,7 @@
 # World Map — Summary
 
 **Folder:** `01-world-map/`
-**Status:** Planned (V2)
+**Status:** Implemented (V2 core)
 
 **Depends on:** V1 complete; existing `Location`, `SpatialIndex`, `Property`, `Office`, `School`, `HousingUnit`, `NetworkId` and `PersistedWorldState` v4
 **Feeds:** player movement and map replication

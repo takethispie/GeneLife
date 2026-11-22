@@ -5,6 +5,7 @@ using Genelife.Api.Services;
 using Genelife.Components.Company;
 using Genelife.Components.Gen;
 using Genelife.Economy;
+using Genelife.Map;
 using Genelife.Values;
 
 namespace Genelife.Api.Repositories;
@@ -18,12 +19,14 @@ public sealed class OfficeRepository
     private readonly World world;
     private readonly NetworkIdRegistry networkIds;
     private readonly EconomyContext? economy;
+    private readonly MapContext? map;
 
-    public OfficeRepository(World world, NetworkIdRegistry networkIds, EconomyContext? economy = null)
+    public OfficeRepository(World world, NetworkIdRegistry networkIds, EconomyContext? economy = null, MapContext? map = null)
     {
         this.world = world;
         this.networkIds = networkIds;
         this.economy = economy;
+        this.map = map;
     }
 
     public NetworkId Add(
@@ -31,7 +34,8 @@ public sealed class OfficeRepository
         string name,
         int capacity,
         Money operatingCost,
-        long tick = 0)
+        long tick = 0,
+        string district = "Central")
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Office name is required.", nameof(name));
@@ -54,6 +58,23 @@ public sealed class OfficeRepository
             isClosed: false));
         var networkId = networkIds.Allocate(entity);
         world.Add(entity, networkId);
+
+        if (map is not null)
+        {
+            var placement = map.Placement.TryPlace(
+                entity,
+                networkId,
+                BuildingKind.Office,
+                BuildingFootprints.ForOffice(capacity),
+                district);
+            if (!placement.Success)
+            {
+                networkIds.Remove(entity);
+                world.Destroy(entity);
+                throw new InvalidOperationException(
+                    $"Unable to place office '{name}': {placement.Error} {placement.Message}");
+            }
+        }
 
         economy?.Emit(new Genelife.Messages.Events.OfficeCreated(
             networkId.Value,

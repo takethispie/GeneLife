@@ -8,6 +8,7 @@ using Genelife.Economy;
 using Genelife.Life;
 using Genelife.Enums;
 using Genelife.Housing;
+using Genelife.Map;
 using Genelife.Messages.Events;
 using Genelife.Values;
 
@@ -22,12 +23,14 @@ public class PopulationInflowSystem : ISimulationSystem
 {
     private readonly World world;
     private readonly EconomyContext economy;
+    private readonly MapContext? map;
     private readonly int interval;
 
-    public PopulationInflowSystem(World world, EconomyContext economy, int? interval = null)
+    public PopulationInflowSystem(World world, EconomyContext economy, MapContext? map = null, int? interval = null)
     {
         this.world = world;
         this.economy = economy;
+        this.map = map;
         this.interval = interval ?? economy.Clock.TicksPerMonth;
     }
 
@@ -160,6 +163,8 @@ public class PopulationInflowSystem : ISimulationSystem
             new JobSeeker(true, profile.ToMask(), life.Careers.SalaryForSkills(profile.Total)));
 
         life.AllocateNetworkId(sim);
+        if (map is not null)
+            MapSpawner.PlaceSim(world, sim, map, LifeSystemHelpers.NetworkIdOf(world, sim));
 
         var household = world.Create(new Household
         {

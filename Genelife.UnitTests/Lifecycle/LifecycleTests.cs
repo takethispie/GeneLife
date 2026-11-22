@@ -1,5 +1,6 @@
 using Arch.Core;
 using Arch.Core.Extensions;
+using Genelife.Api.Persistence;
 using Genelife.Api.Services;
 using Genelife.Components.Company;
 using Genelife.Components.Employment;
@@ -696,7 +697,7 @@ public class LifecycleTests
         });
 
         var state = engine.CaptureState(engine.NetworkIds);
-        Assert.Equal(4, state.SchemaVersion);
+        Assert.Equal(PersistedWorldState.CurrentSchemaVersion, state.SchemaVersion);
         Assert.True(state.LifecycleMigrated);
 
         using var restored = new SimulationEngine();

@@ -8,6 +8,7 @@ using Genelife.Components.Life;
 using Genelife.Economy;
 using Genelife.Enums;
 using Genelife.Life;
+using Genelife.Map;
 
 namespace Genelife.Api.Repositories;
 
@@ -16,12 +17,14 @@ public class SimRepository
     private readonly World world;
     private readonly NetworkIdRegistry networkIds;
     private readonly EconomyContext? economy;
+    private readonly MapContext? map;
 
-    public SimRepository(World world, NetworkIdRegistry networkIds, EconomyContext? economy = null)
+    public SimRepository(World world, NetworkIdRegistry networkIds, EconomyContext? economy = null, MapContext? map = null)
     {
         this.world = world;
         this.networkIds = networkIds;
         this.economy = economy;
+        this.map = map;
     }
 
     public NetworkId Add(string name, int age)
@@ -39,6 +42,8 @@ public class SimRepository
 
         var networkId = networkIds.Allocate(entity);
         world.Add(entity, networkId);
+        if (map is not null)
+            MapSpawner.PlaceSim(world, entity, map, networkId.Value);
         economy?.Life.Index.OnBorn((economy?.Life.Policy ?? LifeStagePolicy.Default).StageFor(age));
         return networkId;
     }
@@ -59,6 +64,8 @@ public class SimRepository
 
         var networkId = networkIds.Allocate(entity);
         world.Add(entity, networkId);
+        if (map is not null)
+            MapSpawner.PlaceSim(world, entity, map, networkId.Value);
         economy?.Life.Index.OnBorn((economy?.Life.Policy ?? LifeStagePolicy.Default).StageFor(age));
         return networkId;
     }

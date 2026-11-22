@@ -8,6 +8,7 @@ using Genelife.Components.Employment;
 using Genelife.Components.Finance;
 using Genelife.Components.Gen;
 using Genelife.Economy;
+using Genelife.Map;
 using Genelife.Values;
 
 namespace Genelife.Api.Repositories;
@@ -19,19 +20,22 @@ public class CompanyRepository
     private readonly NetworkIdRegistry networkIds;
     private readonly EconomyContext? economy;
     private readonly EconomyOptions options;
+    private readonly MapContext? map;
 
     public CompanyRepository(
         World world,
         EmploymentIndex index,
         NetworkIdRegistry networkIds,
         EconomyContext? economy = null,
-        EconomyOptions? options = null)
+        EconomyOptions? options = null,
+        MapContext? map = null)
     {
         this.world = world;
         this.index = index;
         this.networkIds = networkIds;
         this.economy = economy;
         this.options = options ?? economy?.Options ?? EconomyOptions.Default;
+        this.map = map;
     }
 
     public NetworkId Add(string name, bool createHeadquarters = true)
@@ -60,7 +64,25 @@ public class CompanyRepository
                 entity,
                 10,
                 options.DefaultOfficeOperatingCost));
-            world.Add(officeEntity, networkIds.Allocate(officeEntity));
+            var officeId = networkIds.Allocate(officeEntity);
+            world.Add(officeEntity, officeId);
+
+            if (map is not null)
+            {
+                var placement = map.Placement.TryPlace(
+                    officeEntity,
+                    officeId,
+                    BuildingKind.Office,
+                    BuildingFootprints.ForOffice(10),
+                    "Central");
+                if (!placement.Success)
+                {
+                    networkIds.Remove(officeEntity);
+                    world.Destroy(officeEntity);
+                    throw new InvalidOperationException(
+                        $"Unable to place headquarters: {placement.Error} {placement.Message}");
+                }
+            }
         }
 
         return networkId;
@@ -222,7 +244,11 @@ public class CompanyRepository
         foreach (var office in offices)
         {
             if (world.IsAlive(office))
+            {
+                if (map is not null && networkIds.TryGetNetworkId(office, out var officeId))
+                    map.Placement.Remove(officeId);
                 world.Destroy(office);
+            }
         }
 
         var applications = new List<Entity>();

@@ -56,6 +56,7 @@ builder.Services.AddHostedService<SimulationEventWriter>();
 builder.Services.AddSingleton<ICommandQueue, CommandQueue>();
 builder.Services.AddSingleton<Genelife.Api.Snapshots.ReplicationTracker>();
 builder.Services.AddSingleton<Genelife.Api.Snapshots.ReplicationMetrics>();
+builder.Services.AddSingleton<Genelife.Api.Snapshots.ViewportRegistry>();
 builder.Services.AddSingleton<WorldRestoreService>();
 builder.Services.AddSingleton<WorldSaveService>();
 builder.Services.AddSingleton<Genelife.Api.Handlers.Push.SimStatePushHandler>();

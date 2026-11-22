@@ -4,4 +4,5 @@ public interface ICommandQueue
 {
     bool TryEnqueue(Intent intent, out string? error);
     int Count { get; }
+    void Drain(Action<Intent> handler);
 }

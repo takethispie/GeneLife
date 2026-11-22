@@ -3,6 +3,7 @@ using Arch.Core.Extensions;
 using Genelife.Components.Housing;
 using Genelife.Enums;
 using Genelife.Economy;
+using Genelife.Map;
 using Genelife.Values;
 
 namespace Genelife.Housing;
@@ -17,13 +18,14 @@ public static class HousingBootstrap
         World world,
         EconomyContext economy,
         long tick,
-        string district = "Central")
+        string district = "Central",
+        MapContext? map = null)
     {
         var created = 0;
-        created += CreateProperty(world, economy, district, HousingTier.Basic, 30, 0.6f, 0.5f, tick);
-        created += CreateProperty(world, economy, district, HousingTier.Comfortable, 12, 0.8f, 0.65f, tick);
-        created += CreateProperty(world, economy, district, HousingTier.Luxury, 3, 0.95f, 0.8f, tick);
-        created += CreateShelter(world, economy, district, 6, tick);
+        created += CreateProperty(world, economy, district, HousingTier.Basic, 30, 0.6f, 0.5f, tick, map: map);
+        created += CreateProperty(world, economy, district, HousingTier.Comfortable, 12, 0.8f, 0.65f, tick, map: map);
+        created += CreateProperty(world, economy, district, HousingTier.Luxury, 3, 0.95f, 0.8f, tick, map: map);
+        created += CreateShelter(world, economy, district, 6, tick, map);
         return created;
     }
 
@@ -37,7 +39,8 @@ public static class HousingBootstrap
         float neighbourhood,
         long tick,
         Entity owner = default,
-        string? name = null)
+        string? name = null,
+        MapContext? map = null)
     {
         if (unitCount <= 0)
             return 0;
@@ -53,6 +56,18 @@ public static class HousingBootstrap
             tier == HousingTier.Shelter));
         var propertyId = economy.Housing.AllocateNetworkId(property);
         economy.Housing.AddProperty(property, owner);
+
+        if (map is not null)
+        {
+            var footprint = BuildingFootprints.ForProperty(unitCount, tier == HousingTier.Shelter);
+            var kind = tier == HousingTier.Shelter ? BuildingKind.Civic : BuildingKind.Residential;
+            var placement = map.Placement.TryPlace(property, propertyId, kind, footprint, district);
+            if (!placement.Success)
+            {
+                throw new InvalidOperationException(
+                    $"Unable to place {tier} property in {district}: {placement.Error} {placement.Message}");
+            }
+        }
 
         for (var i = 0; i < unitCount; i++)
         {
@@ -86,6 +101,7 @@ public static class HousingBootstrap
         EconomyContext economy,
         string district,
         int beds,
-        long tick) =>
-        CreateProperty(world, economy, district, HousingTier.Shelter, beds, 0.2f, 0.3f, tick);
+        long tick,
+        MapContext? map = null) =>
+        CreateProperty(world, economy, district, HousingTier.Shelter, beds, 0.2f, 0.3f, tick, map: map);
 }

@@ -4,7 +4,7 @@ namespace Genelife.Api.Snapshots;
 
 public sealed class WorldSnapshot
 {
-    public static readonly int CurrentVersion = 1;
+    public static readonly int CurrentVersion = 2;
 
     public long Tick { get; }
     public int Version { get; }

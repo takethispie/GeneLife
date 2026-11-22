@@ -11,6 +11,7 @@ using Genelife.Economy;
 using Genelife.Enums;
 using Genelife.Housing;
 using Genelife.Life;
+using Genelife.Map;
 using Genelife.Messages.Events;
 using Genelife.Systems;
 using Genelife.Values;
@@ -39,17 +40,20 @@ public sealed class PopulationGenerator
     private readonly NetworkIdRegistry networkIds;
     private readonly EconomyContext economy;
     private readonly EmploymentIndex employmentIndex;
+    private readonly MapContext? map;
 
     public PopulationGenerator(
         World world,
         NetworkIdRegistry networkIds,
         EconomyContext economy,
-        EmploymentIndex employmentIndex)
+        EmploymentIndex employmentIndex,
+        MapContext? map = null)
     {
         this.world = world;
         this.networkIds = networkIds;
         this.economy = economy;
         this.employmentIndex = employmentIndex;
+        this.map = map;
     }
 
     public PopulationGenerationResult Generate(
@@ -175,6 +179,8 @@ public sealed class PopulationGenerator
 
         var networkId = networkIds.Allocate(entity);
         world.Add(entity, networkId);
+        if (map is not null)
+            MapSpawner.PlaceSim(world, entity, map, networkId.Value);
         economy.Emit(new SimCreated(networkId.Value, name, age));
 
         if (lookingForWork)
@@ -355,7 +361,20 @@ public sealed class PopulationGenerator
             0.6f + (emphasis == Skill.Programming ? 0.1f : 0.05f),
             emphasis,
             monthlyCost));
-        world.Add(entity, networkIds.Allocate(entity));
+        var id = networkIds.Allocate(entity);
+        world.Add(entity, id);
+        if (map is not null)
+        {
+            var placement = map.Placement.TryPlace(
+                entity,
+                id,
+                BuildingKind.School,
+                BuildingFootprints.ForSchool(capacity),
+                district);
+            if (!placement.Success)
+                throw new InvalidOperationException(
+                    $"Unable to place school '{name}': {placement.Error} {placement.Message}");
+        }
         return entity;
     }
 
@@ -366,7 +385,7 @@ public sealed class PopulationGenerator
         if (existing > 0)
             return existing;
 
-        var companyRepository = new CompanyRepository(world, employmentIndex, networkIds, economy);
+        var companyRepository = new CompanyRepository(world, employmentIndex, networkIds, economy, map: map);
         var postingRepository = new JobPostingRepository(world, networkIds, economy);
         var seatsPerCompany = Math.Max(4, Math.Min(10, workCount / 2));
         var skills = new[] { Skill.Sales, Skill.Programming, Skill.Engineering };
@@ -414,7 +433,7 @@ public sealed class PopulationGenerator
         var total = 0;
         world.Query(in new QueryDescription().WithAll<Property>(), (ref Property _) => total++);
         if (total == 0)
-            HousingBootstrap.CreateStock(world, economy, 0);
+            HousingBootstrap.CreateStock(world, economy, 0, map: map);
 
         var vacancy = economy.Housing.VacancyCount();
         if (vacancy < adultCount)
