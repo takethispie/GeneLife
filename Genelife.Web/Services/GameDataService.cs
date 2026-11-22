@@ -89,6 +89,139 @@ public sealed class GameDataService
             ?? new List<LedgerEntryData>();
     }
 
+    public async Task<HousingData> GetHousingAsync(CancellationToken cancellationToken = default)
+    {
+        using var response = await SendWithAuthRetryAsync(
+            () => http.GetAsync("api/housing/overview", cancellationToken), cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<HousingData>(cancellationToken: cancellationToken)
+            ?? new HousingData();
+    }
+
+    public async Task<List<HousingPropertyData>> GetHousingPropertiesAsync(CancellationToken cancellationToken = default)
+    {
+        using var response = await SendWithAuthRetryAsync(
+            () => http.GetAsync("api/housing/properties", cancellationToken), cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<List<HousingPropertyData>>(cancellationToken: cancellationToken)
+            ?? new List<HousingPropertyData>();
+    }
+
+    public async Task<List<HouseholdData>> GetHouseholdsAsync(CancellationToken cancellationToken = default)
+    {
+        using var response = await SendWithAuthRetryAsync(
+            () => http.GetAsync("api/housing/households", cancellationToken), cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<List<HouseholdData>>(cancellationToken: cancellationToken)
+            ?? new List<HouseholdData>();
+    }
+
+    public async Task<List<HousingRentRollData>> GetHousingRentRollAsync(CancellationToken cancellationToken = default)
+    {
+        using var response = await SendWithAuthRetryAsync(
+            () => http.GetAsync("api/housing/rent-roll", cancellationToken), cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<List<HousingRentRollData>>(cancellationToken: cancellationToken)
+            ?? new List<HousingRentRollData>();
+    }
+
+    public async Task<List<HousingConstructionData>> GetHousingConstructionAsync(CancellationToken cancellationToken = default)
+    {
+        using var response = await SendWithAuthRetryAsync(
+            () => http.GetAsync("api/housing/construction", cancellationToken), cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<List<HousingConstructionData>>(cancellationToken: cancellationToken)
+            ?? new List<HousingConstructionData>();
+    }
+
+    public async Task<List<HousingSnapshotData>> GetHousingHistoryAsync(CancellationToken cancellationToken = default)
+    {
+        using var response = await SendWithAuthRetryAsync(
+            () => http.GetAsync("api/housing/metrics/history", cancellationToken), cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<List<HousingSnapshotData>>(cancellationToken: cancellationToken)
+            ?? new List<HousingSnapshotData>();
+    }
+
+    public Task CreatePropertyAsync(
+        string name,
+        string district,
+        int units,
+        string tier,
+        decimal? monthlyRent,
+        CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(
+            HttpMethod.Post,
+            "api/housing/properties",
+            new { ownerId = 0UL, name, district, units, tier, monthlyRent, condition = 0.8f, neighbourhood = 0.5f },
+            cancellationToken);
+
+    public Task SetRentIndexAsync(decimal index, CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(HttpMethod.Patch, "api/housing/market/index", new { index }, cancellationToken);
+
+    public Task AssignHousingAsync(ulong householdId, ulong unitId, CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(HttpMethod.Post, "api/housing/assign", new { householdId, unitId }, cancellationToken);
+
+    public Task RepairPropertyAsync(ulong propertyId, decimal amount, CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(
+            HttpMethod.Post,
+            $"api/housing/properties/{propertyId}/repair",
+            new { amount },
+            cancellationToken);
+
+    public Task EvictAsync(ulong householdId, bool immediate = true, CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(
+            HttpMethod.Post,
+            $"api/housing/households/{householdId}/evict",
+            new { immediate },
+            cancellationToken);
+
+    public Task SpawnPopulationAsync(
+        int adults,
+        int children,
+        decimal expectedMonthlyIncome = 300m,
+        int seed = 1,
+        CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(
+            HttpMethod.Post,
+            "api/population/spawn",
+            new
+            {
+                adults,
+                children,
+                expectedMonthlyIncome,
+                shelterBeds = 0,
+                basicUnits = 0,
+                comfortableUnits = 0,
+                luxuryUnits = 0,
+                seed
+            },
+            cancellationToken);
+
+    private async Task SendAdminJsonAsync(
+        HttpMethod method,
+        string path,
+        object? body,
+        CancellationToken cancellationToken)
+    {
+        await EnsureAdminTokenAsync(cancellationToken);
+
+        using var response = await SendWithAuthRetryAsync(
+            () =>
+            {
+                var request = new HttpRequestMessage(method, path);
+                if (body is not null)
+                    request.Content = JsonContent.Create(body);
+                return http.SendAsync(request, cancellationToken);
+            },
+            cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.Forbidden)
+            throw new UnauthorizedAccessException(LocalAdminUnavailableMessage);
+
+        response.EnsureSuccessStatusCode();
+    }
+
     public Task StartSimulationAsync(CancellationToken cancellationToken = default)
         => SendAdminCommandAsync("api/simulation/start", cancellationToken);
 

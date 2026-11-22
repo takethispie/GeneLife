@@ -23,13 +23,17 @@ public class NeedsDecaySystem : ISimulationSystem
 
     public void Update(float deltaTime)
     {
-        world.Query(in queryDescription, (ref Needs needs) =>
+        world.Query(in queryDescription, (Entity entity, ref Needs needs) =>
         {
-            // Decay rates per second
-            needs.Hunger -= 0.5f * deltaTime;
-            needs.Energy -= 0.3f * deltaTime;
-            needs.Hygiene -= 0.2f * deltaTime;
-            needs.Bladder -= 0.4f * deltaTime;
+            var modifier = world.Has<NeedsModifier>(entity)
+                ? world.Get<NeedsModifier>(entity)
+                : NeedsModifier.Neutral;
+
+            // Decay rates per second, scaled by the housing profile.
+            needs.Hunger -= 0.5f * modifier.HungerDecay * deltaTime;
+            needs.Energy -= 0.3f * modifier.EnergyDecay * deltaTime;
+            needs.Hygiene -= 0.2f * modifier.HygieneDecay * deltaTime;
+            needs.Bladder -= 0.4f * modifier.BladderDecay * deltaTime;
 
             needs.Hunger = Math.Max(0f, needs.Hunger);
             needs.Energy = Math.Max(0f, needs.Energy);

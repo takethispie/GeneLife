@@ -12,8 +12,10 @@ using Genelife.Components.Company;
 using Genelife.Components.Employment;
 using Genelife.Components.Finance;
 using Genelife.Components.Gen;
+using Genelife.Components.Housing;
 using Genelife.Economy;
 using Genelife.Enums;
+using Genelife.Housing;
 using Genelife.Messages.Events;
 using Genelife.Systems;
 using Genelife.Values;
@@ -102,9 +104,11 @@ private readonly NetworkIdRegistry networkIds = new();
             employmentIndex = new EmploymentIndex();
             clock = new SimulationClock(ClockOptions);
             economy = new EconomyContext(world, employmentIndex, clock: clock, randomSeed: RandomSeed);
+            economy.Housing.AttachNetworkIdAllocator(entity => networkIds.Allocate(entity));
 
             systems = new SystemRegistry();
             systems.Register(new NeedsDecaySystem(world));
+            systems.Register(new HousingModifierSystem(world, economy.Housing));
             systems.Register(new DecisionSystem(world));
             systems.Register(new ActionSystem(world));
             systems.Register(new HiringSystem(world, employmentIndex, 25, economy));
@@ -112,13 +116,20 @@ private readonly NetworkIdRegistry networkIds = new();
             systems.Register(new ConsumerSpendingSystem(world, economy));
             systems.Register(new PayrollSystem(world, economy));
             systems.Register(new CompanyCostsSystem(world, economy));
+            systems.Register(new RentSystem(world, economy));
+            systems.Register(new HousingMoveSystem(world, economy));
+            systems.Register(new HousingMarketSystem(world, economy));
+            systems.Register(new MaintenanceSystem(world, economy));
+            systems.Register(new EvictionSystem(world, economy));
             systems.Register(new BasicIncomeSystem(world, economy));
             systems.Register(new BankingSystem(world, economy));
             systems.Register(new CorporateTaxSystem(world, economy));
             systems.Register(new CreditSystem(world, economy));
             systems.Register(new CompanySolvencySystem(world, economy));
             systems.Register(new JobSeekerSystem(world));
+            systems.Register(new HousingDevelopmentSystem(world, economy));
             systems.Register(new EconomyMetricsSystem(world, economy));
+            systems.Register(new HousingMetricsSystem(world, economy));
 
             networkIds.Clear();
             history.Clear();
@@ -508,6 +519,160 @@ if (SnapshotsEnabled)
                 return new { companyId = liquidate.CompanyId, state = account.State.ToString() };
             }
 
+            case CreatePropertyCommand createProperty:
+            {
+                var repository = new HousingRepository(world, networkIds, economy!);
+                var id = repository.CreateProperty(
+                    createProperty.OwnerId,
+                    createProperty.Name,
+                    createProperty.District,
+                    createProperty.Units,
+                    createProperty.Tier,
+                    createProperty.MonthlyRent?.Units,
+                    createProperty.Condition,
+                    createProperty.Neighbourhood,
+                    tick);
+                return new { propertyId = id.Value };
+            }
+
+            case UpdatePropertyCommand updateProperty:
+            {
+                var repository = new HousingRepository(world, networkIds, economy!);
+                if (!repository.UpdateProperty(
+                        new NetworkId(updateProperty.PropertyId),
+                        updateProperty.Name,
+                        updateProperty.Condition,
+                        updateProperty.MonthlyUpkeep,
+                        tick))
+                    throw new InvalidOperationException("Property not found.");
+                return new { propertyId = updateProperty.PropertyId };
+            }
+
+            case UpdateHousingUnitCommand updateUnit:
+            {
+                var repository = new HousingRepository(world, networkIds, economy!);
+                if (!repository.UpdateUnit(
+                        new NetworkId(updateUnit.UnitId),
+                        updateUnit.Tier,
+                        updateUnit.Capacity,
+                        updateUnit.BaseRent,
+                        updateUnit.Condition))
+                    throw new InvalidOperationException("Unit not found.");
+                return new { unitId = updateUnit.UnitId };
+            }
+
+            case RepairPropertyCommand repair:
+            {
+                var repository = new HousingRepository(world, networkIds, economy!);
+                if (!repository.Repair(new NetworkId(repair.PropertyId), repair.Amount, tick))
+                    throw new InvalidOperationException("Property not found.");
+                return new { propertyId = repair.PropertyId };
+            }
+
+            case AssignHousingCommand assign:
+            {
+                var repository = new HousingRepository(world, networkIds, economy!);
+                if (!repository.Assign(assign.HouseholdId, assign.UnitId, tick))
+                    throw new InvalidOperationException("Housing assignment failed.");
+                return new { householdId = assign.HouseholdId, unitId = assign.UnitId };
+            }
+
+            case EvictHouseholdCommand evict:
+            {
+                var repository = new HousingRepository(world, networkIds, economy!);
+                if (!repository.Evict(evict.HouseholdId, evict.Immediate, tick))
+                    throw new InvalidOperationException("Eviction failed.");
+                return new { householdId = evict.HouseholdId, immediate = evict.Immediate };
+            }
+
+            case StartConstructionCommand construction:
+            {
+                var repository = new HousingRepository(world, networkIds, economy!);
+                var project = repository.StartConstruction(
+                    construction.DeveloperId,
+                    construction.District,
+                    construction.Tier,
+                    construction.Units,
+                    tick);
+                return new { projectId = NetworkIdOf(world, project) };
+            }
+
+            case CancelConstructionCommand cancel:
+            {
+                var repository = new HousingRepository(world, networkIds, economy!);
+                if (!repository.CancelConstruction(cancel.ProjectId, tick))
+                    throw new InvalidOperationException("Construction project not found.");
+                return new { projectId = cancel.ProjectId };
+            }
+
+            case SetRentIndexCommand rentIndex:
+            {
+                new HousingRepository(world, networkIds, economy!).SetMarketIndex(rentIndex.Index);
+                return new { index = economy!.Housing.Market.Index };
+            }
+
+            case SpawnPopulationCommand spawn:
+            {
+                var plan = new PopulationPlan
+                {
+                    Adults = spawn.Adults,
+                    Children = spawn.Children,
+                    ExpectedMonthlyIncome = spawn.ExpectedMonthlyIncome,
+                    ShelterBeds = spawn.ShelterBeds,
+                    BasicUnits = spawn.BasicUnits,
+                    ComfortableUnits = spawn.ComfortableUnits,
+                    LuxuryUnits = spawn.LuxuryUnits
+                };
+                var assigner = new HouseholdAssigner(world, networkIds, economy!);
+                return assigner.Spawn(plan, spawn.Seed, tick);
+            }
+
+            case CreateHouseholdCommand createHousehold:
+            {
+                var repository = new HouseholdRepository(world, networkIds, economy!);
+                var id = repository.Create(createHousehold.HeadSimId, tick);
+                return new { householdId = id.Value };
+            }
+
+            case AddHouseholdMemberCommand addMember:
+            {
+                var repository = new HouseholdRepository(world, networkIds, economy!);
+                if (!repository.AddMember(
+                        new NetworkId(addMember.HouseholdId),
+                        addMember.SimId,
+                        addMember.Role,
+                        tick))
+                    throw new InvalidOperationException("Household not found.");
+                return new { householdId = addMember.HouseholdId, simId = addMember.SimId };
+            }
+
+            case RemoveHouseholdMemberCommand removeMember:
+            {
+                var repository = new HouseholdRepository(world, networkIds, economy!);
+                if (!repository.RemoveMember(
+                        new NetworkId(removeMember.HouseholdId),
+                        removeMember.SimId,
+                        tick))
+                    throw new InvalidOperationException("Household membership not found.");
+                return new { householdId = removeMember.HouseholdId, simId = removeMember.SimId };
+            }
+
+            case PurchaseHomeCommand purchase:
+            {
+                var repository = new HousingRepository(world, networkIds, economy!);
+                if (!repository.Purchase(purchase.HouseholdId, purchase.UnitId, tick))
+                    throw new InvalidOperationException("Purchase failed.");
+                return new { householdId = purchase.HouseholdId, unitId = purchase.UnitId };
+            }
+
+            case SellHomeCommand sell:
+            {
+                var repository = new HousingRepository(world, networkIds, economy!);
+                if (!repository.Sell(sell.HouseholdId, sell.UnitId, sell.BuyerHouseholdId, tick))
+                    throw new InvalidOperationException("Sale failed.");
+                return new { householdId = sell.HouseholdId, unitId = sell.UnitId, buyer = sell.BuyerHouseholdId };
+            }
+
             default:
                 throw new InvalidOperationException("Unknown admin command.");
         }
@@ -521,6 +686,11 @@ if (SnapshotsEnabled)
             throw new InvalidOperationException("Company not found.");
         return entity;
     }
+
+    private static ulong NetworkIdOf(World world, Entity entity) =>
+        world.IsAlive(entity) && world.Has<NetworkId>(entity)
+            ? world.Get<NetworkId>(entity).Value
+            : 0UL;
 
     private void DestroyByNetworkId(World world, ulong networkId)
     {
@@ -819,6 +989,7 @@ if (SnapshotsEnabled)
         }
 
         result.Economy = BuildEconomyStatus();
+        result.Housing = BuildHousingStatus();
         result.RecentLedger = BuildRecentLedger(200);
         return result;
     }
@@ -943,6 +1114,422 @@ if (SnapshotsEnabled)
                 BankruptCompanies = snapshot.BankruptCompanies
             })
             .ToList();
+    }
+
+    public HousingStatus BuildHousingStatus()
+    {
+        lock (@lock)
+        {
+            if (economy is null || world is null)
+                return new HousingStatus();
+
+            var currentWorld = world;
+            var registry = economy.Housing;
+            var properties = 0;
+            var units = 0;
+            var occupied = 0;
+            var vacant = 0;
+            var shelterBeds = 0;
+            var shelterOccupied = 0;
+            var overcrowded = 0;
+            var belowCondition = 0;
+
+            currentWorld.Query(in new QueryDescription().WithAll<Property>(), (ref Property _) => properties++);
+            currentWorld.Query(in new QueryDescription().WithAll<HousingUnit>(), (ref HousingUnit unit) =>
+            {
+                units++;
+                if (unit.IsVacant)
+                    vacant++;
+                else
+                    occupied++;
+                if (unit.Tier == HousingTier.Shelter)
+                {
+                    shelterBeds++;
+                    if (!unit.IsVacant)
+                        shelterOccupied++;
+                }
+                if (unit.IsOvercrowded)
+                    overcrowded++;
+                if (unit.Condition < 0.2f)
+                    belowCondition++;
+            });
+
+            var sheltered = 0;
+            var homeless = 0;
+            var rentArrears = Money.Zero;
+            var utilityArrears = Money.Zero;
+            var burdens = new List<decimal>();
+            var finance = new HouseholdFinanceService(currentWorld, economy);
+            currentWorld.Query(in new QueryDescription().WithAll<Household>(), (Entity entity, ref Household household) =>
+            {
+                if (household.Tenure == Tenure.Sheltered)
+                    sheltered++;
+                if (household.Unit == Entity.Null)
+                    homeless++;
+                rentArrears += household.RentArrears;
+                utilityArrears += household.UtilityArrears;
+                if (household.Tenure == Tenure.Renter)
+                {
+                    var income = finance.MonthlyIncome(entity);
+                    if (income.IsPositive)
+                        burdens.Add(household.MonthlyRent.Cents / (decimal)income.Cents);
+                }
+            });
+
+            var activeProjects = 0;
+            var constructionUnits = 0;
+            currentWorld.Query(in new QueryDescription().WithAll<ConstructionProject>(), (ref ConstructionProject project) =>
+            {
+                activeProjects++;
+                constructionUnits += project.Units;
+            });
+
+            var latest = registry.MetricHistory.Count > 0 ? registry.MetricHistory[^1] : null;
+            var health = HousingHealth.Evaluate(latest);
+
+            return new HousingStatus
+            {
+                Properties = properties,
+                Units = units,
+                OccupiedUnits = occupied,
+                VacantUnits = vacant,
+                ShelterBeds = shelterBeds,
+                ShelteredHouseholds = sheltered,
+                HomelessHouseholds = homeless,
+                OvercrowdedUnits = overcrowded,
+                UnitsBelowCondition = belowCondition,
+                ActiveProjects = activeProjects,
+                ConstructionUnits = constructionUnits,
+                VacancyRate = units > 0 ? vacant / (decimal)units : 0m,
+                RentIndex = registry.Market.Index,
+                RentRoll = registry.TotalRentRoll().Units,
+                RentCollectedThisMonth = registry.Market.RentCollectedThisMonth.Units,
+                UtilityCollectedThisMonth = registry.Market.UtilityCollectedThisMonth.Units,
+                UpkeepPaidThisMonth = registry.Market.UpkeepPaidThisMonth.Units,
+                RentArrears = rentArrears.Units,
+                UtilityArrears = utilityArrears.Units,
+                MedianRentBurden = Median(burdens),
+                ShelterOccupancy = shelterBeds > 0 ? shelterOccupied / (decimal)shelterBeds : 0m,
+                EvictionsThisYear = registry.Market.EvictionsThisYear,
+                MovesThisYear = registry.Market.MovesThisYear,
+                Year = clock.YearOf(tick),
+                Month = clock.MonthOfYear(tick),
+                Health = health.Select(check => new HousingHealthCheckStatus
+                {
+                    Name = check.Name,
+                    Level = check.Level.ToString(),
+                    Detail = check.Detail
+                }).ToList()
+            };
+        }
+    }
+
+    public List<HousingPropertyStatus> BuildHousingProperties()
+    {
+        lock (@lock)
+        {
+            if (economy is null || world is null)
+                return new List<HousingPropertyStatus>();
+
+            var currentWorld = world;
+            var registry = economy.Housing;
+            var allocator = new HousingAllocator(currentWorld, economy);
+            var result = new List<HousingPropertyStatus>();
+
+            var properties = new List<(Entity Entity, Property Property)>();
+            currentWorld.Query(in new QueryDescription().WithAll<Property>(),
+                (Entity entity, ref Property property) => properties.Add((entity, property)));
+            properties.Sort((a, b) => a.Entity.Id.CompareTo(b.Entity.Id));
+
+            foreach (var (entity, property) in properties)
+            {
+                var status = new HousingPropertyStatus
+                {
+                    NetworkId = GetNetworkId(currentWorld, entity),
+                    Name = property.Name,
+                    District = property.District,
+                    OwnerNetworkId = NullableId(currentWorld, property.Owner),
+                    Owner = OwnerName(currentWorld, property.Owner),
+                    OwnerType = OwnerType(currentWorld, property.Owner),
+                    UnitCount = property.UnitCount,
+                    Condition = property.Condition,
+                    Neighbourhood = property.NeighbourhoodScore,
+                    MonthlyUpkeep = property.MonthlyUpkeep.Units,
+                    IsShelter = property.IsShelter
+                };
+
+                if (registry.UnitsByProperty.TryGetValue(entity, out var units))
+                {
+                    foreach (var unitEntity in units)
+                    {
+                        if (!currentWorld.IsAlive(unitEntity) || !currentWorld.Has<HousingUnit>(unitEntity))
+                            continue;
+
+                        var unit = currentWorld.Get<HousingUnit>(unitEntity);
+                        var household = registry.HouseholdIn(unitEntity);
+                        var householdId = NullableId(currentWorld, household);
+                        status.Units.Add(new HousingUnitStatus
+                        {
+                            NetworkId = GetNetworkId(currentWorld, unitEntity),
+                            UnitNumber = unit.UnitNumber,
+                            Tier = unit.Tier.ToString(),
+                            Capacity = unit.Capacity,
+                            Occupants = registry.MemberCount(household),
+                            BaseRent = unit.BaseRent.Units,
+                            MarketRent = allocator.MarketRent(unitEntity).Units,
+                            PurchasePrice = unit.PurchasePrice.Units,
+                            Condition = unit.Condition,
+                            IsVacant = unit.IsVacant,
+                            IsOvercrowded = unit.IsOvercrowded,
+                            IsCondemned = unit.IsCondemned,
+                            HouseholdNetworkId = householdId,
+                            Household = household == Entity.Null ? string.Empty : HeadName(currentWorld, household)
+                        });
+
+                        if (unit.IsVacant)
+                            status.VacantUnits++;
+                        else
+                            status.OccupiedUnits++;
+                    }
+                }
+
+                status.UnitCount = status.Units.Count;
+                result.Add(status);
+            }
+
+            return result;
+        }
+    }
+
+    public List<HouseholdStatus> BuildHouseholds()
+    {
+        lock (@lock)
+        {
+            if (economy is null || world is null)
+                return new List<HouseholdStatus>();
+
+            var currentWorld = world;
+            var registry = economy.Housing;
+            var finance = new HouseholdFinanceService(currentWorld, economy);
+            var households = new List<(Entity Entity, Household Household)>();
+            currentWorld.Query(in new QueryDescription().WithAll<Household>(),
+                (Entity entity, ref Household household) => households.Add((entity, household)));
+            households.Sort((a, b) => a.Entity.Id.CompareTo(b.Entity.Id));
+
+            var result = new List<HouseholdStatus>();
+            foreach (var (entity, household) in households)
+            {
+                var unit = household.Unit;
+                var unitData = unit != Entity.Null && currentWorld.IsAlive(unit) && currentWorld.Has<HousingUnit>(unit)
+                    ? currentWorld.Get<HousingUnit>(unit)
+                    : default;
+                var property = unitData.Property != Entity.Null && currentWorld.IsAlive(unitData.Property) &&
+                               currentWorld.Has<Property>(unitData.Property)
+                    ? currentWorld.Get<Property>(unitData.Property)
+                    : default;
+
+                var members = new List<string>();
+                foreach (var member in registry.GetMembers(entity))
+                {
+                    if (currentWorld.IsAlive(member) && currentWorld.Has<GenName>(member))
+                        members.Add(currentWorld.Get<GenName>(member).Name);
+                }
+
+                result.Add(new HouseholdStatus
+                {
+                    NetworkId = GetNetworkId(currentWorld, entity),
+                    HeadNetworkId = GetNetworkId(currentWorld, household.Head),
+                    Head = Name(currentWorld, household.Head),
+                    UnitNetworkId = NullableId(currentWorld, unit),
+                    Unit = unitData.UnitNumber ?? string.Empty,
+                    District = property.District ?? string.Empty,
+                    Property = property.Name ?? string.Empty,
+                    Tenure = household.Tenure.ToString(),
+                    Members = registry.MemberCount(entity),
+                    Earners = finance.Earners(entity),
+                    MonthlyRent = household.MonthlyRent.Units,
+                    MonthlyIncome = finance.MonthlyIncome(entity).Units,
+                    RentArrears = household.RentArrears.Units,
+                    UtilityArrears = household.UtilityArrears.Units,
+                    Debt = household.Debt.Units,
+                    ArrearsCycles = household.ArrearsCycles,
+                    NoticeStage = household.NoticeStage,
+                    CureDeadlineTick = household.CureDeadlineTick,
+                    Overcrowded = unit != Entity.Null && unitData.OccupantCount > unitData.Capacity,
+                    NoUtilities = household.NoUtilities,
+                    Homeless = unit == Entity.Null,
+                    MembersList = members
+                });
+            }
+
+            return result;
+        }
+    }
+
+    public List<HousingRentRollStatus> BuildHousingRentRoll()
+    {
+        lock (@lock)
+        {
+            if (economy is null || world is null)
+                return new List<HousingRentRollStatus>();
+
+            var currentWorld = world;
+            var registry = economy.Housing;
+            var result = new List<HousingRentRollStatus>();
+
+            foreach (var (owner, units) in registry.UnitsByOwner)
+            {
+                var status = new HousingRentRollStatus
+                {
+                    OwnerNetworkId = NullableId(currentWorld, owner),
+                    Owner = OwnerName(currentWorld, owner),
+                    OwnerType = OwnerType(currentWorld, owner)
+                };
+
+                foreach (var unit in units)
+                {
+                    if (!currentWorld.IsAlive(unit) || !currentWorld.Has<HousingUnit>(unit))
+                        continue;
+                    status.Units++;
+                    var household = registry.HouseholdIn(unit);
+                    if (household == Entity.Null || !currentWorld.IsAlive(household) ||
+                        !currentWorld.Has<Household>(household))
+                        continue;
+
+                    var data = currentWorld.Get<Household>(household);
+                    status.OccupiedUnits++;
+                    status.RentRoll += data.MonthlyRent.Units;
+                    status.RentArrears += data.RentArrears.Units;
+                    status.UtilityArrears += data.UtilityArrears.Units;
+                }
+
+                result.Add(status);
+            }
+
+            result.Sort((a, b) => b.RentRoll.CompareTo(a.RentRoll));
+            return result;
+        }
+    }
+
+    public List<HousingConstructionStatus> BuildHousingConstructionProjects()
+    {
+        lock (@lock)
+        {
+            if (economy is null || world is null)
+                return new List<HousingConstructionStatus>();
+
+            var currentWorld = world;
+            var result = new List<HousingConstructionStatus>();
+            currentWorld.Query(in new QueryDescription().WithAll<ConstructionProject>(),
+                (Entity entity, ref ConstructionProject project) =>
+                {
+                    result.Add(new HousingConstructionStatus
+                    {
+                        NetworkId = GetNetworkId(currentWorld, entity),
+                        DeveloperNetworkId = NullableId(currentWorld, project.Developer),
+                        Developer = OwnerName(currentWorld, project.Developer),
+                        District = project.District,
+                        Tier = project.Tier.ToString(),
+                        Units = project.Units,
+                        MonthsRemaining = project.MonthsRemaining,
+                        Cost = project.Cost.Units,
+                        PaidToDate = project.PaidToDate.Units
+                    });
+                });
+            return result;
+        }
+    }
+
+    public List<HousingSnapshotStatus> BuildHousingMetricHistory(int years = 20)
+    {
+        if (economy is null)
+            return new List<HousingSnapshotStatus>();
+
+        return economy.Housing.MetricHistory
+            .TakeLast(Math.Max(1, years))
+            .Select(snapshot => new HousingSnapshotStatus
+            {
+                Tick = snapshot.Tick,
+                Year = snapshot.Year,
+                Properties = snapshot.Properties,
+                Units = snapshot.Units,
+                OccupiedUnits = snapshot.OccupiedUnits,
+                VacantUnits = snapshot.VacantUnits,
+                ShelterBeds = snapshot.ShelterBeds,
+                ShelteredHouseholds = snapshot.ShelteredHouseholds,
+                HomelessHouseholds = snapshot.HomelessHouseholds,
+                OvercrowdedUnits = snapshot.OvercrowdedUnits,
+                UnitsBelowCondition = snapshot.UnitsBelowCondition,
+                VacancyRate = snapshot.VacancyRate,
+                RentIndex = snapshot.RentIndex,
+                RentRoll = snapshot.RentRoll.Units,
+                RentCollected = snapshot.RentCollected.Units,
+                RentArrears = snapshot.RentArrears.Units,
+                UtilityArrears = snapshot.UtilityArrears.Units,
+                UpkeepPaid = snapshot.UpkeepPaid.Units,
+                EvictionsThisYear = snapshot.EvictionsThisYear,
+                ConstructionUnits = snapshot.ConstructionUnits,
+                MedianRentBurden = snapshot.MedianRentBurden,
+                ShelterOccupancy = snapshot.ShelterOccupancy
+            })
+            .ToList();
+    }
+
+    private static decimal Median(List<decimal> values)
+    {
+        if (values.Count == 0)
+            return 0m;
+        values.Sort();
+        var middle = values.Count / 2;
+        return values.Count % 2 == 0
+            ? (values[middle - 1] + values[middle]) / 2m
+            : values[middle];
+    }
+
+    private static ulong? NullableId(World world, Entity entity)
+    {
+        var id = GetNetworkId(world, entity);
+        return id == 0 ? null : id;
+    }
+
+    private static string Name(World world, Entity entity)
+    {
+        if (entity == Entity.Null || !world.IsAlive(entity))
+            return string.Empty;
+        if (world.Has<GenName>(entity))
+            return world.Get<GenName>(entity).Name;
+        if (world.Has<CompanyName>(entity))
+            return world.Get<CompanyName>(entity).Name;
+        return string.Empty;
+    }
+
+    private static string HeadName(World world, Entity household)
+    {
+        if (!world.IsAlive(household) || !world.Has<Household>(household))
+            return string.Empty;
+        return Name(world, world.Get<Household>(household).Head);
+    }
+
+    private static string OwnerName(World world, Entity owner)
+    {
+        if (owner == Entity.Null || !world.IsAlive(owner))
+            return "Municipality";
+        if (world.Has<CompanyName>(owner))
+            return world.Get<CompanyName>(owner).Name;
+        if (world.Has<Household>(owner))
+            return HeadName(world, owner);
+        return "Municipality";
+    }
+
+    private static string OwnerType(World world, Entity owner)
+    {
+        if (owner == Entity.Null || !world.IsAlive(owner))
+            return "Municipality";
+        if (world.Has<CompanyName>(owner))
+            return "Company";
+        if (world.Has<Household>(owner))
+            return "Household";
+        return "Municipality";
     }
 
     public MetricsSnapshot GetMetricsSnapshot()
@@ -1462,11 +2049,179 @@ if (SnapshotsEnabled)
                 }
             }
 
+            var properties = new List<PersistedProperty>();
+            world.Query(in new QueryDescription().WithAll<Property, NetworkId>(),
+                (Entity entity, ref Property property, ref NetworkId nid) =>
+                {
+                    properties.Add(new PersistedProperty
+                    {
+                        NetworkId = nid.Value,
+                        OwnerNetworkId = GetNetworkId(world, property.Owner),
+                        Name = property.Name,
+                        District = property.District,
+                        UnitCount = property.UnitCount,
+                        Condition = property.Condition,
+                        Neighbourhood = property.NeighbourhoodScore,
+                        MonthlyUpkeepCents = property.MonthlyUpkeep.Cents,
+                        IsShelter = property.IsShelter
+                    });
+                });
+
+            var housingUnits = new List<PersistedHousingUnit>();
+            world.Query(in new QueryDescription().WithAll<HousingUnit, NetworkId>(),
+                (Entity entity, ref HousingUnit unit, ref NetworkId nid) =>
+                {
+                    housingUnits.Add(new PersistedHousingUnit
+                    {
+                        NetworkId = nid.Value,
+                        PropertyNetworkId = GetNetworkId(world, unit.Property),
+                        UnitNumber = unit.UnitNumber,
+                        Tier = unit.Tier.ToString(),
+                        Capacity = unit.Capacity,
+                        BaseRentCents = unit.BaseRent.Cents,
+                        Condition = unit.Condition,
+                        IsVacant = unit.IsVacant,
+                        OwnerNetworkId = GetNetworkId(world, unit.Owner),
+                        PurchasePriceCents = unit.PurchasePrice.Cents,
+                        OccupantCount = unit.OccupantCount,
+                        IsCondemned = unit.IsCondemned
+                    });
+                });
+
+            var households = new List<PersistedHousehold>();
+            world.Query(in new QueryDescription().WithAll<Household, NetworkId>(),
+                (Entity entity, ref Household household, ref NetworkId nid) =>
+                {
+                    households.Add(new PersistedHousehold
+                    {
+                        NetworkId = nid.Value,
+                        HeadNetworkId = GetNetworkId(world, household.Head),
+                        UnitNetworkId = GetNetworkId(world, household.Unit),
+                        Tenure = household.Tenure.ToString(),
+                        MonthlyRentCents = household.MonthlyRent.Cents,
+                        MoveInTick = household.MoveInTick,
+                        ArrearsCycles = household.ArrearsCycles,
+                        RentArrearsCents = household.RentArrears.Cents,
+                        UtilityArrearsCents = household.UtilityArrears.Cents,
+                        DebtCents = household.Debt.Cents,
+                        LastRentTick = household.LastRentTick,
+                        LastUtilityTick = household.LastUtilityTick,
+                        NoticeStage = household.NoticeStage,
+                        NoticeStartedTick = household.NoticeStartedTick,
+                        CureDeadlineTick = household.CureDeadlineTick,
+                        LastMoveTick = household.LastMoveTick,
+                        OverburdenMonths = household.OverburdenMonths,
+                        NoUtilities = household.NoUtilities,
+                        MemberCount = household.MemberCount
+                    });
+                });
+
+            var householdMembers = new List<PersistedHouseholdMember>();
+            world.Query(in new QueryDescription().WithAll<HouseholdMember>(),
+                (Entity entity, ref HouseholdMember member) =>
+                {
+                    householdMembers.Add(new PersistedHouseholdMember
+                    {
+                        HouseholdNetworkId = GetNetworkId(world, member.Household),
+                        SimNetworkId = GetNetworkId(world, entity),
+                        Role = member.Role.ToString()
+                    });
+                });
+
+            var constructionProjects = new List<PersistedConstructionProject>();
+            world.Query(in new QueryDescription().WithAll<ConstructionProject, NetworkId>(),
+                (Entity entity, ref ConstructionProject project, ref NetworkId nid) =>
+                {
+                    constructionProjects.Add(new PersistedConstructionProject
+                    {
+                        ProjectId = project.ProjectId == 0 ? nid.Value : project.ProjectId,
+                        DeveloperNetworkId = GetNetworkId(world, project.Developer),
+                        District = project.District,
+                        Tier = project.Tier.ToString(),
+                        Units = project.Units,
+                        CostCents = project.Cost.Cents,
+                        PaidToDateCents = project.PaidToDate.Cents,
+                        MonthsRemaining = project.MonthsRemaining,
+                        TotalMonths = project.TotalMonths,
+                        StartedAtTick = project.StartedAtTick
+                    });
+                });
+
+            foreach (var (simEntity, sim) in simByEntity)
+            {
+                if (!economy.Housing.HouseholdBySim.TryGetValue(simEntity, out var householdEntity))
+                    continue;
+                if (!world.IsAlive(householdEntity) || !world.Has<Household>(householdEntity))
+                    continue;
+
+                var household = world.Get<Household>(householdEntity);
+                sim.HouseholdNetworkId = GetNetworkId(world, householdEntity);
+                sim.HouseholdUnitNetworkId = GetNetworkId(world, household.Unit);
+                sim.Tenure = household.Tenure.ToString();
+                if (world.IsAlive(household.Unit) && world.Has<HousingUnit>(household.Unit))
+                    sim.HousingTier = world.Get<HousingUnit>(household.Unit).Tier.ToString();
+            }
+
+            var housingMetricHistory = economy.Housing.MetricHistory.Select(snapshot => new PersistedHousingSnapshot
+            {
+                Tick = snapshot.Tick,
+                Year = snapshot.Year,
+                Properties = snapshot.Properties,
+                Units = snapshot.Units,
+                OccupiedUnits = snapshot.OccupiedUnits,
+                VacantUnits = snapshot.VacantUnits,
+                ShelterBeds = snapshot.ShelterBeds,
+                ShelteredHouseholds = snapshot.ShelteredHouseholds,
+                HomelessHouseholds = snapshot.HomelessHouseholds,
+                OvercrowdedUnits = snapshot.OvercrowdedUnits,
+                UnitsBelowCondition = snapshot.UnitsBelowCondition,
+                VacancyRate = snapshot.VacancyRate,
+                RentIndex = snapshot.RentIndex,
+                RentRollCents = snapshot.RentRoll.Cents,
+                RentCollectedCents = snapshot.RentCollected.Cents,
+                RentArrearsCents = snapshot.RentArrears.Cents,
+                UtilityArrearsCents = snapshot.UtilityArrears.Cents,
+                UpkeepPaidCents = snapshot.UpkeepPaid.Cents,
+                EvictionsThisYear = snapshot.EvictionsThisYear,
+                ConstructionUnits = snapshot.ConstructionUnits,
+                MedianRentBurden = snapshot.MedianRentBurden,
+                ShelterOccupancy = snapshot.ShelterOccupancy
+            }).ToList();
+
+            var market = economy.Housing.Market;
+            var housingMarket = new PersistedHousingMarket
+            {
+                Index = market.Index,
+                LastUpdatedTick = market.LastUpdatedTick,
+                EvictionsThisYear = market.EvictionsThisYear,
+                MovesThisYear = market.MovesThisYear,
+                CompletionsThisYear = market.CompletionsThisYear,
+                RentCollectedThisMonthCents = market.RentCollectedThisMonth.Cents,
+                UtilityCollectedThisMonthCents = market.UtilityCollectedThisMonth.Cents,
+                UpkeepPaidThisMonthCents = market.UpkeepPaidThisMonth.Cents,
+                RentCollectedThisYearCents = market.RentCollectedThisYear.Cents,
+                UtilityCollectedThisYearCents = market.UtilityCollectedThisYear.Cents,
+                UpkeepPaidThisYearCents = market.UpkeepPaidThisYear.Cents
+            };
+            var districts = market.DistrictCapacity.Keys
+                .Union(market.DistrictUnits.Keys, StringComparer.OrdinalIgnoreCase)
+                .OrderBy(name => name, StringComparer.OrdinalIgnoreCase);
+            foreach (var district in districts)
+            {
+                housingMarket.Districts.Add(new PersistedDistrict
+                {
+                    Name = district,
+                    Capacity = market.CapacityFor(district),
+                    Units = market.UnitsIn(district)
+                });
+            }
+
             return new PersistedWorldState
             {
                 SchemaVersion = PersistedWorldState.CurrentSchemaVersion,
                 Tick = currentTick,
                 RandomSeed = economy.Random.Seed,
+                HousingMigrated = true,
                 Sims = sims,
                 Companies = companies,
                 Offices = offices,
@@ -1475,6 +2230,13 @@ if (SnapshotsEnabled)
                 Loans = loans,
                 PendingRevenue = pendingRevenue,
                 MetricHistory = metricHistory,
+                Properties = properties,
+                HousingUnits = housingUnits,
+                Households = households,
+                HouseholdMembers = householdMembers,
+                ConstructionProjects = constructionProjects,
+                HousingMetricHistory = housingMetricHistory,
+                HousingMarket = housingMarket,
                 Fiscal = new PersistedFiscal
                 {
                     GovernmentBalanceCents = economy.Government.Balance.Cents,
@@ -1719,6 +2481,212 @@ if (SnapshotsEnabled)
                 };
                 economy!.Loans.Add(model);
             }
+
+            var propertyEntities = new Dictionary<ulong, Entity>();
+            var unitEntities = new Dictionary<ulong, Entity>();
+            var householdEntities = new Dictionary<ulong, Entity>();
+
+            foreach (var household in state.Households)
+            {
+                if (!simEntities.TryGetValue(household.HeadNetworkId, out var head))
+                    continue;
+
+                var entity = world!.Create(new Household
+                {
+                    Head = head,
+                    Unit = Entity.Null,
+                    Tenure = Enum.TryParse<Tenure>(household.Tenure, out var tenure)
+                        ? tenure
+                        : Tenure.Renter,
+                    MonthlyRent = new Money(household.MonthlyRentCents),
+                    MoveInTick = household.MoveInTick,
+                    ArrearsCycles = household.ArrearsCycles,
+                    RentArrears = new Money(household.RentArrearsCents),
+                    UtilityArrears = new Money(household.UtilityArrearsCents),
+                    Debt = new Money(household.DebtCents),
+                    LastRentTick = household.LastRentTick,
+                    LastUtilityTick = household.LastUtilityTick,
+                    NoticeStage = household.NoticeStage,
+                    NoticeStartedTick = household.NoticeStartedTick,
+                    CureDeadlineTick = household.CureDeadlineTick,
+                    LastMoveTick = household.LastMoveTick,
+                    OverburdenMonths = household.OverburdenMonths,
+                    NoUtilities = household.NoUtilities,
+                    MemberCount = household.MemberCount
+                });
+                var networkId = new NetworkId(household.NetworkId);
+                world.Add(entity, networkId);
+                networkIds.AllocateWithValue(entity, networkId);
+                householdEntities[household.NetworkId] = entity;
+            }
+
+            Entity ResolveHousingOwner(ulong networkId)
+            {
+                if (networkId == 0)
+                    return Entity.Null;
+                if (companyEntities.TryGetValue(networkId, out var company))
+                    return company;
+                if (householdEntities.TryGetValue(networkId, out var household))
+                    return household;
+                return Entity.Null;
+            }
+
+            foreach (var property in state.Properties)
+            {
+                var entity = world!.Create(new Property(
+                    property.Name,
+                    property.District,
+                    ResolveHousingOwner(property.OwnerNetworkId),
+                    property.UnitCount,
+                    property.Condition,
+                    property.Neighbourhood,
+                    new Money(property.MonthlyUpkeepCents),
+                    property.IsShelter));
+                var networkId = new NetworkId(property.NetworkId);
+                world.Add(entity, networkId);
+                networkIds.AllocateWithValue(entity, networkId);
+                propertyEntities[property.NetworkId] = entity;
+            }
+
+            foreach (var unit in state.HousingUnits)
+            {
+                if (!propertyEntities.TryGetValue(unit.PropertyNetworkId, out var property))
+                    continue;
+
+                var entity = world!.Create(new HousingUnit(
+                    property,
+                    unit.UnitNumber,
+                    Enum.TryParse<HousingTier>(unit.Tier, out var tier)
+                        ? tier
+                        : HousingTier.Basic,
+                    unit.Capacity,
+                    new Money(unit.BaseRentCents),
+                    unit.Condition,
+                    unit.IsVacant,
+                    ResolveHousingOwner(unit.OwnerNetworkId),
+                    new Money(unit.PurchasePriceCents))
+                {
+                    OccupantCount = unit.OccupantCount,
+                    IsCondemned = unit.IsCondemned
+                });
+                var networkId = new NetworkId(unit.NetworkId);
+                world.Add(entity, networkId);
+                networkIds.AllocateWithValue(entity, networkId);
+                unitEntities[unit.NetworkId] = entity;
+            }
+
+            foreach (var household in state.Households)
+            {
+                if (!householdEntities.TryGetValue(household.NetworkId, out var entity))
+                    continue;
+                var data = world!.Get<Household>(entity);
+                if (household.UnitNetworkId != 0 &&
+                    unitEntities.TryGetValue(household.UnitNetworkId, out var unit))
+                    data.Unit = unit;
+                world!.Get<Household>(entity) = data;
+            }
+
+            foreach (var member in state.HouseholdMembers)
+            {
+                if (!householdEntities.TryGetValue(member.HouseholdNetworkId, out var household))
+                    continue;
+                if (!simEntities.TryGetValue(member.SimNetworkId, out var sim))
+                    continue;
+                if (world!.Has<HouseholdMember>(sim))
+                    continue;
+
+                world.Add(sim, new HouseholdMember(
+                    household,
+                    Enum.TryParse<HouseholdRole>(member.Role, out var role)
+                        ? role
+                        : HouseholdRole.Other));
+            }
+
+            foreach (var project in state.ConstructionProjects)
+            {
+                var entity = world!.Create(new ConstructionProject
+                {
+                    ProjectId = project.ProjectId,
+                    Developer = ResolveHousingOwner(project.DeveloperNetworkId),
+                    District = project.District,
+                    Tier = Enum.TryParse<HousingTier>(project.Tier, out var tier)
+                        ? tier
+                        : HousingTier.Basic,
+                    Units = project.Units,
+                    Cost = new Money(project.CostCents),
+                    PaidToDate = new Money(project.PaidToDateCents),
+                    MonthsRemaining = project.MonthsRemaining,
+                    TotalMonths = project.TotalMonths,
+                    StartedAtTick = project.StartedAtTick
+                });
+                var networkId = new NetworkId(project.ProjectId);
+                world.Add(entity, networkId);
+                networkIds.AllocateWithValue(entity, networkId);
+            }
+
+            economy!.Housing.Rebuild(world!);
+
+            world!.Query(in new QueryDescription().WithAll<ConstructionProject, NetworkId>(),
+                (Entity entity, ref ConstructionProject _, ref NetworkId nid) =>
+                    economy.Housing.AttachNetworkId(entity, nid));
+
+            var market = state.HousingMarket ?? new PersistedHousingMarket();
+            economy.Housing.Market.Index = market.Index;
+            economy.Housing.Market.LastUpdatedTick = market.LastUpdatedTick;
+            economy.Housing.Market.EvictionsThisYear = market.EvictionsThisYear;
+            economy.Housing.Market.MovesThisYear = market.MovesThisYear;
+            economy.Housing.Market.CompletionsThisYear = market.CompletionsThisYear;
+            economy.Housing.Market.RentCollectedThisMonth = new Money(market.RentCollectedThisMonthCents);
+            economy.Housing.Market.UtilityCollectedThisMonth = new Money(market.UtilityCollectedThisMonthCents);
+            economy.Housing.Market.UpkeepPaidThisMonth = new Money(market.UpkeepPaidThisMonthCents);
+            economy.Housing.Market.RentCollectedThisYear = new Money(market.RentCollectedThisYearCents);
+            economy.Housing.Market.UtilityCollectedThisYear = new Money(market.UtilityCollectedThisYearCents);
+            economy.Housing.Market.UpkeepPaidThisYear = new Money(market.UpkeepPaidThisYearCents);
+            foreach (var district in market.Districts)
+            {
+                economy.Housing.Market.DistrictCapacity[district.Name] = district.Capacity;
+                economy.Housing.Market.DistrictUnits[district.Name] = district.Units;
+            }
+
+            foreach (var snapshot in state.HousingMetricHistory)
+            {
+                economy.Housing.MetricHistory.Add(new HousingSnapshot(
+                    snapshot.Tick,
+                    snapshot.Year,
+                    snapshot.Properties,
+                    snapshot.Units,
+                    snapshot.OccupiedUnits,
+                    snapshot.VacantUnits,
+                    snapshot.ShelterBeds,
+                    snapshot.ShelteredHouseholds,
+                    snapshot.HomelessHouseholds,
+                    snapshot.OvercrowdedUnits,
+                    snapshot.UnitsBelowCondition,
+                    snapshot.VacancyRate,
+                    snapshot.RentIndex,
+                    new Money(snapshot.RentRollCents),
+                    new Money(snapshot.RentCollectedCents),
+                    new Money(snapshot.RentArrearsCents),
+                    new Money(snapshot.UtilityArrearsCents),
+                    new Money(snapshot.UpkeepPaidCents),
+                    snapshot.EvictionsThisYear,
+                    snapshot.ConstructionUnits,
+                    snapshot.MedianRentBurden,
+                    snapshot.ShelterOccupancy));
+            }
+
+            if (!state.HousingMigrated && state.Households.Count == 0)
+            {
+                var assigner = new HouseholdAssigner(world!, networkIds, economy);
+                assigner.AssignExistingHomeless(state.RandomSeed, state.Tick);
+            }
+
+            var issues = economy.Housing.Verify();
+            if (issues.Count > 0)
+                throw new InvalidOperationException(
+                    "Housing restore verification failed: " + string.Join("; ", issues.Take(10)));
+
+            state.HousingMigrated = true;
 
             economy!.Government.Balance = new Money(state.Fiscal.GovernmentBalanceCents);
             economy.Government.IncomeTaxCollected = new Money(state.Fiscal.IncomeTaxCollectedCents);

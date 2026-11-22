@@ -1,5 +1,7 @@
 using System.Reflection;
 using Genelife.Components.Employment;
+using Genelife.Components.Gen;
+using Genelife.Components.Housing;
 using Genelife.Enums;
 
 namespace Genelife.UnitTests.Components;
@@ -11,6 +13,18 @@ public class ComponentHygieneTests
     {
         AssertNoListFields(typeof(JobPosting));
         AssertNoListFields(typeof(JobSeeker));
+    }
+
+    [Fact]
+    public void HotHousingComponents_ContainNoListFields()
+    {
+        AssertNoListFields(typeof(Property));
+        AssertNoListFields(typeof(HousingUnit));
+        AssertNoListFields(typeof(Household));
+        AssertNoListFields(typeof(HouseholdMember));
+        AssertNoListFields(typeof(Residence));
+        AssertNoListFields(typeof(ConstructionProject));
+        AssertNoListFields(typeof(NeedsModifier));
     }
 
     [Fact]

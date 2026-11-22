@@ -4,6 +4,7 @@ using Genelife.Api.Models;
 using Genelife.Components.Company;
 using Genelife.Components.Employment;
 using Genelife.Components.Gen;
+using Genelife.Components.Housing;
 using Genelife.Enums;
 using Marten;
 
@@ -31,6 +32,23 @@ public class WorldSaveService
         var simQuery = new QueryDescription().WithAll<GenName, Needs, CurrentAction, NetworkId>();
         world.Query(in simQuery, (Entity entity, ref GenName name, ref Needs needs, ref CurrentAction action, ref NetworkId nid) =>
         {
+            long householdNetworkId = 0;
+            long unitNetworkId = 0;
+            var tenure = string.Empty;
+            var housingTier = string.Empty;
+            if (world.TryGet<HouseholdMember>(entity, out var member))
+            {
+                householdNetworkId = NetworkIdOf(world, member.Household);
+                if (world.TryGet<Household>(member.Household, out var household))
+                    tenure = household.Tenure.ToString();
+            }
+            if (world.TryGet<Residence>(entity, out var residence))
+            {
+                unitNetworkId = NetworkIdOf(world, residence.Unit);
+                if (world.TryGet<HousingUnit>(residence.Unit, out var unit))
+                    housingTier = unit.Tier.ToString();
+            }
+
             sims.Add(new SimDocument
             {
                 Id = DocumentIds.ForNetworkId(nid.Value),
@@ -45,6 +63,10 @@ public class WorldSaveService
                 ActionTimeRemaining = action.TimeRemaining,
                 IsPlayerControlled = world.Has<PlayerControlled>(entity),
                 PlayerId = world.TryGet<PlayerControlled>(entity, out var pc) ? pc.PlayerId : null,
+                HouseholdNetworkId = householdNetworkId,
+                HousingUnitNetworkId = unitNetworkId,
+                Tenure = tenure,
+                HousingTier = housingTier,
                 CreatedAt = DateTimeOffset.UtcNow,
                 UpdatedAt = DateTimeOffset.UtcNow
             });
@@ -68,6 +90,11 @@ public class WorldSaveService
 
         return new WorldSaveBatch(sims, companies);
     }
+
+    private static long NetworkIdOf(World world, Entity entity) =>
+        world.IsAlive(entity) && world.Has<NetworkId>(entity)
+            ? (long)world.Get<NetworkId>(entity).Value
+            : 0;
 
     public async Task SaveAsync(World world, EmploymentIndex employmentIndex)
     {
