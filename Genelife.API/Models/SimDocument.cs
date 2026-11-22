@@ -5,7 +5,7 @@ namespace Genelife.Api.Models;
 public class SimDocument
 {
     public Guid Id { get; set; }
-    public ulong NetworkId { get; set; }
+    public long NetworkId { get; set; }
     public string Name { get; set; } = string.Empty;
     public int Age { get; set; }
     public float Hunger { get; set; }
@@ -23,7 +23,7 @@ public class SimDocument
     {
         return new SimStatus
         {
-            NetworkId = NetworkId,
+            NetworkId = (ulong)NetworkId,
             Name = Name,
             Age = Age,
             IsPlayerControlled = IsPlayerControlled,

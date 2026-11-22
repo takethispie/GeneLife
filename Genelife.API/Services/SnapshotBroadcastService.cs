@@ -105,6 +105,10 @@ public sealed class SnapshotBroadcastService : BackgroundService
                     }
                 }
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                break;
+            }
             catch (Exception ex)
             {
                 logger?.LogWarning(ex, "Snapshot broadcast failed");

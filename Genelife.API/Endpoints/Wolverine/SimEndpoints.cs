@@ -12,7 +12,7 @@ namespace Genelife.Api.Endpoints.Wolverine;
 public static class SimEndpoints
 {
     [WolverinePost("/api/sims")]
-    public static IResult CreateSim(CreateSim command, SimulationManager simulationManager)
+    public static async Task<IResult> CreateSim(CreateSim command, SimulationManager simulationManager)
     {
         if (string.IsNullOrWhiteSpace(command.Name))
             return Results.BadRequest(new { message = "Name is required" });
@@ -20,7 +20,7 @@ public static class SimEndpoints
         try
         {
             simulationManager.AddSim(command.Name, command.Age);
-            var sims = simulationManager.GetAllSims();
+            var sims = await simulationManager.GetAllSimsAsync();
             var created = sims.LastOrDefault();
             var networkId = created?.NetworkId ?? 0UL;
             return Results.Accepted("/api/sims/" + networkId, new { networkId });
@@ -32,15 +32,15 @@ public static class SimEndpoints
     }
 
     [WolverineGet("/api/sims")]
-    public static List<SimStatus> GetAllSims(GetAllSims _, SimulationManager simulationManager)
+    public static Task<List<SimStatus>> GetAllSims(GetAllSims _, SimulationManager simulationManager)
     {
-        return simulationManager.GetAllSims();
+        return simulationManager.GetAllSimsAsync();
     }
 
     [WolverineGet("/api/sims/{networkId}")]
-    public static IResult GetSim(ulong networkId, SimulationManager simulationManager)
+    public static async Task<IResult> GetSim(ulong networkId, SimulationManager simulationManager)
     {
-        var sims = simulationManager.GetAllSims();
+        var sims = await simulationManager.GetAllSimsAsync();
         var sim = sims.FirstOrDefault(s => s.NetworkId == networkId);
         if (sim == null)
             return Results.NotFound(new { message = "Sim not found" });

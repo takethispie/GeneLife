@@ -56,6 +56,6 @@ public sealed class DocumentStoreTests : IClassFixture<WebApplicationFactory<Pro
         var loaded = await session.LoadAsync<SimDocument>(doc.Id);
         Assert.NotNull(loaded);
         Assert.Equal("TestSim", loaded!.Name);
-        Assert.Equal(42UL, loaded.NetworkId);
+        Assert.Equal(42L, loaded.NetworkId);
     }
 }

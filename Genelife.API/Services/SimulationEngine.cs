@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Collections.Concurrent;
+using System.Threading.Channels;
 using Arch.Core;
 using Arch.Core.Extensions;
 using Genelife.Api.DTOs;
@@ -30,11 +31,17 @@ private readonly NetworkIdRegistry networkIds = new();
     private readonly SnapshotHistory history = new();
     private readonly Action<SystemRunResult> recordSystemRun;
     private readonly ConcurrentQueue<EnqueuedCommand> queuedCommands = new();
+    private readonly Channel<object> outboundEvents = Channel.CreateBounded<object>(
+        new BoundedChannelOptions(50_000)
+        {
+            FullMode = BoundedChannelFullMode.DropWrite,
+            SingleReader = true,
+            SingleWriter = true
+        });
+    private long droppedEventCount;
     private readonly HashSet<Guid> processedMessageIds = new(1024);
-    private readonly WorldSaveService? worldSaveService;
     private readonly IDocumentStore? documentStore;
-    private long lastSaveTick;
-    private const long AutoSaveInterval = 600;
+    private readonly WorldSaveService? worldSaveService;
     private static readonly string[] ActionNames = Enum.GetNames<ActionType>();
 
     public SimulationEngine(WorldSaveService? worldSaveService = null, IDocumentStore? documentStore = null)
@@ -63,6 +70,14 @@ private readonly NetworkIdRegistry networkIds = new();
 
     public int QueuedCommandCount => queuedCommands.Count;
 
+    /// <summary>
+    /// Events collected by the tick loop for the persistence writer. The tick loop
+    /// only enqueues them so document/event-store I/O never blocks the simulation.
+    /// </summary>
+    public ChannelReader<object> OutboundEvents => outboundEvents.Reader;
+
+    public long DroppedEventCount => Interlocked.Read(ref droppedEventCount);
+
     public void Initialize()
     {
         lock (@lock)
@@ -89,25 +104,16 @@ private readonly NetworkIdRegistry networkIds = new();
 
     public void Shutdown()
     {
-        World? worldToSave = null;
-        EmploymentIndex? indexToSave = null;
+        WorldSaveBatch? batchToSave = null;
 
         lock (@lock)
         {
             if (!isRunning)
                 return;
 
-            worldToSave = world;
-            indexToSave = employmentIndex;
-        }
+            if (world != null && employmentIndex != null && worldSaveService != null)
+                batchToSave = worldSaveService.Build(world, employmentIndex);
 
-        if (worldToSave != null && worldSaveService != null && indexToSave != null)
-        {
-            worldSaveService.SaveAsync(worldToSave, indexToSave).GetAwaiter().GetResult();
-        }
-
-        lock (@lock)
-        {
             metrics.Flush();
             world?.Dispose();
             world = null;
@@ -117,6 +123,26 @@ private readonly NetworkIdRegistry networkIds = new();
             networkIds.Clear();
             _latest = null;
             isRunning = false;
+        }
+
+        if (batchToSave != null && worldSaveService != null)
+        {
+            worldSaveService.SaveBatchAsync(batchToSave).GetAwaiter().GetResult();
+        }
+    }
+
+    /// <summary>
+    /// Captures a consistent world save batch under the simulation lock. The caller
+    /// persists it off the tick thread.
+    /// </summary>
+    public WorldSaveBatch? PrepareSave()
+    {
+        lock (@lock)
+        {
+            if (!isRunning || world == null || employmentIndex == null || worldSaveService == null)
+                return null;
+
+            return worldSaveService.Build(world, employmentIndex);
         }
     }
 
@@ -164,34 +190,12 @@ if (SnapshotsEnabled)
             events.Add(new TickCompleted(tick, currentWorld.Size, ElapsedMilliseconds(tickStart)));
         }
 
-        if (documentStore != null && events.Count > 0)
-        {
-            using var session = documentStore.LightweightSession();
-
-            foreach (var e in events)
-            {
-                session.Events.Append(Guid.NewGuid(), e);
-            }
-
-            session.SaveChangesAsync().GetAwaiter().GetResult();
-        }
-        else if (MessageBus != null && events.Count > 0)
+        if (documentStore != null || MessageBus != null)
         {
             foreach (var e in events)
             {
-                MessageBus.PublishAsync(e).ConfigureAwait(false).GetAwaiter().GetResult();
-            }
-        }
-
-        if (worldSaveService != null && employmentIndex != null)
-        {
-            var currentTick = Interlocked.Read(ref tick);
-            if (currentTick - Interlocked.Read(ref lastSaveTick) >= AutoSaveInterval)
-            {
-                var w = World;
-                if (w != null)
-                    worldSaveService.SaveAsync(w, employmentIndex).GetAwaiter().GetResult();
-                Interlocked.Exchange(ref lastSaveTick, currentTick);
+                if (!outboundEvents.Writer.TryWrite(e))
+                    Interlocked.Increment(ref droppedEventCount);
             }
         }
     }

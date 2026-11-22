@@ -10,6 +10,7 @@ public class SimulationLoop : BackgroundService
     private const int MaxCatchUpTicks = 5;
     private static readonly TimeSpan FixedStep = TimeSpan.FromSeconds(FixedDeltaTime);
     private static readonly double TickBudgetMs = FixedStep.TotalMilliseconds;
+    private static readonly TimeSpan DropLogInterval = TimeSpan.FromSeconds(5);
 
     private readonly FixedStepScheduler scheduler = new(FixedStep, MaxCatchUpTicks);
     private readonly long startTimestamp = Stopwatch.GetTimestamp();
@@ -17,6 +18,7 @@ public class SimulationLoop : BackgroundService
     private long tickCount;
     private long overrunCount;
     private long droppedTicks;
+    private long lastDropLogTimestamp;
     private double lastTickMilliseconds;
     private readonly PeriodicTimer timer = new(FixedStep);
 
@@ -79,11 +81,20 @@ public class SimulationLoop : BackgroundService
             if (discarded > TimeSpan.Zero)
             {
                 var dropped = Math.Max(1, (long)Math.Round(discarded / FixedStep));
-                Interlocked.Add(ref droppedTicks, dropped);
-                logger?.LogWarning(
-                    "Simulation loop dropped {DroppedTicks} catch-up tick(s); backlog exceeded {MaxCatchUp} ticks",
-                    dropped,
-                    MaxCatchUpTicks);
+                var totalDropped = Interlocked.Add(ref droppedTicks, dropped);
+                var now = Stopwatch.GetTimestamp();
+                var lastLog = Interlocked.Read(ref lastDropLogTimestamp);
+
+                if (logger is not null &&
+                    (lastLog == 0 || Stopwatch.GetElapsedTime(lastLog, now) >= DropLogInterval))
+                {
+                    Interlocked.Exchange(ref lastDropLogTimestamp, now);
+                    logger.LogWarning(
+                        "Simulation loop dropped {DroppedTicks} catch-up tick(s); backlog exceeded {MaxCatchUp} ticks (total dropped: {TotalDropped})",
+                        dropped,
+                        MaxCatchUpTicks,
+                        totalDropped);
+                }
             }
         }
     }

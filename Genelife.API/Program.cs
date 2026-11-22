@@ -1,5 +1,6 @@
 using Genelife.Api.Auth;
 using Genelife.Api.Commands;
+using Genelife.Api.Hosting;
 using Genelife.Api.Hubs;
 using Genelife.Api.Persistence;
 using Genelife.Api.Services;
@@ -16,6 +17,8 @@ using Wolverine.SignalR;
 using Marten;
 
 var builder = WebApplication.CreateBuilder(args);
+
+DotEnv.Load(builder.Configuration, builder.Environment.ContentRootPath);
 
 builder.AddServiceDefaults();
 
@@ -48,6 +51,7 @@ builder.Services.AddSingleton<SimulationManager>();
 builder.Services.AddSingleton<SimulationLoop>();
 builder.Services.AddHostedService(provider => provider.GetRequiredService<SimulationLoop>());
 builder.Services.AddHostedService(provider => provider.GetRequiredService<SimulationManager>());
+builder.Services.AddHostedService<SimulationEventWriter>();
 
 builder.Services.AddSingleton<ICommandQueue, CommandQueue>();
 builder.Services.AddSingleton<Genelife.Api.Snapshots.ReplicationTracker>();
@@ -78,7 +82,9 @@ if (useMartenReads)
         opts.DisableNpgsqlLogging = true;
         opts.AutoCreateSchemaObjects = JasperFx.AutoCreate.CreateOrUpdate;
         opts.Schema.For<Genelife.Api.Models.SimDocument>().Identity(x => x.Id);
+        opts.Schema.For<Genelife.Api.Models.SimDocument>().Index(x => x.NetworkId);
         opts.Schema.For<Genelife.Api.Models.CompanyDocument>().Identity(x => x.Id);
+        opts.Schema.For<Genelife.Api.Models.CompanyDocument>().Index(x => x.NetworkId);
         opts.Projections.Add<Genelife.Api.Projections.SimProjection>(JasperFx.Events.Projections.ProjectionLifecycle.Inline);
         opts.Projections.Add<Genelife.Api.Projections.CompanyProjection>(JasperFx.Events.Projections.ProjectionLifecycle.Inline);
     })

@@ -25,7 +25,7 @@ public sealed class GetAllSimsQueryTests : IClassFixture<WebApplicationFactory<P
             session.Store(new SimDocument
             {
                 Id = Guid.NewGuid(),
-                NetworkId = (ulong)(i + 1),
+                NetworkId = (long)(i + 1),
                 Name = $"Sim{i}",
                 Age = 20 + i,
                 Hunger = 50 + i,

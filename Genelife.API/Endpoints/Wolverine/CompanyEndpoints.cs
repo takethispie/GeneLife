@@ -27,15 +27,15 @@ public static class CompanyEndpoints
     }
 
     [WolverineGet("/api/companies")]
-    public static List<CompanyStatus> GetAllCompanies(GetAllCompanies _, SimulationManager simulationManager)
+    public static Task<List<CompanyStatus>> GetAllCompanies(GetAllCompanies _, SimulationManager simulationManager)
     {
-        return simulationManager.GetAllCompanies();
+        return simulationManager.GetAllCompaniesAsync();
     }
 
     [WolverineGet("/api/companies/{networkId}")]
-    public static IResult GetCompany(ulong networkId, SimulationManager simulationManager)
+    public static async Task<IResult> GetCompany(ulong networkId, SimulationManager simulationManager)
     {
-        var company = simulationManager.GetCompany(networkId);
+        var company = await simulationManager.GetCompanyAsync(networkId);
         if (company == null)
             return Results.NotFound(new { message = "Company not found" });
 

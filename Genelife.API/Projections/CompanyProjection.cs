@@ -11,8 +11,8 @@ public partial class CompanyProjection : EventProjection
     {
         return new CompanyDocument
         {
-            Id = Guid.NewGuid(),
-            NetworkId = e.NetworkId,
+            Id = DocumentIds.ForNetworkId(e.NetworkId),
+            NetworkId = (long)e.NetworkId,
             Name = e.Name,
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow
@@ -48,9 +48,8 @@ public partial class CompanyProjection : EventProjection
             ops.Delete<CompanyDocument>(doc.Id);
     }
 
-    private static async ValueTask<CompanyDocument?> FindByNetworkId(IDocumentOperations ops, ulong networkId)
+    private static Task<CompanyDocument?> FindByNetworkId(IDocumentOperations ops, ulong networkId)
     {
-        var docs = await ops.Query<CompanyDocument>().ToListAsync();
-        return docs.FirstOrDefault(x => x.NetworkId == networkId);
+        return ops.Query<CompanyDocument>().FirstOrDefaultAsync(x => x.NetworkId == (long)networkId);
     }
 }
