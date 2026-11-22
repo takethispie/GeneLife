@@ -1,0 +1,19 @@
+using Arch.Core;
+
+namespace Genelife.Components.Housing;
+
+/// <summary>
+/// Derived sim to home cache, maintained by the housing registry in apply
+/// phases. Sims without a residence are homeless.
+/// </summary>
+public record struct Residence
+{
+    public Entity Household;
+    public Entity Unit;
+
+    public Residence(Entity household, Entity unit)
+    {
+        Household = household;
+        Unit = unit;
+    }
+}

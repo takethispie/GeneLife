@@ -16,6 +16,10 @@ public class SimDocument
     public float ActionTimeRemaining { get; set; }
     public bool IsPlayerControlled { get; set; }
     public string? PlayerId { get; set; }
+    public long HouseholdNetworkId { get; set; }
+    public long HousingUnitNetworkId { get; set; }
+    public string Tenure { get; set; } = string.Empty;
+    public string HousingTier { get; set; } = string.Empty;
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 
@@ -32,7 +36,12 @@ public class SimDocument
             Hygiene = MathF.Round(Hygiene, 1),
             Bladder = MathF.Round(Bladder, 1),
             CurrentAction = CurrentAction,
-            TimeRemaining = MathF.Round(ActionTimeRemaining, 2)
+            TimeRemaining = MathF.Round(ActionTimeRemaining, 2),
+            HouseholdNetworkId = HouseholdNetworkId == 0 ? null : (ulong)HouseholdNetworkId,
+            HousingUnitNetworkId = HousingUnitNetworkId == 0 ? null : (ulong)HousingUnitNetworkId,
+            Tenure = Tenure,
+            HousingTier = HousingTier,
+            Homeless = HousingUnitNetworkId == 0
         };
     }
 }

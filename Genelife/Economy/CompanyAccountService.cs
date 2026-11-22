@@ -130,6 +130,23 @@ public sealed class CompanyAccountService
         return true;
     }
 
+    /// <summary>
+    /// Credits a company for a payment whose ledger leg was already written by
+    /// the payer (household finance, grant or contract settlement). Use this
+    /// instead of mutating CompanyAccount directly; the ledger is not duplicated.
+    /// </summary>
+    public void ApplySettlement(Entity company, Money amount, long tick, bool revenue = false)
+    {
+        if (!amount.IsPositive || !world.IsAlive(company))
+            return;
+
+        var account = GetOrCreate(company, Money.Zero, tick);
+        account.Balance += amount;
+        if (revenue)
+            account.RevenueLastCycle += amount;
+        Set(company, account);
+    }
+
     public bool TryTransfer(
         Entity from,
         Entity to,

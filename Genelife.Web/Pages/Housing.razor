@@ -1,0 +1,484 @@
+@page "/housing"
+@using Genelife.Web.Models
+@using Genelife.Web.Services
+@inject GameDataService GameData
+@implements IAsyncDisposable
+
+<PageTitle>Housing</PageTitle>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+    <div>
+        <h1 class="mb-1">Housing</h1>
+        <p class="text-muted mb-0">Tenancies, rent, utilities, arrears and the rent ladder.</p>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+        <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" id="autoRefresh" @bind="autoRefresh" />
+            <label class="form-check-label" for="autoRefresh">Auto-refresh</label>
+        </div>
+        <button class="btn btn-primary" type="button" @onclick="() => RefreshAsync()" disabled="@isLoading">
+            @if (isLoading)
+            {
+                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+            }
+            Refresh
+        </button>
+    </div>
+</div>
+
+@if (error is not null)
+{
+    <div class="alert alert-danger">
+        <div class="fw-semibold">Could not load housing data.</div>
+        <div class="small">@error</div>
+    </div>
+}
+
+@if (housing is not null)
+{
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3 small text-muted">
+        <span>Year @housing.Year</span>
+        <span>&middot;</span>
+        <span>Month @(housing.Month + 1)</span>
+        <span>&middot;</span>
+        <span>Rent index @housing.RentIndex.ToString("0.000")</span>
+        @if (loadedAt is not null)
+        {
+            <span>&middot;</span>
+            <span>Refreshed @loadedAt.Value.ToString("HH:mm:ss")</span>
+        }
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="card h-100"><div class="card-body">
+                <div class="text-muted small">Units</div>
+                <div class="fs-3 fw-semibold">@housing.OccupiedUnits / @housing.Units</div>
+                <div class="small text-muted">Vacant @housing.VacantUnits &middot; @Percent(housing.VacancyRate)</div>
+            </div></div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="card h-100"><div class="card-body">
+                <div class="text-muted small">Rent this month</div>
+                <div class="fs-3 fw-semibold">@Money(housing.RentCollectedThisMonth)</div>
+                <div class="small text-muted">Rent roll @Money(housing.RentRoll)</div>
+            </div></div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="card h-100"><div class="card-body">
+                <div class="text-muted small">Arrears</div>
+                <div class="fs-3 fw-semibold text-danger">@Money(housing.RentArrears)</div>
+                <div class="small text-muted">Utilities @Money(housing.UtilityArrears) &middot; median burden @Percent(housing.MedianRentBurden)</div>
+            </div></div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="card h-100"><div class="card-body">
+                <div class="text-muted small">Homeless / shelter</div>
+                <div class="fs-3 fw-semibold">@housing.HomelessHouseholds / @housing.ShelteredHouseholds</div>
+                <div class="small text-muted">Beds @housing.ShelterBeds &middot; @Percent(housing.ShelterOccupancy)</div>
+            </div></div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-xl-7">
+            <div class="card h-100"><div class="card-body">
+                <h2 class="h6 text-uppercase text-muted">Health checks</h2>
+                <div class="d-flex flex-wrap gap-2">
+                    @foreach (var check in housing.Health)
+                    {
+                        <span class="badge @Badge(check.Level)" title="@check.Detail">@check.Name: @check.Detail</span>
+                    }
+                </div>
+                <div class="small text-muted mt-2">
+                    Evictions this year @housing.EvictionsThisYear &middot; moves @housing.MovesThisYear &middot;
+                    maintenance @Money(housing.UpkeepPaidThisMonth) &middot; projects @housing.ActiveProjects (@housing.ConstructionUnits units)
+                </div>
+            </div></div>
+        </div>
+        <div class="col-12 col-xl-5">
+            <div class="card h-100"><div class="card-body">
+                <h2 class="h6 text-uppercase text-muted">Admin actions</h2>
+                <div class="d-flex gap-2 align-items-end mb-2">
+                    <div class="flex-grow-1">
+                        <label class="form-label small mb-1" for="rentIndex">Rent index</label>
+                        <input id="rentIndex" class="form-control form-control-sm" type="number" step="0.01" @bind="rentIndex" />
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary" type="button" @onclick="ApplyRentIndexAsync" disabled="@isBusy">Set</button>
+                </div>
+                <div class="d-flex gap-2 align-items-end">
+                    <div class="flex-grow-1">
+                        <label class="form-label small mb-1" for="spawnAdults">Spawn population</label>
+                        <div class="input-group input-group-sm">
+                            <input id="spawnAdults" class="form-control" type="number" min="0" @bind="spawnAdults" title="Adults" />
+                            <input class="form-control" type="number" min="0" @bind="spawnChildren" title="Children" />
+                            <button class="btn btn-outline-primary" type="button" @onclick="SpawnPopulationAsync" disabled="@isBusy">Spawn</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="small text-muted mt-1">Adults / children. Housing stock is created when none exists.</div>
+            </div></div>
+        </div>
+    </div>
+
+    <div class="card mb-4"><div class="card-body">
+        <h2 class="h6 text-uppercase text-muted">Create property</h2>
+        <div class="row g-2 align-items-end">
+            <div class="col-12 col-md-3">
+                <label class="form-label small mb-1">Name</label>
+                <input class="form-control form-control-sm" @bind="propertyName" />
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small mb-1">District</label>
+                <input class="form-control form-control-sm" @bind="propertyDistrict" />
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small mb-1">Units</label>
+                <input class="form-control form-control-sm" type="number" min="1" @bind="propertyUnits" />
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small mb-1">Tier</label>
+                <select class="form-select form-select-sm" @bind="propertyTier">
+                    <option value="Basic">Basic</option>
+                    <option value="Comfortable">Comfortable</option>
+                    <option value="Luxury">Luxury</option>
+                    <option value="Shelter">Shelter</option>
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small mb-1">Rent / month</label>
+                <input class="form-control form-control-sm" type="number" min="0" step="0.01" @bind="propertyRent" />
+            </div>
+            <div class="col-12 col-md-1">
+                <button class="btn btn-sm btn-primary w-100" type="button" @onclick="CreatePropertyAsync" disabled="@isBusy">Add</button>
+            </div>
+        </div>
+    </div></div>
+
+    <div class="card mb-4"><div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h2 class="h6 text-uppercase text-muted mb-0">Properties</h2>
+            <span class="small text-muted">@properties.Count properties</span>
+        </div>
+        @foreach (var property in properties)
+        {
+            <details class="mb-2">
+                <summary class="d-flex flex-wrap gap-3 align-items-center">
+                    <span class="fw-semibold">@property.Name</span>
+                    <span class="small text-muted">@property.District &middot; @property.OwnerType @property.Owner</span>
+                    <span class="small">@property.OccupiedUnits/@property.UnitCount occupied</span>
+                    <span class="small text-muted">condition @property.Condition.ToString("0.00") &middot; upkeep @Money(property.MonthlyUpkeep)</span>
+                    @if (property.IsShelter)
+                    {
+                        <span class="badge text-bg-warning">Shelter</span>
+                    }
+                </summary>
+                <div class="table-responsive mt-2">
+                    <table class="table table-sm table-striped align-middle mb-0">
+                        <thead>
+                            <tr><th>Unit</th><th>Tier</th><th>Occupants</th><th>Rent</th><th>Market</th><th>Condition</th><th>Household</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var unit in property.Units)
+                            {
+                                <tr class="@(unit.IsVacant ? "table-success" : null)">
+                                    <td>@unit.UnitNumber</td>
+                                    <td>@unit.Tier</td>
+                                    <td>@unit.Occupants/@unit.Capacity @if (unit.IsOvercrowded) { <span class="badge text-bg-warning">Overcrowded</span> }</td>
+                                    <td>@Money(unit.BaseRent)</td>
+                                    <td>@Money(unit.MarketRent)</td>
+                                    <td>@unit.Condition.ToString("0.00") @if (unit.IsCondemned) { <span class="badge text-bg-danger">Condemned</span> }</td>
+                                    <td>@(unit.HouseholdNetworkId is null ? "Vacant" : $"{unit.Household} (#{unit.HouseholdNetworkId})")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <button class="btn btn-sm btn-outline-secondary mt-2" type="button"
+                        @onclick="() => RepairAsync(property.NetworkId, property.UnitCount)" disabled="@isBusy">
+                    Repair (+0.1 condition)
+                </button>
+            </details>
+        }
+    </div></div>
+
+    <div class="card mb-4"><div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h2 class="h6 text-uppercase text-muted mb-0">Households</h2>
+            <span class="small text-muted">@households.Count households</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm table-striped align-middle mb-0">
+                <thead>
+                    <tr><th>#</th><th>Head</th><th>Home</th><th>Tenure</th><th>Members</th><th>Income</th><th>Rent</th><th>Arrears</th><th>Notice</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var household in households.Take(300))
+                    {
+                        <tr class="@(household.Homeless ? "table-danger" : null)">
+                            <td>@household.NetworkId</td>
+                            <td>@household.Head</td>
+                            <td>
+                                @if (household.Homeless)
+                                {
+                                    <span class="badge text-bg-danger">Homeless</span>
+                                }
+                                else
+                                {
+                                    <span>@household.Property @household.Unit</span>
+                                    <span class="small text-muted">@household.District</span>
+                                }
+                                @if (household.Overcrowded) { <span class="badge text-bg-warning">Overcrowded</span> }
+                            </td>
+                            <td>@household.Tenure</td>
+                            <td>@household.Members (@household.Earners earners)</td>
+                            <td>@Money(household.MonthlyIncome)</td>
+                            <td>@Money(household.MonthlyRent)</td>
+                            <td class="@(household.RentArrears > 0 ? "text-danger" : null)">@Money(household.RentArrears)</td>
+                            <td>
+                                @if (household.NoticeStage > 0)
+                                {
+                                    <span class="badge text-bg-warning">Stage @household.NoticeStage</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-danger" type="button" @onclick="() => EvictAsync(household.NetworkId)" disabled="@isBusy">
+                                    Evict
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div></div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-xl-6">
+            <div class="card h-100"><div class="card-body">
+                <h2 class="h6 text-uppercase text-muted">Rent roll by owner</h2>
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped mb-0">
+                        <thead><tr><th>Owner</th><th>Units</th><th>Rent</th><th>Arrears</th></tr></thead>
+                        <tbody>
+                            @foreach (var roll in rentRoll)
+                            {
+                                <tr>
+                                    <td>@roll.Owner <span class="small text-muted">@roll.OwnerType</span></td>
+                                    <td>@roll.OccupiedUnits/@roll.Units</td>
+                                    <td>@Money(roll.RentRoll)</td>
+                                    <td>@Money(roll.RentArrears)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div></div>
+        </div>
+        <div class="col-12 col-xl-6">
+            <div class="card h-100"><div class="card-body">
+                <h2 class="h6 text-uppercase text-muted">Construction</h2>
+                @if (construction.Count == 0)
+                {
+                    <p class="text-muted small mb-0">No active projects.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped mb-0">
+                            <thead><tr><th>#</th><th>Developer</th><th>District</th><th>Tier</th><th>Units</th><th>Months</th><th>Cost</th></tr></thead>
+                            <tbody>
+                                @foreach (var project in construction)
+                                {
+                                    <tr>
+                                        <td>@project.NetworkId</td>
+                                        <td>@project.Developer</td>
+                                        <td>@project.District</td>
+                                        <td>@project.Tier</td>
+                                        <td>@project.Units</td>
+                                        <td>@project.MonthsRemaining</td>
+                                        <td>@Money(project.Cost) <span class="small text-muted">paid @Money(project.PaidToDate)</span></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div></div>
+        </div>
+    </div>
+
+    <div class="card mb-4"><div class="card-body">
+        <h2 class="h6 text-uppercase text-muted">Yearly housing history</h2>
+        <div class="table-responsive">
+            <table class="table table-sm table-striped mb-0">
+                <thead>
+                    <tr><th>Year</th><th>Units</th><th>Vacancy</th><th>Rent index</th><th>Rent roll</th><th>Arrears</th><th>Homeless</th><th>Evictions</th><th>Burden</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var snapshot in history)
+                    {
+                        <tr>
+                            <td>@snapshot.Year</td>
+                            <td>@snapshot.OccupiedUnits/@snapshot.Units</td>
+                            <td>@Percent(snapshot.VacancyRate)</td>
+                            <td>@snapshot.RentIndex.ToString("0.000")</td>
+                            <td>@Money(snapshot.RentRoll)</td>
+                            <td>@Money(snapshot.RentArrears)</td>
+                            <td>@snapshot.HomelessHouseholds</td>
+                            <td>@snapshot.EvictionsThisYear</td>
+                            <td>@Percent(snapshot.MedianRentBurden)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div></div>
+}
+
+@code {
+    private HousingData? housing;
+    private List<HousingPropertyData> properties = new();
+    private List<HouseholdData> households = new();
+    private List<HousingRentRollData> rentRoll = new();
+    private List<HousingConstructionData> construction = new();
+    private List<HousingSnapshotData> history = new();
+    private bool isLoading;
+    private bool isBusy;
+    private bool autoRefresh = true;
+    private string? error;
+    private DateTimeOffset? loadedAt;
+    private CancellationTokenSource? refreshCts;
+    private Timer? timer;
+
+    private decimal rentIndex = 1m;
+    private int spawnAdults = 20;
+    private int spawnChildren = 8;
+    private string propertyName = "Riverside";
+    private string propertyDistrict = "Central";
+    private int propertyUnits = 8;
+    private string propertyTier = "Basic";
+    private decimal? propertyRent;
+
+    protected override async Task OnInitializedAsync()
+    {
+        timer = new Timer(async _ => await TimerTickAsync(), null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
+        await RefreshAsync();
+    }
+
+    private async Task TimerTickAsync()
+    {
+        if (!autoRefresh || isLoading)
+            return;
+        await InvokeAsync(RefreshAsync);
+    }
+
+    private async Task RefreshAsync()
+    {
+        if (isLoading)
+            return;
+
+        isLoading = true;
+        refreshCts?.Cancel();
+        refreshCts = new CancellationTokenSource();
+        var token = refreshCts.Token;
+
+        try
+        {
+            housing = await GameData.GetHousingAsync(token);
+            rentIndex = housing.RentIndex;
+            properties = await GameData.GetHousingPropertiesAsync(token);
+            households = await GameData.GetHouseholdsAsync(token);
+            rentRoll = await GameData.GetHousingRentRollAsync(token);
+            construction = await GameData.GetHousingConstructionAsync(token);
+            history = await GameData.GetHousingHistoryAsync(token);
+            loadedAt = DateTimeOffset.Now;
+            error = null;
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task ApplyRentIndexAsync()
+    {
+        await RunActionAsync(() => GameData.SetRentIndexAsync(rentIndex));
+    }
+
+    private async Task SpawnPopulationAsync()
+    {
+        await RunActionAsync(() => GameData.SpawnPopulationAsync(spawnAdults, spawnChildren));
+    }
+
+    private async Task CreatePropertyAsync()
+    {
+        await RunActionAsync(() => GameData.CreatePropertyAsync(
+            propertyName,
+            propertyDistrict,
+            propertyUnits,
+            propertyTier,
+            propertyTier == "Shelter" ? null : propertyRent));
+    }
+
+    private async Task EvictAsync(ulong householdId)
+    {
+        await RunActionAsync(() => GameData.EvictAsync(householdId, immediate: true));
+    }
+
+    private async Task RepairAsync(ulong propertyId, int unitCount)
+    {
+        var amount = 250m * Math.Max(1, unitCount) * 0.1m;
+        await RunActionAsync(() => GameData.RepairPropertyAsync(propertyId, amount));
+    }
+
+    private async Task RunActionAsync(Func<Task> action)
+    {
+        if (isBusy)
+            return;
+
+        isBusy = true;
+        try
+        {
+            await action();
+            await Task.Delay(600);
+            await RefreshAsync();
+            error = null;
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private static string Money(decimal value) => value.ToString("N2");
+    private static string Percent(decimal value) => value.ToString("P1");
+
+    private static string Badge(string level) => level switch
+    {
+        "Pass" => "text-bg-success",
+        "Warn" => "text-bg-warning",
+        "Fail" => "text-bg-danger",
+        _ => "text-bg-secondary"
+    };
+
+    public ValueTask DisposeAsync()
+    {
+        timer?.Dispose();
+        refreshCts?.Cancel();
+        refreshCts?.Dispose();
+        return ValueTask.CompletedTask;
+    }
+}

@@ -17,4 +17,9 @@ public class SimStatus
     public decimal WalletBalance { get; set; }
     public decimal SavingsBalance { get; set; }
     public decimal UnmetDemand { get; set; }
+    public ulong? HouseholdNetworkId { get; set; }
+    public ulong? HousingUnitNetworkId { get; set; }
+    public string Tenure { get; set; } = string.Empty;
+    public string HousingTier { get; set; } = string.Empty;
+    public bool Homeless { get; set; }
 }

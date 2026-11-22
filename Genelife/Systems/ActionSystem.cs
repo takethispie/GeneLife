@@ -28,6 +28,10 @@ public class ActionSystem : ISimulationSystem
     {
         world.Query(in queryDescription, (Entity entity, ref CurrentAction action, ref Needs needs) =>
         {
+            var modifier = world.Has<NeedsModifier>(entity)
+                ? world.Get<NeedsModifier>(entity)
+                : NeedsModifier.Neutral;
+
             action.TimeRemaining -= deltaTime;
 
             var canFulfill = CanFulfill(entity, action.Type);
@@ -40,10 +44,10 @@ public class ActionSystem : ISimulationSystem
                 switch (action.Type)
                 {
                     case ActionType.Sleeping:
-                        needs.Energy = Math.Min(100f, needs.Energy + 5f * deltaTime);
+                        needs.Energy = Math.Min(100f, needs.Energy + 5f * modifier.SleepRecovery * deltaTime);
                         break;
                     case ActionType.Showering:
-                        needs.Hygiene = Math.Min(100f, needs.Hygiene + 10f * deltaTime);
+                        needs.Hygiene = Math.Min(100f, needs.Hygiene + 10f * modifier.HygieneRecovery * deltaTime);
                         break;
                     case ActionType.Eating:
                         needs.Hunger = Math.Min(100f, needs.Hunger + 8f * deltaTime);

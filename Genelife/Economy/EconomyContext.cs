@@ -4,6 +4,8 @@ using Genelife.Components.Company;
 using Genelife.Components.Employment;
 using Genelife.Components.Finance;
 using Genelife.Components.Gen;
+using Genelife.Components.Housing;
+using Genelife.Housing;
 using Genelife.Values;
 
 namespace Genelife.Economy;
@@ -43,13 +45,16 @@ public sealed class EconomyContext
         EmploymentIndex? employment = null,
         EconomyOptions? options = null,
         SimulationClock? clock = null,
-        int randomSeed = 1)
+        int randomSeed = 1,
+        HousingOptions? housingOptions = null)
     {
         World = world;
         Employment = employment ?? new EmploymentIndex();
         Options = options ?? EconomyOptions.Default;
         Clock = clock ?? SimulationClock.Default;
         Random = new SimulationRandom(randomSeed);
+        HousingOptions = housingOptions ?? HousingOptions.Default;
+        Housing = new HousingRegistry(world);
         Ledger = new FinanceLedger();
         Accounts = new CompanyAccountService(world, Ledger);
         Government = new GovernmentAccount();
@@ -73,6 +78,8 @@ public sealed class EconomyContext
     public World World { get; }
     public EmploymentIndex Employment { get; }
     public EconomyOptions Options { get; }
+    public HousingOptions HousingOptions { get; }
+    public HousingRegistry Housing { get; }
     public SimulationClock Clock { get; }
     public SimulationRandom Random { get; }
     public FinanceLedger Ledger { get; }
@@ -169,6 +176,7 @@ public sealed class EconomyContext
         Loans.Clear();
         PendingRevenue.Clear();
         MetricHistory.Clear();
+        Housing.Clear();
         outboundEvents.Clear();
         Tick = 0;
         ResetYearCounters();
