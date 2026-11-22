@@ -373,7 +373,9 @@ public sealed class PopulationGenerator
 
         for (var i = 0; i < 2; i++)
         {
-            var companyId = companyRepository.Add(i == 0 ? "Northwind" : "Bluebird");
+            var companyName = i == 0 ? "Northwind" : "Bluebird";
+            var companyId = companyRepository.Add(companyName);
+            economy.Emit(new CompanyCreated(companyId.Value, companyName));
             if (!networkIds.TryGetEntity(companyId, out var company))
                 continue;
             if (world.Has<CompanyAccount>(company))
