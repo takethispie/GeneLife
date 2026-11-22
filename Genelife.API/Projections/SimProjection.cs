@@ -22,7 +22,7 @@ public partial class SimProjection : EventProjection
         };
     }
 
-    public async ValueTask Project(SimActionStarted e, IDocumentOperations ops)
+    public async Task Project(SimActionStarted e, IDocumentOperations ops)
     {
         await UpdateByNetworkId(ops, e.NetworkId, doc =>
         {
@@ -32,7 +32,7 @@ public partial class SimProjection : EventProjection
         });
     }
 
-    public async ValueTask Project(SimActionCompleted e, IDocumentOperations ops)
+    public async Task Project(SimActionCompleted e, IDocumentOperations ops)
     {
         await UpdateByNetworkId(ops, e.NetworkId, doc =>
         {
@@ -42,7 +42,7 @@ public partial class SimProjection : EventProjection
         });
     }
 
-    public async ValueTask Project(SimNeedsChanged e, IDocumentOperations ops)
+    public async Task Project(SimNeedsChanged e, IDocumentOperations ops)
     {
         await UpdateByNetworkId(ops, e.NetworkId, doc =>
         {
@@ -54,7 +54,7 @@ public partial class SimProjection : EventProjection
         });
     }
 
-    public async ValueTask Project(SimAged e, IDocumentOperations ops)
+    public async Task Project(SimAged e, IDocumentOperations ops)
     {
         await UpdateByNetworkId(ops, e.SimNetworkId, doc =>
         {
@@ -63,7 +63,7 @@ public partial class SimProjection : EventProjection
         });
     }
 
-    public async ValueTask Project(LifeStageChanged e, IDocumentOperations ops)
+    public async Task Project(LifeStageChanged e, IDocumentOperations ops)
     {
         await UpdateByNetworkId(ops, e.SimNetworkId, doc =>
         {
@@ -72,7 +72,7 @@ public partial class SimProjection : EventProjection
         });
     }
 
-    public async ValueTask Project(HealthDeclined e, IDocumentOperations ops)
+    public async Task Project(HealthDeclined e, IDocumentOperations ops)
     {
         await UpdateByNetworkId(ops, e.SimNetworkId, doc =>
         {
@@ -81,7 +81,7 @@ public partial class SimProjection : EventProjection
         });
     }
 
-    public async ValueTask Project(CareNeeded e, IDocumentOperations ops)
+    public async Task Project(CareNeeded e, IDocumentOperations ops)
     {
         await UpdateByNetworkId(ops, e.SimNetworkId, doc =>
         {
@@ -90,7 +90,7 @@ public partial class SimProjection : EventProjection
         });
     }
 
-    public async ValueTask Project(StudentGraduated e, IDocumentOperations ops)
+    public async Task Project(StudentGraduated e, IDocumentOperations ops)
     {
         await UpdateByNetworkId(ops, e.SimNetworkId, doc =>
         {
@@ -99,7 +99,7 @@ public partial class SimProjection : EventProjection
         });
     }
 
-    public async ValueTask Project(PromotionGranted e, IDocumentOperations ops)
+    public async Task Project(PromotionGranted e, IDocumentOperations ops)
     {
         await UpdateByNetworkId(ops, e.SimNetworkId, doc =>
         {
@@ -108,7 +108,7 @@ public partial class SimProjection : EventProjection
         });
     }
 
-    public async ValueTask Project(DemotionApplied e, IDocumentOperations ops)
+    public async Task Project(DemotionApplied e, IDocumentOperations ops)
     {
         await UpdateByNetworkId(ops, e.SimNetworkId, doc =>
         {
@@ -117,19 +117,24 @@ public partial class SimProjection : EventProjection
         });
     }
 
-    public async ValueTask Project(SimDeleted e, IDocumentOperations ops)
+    public async Task Project(SimDeleted e, IDocumentOperations ops)
     {
         var doc = await FindByNetworkId(ops, e.NetworkId);
         if (doc != null)
             ops.Delete<SimDocument>(doc.Id);
     }
 
-    private static Task<SimDocument?> FindByNetworkId(IDocumentOperations ops, ulong networkId)
+    private static async Task<SimDocument?> FindByNetworkId(IDocumentOperations ops, ulong networkId)
     {
-        return ops.Query<SimDocument>().FirstOrDefaultAsync(x => x.NetworkId == (long)networkId);
+        var documentId = DocumentIds.ForNetworkId(networkId);
+        var pending = await ops.LoadAsync<SimDocument>(documentId);
+        if (pending is not null)
+            return pending;
+
+        return await ops.Query<SimDocument>().FirstOrDefaultAsync(x => x.NetworkId == (long)networkId);
     }
 
-    private static async ValueTask UpdateByNetworkId(IDocumentOperations ops, ulong networkId, Action<SimDocument> update)
+    private static async Task UpdateByNetworkId(IDocumentOperations ops, ulong networkId, Action<SimDocument> update)
     {
         var doc = await FindByNetworkId(ops, networkId);
         if (doc != null)

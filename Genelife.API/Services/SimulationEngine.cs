@@ -94,6 +94,12 @@ private readonly NetworkIdRegistry networkIds = new();
     /// </summary>
     public ChannelReader<object> OutboundEvents => outboundEvents.Reader;
 
+    public void Emit(object @event)
+    {
+        if (!outboundEvents.Writer.TryWrite(@event))
+            Interlocked.Increment(ref droppedEventCount);
+    }
+
     public long DroppedEventCount => Interlocked.Read(ref droppedEventCount);
 
     public void Initialize()

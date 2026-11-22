@@ -3,7 +3,7 @@
 **Phase:** 5 — Retirement income
 **Depends:** L11, L12, E13
 **Estimate:** 2 sessions
-**Status:** Planned
+**Status:** Implemented (V1)
 
 ## Goal
 

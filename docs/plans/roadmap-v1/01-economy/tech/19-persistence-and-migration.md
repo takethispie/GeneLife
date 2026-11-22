@@ -3,7 +3,7 @@
 **Phase:** 11 — Durability
 **Depends:** E05, E06, E13, E15, E17
 **Estimate:** 2–3 sessions
-**Status:** Planned
+**Status:** Implemented (V1)
 
 ## Goal
 

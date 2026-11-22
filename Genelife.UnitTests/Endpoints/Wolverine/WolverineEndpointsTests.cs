@@ -10,32 +10,15 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Genelife.UnitTests.Endpoints.Wolverine;
 
-public sealed class WolverineEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+public sealed class WolverineEndpointsTests : IClassFixture<TestApplicationFactory>
 {
-    private const string TestKey = "integration-test-signing-key-0123456789abcdef";
-    private const string TestAdminSecret = "integration-test-admin-secret";
 
-    private readonly WebApplicationFactory<Program> factory;
+    private readonly TestApplicationFactory factory;
     private readonly JwtTokenService tokenService;
 
-    public WolverineEndpointsTests(WebApplicationFactory<Program> fixture)
+    public WolverineEndpointsTests(TestApplicationFactory fixture)
     {
-        factory = fixture.WithWebHostBuilder(builder =>
-        {
-            builder.ConfigureAppConfiguration((_, config) =>
-            {
-                config.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["Auth:Jwt:Issuer"] = "genelife-tests",
-                    ["Auth:Jwt:Audience"] = "genelife-tests",
-                    ["Auth:Jwt:Key"] = TestKey,
-                    ["Auth:Jwt:AdminSecret"] = TestAdminSecret,
-                    ["Auth:Jwt:TokenLifetimeMinutes"] = "60",
-                    ["Logging:LogLevel:Default"] = "Warning",
-                    ["Logging:LogLevel:Microsoft.AspNetCore"] = "Warning"
-                });
-            });
-        });
+        factory = fixture;
 
         tokenService = factory.Services.GetRequiredService<JwtTokenService>();
     }

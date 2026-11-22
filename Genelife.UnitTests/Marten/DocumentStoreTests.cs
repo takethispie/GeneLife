@@ -5,11 +5,11 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Genelife.UnitTests.Marten;
 
-public sealed class DocumentStoreTests : IClassFixture<WebApplicationFactory<Program>>
+public sealed class DocumentStoreTests : IClassFixture<TestApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> factory;
+    private readonly TestApplicationFactory factory;
 
-    public DocumentStoreTests(WebApplicationFactory<Program> fixture)
+    public DocumentStoreTests(TestApplicationFactory fixture)
     {
         factory = fixture;
     }

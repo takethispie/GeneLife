@@ -3,7 +3,7 @@
 **Phase:** 9 — Admin
 **Depends:** H10, H11, E17
 **Estimate:** 2–3 sessions
-**Status:** Planned
+**Status:** Implemented (V1)
 
 ## Goal
 

@@ -3,7 +3,7 @@
 **Phase:** 2 — Labour market
 **Depends:** E01, E02
 **Estimate:** 2 sessions
-**Status:** Planned
+**Status:** Implemented (V1)
 
 ## Goal
 

@@ -5,11 +5,11 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Genelife.UnitTests.Marten;
 
-public sealed class GetAllSimsQueryTests : IClassFixture<WebApplicationFactory<Program>>
+public sealed class GetAllSimsQueryTests : IClassFixture<TestApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> factory;
+    private readonly TestApplicationFactory factory;
 
-    public GetAllSimsQueryTests(WebApplicationFactory<Program> fixture)
+    public GetAllSimsQueryTests(TestApplicationFactory fixture)
     {
         factory = fixture;
     }

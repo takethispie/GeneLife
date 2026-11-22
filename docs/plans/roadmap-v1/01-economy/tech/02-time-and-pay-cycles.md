@@ -3,7 +3,7 @@
 **Phase:** 1 — Foundation
 **Depends:** E01
 **Estimate:** 1 session
-**Status:** Planned
+**Status:** Implemented (V1)
 
 ## Goal
 

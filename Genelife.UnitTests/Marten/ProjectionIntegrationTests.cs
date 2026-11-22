@@ -6,11 +6,11 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Genelife.UnitTests.Marten;
 
-public sealed class ProjectionIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+public sealed class ProjectionIntegrationTests : IClassFixture<TestApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> factory;
+    private readonly TestApplicationFactory factory;
 
-    public ProjectionIntegrationTests(WebApplicationFactory<Program> fixture)
+    public ProjectionIntegrationTests(TestApplicationFactory fixture)
     {
         factory = fixture;
     }
@@ -60,11 +60,18 @@ public sealed class ProjectionIntegrationTests : IClassFixture<WebApplicationFac
         var streamId = Guid.NewGuid();
         var simCreated = new SimCreated(2, "NeedySim", 30);
 
-        await using (var session = store.LightweightSession())
+        // SimulationEventWriter persists create events before update events in
+        // the same flush so inline projections can see the new document.
+        await using (var createSession = store.LightweightSession())
         {
-            session.Events.StartStream(streamId, simCreated);
-            session.Events.Append(streamId, new SimNeedsChanged(2, 80, 50, 60, 40));
-            await session.SaveChangesAsync();
+            createSession.Events.StartStream(streamId, simCreated);
+            await createSession.SaveChangesAsync();
+        }
+
+        await using (var updateSession = store.LightweightSession())
+        {
+            updateSession.Events.Append(streamId, new SimNeedsChanged(2, 80, 50, 60, 40));
+            await updateSession.SaveChangesAsync();
         }
 
         await using var readSession = store.LightweightSession();

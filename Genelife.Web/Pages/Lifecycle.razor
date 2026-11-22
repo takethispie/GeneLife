@@ -122,6 +122,15 @@
                     </div>
                     <button class="btn btn-sm btn-outline-primary" type="button" @onclick="SetTargetAsync" disabled="@isBusy">Set</button>
                 </div>
+                <div class="d-flex flex-wrap gap-2 align-items-end mt-2">
+                    <button class="btn btn-sm btn-outline-secondary" type="button" @onclick="PausePopulationAsync" disabled="@isBusy">Pause</button>
+                    <button class="btn btn-sm btn-outline-secondary" type="button" @onclick="ResumePopulationAsync" disabled="@isBusy">Resume</button>
+                    <div style="width: 7rem;">
+                        <label class="form-label small mb-1">Wave size</label>
+                        <input class="form-control form-control-sm" type="number" min="1" @bind="waveCount" />
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary" type="button" @onclick="TriggerWaveAsync" disabled="@isBusy">Trigger wave</button>
+                </div>
             </div></div>
         </div>
     </div>
@@ -204,14 +213,26 @@
                             <td class="text-end">
                                 @if (!sim.IsDead)
                                 {
-                                    <div class="btn-group btn-group-sm">
+                                    <div class="btn-group btn-group-sm flex-wrap">
                                         @if (sim.Stage == "Education")
                                         {
                                             <button class="btn btn-outline-secondary" type="button" @onclick="() => GraduateAsync(sim.NetworkId)" disabled="@isBusy">Graduate</button>
+                                            @if (sim.IsEnrolled)
+                                            {
+                                                <button class="btn btn-outline-secondary" type="button" @onclick="() => UnenrollAsync(sim)" disabled="@isBusy">Unenroll</button>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn btn-outline-secondary" type="button" @onclick="() => EnrollAsync(sim)" disabled="@isBusy || FirstSchoolId is null">Enroll</button>
+                                            }
                                         }
                                         @if (sim.Stage == "Work")
                                         {
                                             <button class="btn btn-outline-secondary" type="button" @onclick="() => RetireAsync(sim.NetworkId)" disabled="@isBusy">Retire</button>
+                                            @if (sim.IsEmployed)
+                                            {
+                                                <button class="btn btn-outline-secondary" type="button" @onclick="() => PromoteAsync(sim.NetworkId)" disabled="@isBusy">Promote</button>
+                                            }
                                         }
                                         <button class="btn btn-outline-primary" type="button" @onclick="() => CareAsync(sim.NetworkId)" disabled="@isBusy">Care</button>
                                     </div>
@@ -231,7 +252,7 @@
                 <h2 class="h6 text-uppercase text-muted">Schools</h2>
                 <div class="table-responsive">
                     <table class="table table-sm mb-2">
-                        <thead><tr><th>School</th><th>District</th><th>Enrolled</th><th>Attendance</th><th>Quality</th><th>Emphasis</th><th>Cost</th></tr></thead>
+                        <thead><tr><th>School</th><th>District</th><th>Enrolled</th><th>Attendance</th><th>Quality</th><th>Emphasis</th><th>Cost</th><th></th></tr></thead>
                         <tbody>
                             @foreach (var school in lifecycle.Schools)
                             {
@@ -243,6 +264,7 @@
                                     <td>@school.Quality.ToString("0.00")</td>
                                     <td>@school.Emphasis</td>
                                     <td>@Money(school.MonthlyCost)</td>
+                                    <td class="text-end"><button class="btn btn-sm btn-outline-secondary" type="button" @onclick="() => LoadSchool(school)">Edit</button></td>
                                 </tr>
                             }
                         </tbody>
@@ -265,6 +287,27 @@
                     <div class="col-4 col-md-2"><label class="form-label small mb-1">Cost</label><input class="form-control form-control-sm" type="number" min="0" @bind="schoolCost" /></div>
                     <div class="col-12 col-md-1"><button class="btn btn-sm btn-primary w-100" type="button" @onclick="CreateSchoolAsync" disabled="@isBusy">Add</button></div>
                 </div>
+                @if (editSchoolId is not null)
+                {
+                    <hr />
+                    <div class="row g-2 align-items-end">
+                        <div class="col-6 col-md-3"><label class="form-label small mb-1">Editing school</label><div class="form-control form-control-sm bg-light">#@editSchoolId</div></div>
+                        <div class="col-4 col-md-2"><label class="form-label small mb-1">Capacity</label><input class="form-control form-control-sm" type="number" min="1" @bind="editSchoolCapacity" /></div>
+                        <div class="col-4 col-md-2"><label class="form-label small mb-1">Quality</label><input class="form-control form-control-sm" type="number" min="0" max="1" step="0.05" @bind="editSchoolQuality" /></div>
+                        <div class="col-4 col-md-2"><label class="form-label small mb-1">Cost</label><input class="form-control form-control-sm" type="number" min="0" @bind="editSchoolCost" /></div>
+                        <div class="col-6 col-md-2"><label class="form-label small mb-1">Emphasis</label>
+                            <select class="form-select form-select-sm" @bind="editSchoolEmphasis">
+                                <option value="Programming">Programming</option>
+                                <option value="Art">Art</option>
+                                <option value="Cooking">Cooking</option>
+                                <option value="Medical">Medical</option>
+                                <option value="Engineering">Engineering</option>
+                                <option value="Sales">Sales</option>
+                            </select>
+                        </div>
+                        <div class="col-6 col-md-1"><button class="btn btn-sm btn-primary w-100" type="button" @onclick="SaveSchoolAsync" disabled="@isBusy">Save</button></div>
+                    </div>
+                }
             </div></div>
         </div>
         <div class="col-12 col-xl-5">
@@ -283,9 +326,53 @@
                     funding @Percent(lifecycle.Pensions.FundingRatio) &middot; paid @Money(lifecycle.Pensions.PaidThisCycle)
                 </div>
                 <div class="small text-muted">Members @lifecycle.Pensions.Members &middot; average pension @Money(lifecycle.Pensions.AverageMonthlyPension) &middot; reduced @lifecycle.Pensions.ReducedThisCycle</div>
+                <div class="d-flex gap-2 align-items-end mt-2">
+                    <div class="flex-grow-1">
+                        <label class="form-label small mb-1">Government top-up</label>
+                        <input class="form-control form-control-sm" type="number" min="1" @bind="pensionTopUp" />
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary" type="button" @onclick="TopUpPensionAsync" disabled="@isBusy">Top up</button>
+                </div>
             </div></div>
         </div>
     </div>
+
+    <div class="card mb-4"><div class="card-body">
+        <h2 class="h6 text-uppercase text-muted">Admin lifecycle controls</h2>
+        <div class="row g-2 align-items-end">
+            <div class="col-6 col-md-2"><label class="form-label small mb-1">Sim network id</label><input class="form-control form-control-sm" type="number" min="1" @bind="adminSimId" /></div>
+            <div class="col-6 col-md-2"><label class="form-label small mb-1">Force stage</label>
+                <select class="form-select form-select-sm" @bind="adminStage">
+                    <option value="Education">Education</option>
+                    <option value="Work">Work</option>
+                    <option value="Retirement">Retirement</option>
+                    <option value="Elderly">Elderly</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-2"><button class="btn btn-sm btn-outline-secondary w-100" type="button" @onclick="ForceStageAsync" disabled="@isBusy">Force stage</button></div>
+            <div class="col-12 col-md-2"><button class="btn btn-sm btn-outline-secondary w-100" type="button" @onclick="AdvanceAgeAsync" disabled="@isBusy">Advance 5 years</button></div>
+            <div class="col-12 col-md-2"><button class="btn btn-sm btn-outline-secondary w-100" type="button" @onclick="PromoteAdminAsync" disabled="@isBusy">Promote</button></div>
+            <div class="col-12 col-md-2"><button class="btn btn-sm btn-outline-danger w-100" type="button" @onclick="ForceDeathAsync" disabled="@isBusy">Record death</button></div>
+        </div>
+        <div class="row g-2 align-items-end mt-2">
+            <div class="col-6 col-md-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="benefitEligible" @bind="benefitEligible" />
+                    <label class="form-check-label small" for="benefitEligible">Unemployment benefit eligible</label>
+                </div>
+            </div>
+            <div class="col-6 col-md-2"><button class="btn btn-sm btn-outline-primary w-100" type="button" @onclick="ApplyBenefitAsync" disabled="@isBusy">Apply</button></div>
+            <div class="col-6 col-md-2">
+                <select class="form-select form-select-sm" @bind="deathCause">
+                    <option value="Age">Age</option>
+                    <option value="Illness">Illness</option>
+                    <option value="Starvation">Starvation</option>
+                    <option value="Exposure">Exposure</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+        </div>
+    </div></div>
 
     <div class="row g-3 mb-4">
         <div class="col-12 col-xl-6">
@@ -357,6 +444,21 @@
     private int targetPopulation;
     private int generateTotal = 200;
     private int generateSeed = 1;
+    private int waveCount = 10;
+    private decimal pensionTopUp = 1_000m;
+
+    private ulong? editSchoolId;
+    private int editSchoolCapacity = 60;
+    private decimal editSchoolQuality = 0.65m;
+    private decimal editSchoolCost = 50m;
+    private string editSchoolEmphasis = "Programming";
+
+    private ulong adminSimId;
+    private string adminStage = "Work";
+    private bool benefitEligible = true;
+    private string deathCause = "Other";
+
+    private ulong? FirstSchoolId => lifecycle?.Schools.FirstOrDefault()?.NetworkId;
 
     private IEnumerable<SimLifecycleData> FilteredSims => sims
         .Where(sim => string.IsNullOrEmpty(stageFilter) || sim.Stage == stageFilter)
@@ -435,6 +537,79 @@
         RunAsync(
             () => GameData.CreateSchoolAsync(schoolName, schoolDistrict, schoolCapacity, schoolEmphasis, schoolCost),
             "School creation queued.");
+
+    private Task EnrollAsync(SimLifecycleData sim)
+    {
+        var schoolId = sim.SchoolNetworkId ?? FirstSchoolId;
+        return schoolId is null
+            ? Task.CompletedTask
+            : RunAsync(() => GameData.EnrollAsync(schoolId.Value, sim.NetworkId), "Enrollment queued.");
+    }
+
+    private Task UnenrollAsync(SimLifecycleData sim)
+    {
+        var schoolId = sim.SchoolNetworkId ?? FirstSchoolId;
+        return schoolId is null
+            ? Task.CompletedTask
+            : RunAsync(() => GameData.UnenrollAsync(schoolId.Value, sim.NetworkId), "Unenrollment queued.");
+    }
+
+    private Task PromoteAsync(ulong simId) =>
+        RunAsync(() => GameData.PromoteAsync(simId), "Promotion queued.");
+
+    private Task PromoteAdminAsync() =>
+        RunAsync(() => GameData.PromoteAsync(adminSimId), "Promotion queued.");
+
+    private Task ForceStageAsync() =>
+        RunAsync(() => GameData.ForceStageAsync(adminSimId, adminStage), "Stage override queued.");
+
+    private Task AdvanceAgeAsync() =>
+        RunAsync(() => GameData.AdvanceAgeAsync(adminSimId, 5), "Age advance queued.");
+
+    private Task ForceDeathAsync() =>
+        RunAsync(() => GameData.ForceDeathAsync(adminSimId, deathCause), "Death queued.");
+
+    private Task ApplyBenefitAsync() =>
+        RunAsync(
+            () => GameData.SetBenefitEligibilityAsync(adminSimId, benefitEligible),
+            "Benefit eligibility updated.");
+
+    private Task PausePopulationAsync() =>
+        RunAsync(() => GameData.PausePopulationAsync(), "Immigration paused.");
+
+    private Task ResumePopulationAsync() =>
+        RunAsync(() => GameData.ResumePopulationAsync(), "Immigration resumed.");
+
+    private Task TriggerWaveAsync() =>
+        RunAsync(() => GameData.TriggerImmigrationWaveAsync(waveCount), "Immigration wave queued.");
+
+    private Task TopUpPensionAsync() =>
+        RunAsync(() => GameData.TopUpPensionFundAsync(pensionTopUp), "Pension top-up queued.");
+
+    private void LoadSchool(SchoolData school)
+    {
+        editSchoolId = school.NetworkId;
+        editSchoolCapacity = school.Capacity;
+        editSchoolQuality = school.Quality;
+        editSchoolCost = school.MonthlyCost;
+        editSchoolEmphasis = string.IsNullOrWhiteSpace(school.Emphasis) ? "Programming" : school.Emphasis.Split(',')[0];
+    }
+
+    private Task SaveSchoolAsync() =>
+        editSchoolId is null
+            ? Task.CompletedTask
+            : RunAsync(
+                async () =>
+                {
+                    await GameData.UpdateSchoolAsync(
+                        editSchoolId.Value,
+                        editSchoolCapacity,
+                        (float)editSchoolQuality,
+                        editSchoolCost,
+                        editSchoolEmphasis);
+                    editSchoolId = null;
+                },
+                "School updated.");
 
     private Task GenerateAsync() =>
         RunAsync(

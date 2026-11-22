@@ -3,7 +3,7 @@
 **Phase:** 6 — Elderly
 **Depends:** L15, E06, H08
 **Estimate:** 2–3 sessions
-**Status:** Planned
+**Status:** Implemented (V1)
 
 ## Goal
 

@@ -1,6 +1,8 @@
 # Housing — Summary
 
 **Folder:** `02-housing/`
+**Status:** Implemented (V1)
+
 **Depends on:** economy payroll and accounts (`01-economy/tech/05`, `07`), population generation (life stages)
 **Feeds:** needs and health modifiers, mortality, household wealth, estate settlement
 
@@ -8,7 +10,7 @@
 
 Give every NPC a home: a unit in a building, a household that shares costs, a monthly rent or ownership burden, and a real risk of losing it. Housing is the main recurring expense that turns wages into a life constraint.
 
-## Starting point
+## Baseline before V1
 
 - Sims have a `Location` and the world has a `SpatialIndex`, but there are no buildings.
 - Companies have offices; there is no residential property, landlord or rent.

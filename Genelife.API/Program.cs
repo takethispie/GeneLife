@@ -76,9 +76,12 @@ var connectionString = builder.Configuration.GetConnectionString("genelife")
 
 if (useMartenReads)
 {
+    var martenSchema = builder.Configuration["Marten:SchemaName"];
     builder.Services.AddMarten(opts =>
     {
         opts.Connection(connectionString);
+        if (!string.IsNullOrWhiteSpace(martenSchema))
+            opts.DatabaseSchemaName = martenSchema;
         opts.DisableNpgsqlLogging = true;
         opts.AutoCreateSchemaObjects = JasperFx.AutoCreate.CreateOrUpdate;
         opts.Schema.For<Genelife.Api.Models.SimDocument>().Identity(x => x.Id);

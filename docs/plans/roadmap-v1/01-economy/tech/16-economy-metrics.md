@@ -3,7 +3,7 @@
 **Phase:** 9 — Observability
 **Depends:** E06, E12, E15
 **Estimate:** 1–2 sessions
-**Status:** Planned
+**Status:** Implemented (V1)
 
 ## Goal
 

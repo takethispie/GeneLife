@@ -3,7 +3,7 @@
 **Phase:** 7 — Market
 **Depends:** H05, H09, E14
 **Estimate:** 2–3 sessions
-**Status:** Planned
+**Status:** Implemented (V1)
 
 ## Goal
 

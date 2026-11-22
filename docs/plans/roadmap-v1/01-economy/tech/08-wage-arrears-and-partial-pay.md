@@ -3,7 +3,7 @@
 **Phase:** 4 — Payroll
 **Depends:** E07
 **Estimate:** 2 sessions
-**Status:** Planned
+**Status:** Implemented (V1)
 
 ## Goal
 

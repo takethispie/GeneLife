@@ -163,6 +163,36 @@ public class SnapshotStoreTests : IDisposable
     }
 
     [Fact]
+    public Task LoadLatest_MigratesV3SnapshotToCurrentSchema()
+    {
+        using var store = CreateStore();
+        store.InitializeAsync().GetAwaiter().GetResult();
+
+        store.Save(new PersistedWorldState
+        {
+            SchemaVersion = 3,
+            Tick = 123,
+            HousingMigrated = true,
+            Sims =
+            [
+                new PersistedSim
+                {
+                    Name = "Legacy", Age = 72, NetworkId = 7,
+                    ActionType = "Idle", Stage = string.Empty
+                }
+            ]
+        });
+
+        var loaded = store.LoadLatest();
+        Assert.NotNull(loaded);
+        Assert.Equal(PersistedWorldState.CurrentSchemaVersion, loaded!.SchemaVersion);
+        Assert.False(loaded.LifecycleMigrated);
+        Assert.Single(loaded.Sims);
+        Assert.Equal(72, loaded.Sims[0].Age);
+        return Task.CompletedTask;
+    }
+
+    [Fact]
     public Task LoadLatest_ThrowsForNewerSchema()
     {
         using var store = CreateStore();

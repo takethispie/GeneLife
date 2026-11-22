@@ -3,7 +3,7 @@
 **Phase:** 10 — Observability
 **Depends:** H05–H10, E16
 **Estimate:** 1–2 sessions
-**Status:** Planned
+**Status:** Implemented (V1)
 
 ## Goal
 

@@ -3,7 +3,7 @@
 **Phase:** 5 — Risk
 **Depends:** H05, H07
 **Estimate:** 2–3 sessions
-**Status:** Planned
+**Status:** Implemented (V1)
 
 ## Goal
 

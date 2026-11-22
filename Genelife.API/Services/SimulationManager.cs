@@ -3,6 +3,7 @@ using Genelife.Api.Models;
 using Genelife.Api.Persistence;
 using Genelife.Api.Repositories;
 using Genelife.Components.Gen;
+using Genelife.Messages.Events;
 using Marten;
 
 namespace Genelife.Api.Services;
@@ -130,11 +131,13 @@ public class SimulationManager : IHostedService, IDisposable
 
     public ulong AddSim(string name, int age)
     {
-        return engine.ExecuteWithWorld(world =>
+        var networkId = engine.ExecuteWithWorld(world =>
         {
             var repository = new SimRepository(world, networkIds, engine.Economy);
             return repository.Add(name, age).Value;
         });
+        engine.Emit(new SimCreated(networkId, name, age));
+        return networkId;
     }
 
     public async Task<List<SimStatus>> GetAllSimsAsync()
@@ -171,11 +174,13 @@ public class SimulationManager : IHostedService, IDisposable
 
     public ulong AddCompany(string name)
     {
-        return engine.ExecuteWithWorld(world =>
+        var networkId = engine.ExecuteWithWorld(world =>
         {
             var repository = new CompanyRepository(world, GetIndex(), networkIds, engine.Economy);
             return repository.Add(name).Value;
         });
+        engine.Emit(new CompanyCreated(networkId, name));
+        return networkId;
     }
 
     public async Task<CompanyStatus?> GetCompanyAsync(ulong networkId)

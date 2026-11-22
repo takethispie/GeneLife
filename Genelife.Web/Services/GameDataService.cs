@@ -249,6 +249,89 @@ public sealed class GameDataService
             new { healthGain },
             cancellationToken);
 
+    public Task UpdateSchoolAsync(
+        ulong schoolId,
+        int? capacity = null,
+        float? quality = null,
+        decimal? monthlyCost = null,
+        string? emphasis = null,
+        CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(
+            HttpMethod.Patch,
+            $"api/schools/{schoolId}",
+            new { capacity, quality, monthlyCost, emphasis },
+            cancellationToken);
+
+    public Task EnrollAsync(ulong schoolId, ulong simId, CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(
+            HttpMethod.Post,
+            $"api/schools/{schoolId}/enroll/{simId}",
+            null,
+            cancellationToken);
+
+    public Task UnenrollAsync(ulong schoolId, ulong simId, CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(
+            HttpMethod.Delete,
+            $"api/schools/{schoolId}/enroll/{simId}",
+            null,
+            cancellationToken);
+
+    public Task PromoteAsync(ulong simId, CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(
+            HttpMethod.Post,
+            $"api/employment/{simId}/promote",
+            null,
+            cancellationToken);
+
+    public Task ForceDeathAsync(
+        ulong simId,
+        string cause = "Other",
+        CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(
+            HttpMethod.Post,
+            $"api/lifecycle/sims/{simId}/death",
+            new { cause },
+            cancellationToken);
+
+    public Task SetBenefitEligibilityAsync(
+        ulong simId,
+        bool eligible,
+        CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(
+            HttpMethod.Post,
+            $"api/lifecycle/unemployment/{simId}/eligibility",
+            new { eligible },
+            cancellationToken);
+
+    public Task TopUpPensionFundAsync(decimal amount, CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(
+            HttpMethod.Post,
+            "api/lifecycle/pensions/top-up",
+            new { amount },
+            cancellationToken);
+
+    public Task AdvanceAgeAsync(ulong simId, int years = 5, CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(
+            HttpMethod.Post,
+            $"api/sims/{simId}/advance-age",
+            new { years },
+            cancellationToken);
+
+    public Task PausePopulationAsync(CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(HttpMethod.Post, "api/lifecycle/population/pause", null, cancellationToken);
+
+    public Task ResumePopulationAsync(CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(HttpMethod.Post, "api/lifecycle/population/resume", null, cancellationToken);
+
+    public Task TriggerImmigrationWaveAsync(
+        int count = 10,
+        CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(
+            HttpMethod.Post,
+            "api/lifecycle/population/wave",
+            new { count },
+            cancellationToken);
+
     public Task GeneratePopulationAsync(
         int totalSims,
         int seed = 1,

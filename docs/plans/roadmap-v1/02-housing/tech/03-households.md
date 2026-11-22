@@ -3,7 +3,7 @@
 **Phase:** 2 — Households
 **Depends:** H01, H02
 **Estimate:** 2 sessions
-**Status:** Planned
+**Status:** Implemented (V1)
 
 ## Goal
 

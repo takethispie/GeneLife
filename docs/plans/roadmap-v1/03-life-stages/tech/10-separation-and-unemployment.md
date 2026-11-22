@@ -3,7 +3,7 @@
 **Phase:** 3 — Work
 **Depends:** L08, L09, E09, E13
 **Estimate:** 2–3 sessions
-**Status:** Planned
+**Status:** Implemented (V1)
 
 ## Goal
 
