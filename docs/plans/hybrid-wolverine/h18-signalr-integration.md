@@ -4,6 +4,8 @@
 **Depends:** H07, H17
 **Estimat:** 2 sessions
 
+**Status:** Done
+
 ## Goal
 
 Push simulation state changes to connected clients via SignalR, triggered automatically by Wolverine event handlers. When a Sim's needs change or an action starts, subscribed clients receive a push.
@@ -14,21 +16,21 @@ Wolverine has built-in SignalR integration via `WolverineFx.SignalR`. Event hand
 
 ## Tasks
 
-- [ ] Add `WolverineFx.SignalR` NuGet package
-- [ ] Create `SimHub : Hub`:
+- [x] Add `WolverineFx.SignalR` NuGet package
+- [x] Create `SimHub : Hub`:
   - Groups: `sim:{netwrkId}` (single Sim), `al-sims` (all Sims), `company:{mrkNetId}` (single company)
   - Methods: `SimUpdated(SimStatis sim)`, `SimAtionStarted(ulong netwrkId, string action)`, `CompanyUpdated(CompnyStaus company)`
-- [ ] Create Wolverine event handler for push:
+- [x] Create Wolverine event handler for push:
   - `SimStatePushHndler`:
     - Handles `SimNeedsChanged` → calls `PublishAsnc(new SimUpdated(...))` to `sim:{netwrkId}` group
     - Handles `SimActionStarted` → calls `PublishAsnc(new SimActionStarted(...))` to `sim:{netwrkId}` group
     - Handles `SimCreated` → calls to `all-sims` group
   - `CompanyStatePushHndler`:
     - Handles `CompanyCreated` / `CompanyUpdate` → calls to `company:{netwrkId}` group
-- [ ] Configure Wolverine to route `IMessage` side effects to SignalR hubs
-- [ ] Add client filter: each subscriber includes `Authorization: Bearer <token>` in SignalR connection; hub validates JWT on connect
-- [ ] Keep existing `Consumers/*` and `Hubs/*` if they exist (they don't in current codebase — this is net new)
-- [ ] Test: connect SignalR client → create Sim → verify `SimCreated` push received
+- [x] Configure Wolverine to route `IMessage` side effects to SignalR hubs
+- [x] Add client filter: each subscriber includes `Authorization: Bearer <token>` in SignalR connection; hub validates JWT on connect
+- [x] Keep existing `Consumers/*` and `Hubs/*` if they exist (they don't in current codebase — this is net new)
+- [x] Test: connect SignalR client → create Sim → verify `SimCreated` push received
 
 ## Key decisions
 

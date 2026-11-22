@@ -3,6 +3,8 @@
 **Depends:** 03, 05
 **Goal:** Serve reads and replication from an immutable snapshot instead of the live world.
 
+**Status:** Done
+
 ## Context
 
 `GetAllSims`/`GetAllCompanies` run queries and allocate DTOs under the tick lock, stalling
@@ -10,12 +12,12 @@ the simulation and scaling poorly with 32 polling clients.
 
 ## Tasks
 
-- [ ] Define immutable `WorldSnapshot { long Tick, List<SimSnapshot>, List<CompanySnapshot> }`.
-- [ ] Build the snapshot after systems run, using `NetworkId`.
-- [ ] Double-buffer: build into a spare slot, then atomically swap a reference.
-- [ ] Convert read endpoints to consume the latest snapshot (no `ExecuteWithWorld`).
-- [ ] Add a schema/version field.
-- [ ] Measure snapshot build time.
+- [x] Define immutable `WorldSnapshot { long Tick, List<SimSnapshot>, List<CompanySnapshot> }`.
+- [x] Build the snapshot after systems run, using `NetworkId`.
+- [x] Double-buffer: build into a spare slot, then atomically swap a reference.
+- [x] Convert read endpoints to consume the latest snapshot (no `ExecuteWithWorld`).
+- [x] Add a schema/version field.
+- [x] Measure snapshot build time.
 
 ## Files likely touched
 

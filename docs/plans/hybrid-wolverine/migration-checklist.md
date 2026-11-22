@@ -1,5 +1,7 @@
 # Hybrid Wolverine Migration Checklist
 
+**Status:** Phases 1–3 done; Phase 4 partially done (H16); Phase 5 partially done (H19/H20 cleanup outstanding).
+
 ## Prerequisites
 
 - [ ] Postgres instance running (localhost:5432 or configured)
@@ -8,45 +10,50 @@
 
 ## Step-by-step Migration
 
-### Phase 1 — Foundation (already implemented)
-| Step | Flag | What to verify |
-|------|------|----------------|
-| H01 | — | Packages installed: WolverineFx, Marten, etc |
-| H02 | `UseWolverineEndpoints` | Wolverine registered in DI |
-| H03 | — | `Genelife.Messages` project compiles |
-| H04 | — | Command handlers exist in `Genelife.API/Handlers/` |
-| H05 | `UseWolverineEndpoints` | `GET /api/sims`, `POST /api/sims`, `POST /api/companies` all return correct status codes |
-| H06 | `UseMartenReads` | Tables `mt_doc_simdocument`, `mt_doc_companydocument` created |
+### Phase 1 — Foundation (done)
 
-### Phase 2 — Read Migration
-| Step | Flag | What to verify |
-|------|------|----------------|
-| H07 | `UseMartenReads` | Simulation ticks publish `SimNeedsChanged` events, projections update documents |
-| H08 | `UseMartenReads` | `GET /api/sims` returns from Postgres (check logs: no "falling back to snapshot") |
-| H09 | `UseMartenReads` | `GET /api/companies` returns from Postgres |
-| H10 | — | `SnapshotsEnabled` flag controls snapshot build |
+| Step | Flag | What to verify | Status |
+|------|------|----------------|--------|
+| H01 | — | Packages installed: WolverineFx, Marten, etc | Done |
+| H02 | `UseWolverineEndpoints` | Wolverine registered in DI | Done |
+| H03 | — | `Genelife.Messages` project compiles | Done |
+| H04 | — | Command handlers exist in `Genelife.API/Handlers/` | Done |
+| H05 | `UseWolverineEndpoints` | `GET /api/sims`, `POST /api/sims`, `POST /api/companies` all return correct status codes | Done |
+| H06 | `UseMartenReads` | Tables `mt_doc_simdocument`, `mt_doc_companydocument` created | Done |
 
-### Phase 3 — Persistence (requires Postgres)
-| Step | Flag | What to verify |
-|------|------|----------------|
-| H11 | `UseMartenReads` | `WorldRestoreService` restores entities from Marten on startup |
-| H12 | — | Simulation saves to Marten documents |
-| H13 | `UseOutbox` | Outbox pattern with Marten + Wolverine |
-| H14 | — | All persistence tests pass |
+### Phase 2 — Read Migration (done)
 
-### Phase 4 — Commands and Sagas (requires Postgres for H16)
-| Step | Flag | What to verify |
-|------|------|----------------|
-| H15 | `UseCommandQueue` | `EnqueuedCommand` drained during tick |
-| H16 | `UseSagas` | Hiring saga processes job posting lifecycle |
-| H17 | `UseWolverineEndpoints` | Ownership middleware rejects cross-player mutations |
+| Step | Flag | What to verify | Status |
+|------|------|----------------|--------|
+| H07 | `UseMartenReads` | Simulation ticks publish `SimNeedsChanged` events, projections update documents | Done |
+| H08 | `UseMartenReads` | `GET /api/sims` returns from Postgres (check logs: no "falling back to snapshot") | Done |
+| H09 | `UseMartenReads` | `GET /api/companies` returns from Postgres | Done |
+| H10 | — | `SnapshotsEnabled` flag controls snapshot build | Done |
 
-### Phase 5 — Realtime and Cleanup
-| Step | Flag | What to verify |
-|------|------|----------------|
-| H18 | `UseSignalR` | SignalR broadcasts via Wolverine side effects |
-| H19 | — | All HTTP goes through Wolverine endpoints |
-| H20 | — | Feature flags toggle architecture behavior |
+### Phase 3 — Persistence (done)
+
+| Step | Flag | What to verify | Status |
+|------|------|----------------|--------|
+| H11 | `UseMartenReads` | `WorldRestoreService` restores entities from Marten on startup | Done |
+| H12 | — | Simulation saves to Marten documents | Done |
+| H13 | `UseOutbox` | Outbox pattern with Marten + Wolverine | Done |
+| H14 | — | All persistence tests pass | Done |
+
+### Phase 4 — Commands and Sagas (H15/H17 done; H16 partial)
+
+| Step | Flag | What to verify | Status |
+|------|------|----------------|--------|
+| H15 | `UseCommandQueue` | `EnqueuedCommand` drained during tick | Done |
+| H16 | `UseSagas` | Hiring saga processes job posting lifecycle | Partial |
+| H17 | `UseWolverineEndpoints` | Ownership middleware rejects cross-player mutations | Done |
+
+### Phase 5 — Realtime and Cleanup (partial — H19/H20 cleanup outstanding)
+
+| Step | Flag | What to verify | Status |
+|------|------|----------------|--------|
+| H18 | `UseSignalR` | SignalR broadcasts via Wolverine side effects | Done |
+| H19 | — | All HTTP goes through Wolverine endpoints | Partial |
+| H20 | — | Feature flags toggle architecture behavior | Partial |
 
 ## Verification Commands
 

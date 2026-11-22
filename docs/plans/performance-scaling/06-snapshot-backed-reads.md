@@ -3,12 +3,14 @@
 **Depends:** 02, multiplayer Step 06
 **Goal:** Remove read traffic from the simulation lock.
 
+**Status:** Done
+
 ## Tasks
 
-- [ ] Serve all read endpoints from the double-buffered snapshot.
-- [ ] Add a latency metric for reads under load.
-- [ ] Assert the tick lock is not taken by reads.
-- [ ] Measure snapshot build cost vs read savings.
+- [x] Serve all read endpoints from the double-buffered snapshot.
+- [x] Add a latency metric for reads under load.
+- [x] Assert the tick lock is not taken by reads.
+- [x] Measure snapshot build cost vs read savings.
 
 ## Files likely touched
 

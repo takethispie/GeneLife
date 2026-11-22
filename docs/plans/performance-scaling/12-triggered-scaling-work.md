@@ -3,6 +3,8 @@
 **Depends:** 11
 **Goal:** Do expensive scaling work only when a measured trigger is hit.
 
+**Status:** Trigger-gated — evaluator implemented; no scaling work activated because no recorded trigger was met.
+
 > **Wave 5 status:** trigger evaluator implemented (`ScalingTriggers`) and exposed through
 > `GET /api/simulation/metrics`. No scaling change was activated because no recorded trigger was
 > met; spatial/AOI work remains dormant. See `docs/plans/wave5-results.md`.

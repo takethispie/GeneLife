@@ -3,6 +3,8 @@
 **Depends:** 08
 **Goal:** Reduce GC and copying from reference types inside components.
 
+**Status:** Done
+
 ## Tasks
 
 - [x] Inventory components with `string`/`List<T>` fields.

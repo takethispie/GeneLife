@@ -1,5 +1,7 @@
 # Wave Execution Handoff
 
+**Status:** Waves 1–5 done; Wave 5 includes the Perf12 evaluator only (no scaling activated).
+
 **Branch:** `refactor/arch`
 **Wave 1 status:** committed in `a48e3ff` (structural safety, network IDs, JWT auth, metrics).
 **Do not re-apply the wave 1 worktrees** — their changes are already integrated. Stop/remove them after review.
@@ -28,10 +30,10 @@ runs through the VSTest target. Use the `dotnet run` command above.
 
 | Step | Status |
 |---|---|
-| MP01 query-safe structural changes | integrated |
-| MP03 stable network IDs | integrated |
-| MP07 identity and roles | integrated |
-| Perf01 baseline instrumentation | integrated |
+| MP01 query-safe structural changes | done |
+| MP03 stable network IDs | done |
+| MP07 identity and roles | done |
+| Perf01 baseline instrumentation | done |
 
 Integration fixes already applied: `CompanyRepository.Delete(NetworkId)` via registry, `DeleteCompany(ulong)`,
 `CompanyEndpoints` auth + networkId routes, unified test csproj, tests adapted to `NetworkId`,
@@ -51,7 +53,7 @@ API directory normalized to `Genelife.API`.
 - Acceptance: no ghost employees after company delete; fixed-step loop has bounded catch-up and real
   `deltaTime`; decision update allocates ~0; harness reports 1k/5k/10k fixtures.
 
-## Wave 3 — snapshots, control split, scheduling
+## Wave 3 — snapshots, control split, scheduling — done
 
 | Agent | Steps | Owns | Depends |
 |---|---|---|---|
@@ -64,7 +66,7 @@ API directory normalized to `Genelife.API`.
 - Merge order: W3-A → W3-D, W3-B, W3-C.
 - Acceptance: reads never take the tick lock; player Sims never auto-decide; hiring/job-seeking are off the hot path.
 
-## Wave 4 — auth ownership, realtime, persistence, 2D
+## Wave 4 — auth ownership, realtime, persistence, 2D — done
 
 | Agent | Steps | Owns | Depends |
 |---|---|---|---|

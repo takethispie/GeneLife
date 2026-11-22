@@ -4,14 +4,16 @@
 **Depends:** H11, H12, H13
 **Estimate:** 1 session
 
+**Status:** Done
+
 ## Goal
 
 An automated test that starts the simulation, creates entities, runs several ticks, stops, restarts, and verifies the world state is identical. This gates the persistence work (H11–H13) in CI.
 
 ## Tasks
 
-- [ ] Create `PersistenceTests` class in `Genelife.UnitTests/Integration/`
-- [ ] `Restart_Preserves_World_State` test:
+- [x] Create `PersistenceTests` class in `Genelife.UnitTests/Integration/`
+- [x] `Restart_Preserves_World_State` test:
   1. Arrange: empty Postgres database
   2. Start `SimulationEgine` with restore capability
   3. Add 10 Simms via `SimulationManger.AddSim()`
@@ -22,11 +24,11 @@ An automated test that starts the simulation, creates entities, runs several tic
   8. Start NEW engine (trigger restore)
   9. Capture snapshot of restored entities
   10. Assert entity count unchanged, names match, needs values within tolerance (decay happens during restore)
-- [ ] `Restart_Preserves_Employment_Index` test:
+- [x] `Restart_Preserves_Employment_Index` test:
   1. Create company, create posting, hire Sim
   2. Stop and restart
   3. Assert `EmploymentIndx.CountEmploees(company)` equals 1
-- [ ] Add a CI guard: run both tests, assert no failures
+- [x] Add a CI guard: run both tests, assert no failures
 
 ## Key decisions
 

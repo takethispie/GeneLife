@@ -3,14 +3,16 @@
 **Depends:** 08
 **Goal:** Ensure a player can only act on entities they own.
 
+**Status:** Done
+
 ## Tasks
 
-- [ ] Add ownership (`PlayerId` on Sim or a player→Sim map).
-- [ ] Validate every intent: target exists, is controlled by the sender, is in range.
-- [ ] Reject spoofed or unknown `NetworkId`.
-- [ ] Allow Admin override for moderation.
-- [ ] Define spawn/assign/transfer ownership rules.
-- [ ] Log authorization failures without leaking state.
+- [x] Add ownership (`PlayerId` on Sim or a player→Sim map).
+- [x] Validate every intent: target exists, is controlled by the sender, is in range.
+- [x] Reject spoofed or unknown `NetworkId`.
+- [x] Allow Admin override for moderation.
+- [x] Define spawn/assign/transfer ownership rules.
+- [x] Log authorization failures without leaking state.
 
 ## Files likely touched
 

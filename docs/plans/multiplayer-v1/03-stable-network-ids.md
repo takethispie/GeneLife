@@ -3,6 +3,8 @@
 **Depends:** none
 **Goal:** Give every client-visible entity a stable ID that survives Arch entity-ID recycling.
 
+**Status:** Done
+
 ## Context
 
 Arch recycles entity IDs and tracks a `Version`; exposing `entity.Id` to clients is unsafe
@@ -10,13 +12,13 @@ in a long-lived world. `CompanyStatus.EntityId` currently leaks it.
 
 ## Tasks
 
-- [ ] Add `NetworkId { ulong Value }` component.
-- [ ] Add a tick-thread-owned allocator (monotonic counter or GUID).
-- [ ] Maintain `Dictionary<NetworkId, Entity>` and a reverse map.
-- [ ] Assign `NetworkId` when creating Sims, companies, offices, and world objects.
-- [ ] Remove `NetworkId` from maps when the entity is destroyed (emit a destroy/tombstone event).
-- [ ] Replace `EntityId` in all client DTOs with `NetworkId`.
-- [ ] Add O(1) lookup helper used by repositories and commands.
+- [x] Add `NetworkId { ulong Value }` component.
+- [x] Add a tick-thread-owned allocator (monotonic counter or GUID).
+- [x] Maintain `Dictionary<NetworkId, Entity>` and a reverse map.
+- [x] Assign `NetworkId` when creating Sims, companies, offices, and world objects.
+- [x] Remove `NetworkId` from maps when the entity is destroyed (emit a destroy/tombstone event).
+- [x] Replace `EntityId` in all client DTOs with `NetworkId`.
+- [x] Add O(1) lookup helper used by repositories and commands.
 
 ## Files likely touched
 

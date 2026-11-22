@@ -3,6 +3,8 @@
 **Depends:** 08
 **Goal:** Prevent performance regressions from landing unnoticed.
 
+**Status:** Done
+
 ## Tasks
 
 - [x] Emit per-system timing and allocation metrics.

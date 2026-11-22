@@ -1,6 +1,6 @@
 # ECS + Wolverine Hybrid Architecture
 
-**Status:** Design proposal — implement during Wave 4 (command/event layer) and Wave 5 (persistence, scaling).
+**Status:** Implemented — H01–H20 in place; H16/H19/H20 have remaining follow-ups tracked in the hybrid-wolverine checklist.
 
 ## Principle
 

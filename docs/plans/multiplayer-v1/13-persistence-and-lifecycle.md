@@ -3,20 +3,22 @@
 **Depends:** 06
 **Goal:** Make the open world survive restarts and clean shutdowns.
 
+**Status:** Done
+
 ## Context
 
 `StartAsync` is a no-op and `Stop()` disposes the world; nothing persists.
 
 ## Tasks
 
-- [ ] Choose a store (Mongo/Postgres/SQLite); document the decision.
-- [ ] Define a versioned snapshot schema.
-- [ ] Serialize/deserialize all persisted components using `NetworkId`.
-- [ ] Auto-load on startup; create a new world only if no snapshot exists.
-- [ ] Periodic snapshot save plus an append-only event log.
-- [ ] Graceful shutdown: stop loop, save final snapshot, flush log.
-- [ ] Add admin save/restore tooling.
-- [ ] Handle old/corrupt schema explicitly.
+- [x] Choose a store (Mongo/Postgres/SQLite); document the decision.
+- [x] Define a versioned snapshot schema.
+- [x] Serialize/deserialize all persisted components using `NetworkId`.
+- [x] Auto-load on startup; create a new world only if no snapshot exists.
+- [x] Periodic snapshot save plus an append-only event log.
+- [x] Graceful shutdown: stop loop, save final snapshot, flush log.
+- [x] Add admin save/restore tooling.
+- [x] Handle old/corrupt schema explicitly.
 
 ## Files likely touched
 

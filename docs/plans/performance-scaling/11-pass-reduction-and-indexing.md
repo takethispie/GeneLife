@@ -3,6 +3,8 @@
 **Depends:** 10
 **Goal:** Cut redundant full-world scans and O(N) repository lookups.
 
+**Status:** Done
+
 ## Tasks
 
 - [x] Identify systems scanning overlapping archetypes per tick.

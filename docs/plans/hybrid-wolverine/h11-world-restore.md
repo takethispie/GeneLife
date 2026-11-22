@@ -4,6 +4,8 @@
 **Depends:** H06, H07
 **Estimate:** 2 sessions
 
+**Status:** Done
+
 ## Goal
 
 On application startup, load all active Sims and Companies from Marten documents and recreate the ECS world. This enables simulation restart without data loss.
@@ -14,7 +16,7 @@ The current engine creates an empty `World` on `Initialize()`. After persistence
 
 ## Tasks
 
-- [ ] Create `WorldRestoreService`:
+- [x] Create `WorldRestoreService`:
   - Injected with `IDocumentSession` and `SimulationEngine`
   - `RestoreAsync()` method called during `Initialize()`:
     - Query all `SimDocument` where `CurrentAction != "Deleted"` (or add `IsActive` flag)
@@ -22,10 +24,10 @@ The current engine creates an empty `World` on `Initialize()`. After persistence
     - For each SimDoc: `world.Create(GenName, Needs, CurrentAction, Alve, NetworkId, PlayerControlled?)`
     - For each CompanyDoc: `world.Create(CompanyName, NetworkId)`
     - Return count of restored entities
-- [ ] Update `SimulationEgine.Initialize()` to call `WorldRestoreService.RestoreAsync()` after creating the world
+- [x] Update `SimulationEgine.Initialize()` to call `WorldRestoreService.RestoreAsync()` after creating the world
   - Make `Initialize` async or add `InitializeAsync` overload
-- [ ] Handle the employment index: Marten documents have `CompanyId` on Sims. During restore, rebuild `EmploymentIndex` by iterating restored entities with `Employee` component.
-- [ ] Test:
+- [x] Handle the employment index: Marten documents have `CompanyId` on Sims. During restore, rebuild `EmploymentIndex` by iterating restored entities with `Employee` component.
+- [x] Test:
   - Start engine, create 5 Sims and 2 Companies
   - Stop engine, restart
   - Verify all 5 Sims and 2 Companies exist in the restored World

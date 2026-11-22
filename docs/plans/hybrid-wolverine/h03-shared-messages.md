@@ -4,20 +4,22 @@
 **Depends:** H01
 **Estimate:** 1 session
 
+**Status:** Done
+
 ## Goal
 
 Define all command, event, and query types used by the hybrid architecture as POCOs in `Genelife.Messages`. These are the contract between the API layer, the engine, and projections. No behavior — just types with properties.
 
 ## Tasks
 
-- [ ] Define `Commands/` types:
+- [x] Define `Commands/` types:
   - `CreateSim(string Name, int Age, string? PlayerId)`
   - `DeleteSim(ulong NetworkId)`
   - `SetSimAction(ulong NetworkId, string ActionType)`
   - `CreateCompany(string Name)`
   - `DeleteCompany(ulong NetworkId)`
   - `CreateJobPosting(ulong CompanyId, string Position, float Salary, List<string> Requirements)`
-- [ ] Define `Events/` types:
+- [x] Define `Events/` types:
   - `SimCreated(ulong NetworkId, string Name, int Age)`
   - `SimDeleted(ulong NetworkId)`
   - `SimActionStarted(ulong NetworkId, string ActionType, float Duration)`
@@ -28,7 +30,7 @@ Define all command, event, and query types used by the hybrid architecture as PO
   - `EmployeeHired(ulong CompanyId, ulong SimId, string Position, float Salary)`
   - `EmployeeFired(ulong CompanyId, ulong SimId)`
   - `TickCompleted(long Tick, int EntityCount, double DurationMs)`
-- [ ] Define `Queries/` types:
+- [x] Define `Queries/` types:
   - `GetAllSims` (query, returns `List<SimStatus>`)
   - `GetSim(ulong NetworkId)` (query, returns `SimStatus?`)
   - `GetAllCompanies` (query, returns `List<CompanyStatus>`)
