@@ -17,6 +17,17 @@ public sealed class MapStatus
     public int UnplacedBuildings { get; set; }
     public int HealthIssues { get; set; }
     public List<MapBuildingStatus> BuildingList { get; set; } = new();
+    public List<MapUnplacedBuildingStatus> Unplaced { get; set; } = new();
+}
+
+public sealed class MapUnplacedBuildingStatus
+{
+    public ulong NetworkId { get; set; }
+    public string Kind { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string District { get; set; } = string.Empty;
+    public int Width { get; set; }
+    public int Height { get; set; }
 }
 
 public sealed class MapSummaryStatus

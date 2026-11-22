@@ -38,6 +38,8 @@ public class SimulationEngine : IDisposable
     private MapMetricsSystem? mapMetrics;
     private readonly ICommandQueue? commandQueue;
     private readonly Dictionary<string, long> lastIntentSequence = new(StringComparer.Ordinal);
+    private readonly Dictionary<ulong, BuildingPlaced> emittedMapBuildings = new();
+    private int emittedMapVersion;
     private SimulationClock clock = SimulationClock.Default;
     private EmploymentIndex? employmentIndex;
     private SystemRegistry? systems;
@@ -85,6 +87,7 @@ private readonly NetworkIdRegistry networkIds = new();
     public Genelife.Map.MapOptions MapOptions { get; set; } = Genelife.Map.MapOptions.Default;
     public Genelife.Map.MapGenerationOptions MapGenerationOptions { get; set; } = Genelife.Map.MapGenerationOptions.Default;
     public Genelife.Map.MovementOptions MovementOptions { get; set; } = Genelife.Map.MovementOptions.Default;
+    public Genelife.Map.CommuteOptions CommuteOptions { get; set; } = Genelife.Map.CommuteOptions.Default;
     public MapContext? MapContext { get { lock (@lock) { return mapContext; } } }
     public MovementIndex? MovementIndex { get { lock (@lock) { return movementIndex; } } }
     public IReadOnlyList<MapMetricsSnapshot> MapMetricsHistory => mapMetrics?.History ?? Array.Empty<MapMetricsSnapshot>();
@@ -129,6 +132,9 @@ private readonly NetworkIdRegistry networkIds = new();
             mapContext = MapContext.Generate(world, MapOptions, MapGenerationOptions);
             movementIndex = new MovementIndex();
             mapMetrics = new MapMetricsSystem(world, mapContext.Map);
+            emittedMapBuildings.Clear();
+            emittedMapVersion = mapContext.Version;
+            EmitMapGenerated(0);
             lastIntentSequence.Clear();
             metrics = new Metrics();
             employmentIndex = new EmploymentIndex();
@@ -149,7 +155,7 @@ private readonly NetworkIdRegistry networkIds = new();
             systems.Register(new ActionSystem(world));
             systems.Register(new EducationSystem(world, economy));
             systems.Register(new EnrollmentSystem(world, economy));
-            systems.Register(new WorkScheduleSystem(world, economy, mapContext));
+            systems.Register(new WorkScheduleSystem(world, economy, mapContext, movementIndex, CommuteOptions));
             systems.Register(new AttendanceSystem(world, economy));
             systems.Register(new CareerSystem(world, economy));
             systems.Register(new StageProgressionSystem(world, economy));
@@ -268,6 +274,7 @@ private readonly NetworkIdRegistry networkIds = new();
             }
 
             CollectSimEvents(currentWorld, events);
+            CollectMapEvents(events);
 
 if (SnapshotsEnabled)
             {
@@ -300,9 +307,95 @@ if (SnapshotsEnabled)
         }
     }
 
-    private void CollectSimEvents(World world, List<object> events)
+    private void CollectMapEvents(List<object> events)
     {
-        var query = new QueryDescription().WithAll<Needs, NetworkId>();
+        if (mapContext is null || mapContext.Version == emittedMapVersion)
+            return;
+
+        var mapId = mapContext.Options.MapId;
+        var current = mapContext.Map.Placements;
+        foreach (var pair in current.OrderBy(pair => pair.Key.Value))
+        {
+            var placed = BuildPlacedEvent(pair.Key, pair.Value, tick);
+            if (!emittedMapBuildings.TryGetValue(pair.Key.Value, out var previous) || !MapEventsEqual(previous, placed))
+                events.Add(placed);
+            emittedMapBuildings[pair.Key.Value] = placed;
+        }
+
+        foreach (var previous in emittedMapBuildings.Values.ToList())
+        {
+            if (!current.ContainsKey(new NetworkId(previous.NetworkId)))
+            {
+                events.Add(new BuildingRemoved(mapId, mapContext.Version, previous.NetworkId, tick));
+                emittedMapBuildings.Remove(previous.NetworkId);
+            }
+        }
+
+        emittedMapVersion = mapContext.Version;
+    }
+
+    private BuildingPlaced BuildPlacedEvent(NetworkId networkId, Placement placement, long eventTick)
+    {
+        var status = BuildMapBuilding(networkId, placement);
+        return new BuildingPlaced(
+            mapContext!.Options.MapId,
+            mapContext.Version,
+            networkId.Value,
+            status.Kind,
+            status.Name,
+            status.District,
+            status.X,
+            status.Y,
+            status.Width,
+            status.Height,
+            status.EntryX,
+            status.EntryY,
+            eventTick);
+    }
+
+    private void EmitMapGenerated(long eventTick)
+    {
+        if (mapContext is null)
+            return;
+        var options = mapContext.Options;
+        Emit(new MapGenerated(
+            options.MapId,
+            mapContext.Version,
+            options.Seed,
+            options.Width,
+            options.Height,
+            options.TileSize,
+            eventTick));
+    }
+
+    private void EmitAllMapBuildings(long eventTick)
+    {
+        if (mapContext is null)
+            return;
+
+        emittedMapBuildings.Clear();
+        foreach (var pair in mapContext.Map.Placements.OrderBy(pair => pair.Key.Value))
+        {
+            var placed = BuildPlacedEvent(pair.Key, pair.Value, eventTick);
+            Emit(placed);
+            emittedMapBuildings[pair.Key.Value] = placed;
+        }
+        emittedMapVersion = mapContext.Version;
+    }
+
+    private static bool MapEventsEqual(BuildingPlaced a, BuildingPlaced b) =>
+        a.Kind == b.Kind
+        && a.Name == b.Name
+        && a.District == b.District
+        && a.X == b.X
+        && a.Y == b.Y
+        && a.Width == b.Width
+        && a.Height == b.Height
+        && a.EntryX == b.EntryX
+        && a.EntryY == b.EntryY;
+
+    private void CollectSimEvents(World world, List<object> events)
+    {        var query = new QueryDescription().WithAll<Needs, NetworkId>();
         world.Query(in query, (ref Needs needs, ref NetworkId nid) =>
         {
             events.Add(new SimNeedsChanged(nid.Value, needs.Hunger, needs.Energy, needs.Hygiene, needs.Bladder));
@@ -517,7 +610,7 @@ if (SnapshotsEnabled)
         }
         else if (world.Has<School>(building))
         {
-            action = ActionType.Idle;
+            action = ActionType.Studying;
         }
 
         if (action is null)
@@ -526,7 +619,7 @@ if (SnapshotsEnabled)
         var current = world.Has<CurrentAction>(sim)
             ? world.Get<CurrentAction>(sim)
             : new CurrentAction(ActionType.Idle, 0f);
-        current = new CurrentAction(action.Value, 0f);
+        current = new CurrentAction(action.Value, action.Value == ActionType.Studying ? 60f : 0f);
         if (world.Has<CurrentAction>(sim))
             world.Get<CurrentAction>(sim) = current;
         else
@@ -1365,8 +1458,63 @@ if (SnapshotsEnabled)
                 result.BuildingList.Add(BuildMapBuilding(pair.Key, pair.Value));
 
             result.HealthIssues = map.Reconcile(world).Count;
+            result.Unplaced = BuildUnplacedBuildings();
             return result;
         }
+    }
+
+    private List<MapUnplacedBuildingStatus> BuildUnplacedBuildings()
+    {
+        var result = new List<MapUnplacedBuildingStatus>();
+        if (world is null)
+            return result;
+
+        var properties = new QueryDescription().WithAll<Property, NetworkId>().WithNone<Placement>();
+        world.Query(in properties, (ref Property property, ref NetworkId id) =>
+        {
+            var footprint = BuildingFootprints.ForProperty(property.UnitCount, property.IsShelter);
+            result.Add(new MapUnplacedBuildingStatus
+            {
+                NetworkId = id.Value,
+                Kind = property.IsShelter ? BuildingKind.Civic.ToString() : BuildingKind.Residential.ToString(),
+                Name = property.Name,
+                District = property.District,
+                Width = footprint.Width,
+                Height = footprint.Height
+            });
+        });
+
+        var offices = new QueryDescription().WithAll<Office, NetworkId>().WithNone<Placement>();
+        world.Query(in offices, (ref Office office, ref NetworkId id) =>
+        {
+            var footprint = BuildingFootprints.ForOffice(office.Capacity);
+            result.Add(new MapUnplacedBuildingStatus
+            {
+                NetworkId = id.Value,
+                Kind = BuildingKind.Office.ToString(),
+                Name = office.OfficeName,
+                District = "Central",
+                Width = footprint.Width,
+                Height = footprint.Height
+            });
+        });
+
+        var schools = new QueryDescription().WithAll<School, NetworkId>().WithNone<Placement>();
+        world.Query(in schools, (ref School school, ref NetworkId id) =>
+        {
+            var footprint = BuildingFootprints.ForSchool(school.Capacity);
+            result.Add(new MapUnplacedBuildingStatus
+            {
+                NetworkId = id.Value,
+                Kind = BuildingKind.School.ToString(),
+                Name = school.Name,
+                District = school.District,
+                Width = footprint.Width,
+                Height = footprint.Height
+            });
+        });
+
+        return result.OrderBy(building => building.NetworkId).ToList();
     }
 
     public MapHealthStatus BuildMapHealth()
@@ -4615,6 +4763,8 @@ if (SnapshotsEnabled)
             }
 
             RestorePlacements(state, propertyEntities, officeEntities, schoolEntities);
+            EmitMapGenerated(state.Tick);
+            EmitAllMapBuildings(state.Tick);
             RebuildMovementRequests();
 
             economy!.Housing.Rebuild(world!);

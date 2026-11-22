@@ -141,6 +141,70 @@
                 }
             </div>
         </div>
+
+        <div class="card mt-3">
+            <div class="card-header">Place an unplaced building</div>
+            <div class="card-body">
+                @if (map.Unplaced.Count == 0)
+                {
+                    <div class="text-muted small">Every building has a placement.</div>
+                }
+                else
+                {
+                    <label class="form-label small">Building</label>
+                    <select class="form-select form-select-sm mb-2" @bind="selectedUnplacedId" @bind:after="OnUnplacedChanged">
+                        <option value="0">Select an unplaced building</option>
+                        @foreach (var building in map.Unplaced)
+                        {
+                            <option value="@building.NetworkId">@building.Name (@building.Kind)</option>
+                        }
+                    </select>
+
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label small">X</label>
+                            <input class="form-control form-control-sm" type="number" @bind="placeX" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Y</label>
+                            <input class="form-control form-control-sm" type="number" @bind="placeY" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Width</label>
+                            <input class="form-control form-control-sm" type="number" @bind="placeWidth" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Height</label>
+                            <input class="form-control form-control-sm" type="number" @bind="placeHeight" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Entry X</label>
+                            <input class="form-control form-control-sm" type="number" @bind="placeEntryX" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Entry Y</label>
+                            <input class="form-control form-control-sm" type="number" @bind="placeEntryY" />
+                        </div>
+                    </div>
+
+                    <button class="btn btn-sm btn-primary mt-3" type="button" @onclick="PlaceAsync"
+                            disabled="@(placing || selectedUnplacedId == 0)">
+                        @if (placing)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                        }
+                        Place building
+                    </button>
+
+                    @if (!string.IsNullOrWhiteSpace(placeMessage))
+                    {
+                        <div class="alert @(placeError ? "alert-danger" : "alert-success") mt-2 mb-0 py-2 small">
+                            @placeMessage
+                        </div>
+                    }
+                }
+            </div>
+        </div>
     </div>
 </div>
 
@@ -158,6 +222,16 @@
     private MapStatusData map = new();
     private WorldData world = new();
     private MapBuildingData? selected;
+    private ulong selectedUnplacedId;
+    private int placeX;
+    private int placeY;
+    private int placeWidth;
+    private int placeHeight;
+    private int placeEntryX;
+    private int placeEntryY;
+    private bool placing;
+    private bool placeError;
+    private string? placeMessage;
     private string kindFilter = string.Empty;
     private bool isLoading;
     private bool hasLoaded;
@@ -236,6 +310,60 @@
     }
 
     private void Select(MapBuildingData building) => selected = building;
+
+    private void OnUnplacedChanged()
+    {
+        placeMessage = null;
+        placeError = false;
+        var building = map.Unplaced.FirstOrDefault(item => item.NetworkId == selectedUnplacedId);
+        if (building is null)
+            return;
+
+        placeWidth = building.Width;
+        placeHeight = building.Height;
+        placeEntryX = placeX;
+        placeEntryY = placeY + building.Height;
+    }
+
+    private async Task PlaceAsync()
+    {
+        if (selectedUnplacedId == 0 || placing)
+            return;
+
+        placing = true;
+        placeMessage = null;
+        placeError = false;
+        try
+        {
+            await GameData.PlaceBuildingAsync(selectedUnplacedId, new PlaceBuildingRequest(
+                placeX, placeY, placeWidth, placeHeight, placeEntryX, placeEntryY), cts.Token);
+            placeMessage = "Placement accepted. Waiting for the next tick...";
+            await Task.Delay(300, cts.Token);
+            await RefreshAsync();
+            if (map.Unplaced.All(building => building.NetworkId != selectedUnplacedId))
+            {
+                placeMessage = "Building placed.";
+                selectedUnplacedId = 0;
+            }
+            else
+            {
+                placeError = true;
+                placeMessage = "Placement was not applied. Check the coordinates and map occupancy.";
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            placeError = true;
+            placeMessage = ex.Message;
+        }
+        finally
+        {
+            placing = false;
+        }
+    }
 
     private static string ColorFor(string kind) =>
         KindColors.TryGetValue(kind, out var color) ? color : "#6c757d";

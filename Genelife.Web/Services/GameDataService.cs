@@ -52,6 +52,22 @@ public sealed class GameDataService
             ?? new MapStatusData();
     }
 
+    public async Task PlaceBuildingAsync(
+        ulong networkId,
+        PlaceBuildingRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        using var response = await SendWithAuthRetryAsync(
+            () => http.PostAsJsonAsync($"api/map/buildings/{networkId}/place", request, cancellationToken),
+            cancellationToken);
+        if (response.IsSuccessStatusCode)
+            return;
+
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        throw new InvalidOperationException(
+            $"Placement failed ({(int)response.StatusCode}): {body}");
+    }
+
     public async Task<SimulationStatus> GetSimulationStatusAsync(CancellationToken cancellationToken = default)    {
         using var response = await SendWithAuthRetryAsync(
             () => http.GetAsync("api/simulation/status", cancellationToken), cancellationToken);
@@ -487,3 +503,11 @@ public sealed class GameDataService
 
     private sealed record TokenResponse(string AccessToken, DateTimeOffset ExpiresAt);
 }
+
+public sealed record PlaceBuildingRequest(
+    int X,
+    int Y,
+    int Width,
+    int Height,
+    int EntryX,
+    int EntryY);

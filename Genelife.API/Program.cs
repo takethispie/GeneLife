@@ -89,8 +89,12 @@ if (useMartenReads)
         opts.Schema.For<Genelife.Api.Models.SimDocument>().Index(x => x.NetworkId);
         opts.Schema.For<Genelife.Api.Models.CompanyDocument>().Identity(x => x.Id);
         opts.Schema.For<Genelife.Api.Models.CompanyDocument>().Index(x => x.NetworkId);
+        opts.Schema.For<Genelife.Api.Models.MapDocument>().Identity(x => x.Id);
+        opts.Schema.For<Genelife.Api.Models.BuildingDocument>().Identity(x => x.Id);
+        opts.Schema.For<Genelife.Api.Models.BuildingDocument>().Index(x => x.NetworkId);
         opts.Projections.Add<Genelife.Api.Projections.SimProjection>(JasperFx.Events.Projections.ProjectionLifecycle.Inline);
         opts.Projections.Add<Genelife.Api.Projections.CompanyProjection>(JasperFx.Events.Projections.ProjectionLifecycle.Inline);
+        opts.Projections.Add<Genelife.Api.Projections.MapProjection>(JasperFx.Events.Projections.ProjectionLifecycle.Inline);
     })
         .UseLightweightSessions();
 }

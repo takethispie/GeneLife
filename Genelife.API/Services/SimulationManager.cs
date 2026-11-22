@@ -204,7 +204,11 @@ public class SimulationManager : IHostedService, IDisposable
 
         var snapshot = engine.GetLatestSnapshot();
         if (snapshot != null)
-            return snapshot.Companies.Find(c => c.NetworkId == networkId);
+        {
+            var company = snapshot.Companies.Find(c => c.NetworkId == networkId);
+            if (company != null)
+                return company;
+        }
 
         return engine.ExecuteWithWorld(world =>
         {

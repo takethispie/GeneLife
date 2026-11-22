@@ -82,4 +82,63 @@ public sealed class ProjectionIntegrationTests : IClassFixture<TestApplicationFa
         Assert.Equal(80f, doc!.Hunger);
         Assert.Equal(50f, doc.Energy);
     }
+
+    [Fact]
+    public async Task MapGenerated_creates_MapDocument()
+    {
+        var store = factory.Services.GetRequiredService<IDocumentStore>();
+        var mapId = $"test-map-{Guid.NewGuid():N}";
+        var generated = new MapGenerated(mapId, 3, 99, 64, 64, 1f, 10);
+
+        await using var session = store.LightweightSession();
+        session.Events.StartStream(Guid.NewGuid(), generated);
+        await session.SaveChangesAsync();
+
+        var doc = await session.LoadAsync<MapDocument>(mapId);
+        Assert.NotNull(doc);
+        Assert.Equal(3, doc!.Version);
+        Assert.Equal(-32, doc.MinX);
+        Assert.Equal(31, doc.MaxX);
+    }
+
+    [Fact]
+    public async Task BuildingPlaced_upserts_and_BuildingRemoved_deletes_document()
+    {
+        var store = factory.Services.GetRequiredService<IDocumentStore>();
+        var mapId = $"test-map-{Guid.NewGuid():N}";
+        var networkId = (ulong)Random.Shared.NextInt64(1_000_000, 9_000_000);
+        var placed = new BuildingPlaced(mapId, 4, networkId, "Residential", "Test Block", "Central", 2, 3, 4, 3, 5, 6, 20);
+
+        var streamId = Guid.NewGuid();
+        await using (var session = store.LightweightSession())
+        {
+            session.Events.StartStream(streamId, new MapGenerated(mapId, 4, 1, 64, 64, 1f, 20), placed);
+            await session.SaveChangesAsync();
+        }
+
+        await using (var update = store.LightweightSession())
+        {
+            update.Events.Append(streamId, placed with { Name = "Updated Block", MapVersion = 5 });
+            await update.SaveChangesAsync();
+        }
+
+        await using (var read = store.LightweightSession())
+        {
+            var doc = await read.Query<BuildingDocument>().FirstOrDefaultAsync(x => x.NetworkId == (long)networkId);
+            Assert.NotNull(doc);
+            Assert.Equal("Updated Block", doc!.Name);
+            Assert.Equal(4, doc.Width);
+            Assert.Equal(5, doc.MapVersion);
+        }
+
+        await using (var remove = store.LightweightSession())
+        {
+            remove.Events.Append(streamId, new BuildingRemoved(mapId, 6, networkId, 30));
+            await remove.SaveChangesAsync();
+        }
+
+        await using var verify = store.LightweightSession();
+        var deleted = await verify.Query<BuildingDocument>().FirstOrDefaultAsync(x => x.NetworkId == (long)networkId);
+        Assert.Null(deleted);
+    }
 }

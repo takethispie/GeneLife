@@ -1,7 +1,7 @@
 # Player Movement — Summary
 
 **Folder:** `02-player-movement/`
-**Status:** Partially implemented (V2)
+**Status:** Implemented (V2)
 
 **Depends on:** world map placement and bootstrap (`01-world-map/tech/05`, `06`), existing `PlayerControlled`, `MoveIntent`, `ICommandQueue`, `CommandAuthorizationService`, `SimulationEngine` tick loop
 **Feeds:** map replication, admin map console and future gameplay clients

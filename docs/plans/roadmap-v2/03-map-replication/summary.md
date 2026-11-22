@@ -1,7 +1,7 @@
 # Map Replication — Summary
 
 **Folder:** `03-map-replication/`
-**Status:** Partially implemented (V2)
+**Status:** Implemented (V2)
 
 **Depends on:** world map read model (`01-world-map/tech/09`), player movement (`02-player-movement/tech/04`, `09`), existing `WorldSnapshot`, `WorldSnapshotDelta`, `SnapshotHistory`, `WorldHub`, `SnapshotBroadcastService`, `AoiFilter`
 **Feeds:** admin map console, future game clients and multiplayer operations

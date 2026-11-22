@@ -25,14 +25,24 @@ public class WorkScheduleSystem : ISimulationSystem
     private readonly World world;
     private readonly EconomyContext economy;
     private readonly MapContext? map;
+    private readonly MovementIndex? movementIndex;
+    private readonly CommuteOptions commute;
     private readonly QueryDescription query;
     private readonly int interval;
 
-    public WorkScheduleSystem(World world, EconomyContext economy, MapContext? map = null, int? interval = null)
+    public WorkScheduleSystem(
+        World world,
+        EconomyContext economy,
+        MapContext? map = null,
+        MovementIndex? movementIndex = null,
+        CommuteOptions? commute = null,
+        int? interval = null)
     {
         this.world = world;
         this.economy = economy;
         this.map = map;
+        this.movementIndex = movementIndex;
+        this.commute = commute ?? CommuteOptions.Default;
         this.interval = interval ?? 25;
         query = new QueryDescription()
             .WithAll<Employee, Lifecycle, Needs, CurrentAction>()
@@ -178,12 +188,30 @@ public class WorkScheduleSystem : ISimulationSystem
         if (!map!.Map.IsWalkable(tile) || !world.Has<TilePosition>(sim))
             return;
 
-        world.Get<TilePosition>(sim) = new TilePosition(tile);
-        if (world.Has<Location>(sim))
+        if (commute.Mode == CommuteMode.Abstract || movementIndex is null)
         {
-            var (x, y) = map.Options.ToWorld(tile);
-            world.Get<Location>(sim) = new Location(x, y);
+            world.Get<TilePosition>(sim) = new TilePosition(tile);
+            if (world.Has<Location>(sim))
+            {
+                var (x, y) = map.Options.ToWorld(tile);
+                world.Get<Location>(sim) = new Location(x, y);
+            }
+            return;
         }
+
+        var current = world.Get<TilePosition>(sim).Tile;
+        if (current == tile)
+            return;
+
+        if (!world.Has<MovementState>(sim))
+            world.Add(sim, new MovementState(commute.SpeedTilesPerSecond));
+        var target = new MoveTarget(tile);
+        if (world.Has<MoveTarget>(sim))
+            world.Get<MoveTarget>(sim) = target;
+        else
+            world.Add(sim, target);
+
+        movementIndex.RequestPath(sim, current, tile, map.Version);
     }
 
     private static ActionType CriticalNeed(Needs needs)
