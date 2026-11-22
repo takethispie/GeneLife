@@ -1,4 +1,5 @@
 @page "/map"
+@using Genelife.Api.DTOs
 @using Genelife.Web.Models
 @using Genelife.Web.Services
 @inject GameDataService GameData
@@ -219,9 +220,9 @@
         ["Store"] = "#ffc107"
     };
 
-    private MapStatusData map = new();
+    private MapStatus map = new();
     private WorldData world = new();
-    private MapBuildingData? selected;
+    private MapBuildingStatus? selected;
     private ulong selectedUnplacedId;
     private int placeX;
     private int placeY;
@@ -241,7 +242,7 @@
 
     private string ViewBox => $"{map.MinX} {map.MinY} {Math.Max(1, map.Width)} {Math.Max(1, map.Height)}";
 
-    private IEnumerable<MapBuildingData> VisibleBuildings =>
+    private IEnumerable<MapBuildingStatus> VisibleBuildings =>
         map.BuildingList.Where(building => string.IsNullOrEmpty(kindFilter) || building.Kind == kindFilter);
 
     private IEnumerable<SimData> Players =>
@@ -309,7 +310,7 @@
         }
     }
 
-    private void Select(MapBuildingData building) => selected = building;
+    private void Select(MapBuildingStatus building) => selected = building;
 
     private void OnUnplacedChanged()
     {

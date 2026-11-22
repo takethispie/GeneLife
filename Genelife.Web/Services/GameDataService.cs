@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using Genelife.Api.DTOs;
 using Genelife.Web.Models;
 
 namespace Genelife.Web.Services;
@@ -43,13 +44,13 @@ public sealed class GameDataService
             ?? new WorldData();
     }
 
-    public async Task<MapStatusData> GetMapAsync(CancellationToken cancellationToken = default)
+    public async Task<MapStatus> GetMapAsync(CancellationToken cancellationToken = default)
     {
         using var response = await SendWithAuthRetryAsync(
             () => http.GetAsync("api/map", cancellationToken), cancellationToken);
         response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<MapStatusData>(cancellationToken: cancellationToken)
-            ?? new MapStatusData();
+        return await response.Content.ReadFromJsonAsync<MapStatus>(cancellationToken: cancellationToken)
+            ?? new MapStatus();
     }
 
     public async Task PlaceBuildingAsync(

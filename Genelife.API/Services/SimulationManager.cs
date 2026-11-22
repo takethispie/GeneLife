@@ -224,6 +224,8 @@ public class SimulationManager : IHostedService, IDisposable
 
     public MapStatus GetMapStatus() => engine.BuildMapStatus();
 
+    public MapSnapshot GetMapSnapshot() => engine.BuildMapSnapshot();
+
     public MapHealthStatus GetMapHealth() => engine.BuildMapHealth();
 
     public IReadOnlyList<Genelife.Systems.MapMetricsSnapshot> GetMapMetrics() => engine.MapMetricsHistory;

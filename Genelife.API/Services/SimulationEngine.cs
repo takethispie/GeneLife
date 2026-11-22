@@ -40,6 +40,8 @@ public class SimulationEngine : IDisposable
     private readonly Dictionary<string, long> lastIntentSequence = new(StringComparer.Ordinal);
     private readonly Dictionary<ulong, BuildingPlaced> emittedMapBuildings = new();
     private int emittedMapVersion;
+    private MapSnapshot? cachedMapSnapshot;
+    private MapSnapshotCacheKey cachedMapSnapshotKey;
     private SimulationClock clock = SimulationClock.Default;
     private EmploymentIndex? employmentIndex;
     private SystemRegistry? systems;
@@ -659,6 +661,30 @@ if (SnapshotsEnabled)
             return sim != Entity.Null && world.IsAlive(sim) && world.Has<NetworkId>(sim)
                 ? world.Get<NetworkId>(sim).Value
                 : 0;
+        }
+    }
+
+    public TileCoord? GetPlayerTile(string playerId)
+    {
+        lock (@lock)
+        {
+            if (world is null || mapContext is null || string.IsNullOrWhiteSpace(playerId))
+                return null;
+
+            var sim = ResolvePlayerSim(playerId, 0);
+            if (sim == Entity.Null || !world.IsAlive(sim) || world.Has<Dead>(sim))
+                return null;
+
+            if (world.Has<TilePosition>(sim))
+                return world.Get<TilePosition>(sim).Tile;
+
+            if (world.Has<Location>(sim))
+            {
+                var location = world.Get<Location>(sim).Position;
+                return mapContext.Options.ToTile(location.X, location.Y);
+            }
+
+            return null;
         }
     }
 
@@ -1462,6 +1488,111 @@ if (SnapshotsEnabled)
             return result;
         }
     }
+
+    public MapSnapshot BuildMapSnapshot()
+    {
+        MapSnapshotCacheKey key;
+        MapOptions options;
+        GeneratedMap? layout;
+        List<MapBuildingStatus> buildings;
+        int version;
+
+        lock (@lock)
+        {
+            if (mapContext is null)
+                return new MapSnapshot();
+
+            options = mapContext.Options;
+            layout = mapContext.Map.Layout;
+            version = mapContext.Version;
+            key = new MapSnapshotCacheKey(
+                options.MapId,
+                options.Version,
+                options.Seed,
+                options.Width,
+                options.Height,
+                options.TileSize,
+                version);
+
+            if (cachedMapSnapshot is not null && cachedMapSnapshotKey == key)
+                return cachedMapSnapshot;
+
+            buildings = new List<MapBuildingStatus>(mapContext.Map.Placements.Count);
+            foreach (var pair in mapContext.Map.Placements.OrderBy(pair => pair.Key.Value))
+                buildings.Add(BuildMapBuilding(pair.Key, pair.Value));
+        }
+
+        var snapshot = new MapSnapshot
+        {
+            MapId = options.MapId,
+            Version = version,
+            Seed = options.Seed,
+            Width = options.Width,
+            Height = options.Height,
+            TileSize = options.TileSize,
+            MinX = options.Bounds.MinX,
+            MinY = options.Bounds.MinY,
+            MaxX = options.Bounds.MaxX,
+            MaxY = options.Bounds.MaxY,
+            Tiles = layout is null ? new List<MapTileRun>() : BuildMapTileRuns(layout),
+            Buildings = buildings
+        };
+
+        lock (@lock)
+        {
+            cachedMapSnapshot = snapshot;
+            cachedMapSnapshotKey = key;
+        }
+
+        return snapshot;
+    }
+
+    private static List<MapTileRun> BuildMapTileRuns(GeneratedMap layout)
+    {
+        var bounds = layout.Options.Bounds;
+        var runs = new List<MapTileRun>(Math.Max(1, layout.Options.Height));
+
+        for (var y = bounds.MinY; y <= bounds.MaxY; y++)
+        {
+            var runStart = bounds.MinX;
+            var runFlags = layout.FlagsAt(new TileCoord(runStart, y));
+            for (var x = bounds.MinX + 1; x <= bounds.MaxX; x++)
+            {
+                var flags = layout.FlagsAt(new TileCoord(x, y));
+                if (flags == runFlags)
+                    continue;
+
+                runs.Add(new MapTileRun
+                {
+                    X = runStart,
+                    Y = y,
+                    Length = x - runStart,
+                    Flags = runFlags.ToString()
+                });
+                runStart = x;
+                runFlags = flags;
+            }
+
+            runs.Add(new MapTileRun
+            {
+                X = runStart,
+                Y = y,
+                Length = bounds.MaxX - runStart + 1,
+                Flags = runFlags.ToString()
+            });
+        }
+
+        return runs;
+    }
+
+    private readonly record struct MapSnapshotCacheKey(
+        string MapId,
+        int LayoutVersion,
+        int Seed,
+        int Width,
+        int Height,
+        float TileSize,
+        int MapVersion);
 
     private List<MapUnplacedBuildingStatus> BuildUnplacedBuildings()
     {

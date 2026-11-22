@@ -82,34 +82,63 @@ public sealed class SnapshotBroadcastService : BackgroundService
 
     private async Task BroadcastWorld(WorldSnapshot snapshot, CancellationToken cancellationToken)
     {
+        var baseDeltas = new Dictionary<long, WorldSnapshotDelta?>();
+
         foreach (var connectionId in registry.GetConnectionIds())
         {
             var acknowledged = replicationTracker.GetAcknowledgedTick(connectionId);
-            if (acknowledged >= snapshot.Tick)
-                continue;
-
-            var delta = engine.SnapshotHistory.BuildDelta(acknowledged);
-            if (delta is null)
+            var forceFull = replicationTracker.NeedsFullSnapshot(connectionId);
+            if (acknowledged >= snapshot.Tick && !forceFull)
                 continue;
 
             var viewport = viewports.TryGet(connectionId, out var active) ? active : (Viewport?)null;
             registry.TryGetPlayerId(connectionId, out var playerId);
             var ownSim = playerId is null ? 0 : engine.GetPlayerSimNetworkId(playerId);
 
+            WorldSnapshotDelta? delta;
+            if (forceFull)
+            {
+                var full = viewport is { } forcedViewport
+                    ? AoiFilter.FilterSnapshotByViewport(snapshot, forcedViewport, ownSim)
+                    : snapshot;
+                delta = new WorldSnapshotDelta
+                {
+                    Tick = full.Tick,
+                    SinceTick = 0,
+                    Version = full.Version,
+                    Full = true,
+                    Sims = full.Sims,
+                    Companies = full.Companies
+                };
+            }
+            else
+            {
+                if (!baseDeltas.TryGetValue(acknowledged, out var baseDelta))
+                {
+                    baseDelta = engine.SnapshotHistory.BuildDelta(acknowledged);
+                    baseDeltas[acknowledged] = baseDelta;
+                }
+
+                delta = baseDelta is null
+                    ? null
+                    : viewport is { } activeViewport
+                        ? AoiFilter.FilterDeltaByViewport(baseDelta, activeViewport, ownSim)
+                        : baseDelta;
+            }
+
+            if (delta is null)
+                continue;
+
             if (delta.Full)
             {
                 var full = new WorldSnapshot(delta.Tick, delta.Version, delta.Sims, delta.Companies);
-                if (viewport is { } fullViewport)
-                    full = AoiFilter.FilterSnapshotByViewport(full, fullViewport, ownSim);
                 var bytes = ReplicationMetrics.EstimateBytes(full);
                 replicationMetrics.Record(connectionId, full: true, bytes);
                 await hubContext.Clients.Client(connectionId)
                     .SendAsync("SendSnapshot", full, cancellationToken);
+                replicationTracker.MarkFullSnapshotSent(connectionId, full.Tick);
                 continue;
             }
-
-            if (viewport is { } filteredViewport)
-                delta = AoiFilter.FilterDeltaByViewport(delta, filteredViewport, ownSim);
 
             if (delta.Sims.Count == 0
                 && delta.Companies.Count == 0

@@ -102,6 +102,57 @@ public sealed class WorldHubTests : IClassFixture<TestApplicationFactory>, IAsyn
     }
 
     [Fact]
+    public async Task Connect_receives_a_run_length_encoded_map_snapshot()
+    {
+        await StartSimulation();
+
+        var token = PlayerToken("player-map");
+        var connection = CreateConnection(token, "player-map");
+        var mapTcs = new TaskCompletionSource<MapSnapshot>();
+        var snapshotTcs = new TaskCompletionSource<WorldSnapshot>();
+
+        connection.On<MapSnapshot>("SendMapSnapshot", map => mapTcs.TrySetResult(map));
+        connection.On<WorldSnapshot>("SendSnapshot", snapshot => snapshotTcs.TrySetResult(snapshot));
+
+        await connection.StartAsync(CancellationToken);
+
+        var map = await mapTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken);
+        await snapshotTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken);
+
+        Assert.NotEmpty(map.Tiles);
+        Assert.Equal(map.Width * map.Height, map.Tiles.Sum(run => run.Length));
+        Assert.Equal("world", map.MapId);
+
+        await connection.StopAsync(CancellationToken);
+    }
+
+    [Fact]
+    public async Task SetViewport_clamps_the_radius_and_returns_the_effective_viewport()
+    {
+        await StartSimulation();
+
+        var token = PlayerToken("player-viewport");
+        var connection = CreateConnection(token, "player-viewport");
+        var snapshotTcs = new TaskCompletionSource<WorldSnapshot>();
+        connection.On<WorldSnapshot>("SendSnapshot", snapshot => snapshotTcs.TrySetResult(snapshot));
+
+        await connection.StartAsync(CancellationToken);
+        await snapshotTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken);
+
+        var result = await connection.InvokeAsync<JsonElement>(
+            "SetViewport",
+            new { centerX = 0, centerY = 0, radius = 1 },
+            CancellationToken);
+
+        Assert.True(result.GetProperty("success").GetBoolean());
+        Assert.Equal(4, result.GetProperty("radius").GetInt32());
+        Assert.Equal(0, result.GetProperty("centerX").GetInt32());
+        Assert.Equal(0, result.GetProperty("centerY").GetInt32());
+
+        await connection.StopAsync(CancellationToken);
+    }
+
+    [Fact]
     public async Task Anonymous_connection_is_rejected()
     {
         await StartSimulation();

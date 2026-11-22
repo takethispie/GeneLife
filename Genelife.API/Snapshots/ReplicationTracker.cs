@@ -14,6 +14,7 @@ public sealed class ReplicationTracker
 {
     private readonly ConcurrentDictionary<string, long> connectionTicks = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, long> playerTicks = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, byte> forceFullSnapshots = new(StringComparer.Ordinal);
 
     /// <summary>Copies the player's last acknowledgement onto a new connection.</summary>
     public void RestoreForConnection(string connectionId, string playerId)
@@ -21,6 +22,7 @@ public sealed class ReplicationTracker
         if (string.IsNullOrWhiteSpace(connectionId) || string.IsNullOrWhiteSpace(playerId))
             return;
 
+        forceFullSnapshots.TryRemove(connectionId, out _);
         if (playerTicks.TryGetValue(playerId, out var tick))
             connectionTicks[connectionId] = tick;
     }
@@ -41,12 +43,39 @@ public sealed class ReplicationTracker
     }
 
     /// <summary>
+    /// Marks the connection as needing a fresh full snapshot on the next
+    /// replication pass, for example after a viewport change.
+    /// </summary>
+    public void Invalidate(string connectionId)
+    {
+        if (string.IsNullOrWhiteSpace(connectionId))
+            return;
+
+        forceFullSnapshots[connectionId] = 0;
+        connectionTicks.TryRemove(connectionId, out _);
+    }
+
+    public bool NeedsFullSnapshot(string connectionId) =>
+        !string.IsNullOrWhiteSpace(connectionId)
+        && forceFullSnapshots.ContainsKey(connectionId);
+
+    public void MarkFullSnapshotSent(string connectionId, long tick)
+    {
+        if (string.IsNullOrWhiteSpace(connectionId))
+            return;
+
+        connectionTicks[connectionId] = tick;
+        forceFullSnapshots.TryRemove(connectionId, out _);
+    }
+
+    /// <summary>
     /// Drops the per-connection entry. The player-level acknowledgement is kept
     /// so a reconnect can resume from it.
     /// </summary>
     public void Remove(string connectionId)
     {
         connectionTicks.TryRemove(connectionId, out _);
+        forceFullSnapshots.TryRemove(connectionId, out _);
     }
 }
 

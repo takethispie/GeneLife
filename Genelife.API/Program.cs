@@ -45,6 +45,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddSingleton<SimulationEngine>();
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<RequestRateLimiter>();
 builder.Services.Configure<SnapshotStoreOptions>(builder.Configuration.GetSection(SnapshotStoreOptions.SectionName));
 builder.Services.AddSingleton<ISnapshotStore, SnapshotStore>();
 builder.Services.AddSingleton<SimulationManager>();

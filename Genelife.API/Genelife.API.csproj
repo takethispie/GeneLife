@@ -24,6 +24,7 @@
     <ProjectReference Include="..\GeneLife.ServiceDefaults\GeneLife.ServiceDefaults.csproj" />
     <ProjectReference Include="..\Genelife\Genelife.csproj" />
     <ProjectReference Include="..\Genelife.Messages\Genelife.Messages.csproj" />
+    <ProjectReference Include="..\Genelife.Contracts\Genelife.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

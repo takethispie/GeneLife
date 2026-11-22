@@ -14,6 +14,23 @@ public static class MapEndpoints
     public static MapStatus GetMap(SimulationManager simulationManager) =>
         simulationManager.GetMapStatus();
 
+    [WolverineGet("/api/map/snapshot")]
+    [Authorize(Policy = AuthPolicies.Player)]
+    public static IResult GetSnapshot(
+        SimulationManager simulationManager,
+        RequestRateLimiter rateLimiter,
+        HttpContext http)
+    {
+        var key = http.User.Identity?.Name
+            ?? http.Connection.RemoteIpAddress?.ToString()
+            ?? "anonymous";
+
+        if (!rateLimiter.TryAcquire($"map-snapshot:{key}", maxPerWindow: 10, window: TimeSpan.FromSeconds(1)))
+            return Results.StatusCode(StatusCodes.Status429TooManyRequests);
+
+        return Results.Ok(simulationManager.GetMapSnapshot());
+    }
+
     [WolverineGet("/api/map/buildings")]
     public static List<MapBuildingStatus> GetBuildings(SimulationManager simulationManager) =>
         simulationManager.GetMapStatus().BuildingList;

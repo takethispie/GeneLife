@@ -27,10 +27,15 @@ public sealed class WorldHub : Hub
     private readonly ViewportRegistry viewports;
     private readonly ILogger<WorldHub>? logger;
     private readonly int maxPayloadBytes;
+    private readonly int defaultViewportRadius;
+    private readonly int minViewportRadius;
+    private readonly int maxViewportRadius;
 
     private static readonly ConcurrentDictionary<string, RateLimitWindow> RateLimits = new();
     private static readonly ConcurrentDictionary<string, RateLimitWindow> SnapshotRateLimits = new();
+    private static readonly ConcurrentDictionary<string, RateLimitWindow> ViewportRateLimits = new();
     private const int SnapshotRequestsPerSecond = 5;
+    private const int ViewportRequestsPerSecond = 10;
 
     public WorldHub(
         IConnectionRegistry registry,
@@ -50,6 +55,9 @@ public sealed class WorldHub : Hub
         this.viewports = viewports ?? new ViewportRegistry();
         this.logger = logger;
         maxPayloadBytes = configuration.GetValue("SignalR:MaxIntentPayloadBytes", 4096);
+        defaultViewportRadius = Math.Max(1, configuration.GetValue("SignalR:Viewport:DefaultRadius", 32));
+        minViewportRadius = Math.Max(1, configuration.GetValue("SignalR:Viewport:MinRadius", 4));
+        maxViewportRadius = Math.Max(minViewportRadius, configuration.GetValue("SignalR:Viewport:MaxRadius", 256));
     }
 
     public override async Task OnConnectedAsync()
@@ -66,14 +74,32 @@ public sealed class WorldHub : Hub
         replicationTracker.RestoreForConnection(Context.ConnectionId, playerId);
         engine.EnsurePlayerSpawn(playerId);
 
+        if (viewports.TryGetForPlayer(playerId, out var savedViewport))
+        {
+            viewports.TrySet(Context.ConnectionId, savedViewport);
+        }
+        else if (DefaultViewportFor(playerId) is { } defaultViewport)
+        {
+            viewports.TrySet(Context.ConnectionId, defaultViewport);
+            viewports.SetForPlayer(playerId, defaultViewport);
+        }
+
         await Groups.AddToGroupAsync(Context.ConnectionId, $"player-{playerId}");
         await Groups.AddToGroupAsync(Context.ConnectionId, "all");
 
         var snapshot = engine.GetLatestSnapshot();
-        var map = engine.BuildMapStatus();
+        var map = engine.BuildMapSnapshot();
         await Clients.Caller.SendAsync("SendMapSnapshot", map);
         if (snapshot is not null)
         {
+            if (viewports.TryGet(Context.ConnectionId, out var initialViewport))
+            {
+                snapshot = AoiFilter.FilterSnapshotByViewport(
+                    snapshot,
+                    initialViewport,
+                    engine.GetPlayerSimNetworkId(playerId));
+            }
+
             replicationMetrics.Record(Context.ConnectionId, full: true, EstimateBytes(snapshot));
             await Clients.Caller.SendAsync("SendSnapshot", snapshot);
         }
@@ -92,7 +118,11 @@ public sealed class WorldHub : Hub
 
         RateLimits.TryRemove(Context.ConnectionId, out _);
         SnapshotRateLimits.TryRemove(Context.ConnectionId, out _);
+        ViewportRateLimits.TryRemove(Context.ConnectionId, out _);
         viewports.Remove(Context.ConnectionId);
+        if (playerId is not null && registry.GetConnections(playerId).Count == 0)
+            viewports.RemovePlayer(playerId);
+
         replicationTracker.Remove(Context.ConnectionId);
         replicationMetrics.Remove(Context.ConnectionId);
 
@@ -113,26 +143,61 @@ public sealed class WorldHub : Hub
             return;
         }
 
-        var effectiveSince = sinceTick ?? replicationTracker.GetAcknowledgedTick(Context.ConnectionId);
-        var delta = engine.SnapshotHistory.BuildDelta(effectiveSince);
-        if (delta is null)
-            return;
-
+        var forceFull = replicationTracker.NeedsFullSnapshot(Context.ConnectionId);
+        var effectiveSince = forceFull
+            ? 0
+            : sinceTick ?? replicationTracker.GetAcknowledgedTick(Context.ConnectionId);
         var viewport = viewports.TryGet(Context.ConnectionId, out var activeViewport) ? activeViewport : (Viewport?)null;
         var ownSim = engine.GetPlayerSimNetworkId(Context.User?.GetPlayerId() ?? string.Empty);
+
+        WorldSnapshotDelta? delta;
+        if (forceFull)
+        {
+            var current = engine.GetLatestSnapshot();
+            if (current is null)
+                return;
+
+            var full = viewport is { } forcedViewport
+                ? AoiFilter.FilterSnapshotByViewport(current, forcedViewport, ownSim)
+                : current;
+            delta = new WorldSnapshotDelta
+            {
+                Tick = full.Tick,
+                SinceTick = 0,
+                Version = full.Version,
+                Full = true,
+                Sims = full.Sims,
+                Companies = full.Companies
+            };
+        }
+        else if (viewport is { } active)
+        {
+            var current = engine.GetLatestSnapshot();
+            if (current is null)
+                return;
+
+            var previous = effectiveSince > 0
+                && engine.SnapshotHistory.TryGet(effectiveSince, out var found)
+                    ? found
+                    : null;
+            delta = AoiFilter.BuildViewportDelta(previous, current, active, ownSim);
+        }
+        else
+        {
+            delta = engine.SnapshotHistory.BuildDelta(effectiveSince);
+        }
+
+        if (delta is null)
+            return;
 
         if (delta.Full)
         {
             var full = new WorldSnapshot(delta.Tick, delta.Version, delta.Sims, delta.Companies);
-            if (viewport is { } fullViewport)
-                full = AoiFilter.FilterSnapshotByViewport(full, fullViewport, ownSim);
             replicationMetrics.Record(Context.ConnectionId, full: true, EstimateBytes(full));
             await Clients.Caller.SendAsync("SendSnapshot", full);
+            replicationTracker.MarkFullSnapshotSent(Context.ConnectionId, full.Tick);
             return;
         }
-
-        if (viewport is { } active)
-            delta = AoiFilter.FilterDeltaByViewport(delta, active, ownSim);
 
         replicationMetrics.Record(Context.ConnectionId, full: false, EstimateBytes(delta));
         await Clients.Caller.SendAsync("SendSnapshotDelta", delta);
@@ -140,22 +205,75 @@ public sealed class WorldHub : Hub
 
     public async Task SendMapSnapshot()
     {
-        await Clients.Caller.SendAsync("SendMapSnapshot", engine.BuildMapStatus());
+        if (!CheckRateLimit(SnapshotRateLimits, Context.ConnectionId, SnapshotRequestsPerSecond, out var error))
+        {
+            await Clients.Caller.SendAsync("SnapshotRejected", error);
+            return;
+        }
+
+        await Clients.Caller.SendAsync("SendMapSnapshot", engine.BuildMapSnapshot());
     }
 
     public Task RequestMapSnapshot() => SendMapSnapshot();
 
-    public bool SetViewport(int centerX, int centerY, int radius)
+    public ViewportResult SetViewport(SetViewportRequest request)
     {
-        var map = engine.MapContext;
-        if (map is null)
-            return false;
-        radius = Math.Clamp(radius, 1, Math.Max(map.Options.Width, map.Options.Height));
-        var center = map.Options.Bounds.Clamp(new Genelife.Map.TileCoord(centerX, centerY));
-        return viewports.TrySet(Context.ConnectionId, new Viewport(center.X, center.Y, radius));
+        if (engine.MapContext is null)
+            return new ViewportResult(false, request.CenterX, request.CenterY, 0, "Map is not available");
+
+        if (!CheckRateLimit(ViewportRateLimits, Context.ConnectionId, ViewportRequestsPerSecond, out var error))
+            return new ViewportResult(false, request.CenterX, request.CenterY, 0, error);
+
+        var radius = ClampViewportRadius(request.Radius);
+        var center = ClampViewportCenter(request.CenterX, request.CenterY);
+        var viewport = new Viewport(center.X, center.Y, radius);
+
+        viewports.TrySet(Context.ConnectionId, viewport);
+        var playerId = Context.User?.GetPlayerId();
+        if (!string.IsNullOrWhiteSpace(playerId))
+            viewports.SetForPlayer(playerId, viewport);
+
+        replicationTracker.Invalidate(Context.ConnectionId);
+        return new ViewportResult(true, center.X, center.Y, radius, null);
     }
 
-    public void ClearViewport() => viewports.Remove(Context.ConnectionId);
+    public void ClearViewport()
+    {
+        var playerId = Context.User?.GetPlayerId();
+        viewports.Remove(Context.ConnectionId);
+        if (!string.IsNullOrWhiteSpace(playerId))
+            viewports.RemovePlayer(playerId);
+
+        replicationTracker.Invalidate(Context.ConnectionId);
+    }
+
+    private Viewport? DefaultViewportFor(string playerId)
+    {
+        if (engine.GetPlayerTile(playerId) is not { } tile)
+            return null;
+
+        var center = ClampViewportCenter(tile.X, tile.Y);
+        return new Viewport(center.X, center.Y, ClampViewportRadius(defaultViewportRadius));
+    }
+
+    private int ClampViewportRadius(int radius)
+    {
+        var map = engine.MapContext;
+        var max = maxViewportRadius;
+        if (map is not null)
+            max = Math.Min(max, Math.Max(map.Options.Width, map.Options.Height));
+
+        max = Math.Max(minViewportRadius, max);
+        return Math.Clamp(radius, minViewportRadius, max);
+    }
+
+    private Genelife.Map.TileCoord ClampViewportCenter(int x, int y)
+    {
+        var map = engine.MapContext;
+        return map is null
+            ? new Genelife.Map.TileCoord(x, y)
+            : map.Options.Bounds.Clamp(new Genelife.Map.TileCoord(x, y));
+    }
 
     /// <summary>
     /// Records the last world tick the client has applied. Subsequent broadcast
