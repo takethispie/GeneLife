@@ -3,8 +3,10 @@ using Genelife.Api.Persistence;
 using Genelife.Api.Repositories;
 using Genelife.Api.Services;
 using Genelife.Components.Family;
+using Genelife.Components.Finance;
 using Genelife.Components.Gen;
 using Genelife.Family;
+using Genelife.Values;
 
 namespace Genelife.UnitTests.Persistence;
 
@@ -52,6 +54,47 @@ public class PregnancyRestoreTests
         Assert.Equal("Active", pregnancy.Status);
         Assert.True(restored.Pregnancies.TryGetActive(
             restoredFirst, out _));
+    }
+
+
+    [Fact]
+    public void TrustAccountsRoundTripAndStayInMoneySupply()
+    {
+        using var engine = new SimulationEngine();
+        engine.Initialize();
+        ulong childId = 0;
+        var before = Money.Zero;
+        engine.ExecuteWithWorld(world =>
+        {
+            var repository = new SimRepository(world, engine.NetworkIds, engine.Economy);
+            childId = repository.Add("Child", 8).Value;
+            Assert.True(engine.NetworkIds.TryGetEntity(new NetworkId(childId), out var child));
+            Assert.NotEqual(Entity.Null, engine.Trusts!.Create(
+                child, Entity.Null, Money.FromUnits(125m), 0, 5, 18L * engine.Economy!.Clock.TicksPerYear));
+            before = engine.Economy.TotalMoneySupply();
+            return 0;
+        });
+        var state = engine.CaptureState(engine.NetworkIds);
+        engine.Shutdown();
+
+        using var restored = new SimulationEngine();
+        restored.Restore(state, restored.NetworkIds);
+        var tracker = 0;
+        var balance = Money.Zero;
+        restored.ExecuteWithWorld(world =>
+        {
+            world.Query(in new QueryDescription().WithAll<TrustAccount>(),
+                (Entity _, ref TrustAccount trust) =>
+                {
+                    tracker++;
+                    balance += trust.Balance;
+                });
+            return 0;
+        });
+
+        Assert.Equal(1, tracker);
+        Assert.Equal(Money.FromUnits(125m), balance);
+        Assert.Equal(before, restored.Economy!.TotalMoneySupply());
     }
 
     [Fact]

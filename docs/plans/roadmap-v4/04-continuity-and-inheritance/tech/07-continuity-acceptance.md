@@ -3,7 +3,7 @@
 **Phase:** 7 — Verification
 **Depends:** C01–C06
 **Estimate:** 2 sessions
-**Status:** Planned (V4)
+**Status:** Partial — core acceptance/restore tests pass; 30-year/2,000-sim/admin smoke pending
 
 ## Goal
 

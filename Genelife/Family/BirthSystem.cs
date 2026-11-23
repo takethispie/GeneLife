@@ -93,6 +93,7 @@ public sealed class BirthSystem : ISimulationSystem
             {
                 var newborn = factory.Create(parentA, parentB, household, pregnancy, tick);
                 economy.Life.Index.OnBorn(LifeStage.Education);
+                economy.Life.BirthsThisYear++;
                 economy.Emit(new ChildBorn(
                     NetworkIdOf(newborn.Entity),
                     NetworkIdOf(parentA),

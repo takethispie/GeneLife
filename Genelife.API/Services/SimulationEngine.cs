@@ -55,6 +55,10 @@ public class SimulationEngine : IDisposable
     private PregnancyIndex pregnancyIndex = new();
     private PregnancyService? pregnancyService;
     private NewbornFactory? newbornFactory;
+    private InheritanceOptions inheritanceOptions = InheritanceOptions.Default;
+    private GuardianshipOptions guardianshipOptions = GuardianshipOptions.Default;
+    private TrustService? trustService;
+    private GuardianshipService? guardianshipService;
     private SystemRegistry? systems;
     private bool isRunning;
     private long tick;
@@ -116,6 +120,10 @@ private readonly NetworkIdRegistry networkIds = new();
     public FamilyHousingPolicy FamilyHousingPolicy { get { lock (@lock) { return familyHousingPolicy; } } }
     public PregnancyIndex Pregnancies { get { lock (@lock) { return pregnancyIndex; } } }
     public PregnancyService? PregnancyService { get { lock (@lock) { return pregnancyService; } } }
+    public InheritanceOptions InheritanceOptions { get { lock (@lock) { return inheritanceOptions; } } }
+    public GuardianshipOptions GuardianshipOptions { get { lock (@lock) { return guardianshipOptions; } } }
+    public TrustService? Trusts { get { lock (@lock) { return trustService; } } }
+    public GuardianshipService? Guardianship { get { lock (@lock) { return guardianshipService; } } }
     public NetworkIdRegistry NetworkIds => networkIds;
     public SnapshotHistory SnapshotHistory => history;
     public long LastSnapshotBuildTimeMs { get; private set; }
@@ -169,7 +177,9 @@ private readonly NetworkIdRegistry networkIds = new();
         GeneticsOptions? geneticsOptions = null,
         RelationshipOptions? relationshipOptions = null,
         ReproductionOptions? reproductionOptions = null,
-        FamilyHousingPolicy? familyHousingPolicy = null)
+        FamilyHousingPolicy? familyHousingPolicy = null,
+        InheritanceOptions? inheritanceOptions = null,
+        GuardianshipOptions? guardianshipOptions = null)
     {
         lock (@lock)
         {
@@ -238,6 +248,21 @@ private readonly NetworkIdRegistry networkIds = new();
                 economy,
                 relationshipService,
                 entity => networkIds.Allocate(entity));
+            this.inheritanceOptions = inheritanceOptions ?? InheritanceOptions.Default;
+            this.inheritanceOptions.Validate();
+            this.guardianshipOptions = guardianshipOptions ?? GuardianshipOptions.Default;
+            this.guardianshipOptions.Validate();
+            trustService = new TrustService(world, economy)
+            {
+                NetworkIdAllocator = entity => networkIds.Allocate(entity),
+                NetworkIdRemover = entity => networkIds.Remove(entity)
+            };
+            guardianshipService = new GuardianshipService(
+                world,
+                economy,
+                relationshipIndex,
+                relationshipService!,
+                this.guardianshipOptions);
 
             systems = new SystemRegistry();
             systems.Register(new NeedsDecaySystem(world));
@@ -258,6 +283,8 @@ private readonly NetworkIdRegistry networkIds = new();
             systems.Register(new PregnancySystem(world, economy, pregnancyIndex, pregnancyService, this.reproductionOptions));
             systems.Register(new BirthSystem(world, economy, pregnancyIndex, pregnancyService, newbornFactory, entity => networkIds.Allocate(entity), this.reproductionOptions));
             systems.Register(new FamilyHouseholdSystem(world, economy, relationshipIndex, this.relationshipOptions, this.familyHousingPolicy));
+            systems.Register(new TrustSystem(economy, trustService));
+            systems.Register(new StateCareSystem(world, economy));
             systems.Register(new RelationshipExposureSystem(world, economy, relationshipIndex, this.relationshipOptions, relationshipCache));
             systems.Register(new AttractionSystem(world, economy, relationshipIndex, this.relationshipOptions, relationshipCache));
             systems.Register(new PairingSystem(world, economy, relationshipService!, relationshipIndex, this.relationshipOptions, relationshipCache));
@@ -268,10 +295,22 @@ private readonly NetworkIdRegistry networkIds = new();
             systems.Register(new ElderDeclineSystem(world, economy));
             systems.Register(new MortalitySystem(world, economy));
             systems.Register(new NeedsDeathSystem(world, economy));
-            systems.Register(new DeathProcessingSystem(world, economy, relationships: relationshipService));
-            systems.Register(new EstateSettlementSystem(world, economy));
+            systems.Register(new DeathProcessingSystem(
+                world,
+                economy,
+                relationships: relationshipService,
+                relationshipIndex: relationshipIndex,
+                guardianship: guardianshipService,
+                inheritanceOptions: this.inheritanceOptions));
+            systems.Register(new EstateSettlementSystem(
+                world,
+                economy,
+                relationshipIndex: relationshipIndex,
+                relationshipService: relationshipService,
+                inheritanceOptions: this.inheritanceOptions,
+                trusts: trustService));
             systems.Register(new PopulationInflowSystem(world, economy, mapContext));
-            systems.Register(new PopulationMetricsSystem(world, economy));
+            systems.Register(new PopulationMetricsSystem(world, economy, relationships: relationshipIndex));
             systems.Register(new CompanyRevenueSystem(world, economy));
             systems.Register(new ConsumerSpendingSystem(world, economy));
             systems.Register(new PayrollSystem(world, economy));
@@ -325,6 +364,8 @@ private readonly NetworkIdRegistry networkIds = new();
             pregnancyService = null;
             pregnancyIndex.Clear();
             newbornFactory = null;
+            trustService = null;
+            guardianshipService = null;
             systems = null;
             history.Clear();
             networkIds.Clear();
@@ -2763,6 +2804,13 @@ if (SnapshotsEnabled)
                     Level = issue.Level,
                     Detail = issue.Detail
                 }));
+            status.Health.AddRange(ContinuityInvariants.Verify(world, relationshipIndex, economy)
+                .Select(issue => new LifecycleHealthCheckStatus
+                {
+                    Name = issue.Name,
+                    Level = issue.Level,
+                    Detail = issue.Detail
+                }));
 
             return status;
         }
@@ -2795,6 +2843,20 @@ if (SnapshotsEnabled)
             status.Population = adults + minors;
             status.Adults = adults;
             status.Minors = minors;
+            status.BirthsThisYear = economy.Life.BirthsThisYear;
+            status.BirthRate = adults + minors > 0
+                ? status.BirthsThisYear * 1_000m / (adults + minors)
+                : 0m;
+            status.NaturalChange = economy.Life.BirthsThisYear - economy.Life.DeathsThisYear;
+            status.InheritancePaidThisYear = economy.Life.InheritancePaidThisYear.Units;
+            status.TrustReleasedThisYear = economy.Life.TrustReleasedThisYear.Units;
+            status.MinorTrustTotal = trustService?.TotalHeld().Units ?? 0m;
+            var latestPopulation = economy.Life.MetricHistory.Count > 0
+                ? economy.Life.MetricHistory[^1]
+                : null;
+            status.Orphans = latestPopulation?.Orphans ?? 0;
+            status.StateCareChildren = latestPopulation?.StateCareChildren ?? 0;
+            status.ReplacementRate = latestPopulation?.ReplacementRate ?? 0m;
             status.PairedSims = relationshipsCount(sim => relationshipIndex.PartnersOf(sim).Count > 0);
             status.SingleAdults = Math.Max(0, adults - status.PairedSims);
 
@@ -2851,6 +2913,14 @@ if (SnapshotsEnabled)
 
             var reproductionIssues = ReproductionInvariants.Verify(world, relationshipIndex, economy);
             issues.AddRange(reproductionIssues.Select(issue => new LifecycleHealthCheckStatus
+            {
+                Name = issue.Name,
+                Level = issue.Level,
+                Detail = issue.Detail
+            }));
+
+            var continuityIssues = ContinuityInvariants.Verify(world, relationshipIndex, economy);
+            issues.AddRange(continuityIssues.Select(issue => new LifecycleHealthCheckStatus
             {
                 Name = issue.Name,
                 Level = issue.Level,
@@ -4623,6 +4693,22 @@ if (SnapshotsEnabled)
                     });
                 });
 
+            var persistedTrusts = new List<PersistedTrust>();
+            world.Query(in new QueryDescription().WithAll<TrustAccount, NetworkId>(),
+                (Entity entity, ref TrustAccount trust, ref NetworkId networkId) =>
+                {
+                    persistedTrusts.Add(new PersistedTrust
+                    {
+                        NetworkId = networkId.Value,
+                        BeneficiaryNetworkId = GetNetworkId(world, trust.Beneficiary),
+                        GuardianNetworkId = GetNetworkId(world, trust.Guardian),
+                        BalanceCents = trust.Balance.Cents,
+                        CreatedTick = trust.CreatedTick,
+                        ReleaseAgeTicks = trust.ReleaseAgeTicks,
+                        SourceSimNetworkId = trust.SourceSimNetworkId
+                    });
+                });
+
             var constructionProjects = new List<PersistedConstructionProject>();
             world.Query(in new QueryDescription().WithAll<ConstructionProject, NetworkId>(),
                 (Entity entity, ref ConstructionProject project, ref NetworkId nid) =>
@@ -4741,7 +4827,21 @@ if (SnapshotsEnabled)
                 {
                     Cause = cause.Cause,
                     Count = cause.Count
-                }).ToList()
+                }).ToList(),
+                BirthsThisYear = snapshot.BirthsThisYear,
+                BirthRate = snapshot.BirthRate,
+                NaturalChange = snapshot.NaturalChange,
+                NetMigration = snapshot.NetMigration,
+                ReplacementRate = snapshot.ReplacementRate,
+                Children = snapshot.Children,
+                ChildrenUnderSchoolAge = snapshot.ChildrenUnderSchoolAge,
+                AverageHouseholdSize = snapshot.AverageHouseholdSize,
+                Orphans = snapshot.Orphans,
+                StateCareChildren = snapshot.StateCareChildren,
+                GuardianCoverage = snapshot.GuardianCoverage,
+                MinorTrustTotalCents = snapshot.MinorTrustTotal.Cents,
+                InheritancePaidCents = snapshot.InheritancePaidThisYear.Cents,
+                TrustReleasedCents = snapshot.TrustReleasedThisYear.Cents
             }).ToList();
 
             var mortalityLog = economy.Life.MortalityLog.Select(record => new PersistedMortalityRecord
@@ -4855,6 +4955,8 @@ if (SnapshotsEnabled)
                 RelationshipOptions = relationshipOptions,
                 ReproductionOptions = reproductionOptions,
                 FamilyHousingPolicy = familyHousingPolicy,
+                InheritanceOptions = inheritanceOptions,
+                GuardianshipOptions = guardianshipOptions,
                 AttractionModelVersion = AttractionCoefficients.CurrentVersion,
                 Map = mapState,
                 Placements = persistedPlacements,
@@ -4879,6 +4981,7 @@ if (SnapshotsEnabled)
                 HouseholdMembers = householdMembers,
                 Relationships = relationships,
                 Pregnancies = pregnancies,
+                Trusts = persistedTrusts,
                 ConstructionProjects = constructionProjects,
                 HousingMetricHistory = housingMetricHistory,
                 HousingMarket = housingMarket,
@@ -5029,7 +5132,9 @@ if (SnapshotsEnabled)
                 state.GeneticsOptions,
                 state.RelationshipOptions,
                 state.ReproductionOptions,
-                state.FamilyHousingPolicy);
+                state.FamilyHousingPolicy,
+                state.InheritanceOptions,
+                state.GuardianshipOptions);
 
             if (state.Map.Tiles.Length > 0)
             {
@@ -5653,6 +5758,28 @@ if (SnapshotsEnabled)
                 networkIds.AllocateWithValue(pregnancy, pregnancyNetworkId);
             }
 
+            foreach (var persisted in state.Trusts)
+            {
+                if (!simEntities.TryGetValue(persisted.BeneficiaryNetworkId, out var beneficiary))
+                    continue;
+                Entity guardian = Entity.Null;
+                if (persisted.GuardianNetworkId != 0)
+                    simEntities.TryGetValue(persisted.GuardianNetworkId, out guardian);
+
+                var trust = world!.Create(new TrustAccount
+                {
+                    Balance = new Money(persisted.BalanceCents),
+                    Beneficiary = beneficiary,
+                    Guardian = guardian,
+                    CreatedTick = persisted.CreatedTick,
+                    ReleaseAgeTicks = persisted.ReleaseAgeTicks,
+                    SourceSimNetworkId = persisted.SourceSimNetworkId
+                });
+                var trustNetworkId = new NetworkId(persisted.NetworkId);
+                world.Add(trust, trustNetworkId);
+                networkIds.AllocateWithValue(trust, trustNetworkId);
+            }
+
             relationshipIndex.Rebuild(world!);
             relationshipCache.Clear();
             pregnancyIndex.Rebuild(world!);
@@ -5806,7 +5933,21 @@ if (SnapshotsEnabled)
                     row.WorkingAgeShare,
                     row.OldAgeDependencyRatio,
                     row.PyramidBuckets,
-                    row.DeathCauses.Select(cause => new DeathCauseCount(cause.Cause, cause.Count)).ToList()));
+                    row.DeathCauses.Select(cause => new DeathCauseCount(cause.Cause, cause.Count)).ToList(),
+                    row.BirthsThisYear,
+                    row.BirthRate,
+                    row.NaturalChange,
+                    row.NetMigration,
+                    row.ReplacementRate,
+                    row.Children,
+                    row.ChildrenUnderSchoolAge,
+                    row.AverageHouseholdSize,
+                    row.Orphans,
+                    row.StateCareChildren,
+                    row.GuardianCoverage,
+                    new Money(row.MinorTrustTotalCents),
+                    new Money(row.InheritancePaidCents),
+                    new Money(row.TrustReleasedCents)));
             }
 
             if (!state.LifecycleMigrated)
@@ -5918,11 +6059,23 @@ if (SnapshotsEnabled)
             }
 
             if (economy.Life.DeathQueue.Count > 0)
-                new DeathProcessingSystem(world!, economy, relationships: relationshipService).Update(state.Tick);
+                new DeathProcessingSystem(
+                    world!,
+                    economy,
+                    relationships: relationshipService,
+                    relationshipIndex: relationshipIndex,
+                    guardianship: guardianshipService,
+                    inheritanceOptions: inheritanceOptions).Update(state.Tick);
 
             economy.Life.EstateQueue.AddRange(estateRequests);
             if (economy.Life.EstateQueue.Count > 0)
-                new EstateSettlementSystem(world!, economy).Update(state.Tick);
+                new EstateSettlementSystem(
+                    world!,
+                    economy,
+                    relationshipIndex: relationshipIndex,
+                    relationshipService: relationshipService,
+                    inheritanceOptions: inheritanceOptions,
+                    trusts: trustService).Update(state.Tick);
 
             foreach (var sim in state.Sims.Where(sim => sim.IsDead))
             {

@@ -3,7 +3,7 @@
 **Phase:** 5 — Balance
 **Depends:** C01–C04
 **Estimate:** 2 sessions
-**Status:** Planned (V4)
+**Status:** Partial — 10-year balance green with births/inheritance; 30-year and 2,000-sim runs pending
 
 ## Goal
 

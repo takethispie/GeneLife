@@ -77,13 +77,20 @@ public class PopulationInflowSystem : ISimulationSystem
         ExpirePending(tick, clock, policy, state);
 
         var openSeats = CountOpenSeats();
-        var populationGap = policy.TargetPopulation - current;
+        var populationGap = policy.TargetPopulation - (current + state.Pending.Count);
         var workingAgeShare = current > 0 ? workers / (decimal)current : 1m;
         var pyramidPressure = workingAgeShare < policy.MinimumWorkingAgeShare;
         var labourGap = openSeats - unemployed;
 
-        if (populationGap <= 0 && labourGap <= 0 && !pyramidPressure)
+        if (populationGap <= 0)
+        {
+            if (!state.Paused)
+            {
+                state.Paused = true;
+                economy.Emit(new ImmigrationPaused("TargetReached", tick));
+            }
             return;
+        }
 
         var allowed = Math.Min(
             Math.Max(1, state.ArrivalBudget / 12),

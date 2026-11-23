@@ -5,6 +5,7 @@ using Genelife.Components.Finance;
 using Genelife.Components.Gen;
 using Genelife.Components.Housing;
 using Genelife.Economy;
+using Genelife.Family;
 using Genelife.Life;
 using Genelife.Messages.Events;
 using Genelife.Values;
@@ -22,12 +23,27 @@ public class EstateSettlementSystem : ISimulationSystem
 
     private readonly World world;
     private readonly EconomyContext economy;
+    private readonly RelationshipIndex? relationshipIndex;
+    private readonly RelationshipService? relationshipService;
+    private readonly InheritanceOptions inheritanceOptions;
+    private readonly TrustService? trusts;
     private readonly int interval;
 
-    public EstateSettlementSystem(World world, EconomyContext economy, int? interval = null)
+    public EstateSettlementSystem(
+        World world,
+        EconomyContext economy,
+        int? interval = null,
+        RelationshipIndex? relationshipIndex = null,
+        RelationshipService? relationshipService = null,
+        InheritanceOptions? inheritanceOptions = null,
+        TrustService? trusts = null)
     {
         this.world = world;
         this.economy = economy;
+        this.relationshipIndex = relationshipIndex;
+        this.relationshipService = relationshipService;
+        this.inheritanceOptions = inheritanceOptions ?? InheritanceOptions.Default;
+        this.trusts = trusts;
         this.interval = interval ?? economy.Clock.TicksPerMonth;
     }
 
@@ -96,62 +112,63 @@ public class EstateSettlementSystem : ISimulationSystem
 
         TransferHousing(request);
 
-        var heirs = request.Heirs
-            .Where(heir => heir != sim && world.IsAlive(heir) && !world.Has<Dead>(heir))
-            .Distinct()
-            .OrderBy(heir => LifeSystemHelpers.NetworkIdOf(world, heir))
-            .ToList();
+        var allocations = relationshipIndex is not null
+            ? HeirResolver.Resolve(
+                    world,
+                    relationshipIndex,
+                    sim,
+                    inheritanceOptions,
+                    economy.Life.Policy)
+                .Allocations
+                .Where(allocation =>
+                    allocation.Heir != sim &&
+                    world.IsAlive(allocation.Heir) &&
+                    !world.Has<Dead>(allocation.Heir))
+                .DistinctBy(allocation => allocation.Heir)
+                .OrderBy(allocation => LifeSystemHelpers.NetworkIdOf(world, allocation.Heir))
+                .ToList()
+            : request.Heirs
+                .Where(heir => heir != sim && world.IsAlive(heir) && !world.Has<Dead>(heir))
+                .Distinct()
+                .OrderBy(heir => LifeSystemHelpers.NetworkIdOf(world, heir))
+                .Select(heir => new HeirAllocation(
+                    heir,
+                    1m / Math.Max(1, request.Heirs.Count),
+                    "household"))
+                .ToList();
 
         var distributed = Money.Zero;
         var escheat = Money.Zero;
+        var heirCount = allocations.Count;
         if (remaining.IsPositive)
         {
-            if (heirs.Count == 0)
+            if (allocations.Count == 0)
             {
                 escheat = remaining;
-                economy.Government.Balance += remaining;
-                economy.Ledger.Record(
-                    Guid.NewGuid(),
-                    tick,
-                    LedgerKind.Inheritance,
-                    request.SimNetworkId,
-                    EconomyAccountIds.Government,
-                    remaining,
-                    "estate.escheat");
-                economy.Emit(new EscheatRecorded(request.SimNetworkId, remaining.Cents, tick));
+                PayEscheat(request, remaining, tick);
             }
             else
             {
-                var share = new Money(remaining.Cents / heirs.Count);
-                var remainder = remaining - share * heirs.Count;
-                for (var i = 0; i < heirs.Count; i++)
+                var amounts = AllocateCents(remaining.Cents, allocations);
+                var allocatedShare = allocations.Sum(allocation => allocation.Share);
+                for (var i = 0; i < allocations.Count; i++)
                 {
-                    var heir = heirs[i];
-                    var amount = i == 0 ? share + remainder : share;
+                    var amount = new Money(amounts[i]);
                     if (!amount.IsPositive)
                         continue;
+                    PayHeir(request, allocations[i].Heir, amount, tick, ref distributed);
+                }
 
-                    if (!world.Has<Wallet>(heir))
-                        world.Add(heir, new Wallet(Money.Zero));
-                    world.Get<Wallet>(heir).Balance += amount;
-                    distributed += amount;
-
-                    economy.Ledger.Record(
-                        Guid.NewGuid(),
-                        tick,
-                        LedgerKind.Inheritance,
-                        request.SimNetworkId,
-                        LifeSystemHelpers.NetworkIdOf(world, heir),
-                        amount,
-                        "estate.inheritance");
-                    economy.Emit(new InheritancePaid(
-                        request.SimNetworkId,
-                        LifeSystemHelpers.NetworkIdOf(world, heir),
-                        amount.Cents,
-                        tick));
+                var unallocated = remaining - distributed;
+                if (unallocated.IsPositive)
+                {
+                    escheat = unallocated;
+                    PayEscheat(request, unallocated, tick);
                 }
             }
         }
+
+        relationshipService?.RemoveEdgesForSim(sim);
 
         if (request.SimNetworkId != 0)
         {
@@ -163,7 +180,7 @@ public class EstateSettlementSystem : ISimulationSystem
                 0,
                 distributed.Cents,
                 escheat.Cents,
-                heirs.Count,
+                heirCount,
                 tick));
         }
 
@@ -219,12 +236,30 @@ public class EstateSettlementSystem : ISimulationSystem
             !world.Has<HousingUnit>(request.OwnedUnit))
             return;
 
-        var householdContinues = request.Household != Entity.Null &&
-                                 world.IsAlive(request.Household) &&
-                                 economy.Housing.MemberCount(request.Household) > 0;
-
         Entity newOwner = Entity.Null;
-        if (householdContinues && world.Has<Household>(request.Household))
+        if (relationshipIndex is not null)
+        {
+            newOwner = relationshipIndex.ExPartnersOf(request.Sim)
+                .Concat(relationshipIndex.PartnersOf(request.Sim))
+                .FirstOrDefault(candidate =>
+                    candidate != request.Sim && world.IsAlive(candidate) && !world.Has<Dead>(candidate));
+
+            if (newOwner == Entity.Null)
+            {
+                var minor = relationshipIndex.ChildrenOf(request.Sim)
+                    .FirstOrDefault(child =>
+                        world.IsAlive(child) &&
+                        world.Has<Alive>(child) &&
+                        world.Get<Alive>(child).Age < economy.Life.Policy.WorkStartAge &&
+                        relationshipIndex.GuardiansOf(child).Count > 0);
+                if (minor != Entity.Null)
+                    newOwner = relationshipIndex.GuardiansOf(minor)[0];
+            }
+        }
+
+        if (newOwner == Entity.Null && request.Household != Entity.Null &&
+            world.IsAlive(request.Household) && economy.Housing.MemberCount(request.Household) > 0 &&
+            world.Has<Household>(request.Household))
         {
             var head = world.Get<Household>(request.Household).Head;
             if (head != Entity.Null && world.IsAlive(head) && !world.Has<Dead>(head))
@@ -233,9 +268,89 @@ public class EstateSettlementSystem : ISimulationSystem
         if (newOwner == Entity.Null)
         {
             newOwner = request.Heirs.FirstOrDefault(heir =>
-                world.IsAlive(heir) && !world.Has<Dead>(heir));
+                heir != request.Sim && world.IsAlive(heir) && !world.Has<Dead>(heir));
         }
 
         economy.Housing.TransferUnit(request.OwnedUnit, newOwner);
+    }
+
+    private void PayHeir(
+        EstateRequest request,
+        Entity heir,
+        Money amount,
+        long tick,
+        ref Money distributed)
+    {
+        var isMinor = world.Has<Alive>(heir) &&
+                      world.Get<Alive>(heir).Age < economy.Life.Policy.WorkStartAge;
+        var guardian = relationshipIndex?.GuardiansOf(heir).FirstOrDefault() ?? Entity.Null;
+        var releaseAgeTicks = (long)economy.Life.Policy.WorkStartAge * economy.Clock.TicksPerYear;
+
+        if (isMinor && trusts is not null)
+        {
+            var trust = trusts.Create(
+                heir, guardian, amount, request.SimNetworkId, tick, releaseAgeTicks);
+            if (trust == Entity.Null)
+                return;
+        }
+        else
+        {
+            if (!world.Has<Wallet>(heir))
+                world.Add(heir, new Wallet(Money.Zero));
+            world.Get<Wallet>(heir).Balance += amount;
+            economy.Ledger.Record(
+                Guid.NewGuid(),
+                tick,
+                LedgerKind.Inheritance,
+                request.SimNetworkId,
+                LifeSystemHelpers.NetworkIdOf(world, heir),
+                amount,
+                "estate.inheritance");
+        }
+
+        distributed += amount;
+        economy.Life.InheritancePaidThisYear += amount;
+        economy.Emit(new InheritancePaid(
+            request.SimNetworkId,
+            LifeSystemHelpers.NetworkIdOf(world, heir),
+            amount.Cents,
+            tick));
+    }
+
+    private void PayEscheat(EstateRequest request, Money amount, long tick)
+    {
+        economy.Government.Balance += amount;
+        economy.Ledger.Record(
+            Guid.NewGuid(),
+            tick,
+            LedgerKind.Inheritance,
+            request.SimNetworkId,
+            EconomyAccountIds.Government,
+            amount,
+            "estate.escheat");
+        economy.Emit(new EscheatRecorded(request.SimNetworkId, amount.Cents, tick));
+    }
+
+    private static long[] AllocateCents(long pool, IReadOnlyList<HeirAllocation> allocations)
+    {
+        var result = new long[allocations.Count];
+        if (pool <= 0 || allocations.Count == 0)
+            return result;
+
+        var allocatedShare = Math.Clamp(allocations.Sum(allocation => allocation.Share), 0m, 1m);
+        var target = (long)Math.Floor(pool * allocatedShare);
+        var assigned = 0L;
+        for (var i = 0; i < allocations.Count; i++)
+        {
+            result[i] = (long)Math.Floor(pool * allocations[i].Share);
+            if (result[i] < 0)
+                result[i] = 0;
+            assigned += result[i];
+        }
+
+        var pennies = Math.Min(target - assigned, allocations.Count);
+        for (var i = 0; i < pennies; i++)
+            result[i]++;
+        return result;
     }
 }

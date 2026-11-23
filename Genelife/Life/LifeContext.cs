@@ -55,6 +55,9 @@ public sealed class LifeContext
     public int RetiredThisYear { get; set; }
     public int DeathsThisYear { get; set; }
     public int ArrivalsThisYear { get; set; }
+    public int BirthsThisYear { get; set; }
+    public Values.Money InheritancePaidThisYear { get; set; }
+    public Values.Money TrustReleasedThisYear { get; set; }
 
     public Func<Entity, NetworkId>? NetworkIdAllocator { get; private set; }
 
@@ -99,6 +102,9 @@ public sealed class LifeContext
         RetiredThisYear = 0;
         DeathsThisYear = 0;
         ArrivalsThisYear = 0;
+        BirthsThisYear = 0;
+        InheritancePaidThisYear = Values.Money.Zero;
+        TrustReleasedThisYear = Values.Money.Zero;
     }
 
     public decimal PensionFundingRatio(Values.Money fundBalance)

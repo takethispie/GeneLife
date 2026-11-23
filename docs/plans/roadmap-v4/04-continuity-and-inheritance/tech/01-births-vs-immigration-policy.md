@@ -3,7 +3,7 @@
 **Phase:** 1 — Continuity
 **Depends:** feature 03 births, `PopulationInflowSystem`, `PopulationSnapshot`
 **Estimate:** 1–2 sessions
-**Status:** Planned (V4)
+**Status:** Done
 
 ## Goal
 

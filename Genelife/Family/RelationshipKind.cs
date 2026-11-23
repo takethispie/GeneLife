@@ -21,7 +21,8 @@ public enum RelationshipSource : byte
     Admin,
     Migration,
     Death,
-    Birth
+    Birth,
+    Guardianship
 }
 
 public static class RelationshipMirrors

@@ -146,7 +146,7 @@ public class ConsumerSpendingSystem : ISimulationSystem
             return sim;
 
         var guardian = ChildhoodPolicy.GuardianOf(world, economy, sim);
-        return guardian != Entity.Null && world.Has<Wallet>(guardian) ? guardian : sim;
+        return guardian != Entity.Null && world.IsAlive(guardian) && world.Has<Wallet>(guardian) ? guardian : sim;
     }
 
     private void ExplicitlyWithdrawForConsumption(long tick, Entity sim, Money budget)

@@ -3,7 +3,7 @@
 **Phase:** 3 — Inheritance
 **Depends:** C02, `EstateSettlementSystem`, `RelationshipIndex`
 **Estimate:** 2–3 sessions
-**Status:** Planned (V4)
+**Status:** Done — heir order, minor trusts, release and conservation; beneficiary-death trust escheats rather than replaying the full estate order
 
 ## Goal
 

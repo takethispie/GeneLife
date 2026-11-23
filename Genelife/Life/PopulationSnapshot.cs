@@ -1,5 +1,6 @@
 using Arch.Core;
 using Genelife.Enums;
+using Genelife.Values;
 
 namespace Genelife.Life;
 
@@ -36,7 +37,21 @@ public sealed record PopulationSnapshot(
     decimal WorkingAgeShare,
     decimal OldAgeDependencyRatio,
     IReadOnlyList<int> PyramidBuckets,
-    IReadOnlyList<DeathCauseCount> DeathCauses);
+    IReadOnlyList<DeathCauseCount> DeathCauses,
+    int BirthsThisYear = 0,
+    decimal BirthRate = 0m,
+    int NaturalChange = 0,
+    int NetMigration = 0,
+    decimal ReplacementRate = 0m,
+    int Children = 0,
+    int ChildrenUnderSchoolAge = 0,
+    decimal AverageHouseholdSize = 0m,
+    int Orphans = 0,
+    int StateCareChildren = 0,
+    decimal GuardianCoverage = 0m,
+    Money MinorTrustTotal = default,
+    Money InheritancePaidThisYear = default,
+    Money TrustReleasedThisYear = default);
 
 public sealed record DeathCauseCount(string Cause, int Count);
 

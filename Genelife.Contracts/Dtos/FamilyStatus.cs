@@ -14,6 +14,15 @@ public sealed class FamilyStatus
     public decimal SeedPartnershipShare { get; set; }
     public bool SameSexPairingAllowed { get; set; }
     public bool CohabitOnPairing { get; set; }
+    public int BirthsThisYear { get; set; }
+    public decimal BirthRate { get; set; }
+    public int NaturalChange { get; set; }
+    public int Orphans { get; set; }
+    public int StateCareChildren { get; set; }
+    public decimal MinorTrustTotal { get; set; }
+    public decimal InheritancePaidThisYear { get; set; }
+    public decimal TrustReleasedThisYear { get; set; }
+    public decimal ReplacementRate { get; set; }
     public List<LifecycleHealthCheckStatus> Health { get; set; } = new();
 }
 

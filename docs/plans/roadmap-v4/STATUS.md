@@ -1,6 +1,6 @@
 # Roadmap V4 — Status
 
-**Status:** In progress — features 01–03 implemented; feature 04 next
+**Status:** In progress — features 01–04 implemented; feature 05 next
 **Builds on:** V1 economy/housing/life stages, V2 spatial world, V3 read-model conventions
 **Scope:** traits and genetics, relationships and attraction, reproduction and family, continuity and inheritance, admin/hardening
 **Primary risk:** family state touches households, housing capacity, estates, population continuity and the money ledger at the same time
@@ -19,12 +19,12 @@
 | Childhood and school entry | Done (feature 03) | Dependent marker, age gates, adulthood transition |
 | Child costs and household finance | Partial (feature 03) | Guardian-paid dependent consumption and conservation tests; child benefit/staged finance pending |
 | Births vs immigration | Partial (feature 03) | Birth path live; yearly birth-rate metric and target tuning pending |
-| Widowhood and guardianship | Planned | Head reassignment, guardian assignment, minor share |
-| Inheritance rules | Planned | Partner/child/relative/escheat split, conservation test |
-| Family read model and admin page | Partial (feature 02) | `/api/family` and health checks done; `Family.razor` pending |
+| Widowhood and guardianship | Done (feature 04) | Partner end, head/guardian reassignment, state care |
+| Inheritance rules | Done (feature 04) | Relationship heir order, trusts, housing transfer, conservation |
+| Family read model and admin page | Partial (features 02–04) | Family/pregnancy/child/guardian reads and health done; `Family.razor` pending |
 | Events and Marten projections | Partial (feature 02) | Family events emitted; Marten projection pending |
-| Persistence and schema 5 → 8 | Done (features 01–03) | Traits (v6), relationships (v7), pregnancies/birth records (v8), restore tests |
-| Determinism and scale | Partial (features 01–03) | Trait/pairing/conception/birth replay, balance scenario; 2,000-sim budget pending |
+| Persistence and schema 5 → 9 | Done (features 01–04) | Traits (v6), relationships (v7), pregnancies/births (v8), trusts/inheritance (v9), restore tests |
+| Determinism and scale | Partial (features 01–04) | Trait/pairing/conception/birth/inheritance replay, balance scenario; 2,000-sim budget pending |
 | Release acceptance | Planned | Full suite, balance scenario, admin smoke test |
 
 ## Verification plan
@@ -44,18 +44,21 @@ Feature 01 verification (2026-11-23): `dotnet build GeneLife.sln` succeeds; `Gen
 
 Feature 02 verification (2026-11-23): relationship domain/index/eligibility/scorer/candidate/merge/persistence/admin tests pass; the 60- and 200-sim balance scenarios pass with `CohabitOnPairing = false`.
 
-Feature 03 verification (2026-11-23): pregnancy domain, conception rate/replay, prenatal care/risk/loss, birth/newborn, childhood gates, guardian-paid child consumption, pregnancy restore and reproduction invariants pass. The 200-sim decade remains green with births enabled. Marten/integration/performance namespaces still require PostgreSQL.
+Feature 03 verification (2026-11-23): pregnancy domain, conception rate/replay, prenatal care/risk/loss, birth/newborn, childhood gates, guardian-paid child consumption, pregnancy restore and reproduction invariants pass. The 200-sim decade remains green with births enabled.
+
+Feature 04 verification (2026-11-23): heir order/shares, minor trusts/release/escheat, widowhood head/guardian transition, relative/state care, trust restore and continuity invariants pass. Births are counted in the population snapshot, immigration pauses with `TargetReached`, and the 200-sim decade remains green. Marten/integration/performance namespaces still require PostgreSQL.
 
 ## Current baseline
 
-- `PersistedWorldState.CurrentSchemaVersion` is 8, with persisted economy/housing/genetics/relationship/reproduction options, relationship edges, pregnancy and birth history, the `BalanceBackfilled` migration, deterministic trait backfill from schema 5, relationship restore from schema 6 and pregnancy restore from schema 7.
+- `PersistedWorldState.CurrentSchemaVersion` is 9, with persisted family/inheritance/guardianship policies, relationship edges, pregnancy/birth history, minor trusts, yearly birth/continuity metrics, the `BalanceBackfilled` migration, deterministic trait backfill from schema 5 and relationship/pregnancy/trust restore from schemas 6–8.
 - Every production creation path (seed, immigrant, player, admin) writes a `Traits` component; inheritance and mutation helpers exist for feature 03 births.
 - Seeded worlds create opposite-sex partner edges and parent edges. Partnered adults can conceive, carry pregnancies through prenatal care and give birth to complete newborns with inherited traits and parent edges.
 - `CohabitOnPairing` still defaults to false: enabling it currently raises vacancy and wage-share pressure beyond the balance bands, so it remains opt-in until household demand is recalibrated.
 - `HouseholdRole.Child` is tied to parent edges for seeded and born children; a `DependentChild` marker identifies dependants. `Tenure.Dependent` remains unused for adult-headed households.
 - `HousingUnit.Capacity` and `OccupantCount` already exist; the generator still creates one household per adult and releases adult children monthly under policy.
 - `DeathProcessingSystem` inherits through current household membership, not relationships.
-- Births and `PopulationInflowSystem` both add population; yearly birth-rate metrics and target tuning are still pending.
+- Births and `PopulationInflowSystem` both add population; the target is a floor and immigration pauses with `TargetReached` when the gap closes.
+- Death ends active partnerships, selects a guardian, transfers owned homes and settles relationship-based heirs; minor shares enter trusts released at adulthood.
 - `AttractivenessService` is an orphaned ML.NET prototype outside `GeneLife.sln`; runtime attraction uses integer coefficients and never loads the model.
 - The 2026-11 balance scenario passes conservation and money growth after the trait integration; wealth Gini, vacancy and company failures remain open but are not V4 blockers.
 
@@ -78,7 +81,7 @@ Feature 03 verification (2026-11-23): pregnancy domain, conception rate/replay, 
 
 ## Next
 
-1. Implement feature 04 widowhood, guardianship and inheritance rules.
-2. Add yearly reproduction metrics and birth-rate tuning against immigration.
-3. Recalibrate housing demand so `CohabitOnPairing` can default to true.
-4. Complete the Marten family projection and `Family.razor` admin page, then run the 2,000-sim budget and full PostgreSQL suite.
+1. Implement feature 05 admin observability and hardening.
+2. Add Marten family projections, admin badges and continuity alerts.
+3. Run the 30-year continuity generation scenario and 2,000-sim budget; recalibrate housing so `CohabitOnPairing` can default to true.
+4. Run the full PostgreSQL integration suite before release.

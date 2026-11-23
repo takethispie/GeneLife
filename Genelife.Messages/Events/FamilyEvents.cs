@@ -80,3 +80,18 @@ public sealed record ConceptionOccurred(
     ulong OtherParentNetworkId,
     ulong PregnancyNetworkId,
     long Tick);
+
+public sealed record TrustOpened(
+    ulong TrustNetworkId,
+    ulong BeneficiaryNetworkId,
+    ulong GuardianNetworkId,
+    long AmountCents,
+    ulong SourceSimNetworkId,
+    long Tick);
+
+public sealed record TrustReleased(
+    ulong TrustNetworkId,
+    ulong BeneficiaryNetworkId,
+    long AmountCents,
+    string Reason,
+    long Tick);

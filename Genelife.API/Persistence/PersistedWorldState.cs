@@ -2,7 +2,7 @@ namespace Genelife.Api.Persistence;
 
 public sealed class PersistedWorldState
 {
-    public const int CurrentSchemaVersion = 8;
+    public const int CurrentSchemaVersion = 9;
 
     public int SchemaVersion { get; set; }
     public long Tick { get; set; }
@@ -15,6 +15,8 @@ public sealed class PersistedWorldState
     public Genelife.Family.RelationshipOptions? RelationshipOptions { get; set; }
     public Genelife.Family.ReproductionOptions? ReproductionOptions { get; set; }
     public Genelife.Family.FamilyHousingPolicy? FamilyHousingPolicy { get; set; }
+    public Genelife.Family.InheritanceOptions? InheritanceOptions { get; set; }
+    public Genelife.Family.GuardianshipOptions? GuardianshipOptions { get; set; }
     public string AttractionModelVersion { get; set; } = Genelife.Family.AttractionCoefficients.CurrentVersion;
     public PersistedMap Map { get; set; } = new();
     public List<PersistedPlacement> Placements { get; set; } = [];
@@ -34,6 +36,7 @@ public sealed class PersistedWorldState
     public List<PersistedHouseholdMember> HouseholdMembers { get; set; } = [];
     public List<PersistedRelationship> Relationships { get; set; } = [];
     public List<PersistedPregnancy> Pregnancies { get; set; } = [];
+    public List<PersistedTrust> Trusts { get; set; } = [];
     public List<PersistedConstructionProject> ConstructionProjects { get; set; } = [];
     public List<PersistedHousingSnapshot> HousingMetricHistory { get; set; } = [];
     public PersistedHousingMarket HousingMarket { get; set; } = new();
@@ -218,6 +221,20 @@ public sealed class PersistedPopulationSnapshot
     public decimal OldAgeDependencyRatio { get; set; }
     public List<int> PyramidBuckets { get; set; } = [];
     public List<PersistedDeathCauseCount> DeathCauses { get; set; } = [];
+    public int BirthsThisYear { get; set; }
+    public decimal BirthRate { get; set; }
+    public int NaturalChange { get; set; }
+    public int NetMigration { get; set; }
+    public decimal ReplacementRate { get; set; }
+    public int Children { get; set; }
+    public int ChildrenUnderSchoolAge { get; set; }
+    public decimal AverageHouseholdSize { get; set; }
+    public int Orphans { get; set; }
+    public int StateCareChildren { get; set; }
+    public decimal GuardianCoverage { get; set; }
+    public long MinorTrustTotalCents { get; set; }
+    public long InheritancePaidCents { get; set; }
+    public long TrustReleasedCents { get; set; }
 }
 
 public sealed class PersistedDeathCauseCount
@@ -578,6 +595,17 @@ public sealed class PersistedPlacement
     public int Rotation { get; set; }
 }
 
+
+public sealed class PersistedTrust
+{
+    public ulong NetworkId { get; set; }
+    public ulong BeneficiaryNetworkId { get; set; }
+    public ulong GuardianNetworkId { get; set; }
+    public long BalanceCents { get; set; }
+    public long CreatedTick { get; set; }
+    public long ReleaseAgeTicks { get; set; }
+    public ulong SourceSimNetworkId { get; set; }
+}
 
 public sealed class PersistedPregnancy
 {

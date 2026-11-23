@@ -3,7 +3,7 @@
 **Phase:** 6 — Observability
 **Depends:** C01–C05
 **Estimate:** 1–2 sessions
-**Status:** Planned (V4)
+**Status:** Partial — snapshot fields, invariants and health done; alerts/UI pending
 
 ## Goal
 

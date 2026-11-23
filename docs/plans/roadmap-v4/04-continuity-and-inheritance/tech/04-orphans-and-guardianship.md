@@ -3,7 +3,7 @@
 **Phase:** 4 — Family
 **Depends:** C02, C03, `HousingRegistry`, shelter system
 **Estimate:** 2 sessions
-**Status:** Planned (V4)
+**Status:** Done — relative/state-care hierarchy and guardian moves implemented
 
 ## Goal
 

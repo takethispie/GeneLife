@@ -24,17 +24,26 @@ public class DeathProcessingSystem : ISimulationSystem
     private readonly World world;
     private readonly EconomyContext economy;
     private readonly RelationshipService? relationships;
+    private readonly RelationshipIndex? relationshipIndex;
+    private readonly GuardianshipService? guardianship;
+    private readonly InheritanceOptions inheritanceOptions;
     private readonly int interval;
 
     public DeathProcessingSystem(
         World world,
         EconomyContext economy,
         int? interval = null,
-        RelationshipService? relationships = null)
+        RelationshipService? relationships = null,
+        RelationshipIndex? relationshipIndex = null,
+        GuardianshipService? guardianship = null,
+        InheritanceOptions? inheritanceOptions = null)
     {
         this.world = world;
         this.economy = economy;
         this.relationships = relationships;
+        this.relationshipIndex = relationshipIndex;
+        this.guardianship = guardianship;
+        this.inheritanceOptions = inheritanceOptions ?? InheritanceOptions.Default;
         this.interval = interval ?? 1;
     }
 
@@ -89,7 +98,12 @@ public class DeathProcessingSystem : ISimulationSystem
 
     private void Process(Entity entity, long tick, Dictionary<Entity, List<Entity>> applicationsByApplicant)
     {
-        relationships?.RemoveEdgesForSim(entity);
+        if (relationships is not null && relationshipIndex is not null)
+        {
+            foreach (var partner in relationshipIndex.PartnersOf(entity).ToList())
+                relationships.EndPartnership(entity, partner, tick);
+        }
+
         var life = economy.Life;
         var lifecycle = world.Get<Lifecycle>(entity);
         var alive = world.Has<Alive>(entity) ? world.Get<Alive>(entity) : new Alive();
@@ -103,7 +117,18 @@ public class DeathProcessingSystem : ISimulationSystem
         var household = LifeSystemHelpers.HouseholdOf(world, economy, entity);
         var unit = household != Entity.Null ? economy.Housing.UnitOf(household) : Entity.Null;
         var heirs = new List<Entity>();
-        if (household != Entity.Null)
+        if (relationshipIndex is not null)
+        {
+            heirs.AddRange(HeirResolver.Resolve(
+                    world,
+                    relationshipIndex,
+                    entity,
+                    inheritanceOptions,
+                    economy.Life.Policy)
+                .Allocations
+                .Select(allocation => allocation.Heir));
+        }
+        else if (household != Entity.Null)
         {
             foreach (var member in economy.Housing.GetMembers(household))
             {
@@ -151,6 +176,10 @@ public class DeathProcessingSystem : ISimulationSystem
         var ownedUnit = householdData.Tenure == Tenure.Owner && unit != Entity.Null && world.IsAlive(unit)
             ? unit
             : Entity.Null;
+
+        guardianship?.ReassignAfterGuardianDeath(entity, tick);
+        if (household != Entity.Null)
+            guardianship?.EnsureHouseholdMinors(household, tick);
 
         ReassignHead(household, entity, tick);
 
@@ -211,19 +240,30 @@ public class DeathProcessingSystem : ISimulationSystem
             return;
 
         Entity newHead = Entity.Null;
-        foreach (var member in economy.Housing.GetMembers(household))
+        if (relationshipIndex is not null)
         {
-            if (member == deceased || !world.IsAlive(member) || world.Has<Dead>(member))
-                continue;
+            newHead = relationshipIndex.ExPartnersOf(deceased)
+                .Concat(relationshipIndex.PartnersOf(deceased))
+                .FirstOrDefault(candidate =>
+                    candidate != deceased && world.IsAlive(candidate) && !world.Has<Dead>(candidate));
+        }
 
-            if (newHead == Entity.Null)
-                newHead = member;
-
-            if (world.Has<HouseholdMember>(member) &&
-                world.Get<HouseholdMember>(member).Role is HouseholdRole.Partner or HouseholdRole.Relative)
+        if (newHead == Entity.Null)
+        {
+            foreach (var member in economy.Housing.GetMembers(household))
             {
-                newHead = member;
-                break;
+                if (member == deceased || !world.IsAlive(member) || world.Has<Dead>(member))
+                    continue;
+
+                if (newHead == Entity.Null)
+                    newHead = member;
+
+                if (world.Has<HouseholdMember>(member) &&
+                    world.Get<HouseholdMember>(member).Role is HouseholdRole.Partner or HouseholdRole.Relative)
+                {
+                    newHead = member;
+                    break;
+                }
             }
         }
 

@@ -145,6 +145,10 @@ public sealed class EconomyContext
         foreach (var revenue in PendingRevenue.Values)
             pending += revenue.Total;
 
+        var trusts = Money.Zero;
+        var trustQuery = new QueryDescription().WithAll<Components.Finance.TrustAccount>();
+        World.Query(in trustQuery, (ref Components.Finance.TrustAccount trust) => trusts += trust.Balance);
+
         return new MoneySupplyBreakdown(
             householdCash,
             householdSavings,
@@ -152,7 +156,8 @@ public sealed class EconomyContext
             Government.Balance,
             Pension.Balance,
             Bank.Balance + Bank.InterestPool,
-            pending);
+            pending,
+            trusts);
     }
 
     public Money TotalMoneySupply() => GetMoneySupplyBreakdown().Total;
@@ -199,10 +204,12 @@ public readonly record struct MoneySupplyBreakdown(
     Money Government,
     Money Pension,
     Money Bank,
-    Money PendingRevenue)
+    Money PendingRevenue,
+    Money MinorTrusts = default)
 {
     public Money Total =>
-        HouseholdCash + HouseholdSavings + CompanyCash + Government + Pension + Bank + PendingRevenue;
+        HouseholdCash + HouseholdSavings + CompanyCash + Government + Pension + Bank +
+        PendingRevenue + MinorTrusts;
 }
 
 public static class FixedTransactionIds

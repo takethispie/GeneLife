@@ -3,7 +3,7 @@
 **Phase:** 2 — Family
 **Depends:** feature 02 relationships, feature 03 births, `DeathProcessingSystem`
 **Estimate:** 2 sessions
-**Status:** Planned (V4)
+**Status:** Done — active partner end, head/guardian transition and housing path implemented
 
 ## Goal
 

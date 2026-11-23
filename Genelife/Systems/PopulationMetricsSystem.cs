@@ -1,11 +1,15 @@
 using Arch.Core;
 using Arch.Core.Extensions;
 using Genelife.Components.Employment;
+using Genelife.Components.Family;
+using Genelife.Components.Finance;
 using Genelife.Components.Gen;
+using Genelife.Components.Housing;
 using Genelife.Components.Life;
 using Genelife.Economy;
 using Genelife.Life;
 using Genelife.Enums;
+using Genelife.Family;
 using Genelife.Messages.Events;
 using Genelife.Values;
 
@@ -21,10 +25,17 @@ public class PopulationMetricsSystem : ISimulationSystem
     private readonly EconomyContext economy;
     private readonly int interval;
 
-    public PopulationMetricsSystem(World world, EconomyContext economy, int? interval = null)
+    private readonly RelationshipIndex? relationships;
+
+    public PopulationMetricsSystem(
+        World world,
+        EconomyContext economy,
+        int? interval = null,
+        RelationshipIndex? relationships = null)
     {
         this.world = world;
         this.economy = economy;
+        this.relationships = relationships;
         this.interval = interval ?? economy.Clock.TicksPerYear;
     }
 
@@ -43,12 +54,15 @@ public class PopulationMetricsSystem : ISimulationSystem
         var healthTotal = 0f;
         var healthCount = 0;
         var stage = new int[4];
+        var childEntities = new List<Entity>();
 
         world.Query(in new QueryDescription().WithAll<Lifecycle, Alive>().WithNone<Dead>(),
             (Entity entity, ref Lifecycle lifecycle, ref Alive alive) =>
             {
                 stage[(int)lifecycle.Stage]++;
                 ages.Add(alive.Age);
+                if (alive.Age < economy.Life.Policy.WorkStartAge)
+                    childEntities.Add(entity);
                 if (world.Has<Health>(entity))
                 {
                     healthTotal += world.Get<Health>(entity).Value;
@@ -107,6 +121,36 @@ public class PopulationMetricsSystem : ISimulationSystem
             .Select(group => new DeathCauseCount(group.Key.ToString(), group.Count()))
             .ToList();
 
+        var births = life.BirthsThisYear;
+        var deaths = life.DeathsThisYear;
+        var arrivals = life.ArrivalsThisYear;
+        var children = ages.Count(age => age < 18);
+        var underSchool = ages.Count(age => age < economy.Life.Policy.SchoolStartAge);
+        var households = 0;
+        world.Query(in new QueryDescription().WithAll<Household>(), (ref Household _) => households++);
+        var averageHouseholdSize = households > 0 ? total / (decimal)households : 0m;
+        var stateCare = 0;
+        world.Query(in new QueryDescription().WithAll<StateCare>(), (ref StateCare _) => stateCare++);
+        var orphans = 0;
+        if (relationships is not null)
+        {
+            foreach (var child in childEntities)
+            {
+                var hasParent = relationships.ParentsOf(child)
+                    .Any(parent => world.IsAlive(parent) && !world.Has<Dead>(parent));
+                var hasGuardian = relationships.GuardiansOf(child)
+                    .Any(guardian => world.IsAlive(guardian) && !world.Has<Dead>(guardian));
+                if (!hasParent && !hasGuardian && !world.Has<StateCare>(child))
+                    orphans++;
+            }
+        }
+        var guardianCoverage = children > 0 ? (children - orphans) / (decimal)children : 1m;
+        var trustTotal = Money.Zero;
+        world.Query(in new QueryDescription().WithAll<TrustAccount>(),
+            (ref TrustAccount trust) => trustTotal += trust.Balance);
+        var birthRate = total > 0 ? births * 1_000m / total : 0m;
+        var populationReplacementRate = deaths > 0 ? births / (decimal)deaths : births > 0 ? 1.5m : 1m;
+
         var snapshot = new PopulationSnapshot(
             tick,
             clock.YearOf(tick),
@@ -132,7 +176,21 @@ public class PopulationMetricsSystem : ISimulationSystem
             workingShare,
             dependency,
             buckets,
-            causes);
+            causes,
+            births,
+            birthRate,
+            births - deaths,
+            arrivals,
+            populationReplacementRate,
+            children,
+            underSchool,
+            averageHouseholdSize,
+            orphans,
+            stateCare,
+            guardianCoverage,
+            trustTotal,
+            life.InheritancePaidThisYear,
+            life.TrustReleasedThisYear);
 
         life.MetricHistory.Add(snapshot);
         life.ResetYearCounters();

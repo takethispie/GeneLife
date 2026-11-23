@@ -1,7 +1,7 @@
 # Continuity and Inheritance — Summary
 
 **Folder:** `04-continuity-and-inheritance/`
-**Status:** Planned (V4)
+**Status:** Implemented core (V4 feature 04; 30-year/2,000-sim runs, projections, alerts and UI remain staged)
 
 **Depends on:** features 01–03, `PopulationInflowSystem`, `PopulationMetricsSystem`, `DeathProcessingSystem`, `EstateSettlementSystem`, `HousingRegistry`
 **Feeds:** feature 05, long-run balance, admin lifecycle/family pages

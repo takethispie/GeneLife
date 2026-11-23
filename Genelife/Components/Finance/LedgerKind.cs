@@ -44,5 +44,9 @@ public enum LedgerKind
     SavingsInterest,
     WriteOff,
     Grant,
-    FuneralCost
+    FuneralCost,
+    TrustDeposit,
+    TrustRelease,
+    ChildBenefit,
+    StateCare
 }
