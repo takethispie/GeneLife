@@ -135,6 +135,53 @@ public sealed class TrustService
         return total;
     }
 
+    /// <summary>
+    /// Releases a trust immediately for an audited admin override. The transfer is
+    /// ledgered exactly like the scheduled release path.
+    /// </summary>
+    public bool ReleaseNow(Entity trust, string reason, long tick)
+    {
+        if (!world.IsAlive(trust) || !world.Has<TrustAccount>(trust))
+            return false;
+
+        var account = world.Get<TrustAccount>(trust);
+        var beneficiary = account.Beneficiary;
+        var beneficiaryAlive = beneficiary != Entity.Null && world.IsAlive(beneficiary) &&
+                               !world.Has<Dead>(beneficiary);
+        var amount = account.Balance;
+
+        if (amount.IsPositive)
+        {
+            if (beneficiaryAlive)
+            {
+                if (!world.Has<Wallet>(beneficiary))
+                    world.Add(beneficiary, new Wallet(Money.Zero));
+                world.Get<Wallet>(beneficiary).Balance += amount;
+                economy.Ledger.Record(
+                    Guid.NewGuid(), tick, LedgerKind.TrustRelease,
+                    NetworkIdOf(trust), NetworkIdOf(beneficiary), amount,
+                    "trust.admin-release");
+                economy.Emit(new TrustReleased(
+                    NetworkIdOf(trust), NetworkIdOf(beneficiary), amount.Cents, reason, tick));
+            }
+            else
+            {
+                economy.Government.Balance += amount;
+                economy.Ledger.Record(
+                    Guid.NewGuid(), tick, LedgerKind.TrustRelease,
+                    NetworkIdOf(trust), EconomyAccountIds.Government, amount,
+                    "trust.admin-escheat");
+                economy.Emit(new TrustReleased(
+                    NetworkIdOf(trust), 0, amount.Cents, reason, tick));
+            }
+
+            economy.Life.TrustReleasedThisYear += amount;
+        }
+
+        Close(trust);
+        return true;
+    }
+
     private void Close(Entity trust)
     {
         if (world.IsAlive(trust))

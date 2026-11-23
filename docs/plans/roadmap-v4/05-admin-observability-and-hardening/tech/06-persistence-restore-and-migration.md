@@ -13,6 +13,8 @@ Persist the complete family graph, pregnancy/trust/guardianship state and option
 
 `PersistedWorldState.CurrentSchemaVersion` moves from 5 to 6 in T06 for traits. V4 adds relationships, pregnancies, trusts, state care and family options. The 2026-11 `BalanceBackfilled` migration and persisted economy/housing options must be preserved.
 
+> Implementation note (2026-11-23): features 01–04 already advanced the schema to 9 (traits 6, relationships 7, pregnancies/births 8, trusts/inheritance 9). Feature 05 adds state care and ended-edge metadata as schema 10; the migration remains additive and accepts any schema ≤ 9.
+
 ## Design
 
 ### Schema 6 additions
@@ -137,7 +139,7 @@ public long MonthlyCostCents { get; set; }
 - Double restore changes nothing.
 - A V5 save migrates deterministically and stays loadable.
 - Legacy households are flagged, not given invented parent edges.
-- Unknown/dangling family state fails loudly.
+- Unknown family state fails loudly; legacy dangling relationship edges are pruned; resolved pregnancy history with a destroyed parent is dropped; active/ready pregnancies with a missing parent fail loudly.
 - Snapshot size is within budget at 2,000 sims.
 
 ## Testing

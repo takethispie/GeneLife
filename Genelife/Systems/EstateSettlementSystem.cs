@@ -68,7 +68,12 @@ public class EstateSettlementSystem : ISimulationSystem
     {
         var sim = request.Sim;
         if (!world.IsAlive(sim))
+        {
+            // The entity was destroyed before settlement. Remove any family link
+            // that still points at it so a snapshot cannot persist a dangling edge.
+            relationshipService?.RemoveEdgesForSim(sim);
             return;
+        }
 
         var cash = world.Has<Wallet>(sim) ? world.Get<Wallet>(sim).Balance : Money.Zero;
         var savings = world.Has<SavingsAccount>(sim) ? world.Get<SavingsAccount>(sim).Balance : Money.Zero;

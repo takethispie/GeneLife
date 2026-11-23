@@ -95,9 +95,29 @@ if (useMartenReads)
         opts.Schema.For<Genelife.Api.Models.MapDocument>().Identity(x => x.Id);
         opts.Schema.For<Genelife.Api.Models.BuildingDocument>().Identity(x => x.Id);
         opts.Schema.For<Genelife.Api.Models.BuildingDocument>().Index(x => x.NetworkId);
+        opts.Schema.For<Genelife.Api.Models.FamilyDocument>().Identity(x => x.Id);
+        opts.Schema.For<Genelife.Api.Models.FamilyDocument>().Index(x => x.SimNetworkId);
+        opts.Schema.For<Genelife.Api.Models.RelationshipDocument>().Identity(x => x.Id);
+        opts.Schema.For<Genelife.Api.Models.RelationshipDocument>().Index(x => x.RelationshipNetworkId);
+        opts.Schema.For<Genelife.Api.Models.PregnancyDocument>().Identity(x => x.Id);
+        opts.Schema.For<Genelife.Api.Models.PregnancyDocument>().Index(x => x.PregnancyNetworkId);
+        opts.Schema.For<Genelife.Api.Models.ChildDocument>().Identity(x => x.Id);
+        opts.Schema.For<Genelife.Api.Models.ChildDocument>().Index(x => x.ChildNetworkId);
+        opts.Schema.For<Genelife.Api.Models.HouseholdCompositionDocument>().Identity(x => x.Id);
+        opts.Schema.For<Genelife.Api.Models.HouseholdCompositionDocument>().Index(x => x.HouseholdNetworkId);
+        opts.Schema.For<Genelife.Api.Models.EstateDocument>().Identity(x => x.Id);
+        opts.Schema.For<Genelife.Api.Models.EstateDocument>().Index(x => x.DeceasedNetworkId);
+        opts.Schema.For<Genelife.Api.Models.FamilyAdminActionDocument>().Identity(x => x.Id);
+        opts.Schema.For<Genelife.Api.Models.FamilyAdminActionDocument>().Index(x => x.CommandId);
         opts.Projections.Add<Genelife.Api.Projections.SimProjection>(JasperFx.Events.Projections.ProjectionLifecycle.Inline);
         opts.Projections.Add<Genelife.Api.Projections.CompanyProjection>(JasperFx.Events.Projections.ProjectionLifecycle.Inline);
         opts.Projections.Add<Genelife.Api.Projections.MapProjection>(JasperFx.Events.Projections.ProjectionLifecycle.Inline);
+        opts.Projections.Add<Genelife.Api.Projections.FamilyProjection>(JasperFx.Events.Projections.ProjectionLifecycle.Inline);
+        opts.Projections.Add<Genelife.Api.Projections.RelationshipProjection>(JasperFx.Events.Projections.ProjectionLifecycle.Inline);
+        opts.Projections.Add<Genelife.Api.Projections.PregnancyProjection>(JasperFx.Events.Projections.ProjectionLifecycle.Inline);
+        opts.Projections.Add<Genelife.Api.Projections.ChildProjection>(JasperFx.Events.Projections.ProjectionLifecycle.Inline);
+        opts.Projections.Add<Genelife.Api.Projections.HouseholdCompositionProjection>(JasperFx.Events.Projections.ProjectionLifecycle.Inline);
+        opts.Projections.Add<Genelife.Api.Projections.EstateProjection>(JasperFx.Events.Projections.ProjectionLifecycle.Inline);
     })
         .UseLightweightSessions();
 }

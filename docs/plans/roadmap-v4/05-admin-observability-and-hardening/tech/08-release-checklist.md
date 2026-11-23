@@ -24,7 +24,7 @@ Ship V4 without silently changing existing worlds, losing family facts or regres
 
 ### Data and migration
 
-- [ ] Schema 5 → 6 migration rehearsed on a real save copy.
+- [ ] Schema 5 → 10 migration rehearsed on a real save copy.
 - [ ] No invented parent edges for legacy households.
 - [ ] Traits are deterministic across double restore.
 - [ ] Family options/coefficients are persisted.

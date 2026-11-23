@@ -35,6 +35,7 @@ public sealed class RelationshipService
     public Action<Entity>? NetworkIdRemover { get; set; }
     public Action<Entity, Relationship>? EdgeCreated { get; set; }
     public Action<Entity, Relationship>? EdgeChanged { get; set; }
+    public Action<Entity, Relationship>? EdgeRemoved { get; set; }
 
     public Entity CreatePair(
         Entity from,
@@ -249,6 +250,7 @@ public sealed class RelationshipService
 
         var relationship = world.Get<Relationship>(edge);
         index.OnRemoved(edge, relationship);
+        EdgeRemoved?.Invoke(edge, relationship);
         if (world.IsAlive(edge))
             world.Destroy(edge);
         NetworkIdRemover?.Invoke(edge);

@@ -229,7 +229,17 @@ private readonly NetworkIdRegistry networkIds = new();
                     GetNetworkId(world, relationship.To),
                     relationship.Kind.ToString(),
                     relationship.Source.ToString(),
-                    relationship.SinceTick))
+                    relationship.SinceTick)),
+                EdgeRemoved = (edge, relationship) =>
+                {
+                    var edgeId = GetNetworkId(world, edge);
+                    var fromId = GetNetworkId(world, relationship.From);
+                    var toId = GetNetworkId(world, relationship.To);
+                    if (edgeId == 0 || fromId == 0 || toId == 0)
+                        return;
+                    economy?.Emit(new RelationshipEnded(
+                        edgeId, fromId, toId, relationship.Kind.ToString(), tick));
+                }
             };
 
             this.reproductionOptions = reproductionOptions ?? ReproductionOptions.Default;
@@ -1639,9 +1649,154 @@ if (SnapshotsEnabled)
                 return new { householdId = sell.HouseholdId, unitId = sell.UnitId, buyer = sell.BuyerHouseholdId };
             }
 
+            case ForcePartnershipCommand forcePartnership:
+            {
+                var first = ResolveSim(world, forcePartnership.SimAId);
+                var second = ResolveSim(world, forcePartnership.SimBId);
+                if (!forcePartnership.OverrideEligibility)
+                {
+                    var eligibility = EligibilityPolicy.Evaluate(
+                        world, relationshipIndex, first, second, relationshipOptions);
+                    if (!eligibility.Eligible)
+                        throw new InvalidOperationException(
+                            $"Pair is not eligible: {eligibility.Code} — {eligibility.Reason}");
+                }
+
+                if (!relationshipService!.TryCreatePair(
+                        first, second, RelationshipKind.Partner,
+                        RelationshipSource.Admin, tick, out _, out _, out var error))
+                    throw new InvalidOperationException($"Cannot create partnership: {error}.");
+
+                economy!.Emit(new PartnershipFormed(
+                    forcePartnership.SimAId, forcePartnership.SimBId, 0, tick));
+                EmitFamilyAdminAction(
+                    forcePartnership, "force-partnership", forcePartnership.SimAId, forcePartnership.SimBId, 0);
+                return new
+                {
+                    simAId = forcePartnership.SimAId,
+                    simBId = forcePartnership.SimBId,
+                    overrideEligibility = forcePartnership.OverrideEligibility
+                };
+            }
+
+            case EndPartnershipCommand endPartnership:
+            {
+                var first = ResolveSim(world, endPartnership.SimAId);
+                var second = ResolveSim(world, endPartnership.SimBId);
+                if (!relationshipService!.EndPartnership(first, second, tick))
+                    throw new InvalidOperationException("No active partnership exists for the pair.");
+
+                economy!.Emit(new PartnershipEnded(
+                    endPartnership.SimAId, endPartnership.SimBId, endPartnership.Reason, tick));
+                EmitFamilyAdminAction(
+                    endPartnership, "end-partnership", endPartnership.SimAId, endPartnership.SimBId, 0);
+                return new { simAId = endPartnership.SimAId, simBId = endPartnership.SimBId };
+            }
+
+            case StartPregnancyCommand startPregnancy:
+            {
+                var carrying = ResolveSim(world, startPregnancy.CarryingParentId);
+                var other = ResolveSim(world, startPregnancy.OtherParentId);
+                var dueTick = tick + (long)reproductionOptions.PregnancyMonths * clock.TicksPerMonth;
+                var health = world.Has<Health>(carrying)
+                    ? (int)world.Get<Health>(carrying).Value
+                    : 100;
+                if (!pregnancyService!.TryStart(
+                        carrying, other, tick, dueTick, health,
+                        PregnancySource.Admin, reproductionOptions, out var pregnancy, out var error))
+                    throw new InvalidOperationException($"Cannot start pregnancy: {error}.");
+
+                var pregnancyId = GetNetworkId(world, pregnancy);
+                economy!.Emit(new PregnancyStarted(
+                    pregnancyId, startPregnancy.CarryingParentId, startPregnancy.OtherParentId,
+                    tick, dueTick, tick));
+                EmitFamilyAdminAction(
+                    startPregnancy, "start-pregnancy", startPregnancy.CarryingParentId,
+                    startPregnancy.OtherParentId, pregnancyId);
+                return new { pregnancyId, dueTick };
+            }
+
+            case CancelPregnancyCommand cancelPregnancy:
+            {
+                if (!networkIds.TryGetEntity(new NetworkId(cancelPregnancy.PregnancyId), out var pregnancy) ||
+                    !world.IsAlive(pregnancy) || !world.Has<Pregnancy>(pregnancy))
+                    throw new InvalidOperationException("Pregnancy not found.");
+                if (!pregnancyService!.Cancel(pregnancy, tick))
+                    throw new InvalidOperationException("Pregnancy is already resolved.");
+
+                economy!.Emit(new PregnancyCancelled(
+                    cancelPregnancy.PregnancyId, cancelPregnancy.Reason, tick));
+                EmitFamilyAdminAction(
+                    cancelPregnancy, "cancel-pregnancy", cancelPregnancy.PregnancyId, 0, 0);
+                return new { pregnancyId = cancelPregnancy.PregnancyId };
+            }
+
+            case AssignGuardianCommand assignGuardian:
+            {
+                var child = ResolveSim(world, assignGuardian.ChildId);
+                var guardian = ResolveSim(world, assignGuardian.GuardianId);
+                if (!guardianshipService!.AssignGuardian(
+                        child, guardian, tick, assignGuardian.Reason, out var guardianError))
+                    throw new InvalidOperationException($"Cannot assign guardian: {guardianError}.");
+
+                EmitFamilyAdminAction(
+                    assignGuardian, "assign-guardian", assignGuardian.ChildId, assignGuardian.GuardianId, 0);
+                return new { childId = assignGuardian.ChildId, guardianId = assignGuardian.GuardianId };
+            }
+
+            case ReleaseTrustCommand releaseTrust:
+            {
+                if (!networkIds.TryGetEntity(new NetworkId(releaseTrust.TrustId), out var trust) ||
+                    !world.IsAlive(trust) || !world.Has<TrustAccount>(trust))
+                    throw new InvalidOperationException("Trust not found.");
+                if (!trustService!.ReleaseNow(trust, releaseTrust.Reason, tick))
+                    throw new InvalidOperationException("Trust could not be released.");
+
+                EmitFamilyAdminAction(
+                    releaseTrust, "release-trust", releaseTrust.TrustId, 0, 0);
+                return new { trustId = releaseTrust.TrustId };
+            }
+
             default:
                 throw new InvalidOperationException("Unknown admin command.");
         }
+    }
+
+    private Entity ResolveSim(World world, ulong networkId)
+    {
+        if (!networkIds.TryGetEntity(new NetworkId(networkId), out var entity) ||
+            !world.IsAlive(entity) || !world.Has<Alive>(entity) || world.Has<Dead>(entity))
+            throw new InvalidOperationException($"Sim {networkId} not found.");
+        return entity;
+    }
+
+    private void EmitFamilyAdminAction(
+        AdminCommand command,
+        string action,
+        ulong subjectA,
+        ulong subjectB,
+        ulong subjectC)
+    {
+        var reason = command switch
+        {
+            ForcePartnershipCommand force => force.Reason,
+            EndPartnershipCommand end => end.Reason,
+            StartPregnancyCommand start => start.Reason,
+            CancelPregnancyCommand cancel => cancel.Reason,
+            AssignGuardianCommand assign => assign.Reason,
+            ReleaseTrustCommand release => release.Reason,
+            _ => string.Empty
+        };
+
+        economy?.Emit(new FamilyAdminActionApplied(
+            command.CommandId,
+            action,
+            command.IssuedBy,
+            reason,
+            subjectA,
+            subjectB,
+            subjectC,
+            tick));
     }
 
     private Entity ResolveCompany(World world, ulong networkId)
@@ -2859,6 +3014,18 @@ if (SnapshotsEnabled)
             status.ReplacementRate = latestPopulation?.ReplacementRate ?? 0m;
             status.PairedSims = relationshipsCount(sim => relationshipIndex.PartnersOf(sim).Count > 0);
             status.SingleAdults = Math.Max(0, adults - status.PairedSims);
+            status.PartnershipRate = adults > 0 ? status.PairedSims / (decimal)adults : 0m;
+            status.Traits = BuildTraitDistribution();
+            status.Households = BuildHouseholdCompositions();
+            status.Projection = new ProjectionStalenessStatus
+            {
+                Source = "live",
+                LiveTick = tick,
+                ProjectedTick = null,
+                IsStale = false,
+                Detail = "Family read model reads live simulation state; Marten projections are history."
+            };
+            status.Performance = BuildFamilyPerformanceStatus();
 
             world.Query(in new QueryDescription().WithAll<Relationship>(),
                 (Entity _, ref Relationship relationship) =>
@@ -2882,9 +3049,9 @@ if (SnapshotsEnabled)
             status.Partnerships /= 2;
             status.ExPartnerships /= 2;
 
-            var issues = new List<LifecycleHealthCheckStatus>();
+            var issues = new List<FamilyHealthCheckStatus>();
             var traitIssues = TraitInvariants.Verify(world);
-            issues.AddRange(traitIssues.Select(issue => new LifecycleHealthCheckStatus
+            issues.AddRange(traitIssues.Select(issue => new FamilyHealthCheckStatus
             {
                 Name = issue.Name,
                 Level = issue.Level,
@@ -2894,7 +3061,7 @@ if (SnapshotsEnabled)
             var relationshipIssues = RelationshipInvariants.Verify(world, relationshipIndex);
             if (relationshipIssues.Count == 0)
             {
-                issues.Add(new LifecycleHealthCheckStatus
+                issues.Add(new FamilyHealthCheckStatus
                 {
                     Name = "relationships",
                     Level = "Pass",
@@ -2903,7 +3070,7 @@ if (SnapshotsEnabled)
             }
             else
             {
-                issues.AddRange(relationshipIssues.Select(issue => new LifecycleHealthCheckStatus
+                issues.AddRange(relationshipIssues.Select(issue => new FamilyHealthCheckStatus
                 {
                     Name = issue.Name,
                     Level = issue.Level,
@@ -2912,7 +3079,7 @@ if (SnapshotsEnabled)
             }
 
             var reproductionIssues = ReproductionInvariants.Verify(world, relationshipIndex, economy);
-            issues.AddRange(reproductionIssues.Select(issue => new LifecycleHealthCheckStatus
+            issues.AddRange(reproductionIssues.Select(issue => new FamilyHealthCheckStatus
             {
                 Name = issue.Name,
                 Level = issue.Level,
@@ -2920,7 +3087,7 @@ if (SnapshotsEnabled)
             }));
 
             var continuityIssues = ContinuityInvariants.Verify(world, relationshipIndex, economy);
-            issues.AddRange(continuityIssues.Select(issue => new LifecycleHealthCheckStatus
+            issues.AddRange(continuityIssues.Select(issue => new FamilyHealthCheckStatus
             {
                 Name = issue.Name,
                 Level = issue.Level,
@@ -2929,15 +3096,196 @@ if (SnapshotsEnabled)
 
             if (traitIssues.Count == 0)
             {
-                issues.Add(new LifecycleHealthCheckStatus
+                issues.Add(new FamilyHealthCheckStatus
                 {
                     Name = "traits",
                     Level = "Pass",
                     Detail = "Trait invariants pass"
                 });
             }
+
+            var stateCare = 0;
+            world.Query(in new QueryDescription().WithAll<StateCare>(),
+                (Entity entity, ref StateCare care) =>
+                {
+                    stateCare++;
+                    if (world.Has<Alive>(entity) && world.Get<Alive>(entity).Age < economy.Life.Policy.WorkStartAge &&
+                        relationshipIndex.GuardiansOf(entity).Count == 0 &&
+                        relationshipIndex.ParentsOf(entity).Any(parent => world.IsAlive(parent) && !world.Has<Dead>(parent)))
+                    {
+                        issues.Add(new FamilyHealthCheckStatus
+                        {
+                            Name = "state-care-with-parent",
+                            Level = "Warn",
+                            Detail = "A child with a living parent is still in state care.",
+                            EntityNetworkId = GetNetworkId(world, entity),
+                            EntityKind = "sim",
+                            Link = $"/family?sim={GetNetworkId(world, entity)}"
+                        });
+                    }
+                });
+
+            issues.Add(new FamilyHealthCheckStatus
+            {
+                Name = "state-care",
+                Level = "Pass",
+                Detail = $"{stateCare} minor(s) in state care"
+            });
+
+            var candidateCount = relationshipCache.Candidates.Values.Sum(candidates => candidates.Count);
+            var candidateCap = relationshipOptions.MaxCandidatesPerSim;
+            var eligibleSingles = relationshipCache.Candidates.Count;
+            issues.Add(new FamilyHealthCheckStatus
+            {
+                Name = "candidate-budget",
+                Level = eligibleSingles > 0 && candidateCount > eligibleSingles * candidateCap ? "Fail" : "Pass",
+                Detail = $"{candidateCount} candidate(s) across {eligibleSingles} eligible sim(s); cap {candidateCap} per sim."
+            });
+
+            issues.Add(new FamilyHealthCheckStatus
+            {
+                Name = "projection",
+                Level = status.Projection.IsStale ? "Warn" : "Pass",
+                Detail = status.Projection.Detail
+            });
+
             status.Health = issues;
             return status;
+        }
+    }
+
+    public List<FamilyHealthCheckStatus> BuildFamilyHealth() => BuildFamilyStatus().Health;
+
+    public FamilyPerformanceStatus BuildFamilyPerformanceStatus()
+    {
+        lock (@lock)
+        {
+            var snapshot = metrics.Snapshot();
+            var counts = relationshipCache.Candidates.Values
+                .Select(candidates => candidates.Count)
+                .OrderBy(count => count)
+                .ToList();
+            var worst = snapshot.Systems
+                .OrderByDescending(system => system.AverageMilliseconds)
+                .FirstOrDefault();
+
+            return new FamilyPerformanceStatus
+            {
+                LastTickMilliseconds = snapshot.LastTickMilliseconds,
+                P95TickMilliseconds = snapshot.P95TickMilliseconds,
+                P99TickMilliseconds = snapshot.P99TickMilliseconds,
+                AllocatedBytesPerTick = snapshot.AllocatedBytesPerTick,
+                CandidateSims = counts.Count,
+                CandidateAverage = counts.Count > 0 ? (int)Math.Round(counts.Average()) : 0,
+                CandidateP95 = Percentile(counts, 0.95),
+                CandidateMax = counts.Count > 0 ? counts[^1] : 0,
+                CandidateCap = relationshipOptions.MaxCandidatesPerSim,
+                WorstSystem = worst?.Name ?? string.Empty,
+                WorstSystemAverageMilliseconds = worst?.AverageMilliseconds ?? 0
+            };
+        }
+    }
+
+    private static int Percentile(List<int> values, double percentile)
+    {
+        if (values.Count == 0)
+            return 0;
+        var rank = (int)Math.Ceiling(percentile * values.Count) - 1;
+        return values[Math.Clamp(rank, 0, values.Count - 1)];
+    }
+
+    public TraitDistributionStatus BuildTraitDistribution()
+    {
+        lock (@lock)
+        {
+            var result = new TraitDistributionStatus();
+            if (world is null)
+                return result;
+
+            var distribution = TraitDistribution.Calculate(world);
+            result.Population = distribution.Population;
+            result.WithTraits = distribution.WithTraits;
+            result.MissingTraits = distribution.MissingTraits;
+            result.FemaleShare = distribution.FemaleShare;
+            result.MutationEvents = 0;
+            result.Migrated = 0;
+
+            foreach (var category in distribution.Counts.OrderBy(pair => pair.Key, StringComparer.Ordinal))
+            {
+                var total = category.Value.Values.Sum();
+                result.Categories.Add(new TraitCategoryStatus
+                {
+                    Name = category.Key,
+                    Values = category.Value
+                        .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                        .Select(pair => new TraitValueStatus
+                        {
+                            Value = pair.Key,
+                            Count = pair.Value,
+                            Share = total > 0 ? pair.Value / (decimal)total : 0m
+                        })
+                        .ToList()
+                });
+            }
+
+            return result;
+        }
+    }
+
+    public List<HouseholdCompositionStatus> BuildHouseholdCompositions()
+    {
+        lock (@lock)
+        {
+            var result = new List<HouseholdCompositionStatus>();
+            if (world is null || economy is null)
+                return result;
+
+            var households = new List<Entity>();
+            world.Query(in new QueryDescription().WithAll<Household>(),
+                (Entity entity, ref Household _) => households.Add(entity));
+            households.Sort((a, b) => GetNetworkId(world, a).CompareTo(GetNetworkId(world, b)));
+
+            foreach (var householdEntity in households)
+            {
+                var household = world.Get<Household>(householdEntity);
+                var members = economy.Housing.GetMembers(householdEntity);
+                var children = 0;
+                var dependants = 0;
+                var earners = 0;
+                foreach (var member in members)
+                {
+                    if (!world.IsAlive(member))
+                        continue;
+                    if (world.Has<Alive>(member) && world.Get<Alive>(member).Age < 18)
+                        children++;
+                    if (PregnancyService.IsDependent(world, member))
+                        dependants++;
+                    if (world.Has<Employee>(member))
+                        earners++;
+                }
+
+                var unit = household.Unit != Entity.Null && world.IsAlive(household.Unit)
+                    ? world.Get<HousingUnit>(household.Unit)
+                    : default;
+                result.Add(new HouseholdCompositionStatus
+                {
+                    NetworkId = GetNetworkId(world, householdEntity),
+                    HeadNetworkId = GetNetworkId(world, household.Head),
+                    Head = NameOf(household.Head),
+                    Members = members.Count,
+                    Children = children,
+                    Dependants = dependants,
+                    Earners = earners,
+                    Capacity = household.Unit == Entity.Null ? 0 : unit.Capacity,
+                    OccupantCount = household.Unit == Entity.Null ? 0 : unit.OccupantCount,
+                    Overcrowded = household.Unit != Entity.Null && unit.IsOvercrowded,
+                    UnitNetworkId = household.Unit == Entity.Null ? null : GetNetworkId(world, household.Unit),
+                    Unit = household.Unit == Entity.Null ? string.Empty : $"Unit {GetNetworkId(world, household.Unit)}",
+                    Tenure = household.Tenure.ToString()
+                });
+            }
+
+            return result;
         }
     }
 
@@ -2953,36 +3301,67 @@ if (SnapshotsEnabled)
         return count;
     }
 
-    public List<PregnancyStatusDto> BuildPregnancies()
+    public List<PregnancyStatusDto> BuildPregnancies() => BuildPregnancyPage().Pregnancies;
+
+    public PregnancyPageStatus BuildPregnancyPage(bool activeOnly = false, int take = 500, int skip = 0)
+    {
+        lock (@lock)
+        {
+            var page = new PregnancyPageStatus
+            {
+                ActiveOnly = activeOnly,
+                Take = Math.Clamp(take, 1, 500),
+                Skip = Math.Max(0, skip)
+            };
+            if (world is null || economy is null)
+                return page;
+
+            var pregnancies = new List<PregnancyStatusDto>();
+            world.Query(in new QueryDescription().WithAll<Pregnancy, NetworkId>(),
+                (Entity entity, ref Pregnancy pregnancy, ref NetworkId networkId) =>
+                {
+                    if (activeOnly &&
+                        pregnancy.Status is not (PregnancyStatus.Active or PregnancyStatus.ReadyToBirth))
+                        return;
+
+                    pregnancies.Add(BuildPregnancyStatus(pregnancy, networkId.Value));
+                });
+
+            pregnancies.Sort((a, b) => a.NetworkId.CompareTo(b.NetworkId));
+            page.Total = pregnancies.Count;
+            page.Pregnancies = pregnancies.Skip(page.Skip).Take(page.Take).ToList();
+            return page;
+        }
+    }
+
+    public PregnancyStatusDto? BuildPregnancy(ulong pregnancyId)
+    {
+        lock (@lock)
+        {
+            if (world is null || economy is null ||
+                !networkIds.TryGetEntity(new NetworkId(pregnancyId), out var entity) ||
+                !world.IsAlive(entity) || !world.Has<Pregnancy>(entity))
+                return null;
+
+            return BuildPregnancyStatus(world.Get<Pregnancy>(entity), pregnancyId);
+        }
+    }
+
+    public List<PregnancyStatusDto> BuildPregnanciesForSim(ulong simId)
     {
         lock (@lock)
         {
             var result = new List<PregnancyStatusDto>();
-            if (world is null || economy is null)
+            if (world is null || economy is null ||
+                !networkIds.TryGetEntity(new NetworkId(simId), out var sim))
                 return result;
 
             world.Query(in new QueryDescription().WithAll<Pregnancy, NetworkId>(),
-                (Entity entity, ref Pregnancy pregnancy, ref NetworkId networkId) =>
+                (Entity _, ref Pregnancy pregnancy, ref NetworkId networkId) =>
                 {
-                    var remaining = Math.Max(
-                        0,
-                        (int)Math.Ceiling((pregnancy.DueTick - tick) / (double)economy.Clock.TicksPerMonth));
-                    result.Add(new PregnancyStatusDto
-                    {
-                        NetworkId = networkId.Value,
-                        CarryingParentNetworkId = NetworkIdOf(world, pregnancy.CarryingParent),
-                        OtherParentNetworkId = NetworkIdOf(world, pregnancy.OtherParent),
-                        CarryingParentName = NameOf(pregnancy.CarryingParent),
-                        ConceivedTick = pregnancy.ConceivedTick,
-                        DueTick = pregnancy.DueTick,
-                        MonthsRemaining = remaining,
-                        RiskBasisPoints = pregnancy.RiskBasisPoints,
-                        Status = pregnancy.Status.ToString(),
-                        Source = pregnancy.Source.ToString(),
-                        Complications = pregnancy.Complications,
-                        CarePaid = pregnancy.CarePaid.Units,
-                        CareArrears = pregnancy.CareArrears.Units
-                    });
+                    if (pregnancy.CarryingParent != sim && pregnancy.OtherParent != sim)
+                        return;
+                    result.Add(BuildPregnancyStatus(pregnancy, networkId.Value));
                 });
 
             result.Sort((a, b) => a.NetworkId.CompareTo(b.NetworkId));
@@ -2990,12 +3369,99 @@ if (SnapshotsEnabled)
         }
     }
 
-    public List<ChildStatusDto> BuildChildren()
+    private PregnancyStatusDto BuildPregnancyStatus(Pregnancy pregnancy, ulong networkId)
+    {
+        var remaining = Math.Max(
+            0,
+            (int)Math.Ceiling((pregnancy.DueTick - tick) / (double)economy!.Clock.TicksPerMonth));
+        return new PregnancyStatusDto
+        {
+            NetworkId = networkId,
+            CarryingParentNetworkId = NetworkIdOf(world!, pregnancy.CarryingParent),
+            OtherParentNetworkId = NetworkIdOf(world!, pregnancy.OtherParent),
+            CarryingParentName = NameOf(pregnancy.CarryingParent),
+            OtherParentName = NameOf(pregnancy.OtherParent),
+            ConceivedTick = pregnancy.ConceivedTick,
+            DueTick = pregnancy.DueTick,
+            MonthsRemaining = remaining,
+            RiskBasisPoints = pregnancy.RiskBasisPoints,
+            Status = pregnancy.Status.ToString(),
+            Source = pregnancy.Source.ToString(),
+            ChildrenExpected = pregnancy.ChildrenExpected,
+            Complications = pregnancy.Complications,
+            CareMonths = pregnancy.CareMonths,
+            MissedCareMonths = pregnancy.MissedCareMonths,
+            CarePaid = pregnancy.CarePaid.Units,
+            CareArrears = pregnancy.CareArrears.Units,
+            ResolvedTick = pregnancy.ResolvedTick
+        };
+    }
+
+    public List<ChildStatusDto> BuildChildren() => BuildChildPage().Children;
+
+    public ChildPageStatus BuildChildPage(
+        string? ageBand = null,
+        ulong? guardianId = null,
+        int take = 500,
+        int skip = 0)
+    {
+        lock (@lock)
+        {
+            var page = new ChildPageStatus
+            {
+                AgeBand = ageBand,
+                Take = Math.Clamp(take, 1, 500),
+                Skip = Math.Max(0, skip)
+            };
+            if (world is null || economy is null)
+                return page;
+
+            var workAge = economy.Life.Policy.WorkStartAge;
+            var children = new List<ChildStatusDto>();
+            world.Query(in new QueryDescription().WithAll<Alive, NetworkId>().WithNone<Dead>(),
+                (Entity entity, ref Alive alive, ref NetworkId networkId) =>
+                {
+                    if (alive.Age >= workAge)
+                        return;
+                    if (!MatchesAgeBand(alive.Age, ageBand))
+                        return;
+
+                    var guardian = relationshipIndex.GuardiansOf(entity).FirstOrDefault();
+                    if (guardianId is not null && NetworkIdOf(world, guardian) != guardianId.Value)
+                        return;
+
+                    children.Add(BuildChildStatus(entity, alive, networkId.Value));
+                });
+
+            children.Sort((a, b) => a.NetworkId.CompareTo(b.NetworkId));
+            page.Total = children.Count;
+            page.Children = children.Skip(page.Skip).Take(page.Take).ToList();
+            return page;
+        }
+    }
+
+    public ChildStatusDto? BuildChild(ulong childId)
+    {
+        lock (@lock)
+        {
+            if (world is null || economy is null ||
+                !networkIds.TryGetEntity(new NetworkId(childId), out var entity) ||
+                !world.IsAlive(entity) || world.Has<Dead>(entity) ||
+                !world.Has<Alive>(entity) ||
+                world.Get<Alive>(entity).Age >= economy.Life.Policy.WorkStartAge)
+                return null;
+
+            return BuildChildStatus(entity, world.Get<Alive>(entity), childId);
+        }
+    }
+
+    public List<ChildStatusDto> BuildChildrenForSim(ulong simId)
     {
         lock (@lock)
         {
             var result = new List<ChildStatusDto>();
-            if (world is null || economy is null)
+            if (world is null || economy is null ||
+                !networkIds.TryGetEntity(new NetworkId(simId), out var sim))
                 return result;
 
             var workAge = economy.Life.Policy.WorkStartAge;
@@ -3007,40 +3473,66 @@ if (SnapshotsEnabled)
 
                     var parents = relationshipIndex.ParentsOf(entity);
                     var guardian = relationshipIndex.GuardiansOf(entity).FirstOrDefault();
-                    var household = economy.Housing.HouseholdOf(entity);
-                    var householdId = household == Entity.Null ? 0 : GetNetworkId(world, household);
-                    var enrolled = world.Has<Enrollment>(entity) &&
-                                   !world.Get<Enrollment>(entity).IsUnenrolled;
-                    var unenrolled = world.Has<Enrollment>(entity) &&
-                                     world.Get<Enrollment>(entity).IsUnenrolled;
-                    var school = Entity.Null;
-                    if (world.Has<Enrollment>(entity))
-                        school = world.Get<Enrollment>(entity).School;
-                    var unit = household == Entity.Null ? Entity.Null : economy.Housing.UnitOf(household);
-                    var overcrowded = unit != Entity.Null && world.Has<HousingUnit>(unit) &&
-                                      world.Get<HousingUnit>(unit).IsOvercrowded;
+                    if (!parents.Contains(sim) && guardian != sim)
+                        return;
 
-                    result.Add(new ChildStatusDto
-                    {
-                        NetworkId = networkId.Value,
-                        Name = NameOf(entity),
-                        Age = alive.Age,
-                        ParentANetworkId = parents.Count > 0 ? NetworkIdOf(world, parents[0]) : null,
-                        ParentBNetworkId = parents.Count > 1 ? NetworkIdOf(world, parents[1]) : null,
-                        GuardianNetworkId = guardian == Entity.Null ? null : NetworkIdOf(world, guardian),
-                        HouseholdNetworkId = householdId,
-                        Household = householdId == 0 ? string.Empty : $"Household {householdId}",
-                        Enrolled = enrolled,
-                        Unenrolled = unenrolled,
-                        School = school == Entity.Null ? string.Empty : NameOf(school),
-                        Overcrowded = overcrowded,
-                        ChildCostsThisYear = 0m
-                    });
+                    result.Add(BuildChildStatus(entity, alive, networkId.Value));
                 });
 
             result.Sort((a, b) => a.NetworkId.CompareTo(b.NetworkId));
             return result;
         }
+    }
+
+    private ChildStatusDto BuildChildStatus(Entity entity, Alive alive, ulong networkId)
+    {
+        var parents = relationshipIndex.ParentsOf(entity);
+        var guardian = relationshipIndex.GuardiansOf(entity).FirstOrDefault();
+        var household = economy!.Housing.HouseholdOf(entity);
+        var householdId = household == Entity.Null ? 0 : GetNetworkId(world!, household);
+        var enrolled = world!.Has<Enrollment>(entity) &&
+                       !world.Get<Enrollment>(entity).IsUnenrolled;
+        var unenrolled = world.Has<Enrollment>(entity) &&
+                         world.Get<Enrollment>(entity).IsUnenrolled;
+        var school = world.Has<Enrollment>(entity)
+            ? world.Get<Enrollment>(entity).School
+            : Entity.Null;
+        var unit = household == Entity.Null ? Entity.Null : economy.Housing.UnitOf(household);
+        var overcrowded = unit != Entity.Null && world.Has<HousingUnit>(unit) &&
+                          world.Get<HousingUnit>(unit).IsOvercrowded;
+
+        return new ChildStatusDto
+        {
+            NetworkId = networkId,
+            Name = NameOf(entity),
+            Age = alive.Age,
+            ParentANetworkId = parents.Count > 0 ? NetworkIdOf(world, parents[0]) : null,
+            ParentBNetworkId = parents.Count > 1 ? NetworkIdOf(world, parents[1]) : null,
+            GuardianNetworkId = guardian == Entity.Null ? null : NetworkIdOf(world, guardian),
+            HouseholdNetworkId = householdId,
+            Household = householdId == 0 ? string.Empty : $"Household {householdId}",
+            Enrolled = enrolled,
+            Unenrolled = unenrolled,
+            School = school == Entity.Null ? string.Empty : NameOf(school),
+            Overcrowded = overcrowded,
+            InStateCare = world.Has<StateCare>(entity),
+            ChildCostsThisYear = 0m
+        };
+    }
+
+    private static bool MatchesAgeBand(int age, string? ageBand)
+    {
+        if (string.IsNullOrWhiteSpace(ageBand))
+            return true;
+
+        return ageBand.Trim().ToLowerInvariant() switch
+        {
+            "infant" or "under-1" => age < 1,
+            "toddler" or "1-4" => age is >= 1 and < 5,
+            "school" or "5-12" => age is >= 5 and < 13,
+            "teen" or "13-17" => age is >= 13 and < 18,
+            _ => true
+        };
     }
 
     public List<GuardianshipStatusDto> BuildGuardianships()
@@ -3062,13 +3554,208 @@ if (SnapshotsEnabled)
                         GuardianName = NameOf(relationship.From),
                         ChildNetworkId = NetworkIdOf(world, relationship.To),
                         ChildName = NameOf(relationship.To),
-                        SinceTick = relationship.SinceTick
+                        Source = relationship.Source.ToString(),
+                        SinceTick = relationship.SinceTick,
+                        StateCare = false
+                    });
+                });
+
+            world.Query(in new QueryDescription().WithAll<StateCare, NetworkId>(),
+                (Entity entity, ref StateCare care, ref NetworkId networkId) =>
+                {
+                    result.Add(new GuardianshipStatusDto
+                    {
+                        GuardianNetworkId = 0,
+                        GuardianName = "State care",
+                        ChildNetworkId = networkId.Value,
+                        ChildName = NameOf(entity),
+                        Source = "StateCare",
+                        SinceTick = care.SinceTick,
+                        StateCare = true
                     });
                 });
 
             result.Sort((a, b) => a.ChildNetworkId.CompareTo(b.ChildNetworkId));
             return result;
         }
+    }
+
+    public FamilySimPage BuildFamilySims(
+        int take = 100,
+        int skip = 0,
+        string? stage = null,
+        bool? partnered = null,
+        bool? hasChildren = null,
+        ulong? householdId = null,
+        string? name = null)
+    {
+        lock (@lock)
+        {
+            var page = new FamilySimPage
+            {
+                Take = Math.Clamp(take, 1, 500),
+                Skip = Math.Max(0, skip)
+            };
+            if (world is null || economy is null)
+                return page;
+
+            LifeStage? stageFilter = Enum.TryParse<LifeStage>(stage, true, out var parsedStage)
+                ? parsedStage
+                : null;
+            var rows = new List<(ulong NetworkId, Entity Entity, Alive Alive, GenName Name, LifeStage Stage, Entity Household, ulong HouseholdId)>();
+            world.Query(in new QueryDescription().WithAll<Alive, GenName, NetworkId>().WithNone<Dead>(),
+                (Entity entity, ref Alive alive, ref GenName simName, ref NetworkId networkId) =>
+                {
+                    var stageValue = world.Has<Lifecycle>(entity)
+                        ? world.Get<Lifecycle>(entity).Stage
+                        : economy.Life.Policy.StageFor(alive.Age);
+                    if (stageFilter is { } required && stageValue != required)
+                        return;
+                    if (!string.IsNullOrWhiteSpace(name) &&
+                        !simName.Name.Contains(name, StringComparison.OrdinalIgnoreCase))
+                        return;
+
+                    var isPaired = relationshipIndex.HasPartner(entity);
+                    if (partnered is not null && isPaired != partnered.Value)
+                        return;
+
+                    var childCount = relationshipIndex.ChildrenOf(entity).Count;
+                    if (hasChildren is not null && (childCount > 0) != hasChildren.Value)
+                        return;
+
+                    var household = economy.Housing.HouseholdOf(entity);
+                    var householdNetworkId = household == Entity.Null ? 0 : GetNetworkId(world, household);
+                    if (householdId is not null && householdNetworkId != householdId.Value)
+                        return;
+
+                    rows.Add((networkId.Value, entity, alive, simName, stageValue, household, householdNetworkId));
+                });
+
+            rows.Sort((a, b) => a.NetworkId.CompareTo(b.NetworkId));
+            page.Total = rows.Count;
+            page.Sims = rows
+                .Skip(page.Skip)
+                .Take(page.Take)
+                .Select(row => BuildFamilySimStatus(
+                    row.Entity, row.Alive, row.Name, row.NetworkId, row.Stage, row.Household, row.HouseholdId))
+                .ToList();
+            return page;
+        }
+    }
+
+    public FamilySimDetailStatus? BuildFamilySim(ulong simId)
+    {
+        lock (@lock)
+        {
+            if (world is null || economy is null ||
+                !networkIds.TryGetEntity(new NetworkId(simId), out var entity) ||
+                !world.IsAlive(entity) || !world.Has<Alive>(entity))
+                return null;
+
+            var alive = world.Get<Alive>(entity);
+            var stageValue = world.Has<Lifecycle>(entity)
+                ? world.Get<Lifecycle>(entity).Stage
+                : economy.Life.Policy.StageFor(alive.Age);
+            var household = economy.Housing.HouseholdOf(entity);
+            var householdNetworkId = household == Entity.Null ? 0 : GetNetworkId(world, household);
+            var name = world.Has<GenName>(entity) ? world.Get<GenName>(entity).Name : string.Empty;
+
+            var relationships = new List<FamilyRelationshipStatus>();
+            world.Query(in new QueryDescription().WithAll<Relationship, NetworkId>(),
+                (Entity _, ref Relationship relationship, ref NetworkId relationshipId) =>
+                {
+                    if (relationship.From != entity && relationship.To != entity)
+                        return;
+                    relationships.Add(new FamilyRelationshipStatus
+                    {
+                        NetworkId = relationshipId.Value,
+                        FromSimId = NetworkIdOf(world, relationship.From),
+                        FromName = NameOf(relationship.From),
+                        ToSimId = NetworkIdOf(world, relationship.To),
+                        ToName = NameOf(relationship.To),
+                        Kind = relationship.Kind.ToString(),
+                        Source = relationship.Source.ToString(),
+                        SinceTick = relationship.SinceTick
+                    });
+                });
+            relationships.Sort((a, b) => a.NetworkId.CompareTo(b.NetworkId));
+
+            var detail = new FamilySimDetailStatus
+            {
+                Sim = BuildFamilySimStatus(entity, alive, new GenName(name), simId, stageValue, household, householdNetworkId),
+                Relationships = relationships,
+                Pregnancies = BuildPregnanciesForSim(simId),
+                Children = BuildChildrenForSim(simId),
+                Guardianships = BuildGuardianships()
+                    .Where(guardian => guardian.GuardianNetworkId == simId || guardian.ChildNetworkId == simId)
+                    .ToList()
+            };
+
+            detail.Household = householdNetworkId == 0
+                ? null
+                : BuildHouseholdCompositions().FirstOrDefault(household => household.NetworkId == householdNetworkId);
+            return detail;
+        }
+    }
+
+    private FamilySimStatus BuildFamilySimStatus(
+        Entity entity,
+        Alive alive,
+        GenName simName,
+        ulong networkId,
+        LifeStage stage,
+        Entity household,
+        ulong householdNetworkId)
+    {
+        var partner = relationshipIndex.PartnersOf(entity).FirstOrDefault();
+        var guardian = relationshipIndex.GuardiansOf(entity).FirstOrDefault();
+        var parents = relationshipIndex.ParentsOf(entity);
+        var children = relationshipIndex.ChildrenOf(entity);
+        var isOrphan = alive.Age < economy!.Life.Policy.WorkStartAge &&
+                       !world!.Has<StateCare>(entity) &&
+                       !parents.Any(parent => world.IsAlive(parent) && !world.Has<Dead>(parent)) &&
+                       !relationshipsAlive(guardian);
+
+        var status = new FamilySimStatus
+        {
+            NetworkId = networkId,
+            Name = simName.Name,
+            Age = alive.Age,
+            Stage = stage.ToString(),
+            Sex = world!.Has<Traits>(entity) ? world.Get<Traits>(entity).Sex.ToString() : string.Empty,
+            HouseholdNetworkId = householdNetworkId,
+            Household = householdNetworkId == 0 ? string.Empty : $"Household {householdNetworkId}",
+            PartnerNetworkId = partner == Entity.Null ? null : NetworkIdOf(world, partner),
+            PartnerName = partner == Entity.Null ? null : NameOf(partner),
+            GuardianNetworkId = guardian == Entity.Null ? null : NetworkIdOf(world, guardian),
+            IsPaired = partner != Entity.Null,
+            HasChildren = children.Count > 0,
+            IsOrphan = isOrphan,
+            InStateCare = world.Has<StateCare>(entity),
+            ParentCount = parents.Count,
+            ChildCount = children.Count
+        };
+
+        if (world.Has<Traits>(entity))
+        {
+            var traits = world.Get<Traits>(entity);
+            status.Traits =
+            [
+                new TraitValueStatus { Value = $"EyeColor={traits.EyeColor}", Count = 1 },
+                new TraitValueStatus { Value = $"HairColor={traits.HairColor}", Count = 1 },
+                new TraitValueStatus { Value = $"Handedness={traits.Handedness}", Count = 1 },
+                new TraitValueStatus { Value = $"Morphotype={traits.Morphotype}", Count = 1 },
+                new TraitValueStatus { Value = $"Aptitude={traits.Aptitude}", Count = 1 },
+                new TraitValueStatus { Value = $"HeightPotential={traits.HeightPotential}", Count = 1 },
+                new TraitValueStatus { Value = $"Sex={traits.Sex}", Count = 1 },
+                new TraitValueStatus { Value = $"Temperament={traits.Temperament}", Count = 1 }
+            ];
+        }
+
+        return status;
+
+        bool relationshipsAlive(Entity candidate) =>
+            candidate != Entity.Null && world!.IsAlive(candidate) && !world.Has<Dead>(candidate);
     }
 
     public FamilyRelationshipPage BuildFamilyRelationships(
@@ -4126,9 +4813,12 @@ if (SnapshotsEnabled)
             var pendingRevenue = new List<PersistedPendingRevenue>();
             var simByEntity = new Dictionary<Entity, PersistedSim>();
 
-            var simQuery = new QueryDescription().WithAll<GenName, Needs, CurrentAction, Alive, NetworkId>();
-            world.Query(in simQuery, (Entity entity, ref GenName name, ref Needs needs, ref CurrentAction action, ref Alive alive, ref NetworkId nid) =>
+            var simQuery = new QueryDescription().WithAll<GenName, Needs, Alive, NetworkId>();
+            world.Query(in simQuery, (Entity entity, ref GenName name, ref Needs needs, ref Alive alive, ref NetworkId nid) =>
             {
+                var action = world.Has<CurrentAction>(entity)
+                    ? world.Get<CurrentAction>(entity)
+                    : new CurrentAction(ActionType.Idle, 0f);
                 var sim = new PersistedSim
                 {
                     Name = name.Name,
@@ -4656,14 +5346,23 @@ if (SnapshotsEnabled)
             world.Query(in new QueryDescription().WithAll<Relationship>(),
                 (Entity entity, ref Relationship relationship) =>
                 {
+                    var networkId = GetNetworkId(world, entity);
+                    var fromId = GetNetworkId(world, relationship.From);
+                    var toId = GetNetworkId(world, relationship.To);
+                    if (networkId == 0 || fromId == 0 || toId == 0)
+                        return;
+
                     relationships.Add(new PersistedRelationship
                     {
-                        NetworkId = GetNetworkId(world, entity),
-                        FromSimNetworkId = GetNetworkId(world, relationship.From),
-                        ToSimNetworkId = GetNetworkId(world, relationship.To),
+                        NetworkId = networkId,
+                        FromSimNetworkId = fromId,
+                        ToSimNetworkId = toId,
                         Kind = relationship.Kind.ToString(),
                         Source = relationship.Source.ToString(),
-                        SinceTick = relationship.SinceTick
+                        SinceTick = relationship.SinceTick,
+                        EndedTick = relationship.Kind == RelationshipKind.ExPartner
+                            ? relationship.SinceTick
+                            : null
                     });
                 });
 
@@ -4671,11 +5370,16 @@ if (SnapshotsEnabled)
             world.Query(in new QueryDescription().WithAll<Pregnancy, NetworkId>(),
                 (Entity entity, ref Pregnancy pregnancy, ref NetworkId nid) =>
                 {
+                    var carryingId = GetNetworkId(world, pregnancy.CarryingParent);
+                    var otherId = GetNetworkId(world, pregnancy.OtherParent);
+                    if (carryingId == 0 || otherId == 0)
+                        return;
+
                     pregnancies.Add(new PersistedPregnancy
                     {
                         NetworkId = nid.Value,
-                        CarryingParentNetworkId = GetNetworkId(world, pregnancy.CarryingParent),
-                        OtherParentNetworkId = GetNetworkId(world, pregnancy.OtherParent),
+                        CarryingParentNetworkId = carryingId,
+                        OtherParentNetworkId = otherId,
                         ConceivedTick = pregnancy.ConceivedTick,
                         DueTick = pregnancy.DueTick,
                         RiskBasisPoints = pregnancy.RiskBasisPoints,
@@ -4706,6 +5410,18 @@ if (SnapshotsEnabled)
                         CreatedTick = trust.CreatedTick,
                         ReleaseAgeTicks = trust.ReleaseAgeTicks,
                         SourceSimNetworkId = trust.SourceSimNetworkId
+                    });
+                });
+
+            var persistedStateCare = new List<PersistedStateCare>();
+            world.Query(in new QueryDescription().WithAll<StateCare, NetworkId>(),
+                (Entity entity, ref StateCare care, ref NetworkId networkId) =>
+                {
+                    persistedStateCare.Add(new PersistedStateCare
+                    {
+                        ChildNetworkId = networkId.Value,
+                        SinceTick = care.SinceTick,
+                        MonthlyCostCents = care.MonthlyCost.Cents
                     });
                 });
 
@@ -4982,6 +5698,7 @@ if (SnapshotsEnabled)
                 Relationships = relationships,
                 Pregnancies = pregnancies,
                 Trusts = persistedTrusts,
+                StateCare = persistedStateCare,
                 ConstructionProjects = constructionProjects,
                 HousingMetricHistory = housingMetricHistory,
                 HousingMarket = housingMarket,
@@ -5294,6 +6011,16 @@ if (SnapshotsEnabled)
                     traits = TraitsGenerator.Create(
                         RandomSeed, sim.NetworkId, TraitSource.Migration, economy.Genetics);
                     TraitValidation.EnsureValid(traits, sim.NetworkId);
+                    // Persist the generated values on the in-memory state so a second
+                    // restore of the same object cannot backfill a different trait set.
+                    sim.EyeColor = (int)traits.EyeColor;
+                    sim.HairColor = (int)traits.HairColor;
+                    sim.Handedness = (int)traits.Handedness;
+                    sim.Morphotype = (int)traits.Morphotype;
+                    sim.Aptitude = (int)traits.Aptitude;
+                    sim.HeightPotential = (int)traits.HeightPotential;
+                    sim.Sex = (int)traits.Sex;
+                    sim.Temperament = (int)traits.Temperament;
                     sim.TraitsMigrated = true;
                 }
                 else
@@ -5707,18 +6434,29 @@ if (SnapshotsEnabled)
             {
                 if (!simEntities.TryGetValue(persisted.FromSimNetworkId, out var from) ||
                     !simEntities.TryGetValue(persisted.ToSimNetworkId, out var to))
+                {
+                    // Legacy saves may contain edges whose endpoint was destroyed
+                    // before the old estate cleanup ran. Prune them instead of
+                    // blocking startup; unknown kinds/sources still fail below.
                     continue;
-                if (!Enum.TryParse<RelationshipKind>(persisted.Kind, out var kind) ||
-                    !Enum.TryParse<RelationshipSource>(persisted.Source, out var source))
-                    continue;
+                }
+                if (!Enum.TryParse<RelationshipKind>(persisted.Kind, out var kind))
+                    throw new InvalidOperationException(
+                        $"Relationship {persisted.NetworkId} has unknown kind '{persisted.Kind}'.");
+                if (!Enum.TryParse<RelationshipSource>(persisted.Source, out var source))
+                    throw new InvalidOperationException(
+                        $"Relationship {persisted.NetworkId} has unknown source '{persisted.Source}'.");
 
+                var sinceTick = kind == RelationshipKind.ExPartner && persisted.EndedTick is { } endedTick
+                    ? endedTick
+                    : persisted.SinceTick;
                 var edge = world!.Create(new Relationship
                 {
                     From = from,
                     To = to,
                     Kind = kind,
                     Source = source,
-                    SinceTick = persisted.SinceTick
+                    SinceTick = sinceTick
                 });
                 var relationshipNetworkId = new NetworkId(persisted.NetworkId);
                 world.Add(edge, relationshipNetworkId);
@@ -5727,12 +6465,25 @@ if (SnapshotsEnabled)
 
             foreach (var persisted in state.Pregnancies)
             {
+                if (!Enum.TryParse<PregnancyStatus>(persisted.Status, out var status))
+                    throw new InvalidOperationException(
+                        $"Pregnancy {persisted.NetworkId} has unknown status '{persisted.Status}'.");
+                if (!Enum.TryParse<PregnancySource>(persisted.Source, out var source))
+                    throw new InvalidOperationException(
+                        $"Pregnancy {persisted.NetworkId} has unknown source '{persisted.Source}'.");
+
                 if (!simEntities.TryGetValue(persisted.CarryingParentNetworkId, out var carrying) ||
                     !simEntities.TryGetValue(persisted.OtherParentNetworkId, out var other))
+                {
+                    // Resolved pregnancies are retained as history. A parent may
+                    // legitimately have been destroyed since resolution, so drop
+                    // that history instead of making the whole save unrestorable.
+                    if (status is PregnancyStatus.Active or PregnancyStatus.ReadyToBirth)
+                        throw new InvalidOperationException(
+                            $"Active pregnancy {persisted.NetworkId} references a missing parent " +
+                            $"({persisted.CarryingParentNetworkId}, {persisted.OtherParentNetworkId}).");
                     continue;
-                if (!Enum.TryParse<PregnancyStatus>(persisted.Status, out var status) ||
-                    !Enum.TryParse<PregnancySource>(persisted.Source, out var source))
-                    continue;
+                }
 
                 var pregnancy = world!.Create(new Pregnancy
                 {
@@ -5761,10 +6512,15 @@ if (SnapshotsEnabled)
             foreach (var persisted in state.Trusts)
             {
                 if (!simEntities.TryGetValue(persisted.BeneficiaryNetworkId, out var beneficiary))
-                    continue;
+                    throw new InvalidOperationException(
+                        $"Trust {persisted.NetworkId} references a missing beneficiary " +
+                        $"{persisted.BeneficiaryNetworkId}.");
                 Entity guardian = Entity.Null;
-                if (persisted.GuardianNetworkId != 0)
-                    simEntities.TryGetValue(persisted.GuardianNetworkId, out guardian);
+                if (persisted.GuardianNetworkId != 0 &&
+                    !simEntities.TryGetValue(persisted.GuardianNetworkId, out guardian))
+                    throw new InvalidOperationException(
+                        $"Trust {persisted.NetworkId} references a missing guardian " +
+                        $"{persisted.GuardianNetworkId}.");
 
                 var trust = world!.Create(new TrustAccount
                 {
@@ -5778,6 +6534,19 @@ if (SnapshotsEnabled)
                 var trustNetworkId = new NetworkId(persisted.NetworkId);
                 world.Add(trust, trustNetworkId);
                 networkIds.AllocateWithValue(trust, trustNetworkId);
+            }
+
+            foreach (var persisted in state.StateCare)
+            {
+                if (!simEntities.TryGetValue(persisted.ChildNetworkId, out var child))
+                    throw new InvalidOperationException(
+                        $"State care row references a missing child {persisted.ChildNetworkId}.");
+                world!.Add(child, new StateCare
+                {
+                    SinceTick = persisted.SinceTick,
+                    CaseWorker = Entity.Null,
+                    MonthlyCost = new Money(persisted.MonthlyCostCents)
+                });
             }
 
             relationshipIndex.Rebuild(world!);

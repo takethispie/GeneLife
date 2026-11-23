@@ -6,7 +6,7 @@
 
 **Builds on:** V1 economy/housing/life stages, V2 spatial world and indices, V3 read-model and client conventions, the 2026-11 balance pass, `SimulationRandom`, `EstateSettlementSystem`, `PopulationInflowSystem`, `HousingRegistry`, `HouseholdRole.Child`, `Tenure.Dependent`, `HousingUnit.Capacity`.
 
-> Implementation status: in progress. Features 01 (traits), 02 (relationships/attraction), 03 (reproduction/family) and 04 (continuity/inheritance) are implemented; see [STATUS.md](STATUS.md) for the delivery checklist and verification plan.
+> Implementation status: features 01 (traits), 02 (relationships/attraction), 03 (reproduction/family), 04 (continuity/inheritance) and 05 (admin/observability/hardening) are implemented; see [STATUS.md](STATUS.md) and the [feature 05 release checklist](05-admin-observability-and-hardening/release-checklist.md).
 
 ---
 

@@ -72,6 +72,13 @@ public static class SnapshotMigrations
                 state.AttractionModelVersion = Genelife.Family.AttractionCoefficients.CurrentVersion;
         }
 
+        if (fromVersion <= 9)
+        {
+            // v10 persists explicit state-care records. Older saves used the
+            // GuardianshipAssigned event only; no state-care rows is valid.
+            state.StateCare ??= [];
+        }
+
         if (fromVersion <= 8)
         {
             // v9 adds inheritance/guardianship policy and minor trusts. Older

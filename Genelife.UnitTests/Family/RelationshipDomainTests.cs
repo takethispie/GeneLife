@@ -136,6 +136,22 @@ public class RelationshipDomainTests
         Assert.Equal([older, younger], index.ChildrenOf(parent));
     }
 
+
+    [Fact]
+    public void RemovingAnEdgeNotifiesBothMirrors()
+    {
+        var (_, _, service, a, b) = Setup();
+        var edge = service.CreatePair(a, b, RelationshipKind.Parent, RelationshipSource.Seed, 1);
+        var removed = new List<RelationshipKind>();
+        service.EdgeRemoved = (_, relationship) => removed.Add(relationship.Kind);
+
+        Assert.True(service.RemoveEdge(edge));
+
+        Assert.Equal(2, removed.Count);
+        Assert.Contains(RelationshipKind.Parent, removed);
+        Assert.Contains(RelationshipKind.Child, removed);
+    }
+
     private static (World World, RelationshipIndex Index, RelationshipService Service, Entity A, Entity B)
         Setup()
     {

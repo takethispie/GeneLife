@@ -1,0 +1,947 @@
+@page "/family"
+@using Genelife.Web.Models
+@using Genelife.Web.Services
+@inject GameDataService GameData
+@implements IAsyncDisposable
+
+<PageTitle>Family</PageTitle>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+    <div>
+        <h1 class="mb-1">Family</h1>
+        <p class="text-muted mb-0">Traits, relationships, partnerships, pregnancies, children, guardianship and family health.</p>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+        <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" id="autoRefreshFamily" @bind="autoRefresh" />
+            <label class="form-check-label" for="autoRefreshFamily">Auto-refresh</label>
+        </div>
+        <button class="btn btn-primary" type="button" @onclick="() => RefreshAsync()" disabled="@isLoading">
+            @if (isLoading)
+            {
+                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+            }
+            Refresh
+        </button>
+    </div>
+</div>
+
+@if (error is not null)
+{
+    <div class="alert alert-danger">
+        <div class="fw-semibold">Could not load family data.</div>
+        <div class="small">@error</div>
+    </div>
+}
+
+@if (message is not null)
+{
+    <div class="alert alert-info py-2">@message</div>
+}
+
+<ul class="nav nav-tabs mb-3">
+    @foreach (var tab in Tabs)
+    {
+        <li class="nav-item">
+            <button class="nav-link @(activeTab == tab ? "active" : null)" type="button" @onclick="() => SwitchTabAsync(tab)">@tab</button>
+        </li>
+    }
+</ul>
+
+@if (family is not null)
+{
+    @if (activeTab == "Overview")
+    {
+        <div class="row g-3 mb-4">
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="card h-100"><div class="card-body">
+                    <div class="text-muted small">Population</div>
+                    <div class="fs-3 fw-semibold">@family.Population</div>
+                    <div class="small text-muted">@family.Adults adults &middot; @family.Minors minors</div>
+                </div></div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="card h-100"><div class="card-body">
+                    <div class="text-muted small">Partnerships</div>
+                    <div class="fs-3 fw-semibold">@family.Partnerships</div>
+                    <div class="small text-muted">@Percent(family.PartnershipRate) paired &middot; @family.SingleAdults single adults</div>
+                </div></div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="card h-100"><div class="card-body">
+                    <div class="text-muted small">Births this year</div>
+                    <div class="fs-3 fw-semibold">@family.BirthsThisYear</div>
+                    <div class="small text-muted">Natural change @family.NaturalChange &middot; replacement @family.ReplacementRate.ToString("0.00")</div>
+                </div></div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="card h-100"><div class="card-body">
+                    <div class="text-muted small">Children at risk</div>
+                    <div class="fs-3 fw-semibold">@family.Orphans</div>
+                    <div class="small text-muted">@family.StateCareChildren in state care &middot; trust @Money(family.MinorTrustTotal)</div>
+                </div></div>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-12 col-xl-7">
+                <div class="card h-100"><div class="card-body">
+                    <h2 class="h6 text-uppercase text-muted">Trait distribution</h2>
+                    <div class="small text-muted mb-2">
+                        @family.Traits.WithTraits of @family.Traits.Population sims have traits
+                        (@family.Traits.MissingTraits missing, @family.Traits.Migrated migrated) &middot;
+                        female share @Percent(family.Traits.FemaleShare)
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead><tr><th>Trait</th><th>Distribution</th></tr></thead>
+                            <tbody>
+                                @foreach (var category in family.Traits.Categories)
+                                {
+                                    <tr>
+                                        <td>@category.Name</td>
+                                        <td class="small">
+                                            @foreach (var value in category.Values)
+                                            {
+                                                <span class="badge text-bg-light me-1">@value.Value @value.Count</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div></div>
+            </div>
+            <div class="col-12 col-xl-5">
+                <div class="card h-100"><div class="card-body">
+                    <h2 class="h6 text-uppercase text-muted">Continuity</h2>
+                    <div class="small text-muted">
+                        Birth rate @family.BirthRate.ToString("0.0") per 1,000 &middot;
+                        inheritance @Money(family.InheritancePaidThisYear) &middot;
+                        trust released @Money(family.TrustReleasedThisYear)
+                    </div>
+                    <div class="small text-muted mt-2">
+                        Projection source: <span class="badge text-bg-secondary">@family.Projection.Source</span>
+                        @if (family.Projection.IsStale)
+                        {
+                            <span class="badge text-bg-warning">stale</span>
+                        }
+                        @family.Projection.Detail
+                    </div>
+                    <div class="mt-3 d-flex flex-wrap gap-2">
+                        @foreach (var check in family.Health)
+                        {
+                            <span class="badge @Badge(check.Level)" title="@check.Detail">@check.Name</span>
+                        }
+                    </div>
+                </div></div>
+            </div>
+        </div>
+
+        <div class="card mb-4"><div class="card-body">
+            <h2 class="h6 text-uppercase text-muted">Household composition</h2>
+            <div class="table-responsive">
+                <table class="table table-sm table-striped align-middle mb-0">
+                    <thead><tr><th>Household</th><th>Head</th><th>Members</th><th>Children</th><th>Dependants</th><th>Capacity</th><th>Status</th></tr></thead>
+                    <tbody>
+                        @foreach (var household in family.Households.Take(50))
+                        {
+                            <tr>
+                                <td>#@household.NetworkId</td>
+                                <td>@household.Head</td>
+                                <td>@household.Members</td>
+                                <td>@household.Children</td>
+                                <td>@household.Dependants</td>
+                                <td>@household.OccupantCount / @household.Capacity</td>
+                                <td>
+                                    @if (household.Overcrowded)
+                                    {
+                                        <span class="badge text-bg-warning">Overcrowded</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge text-bg-success">OK</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        @if (family.Households.Count == 0)
+                        {
+                            <tr><td colspan="7" class="text-muted">No households yet.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div></div>
+    }
+
+    @if (activeTab == "Sims")
+    {
+        <div class="card mb-3"><div class="card-body">
+            <div class="d-flex flex-wrap gap-2 align-items-end">
+                <div>
+                    <label class="form-label small mb-1">Stage</label>
+                    <select class="form-select form-select-sm" @bind="stageFilter">
+                        <option value="">All stages</option>
+                        <option value="Education">Education</option>
+                        <option value="Work">Work</option>
+                        <option value="Retirement">Retirement</option>
+                        <option value="Elderly">Elderly</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label small mb-1">Partnered</label>
+                    <select class="form-select form-select-sm" @bind="partneredFilter">
+                        <option value="">Any</option>
+                        <option value="true">Partnered</option>
+                        <option value="false">Single</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label small mb-1">Children</label>
+                    <select class="form-select form-select-sm" @bind="childrenFilter">
+                        <option value="">Any</option>
+                        <option value="true">Has children</option>
+                        <option value="false">No children</option>
+                    </select>
+                </div>
+                <div class="flex-grow-1">
+                    <label class="form-label small mb-1">Name</label>
+                    <input class="form-control form-control-sm" @bind="nameFilter" placeholder="Filter by name" />
+                </div>
+                <button class="btn btn-sm btn-outline-primary" type="button" @onclick="LoadSimsAsync">Apply</button>
+            </div>
+        </div></div>
+
+        <div class="card mb-4"><div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm table-striped align-middle mb-0">
+                    <thead><tr><th>Sim</th><th>Age</th><th>Stage</th><th>Household</th><th>Partner</th><th>Children</th><th>Flags</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var sim in sims)
+                        {
+                            <tr>
+                                <td>@sim.Name <span class="small text-muted">#@sim.NetworkId</span></td>
+                                <td>@sim.Age</td>
+                                <td>@sim.Stage</td>
+                                <td>@sim.Household</td>
+                                <td>@(sim.PartnerName ?? "—")</td>
+                                <td>@sim.ChildCount</td>
+                                <td>
+                                    @if (sim.IsOrphan)
+                                    {
+                                        <span class="badge text-bg-danger">Orphan</span>
+                                    }
+                                    @if (sim.InStateCare)
+                                    {
+                                        <span class="badge text-bg-warning">State care</span>
+                                    }
+                                    @if (sim.IsPaired)
+                                    {
+                                        <span class="badge text-bg-primary">Partnered</span>
+                                    }
+                                </td>
+                                <td><button class="btn btn-sm btn-outline-secondary" type="button" @onclick="() => SelectSimAsync(sim.NetworkId)">Open</button></td>
+                            </tr>
+                        }
+                        @if (sims.Count == 0)
+                        {
+                            <tr><td colspan="8" class="text-muted">No sims match the filters.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div></div>
+
+        @if (simDetail is not null)
+        {
+            <div class="card mb-4"><div class="card-body">
+                <h2 class="h6 text-uppercase text-muted">@simDetail.Sim.Name <span class="small">#@simDetail.Sim.NetworkId</span></h2>
+                <div class="small text-muted mb-2">
+                    @simDetail.Sim.Age years &middot; @simDetail.Sim.Stage &middot; @simDetail.Sim.Sex &middot;
+                    @simDetail.Sim.Household &middot; partner @(simDetail.Sim.PartnerName ?? "none")
+                </div>
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    @foreach (var trait in simDetail.Sim.Traits)
+                    {
+                        <span class="badge text-bg-light">@trait.Value</span>
+                    }
+                </div>
+
+                <h3 class="h6 text-uppercase text-muted">Relationships</h3>
+                <div class="table-responsive mb-3">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead><tr><th>Kind</th><th>From</th><th>To</th><th>Source</th><th>Since</th></tr></thead>
+                        <tbody>
+                            @foreach (var relationship in simDetail.Relationships)
+                            {
+                                <tr>
+                                    <td>@relationship.Kind</td>
+                                    <td>@relationship.FromName</td>
+                                    <td>@relationship.ToName</td>
+                                    <td>@relationship.Source</td>
+                                    <td>@relationship.SinceTick</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 class="h6 text-uppercase text-muted">Household</h3>
+                @if (simDetail.Household is not null)
+                {
+                    <div class="small text-muted mb-3">
+                        #@simDetail.Household.NetworkId &middot; @simDetail.Household.Members members &middot;
+                        @simDetail.Household.Children children &middot; @simDetail.Household.Dependants dependants &middot;
+                        capacity @simDetail.Household.OccupantCount / @simDetail.Household.Capacity
+                    </div>
+                }
+                else
+                {
+                    <div class="text-muted small mb-3">No household.</div>
+                }
+
+                <h3 class="h6 text-uppercase text-muted">Children</h3>
+                @if (simDetail.Children.Count == 0)
+                {
+                    <div class="text-muted small mb-3">No children.</div>
+                }
+                else
+                {
+                    <div class="small mb-3">
+                        @foreach (var child in simDetail.Children)
+                        {
+                            <span class="badge text-bg-light me-1">@child.Name (#@child.NetworkId, @child.Age)</span>
+                        }
+                    </div>
+                }
+
+                <h3 class="h6 text-uppercase text-muted">Pregnancies</h3>
+                @if (simDetail.Pregnancies.Count == 0)
+                {
+                    <div class="text-muted small">No pregnancies.</div>
+                }
+                else
+                {
+                    <div class="small">
+                        @foreach (var pregnancy in simDetail.Pregnancies)
+                        {
+                            <span class="badge text-bg-light me-1">@pregnancy.Status · due @pregnancy.DueTick · risk @pregnancy.RiskBasisPoints bp</span>
+                        }
+                    </div>
+                }
+            </div></div>
+        }
+
+        <div class="row g-3">
+            <div class="col-12 col-xl-6">
+                <div class="card h-100"><div class="card-body">
+                    <h2 class="h6 text-uppercase text-muted">Partnership operations</h2>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label small mb-1">Sim A</label>
+                            <input class="form-control form-control-sm" type="number" @bind="operationSimA" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small mb-1">Sim B</label>
+                            <input class="form-control form-control-sm" type="number" @bind="operationSimB" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small mb-1">Reason (required)</label>
+                            <input class="form-control form-control-sm" @bind="operationReason" />
+                        </div>
+                        <div class="col-12 form-check ms-2">
+                            <input class="form-check-input" type="checkbox" id="overrideEligibility" @bind="overrideEligibility" />
+                            <label class="form-check-label small" for="overrideEligibility">Override eligibility</label>
+                        </div>
+                        <div class="col-12 d-flex flex-wrap gap-2 align-items-center">
+                            <button class="btn btn-sm btn-outline-primary" type="button" @onclick="ForcePartnershipAsync" disabled="@isBusy">Force partnership</button>
+                            <button class="btn btn-sm btn-outline-danger" type="button" @onclick="EndPartnershipAsync" disabled="@(isBusy || !confirmDestructive)">End partnership</button>
+                            <div class="form-check mb-0">
+                                <input class="form-check-input" type="checkbox" id="confirmPartnership" @bind="confirmDestructive" />
+                                <label class="form-check-label small" for="confirmPartnership">Confirm destructive change</label>
+                            </div>
+                        </div>
+                    </div>
+                </div></div>
+            </div>
+            <div class="col-12 col-xl-6">
+                <div class="card h-100"><div class="card-body">
+                    <h2 class="h6 text-uppercase text-muted">Reproduction operations</h2>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label small mb-1">Carrying parent</label>
+                            <input class="form-control form-control-sm" type="number" @bind="carryingParentId" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small mb-1">Other parent</label>
+                            <input class="form-control form-control-sm" type="number" @bind="otherParentId" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small mb-1">Reason (required)</label>
+                            <input class="form-control form-control-sm" @bind="operationReason" />
+                        </div>
+                        <div class="col-12 d-flex gap-2">
+                            <button class="btn btn-sm btn-outline-primary" type="button" @onclick="StartPregnancyAsync" disabled="@isBusy">Force pregnancy</button>
+                        </div>
+                    </div>
+                </div></div>
+            </div>
+        </div>
+    }
+
+    @if (activeTab == "Relationships")
+    {
+        <div class="card mb-3"><div class="card-body">
+            <div class="d-flex flex-wrap gap-2 align-items-end">
+                <div>
+                    <label class="form-label small mb-1">Kind</label>
+                    <select class="form-select form-select-sm" @bind="relationshipKindFilter">
+                        <option value="">All kinds</option>
+                        <option value="Parent">Parent</option>
+                        <option value="Child">Child</option>
+                        <option value="Partner">Partner</option>
+                        <option value="ExPartner">ExPartner</option>
+                        <option value="Guardian">Guardian</option>
+                        <option value="Ward">Ward</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label small mb-1">Source</label>
+                    <select class="form-select form-select-sm" @bind="relationshipSourceFilter">
+                        <option value="">All sources</option>
+                        <option value="Seed">Seed</option>
+                        <option value="Attraction">Attraction</option>
+                        <option value="Admin">Admin</option>
+                        <option value="Death">Death</option>
+                        <option value="Migration">Migration</option>
+                        <option value="Guardianship">Guardianship</option>
+                    </select>
+                </div>
+                <div class="flex-grow-1">
+                    <label class="form-label small mb-1">Sim id</label>
+                    <input class="form-control form-control-sm" type="number" @bind="relationshipSimId" />
+                </div>
+                <button class="btn btn-sm btn-outline-primary" type="button" @onclick="LoadRelationshipsAsync">Apply</button>
+            </div>
+        </div></div>
+
+        <div class="card"><div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm table-striped align-middle mb-0">
+                    <thead><tr><th>Edge</th><th>Kind</th><th>From</th><th>To</th><th>Source</th><th>Since</th></tr></thead>
+                    <tbody>
+                        @foreach (var relationship in relationships)
+                        {
+                            <tr>
+                                <td>#@relationship.NetworkId</td>
+                                <td>@relationship.Kind</td>
+                                <td>@relationship.FromName <span class="small text-muted">#@relationship.FromSimId</span></td>
+                                <td>@relationship.ToName <span class="small text-muted">#@relationship.ToSimId</span></td>
+                                <td>@relationship.Source</td>
+                                <td>@relationship.SinceTick</td>
+                            </tr>
+                        }
+                        @if (relationships.Count == 0)
+                        {
+                            <tr><td colspan="6" class="text-muted">No relationship edges.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div></div>
+    }
+
+    @if (activeTab == "Attraction")
+    {
+        <div class="card mb-3"><div class="card-body">
+            <div class="d-flex flex-wrap gap-2 align-items-end">
+                <div>
+                    <label class="form-label small mb-1">Sim</label>
+                    <input class="form-control form-control-sm" type="number" @bind="attractionSimId" />
+                </div>
+                <div>
+                    <label class="form-label small mb-1">Candidate</label>
+                    <input class="form-control form-control-sm" type="number" @bind="attractionCandidateId" />
+                </div>
+                <button class="btn btn-sm btn-outline-primary" type="button" @onclick="ExplainAttractionAsync" disabled="@isBusy">Explain</button>
+            </div>
+        </div></div>
+
+        @if (attraction is not null)
+        {
+            <div class="card"><div class="card-body">
+                <div class="mb-2">
+                    <span class="badge @(attraction.Eligible ? "text-bg-success" : "text-bg-secondary")">@(attraction.Eligible ? "Eligible" : "Not eligible")</span>
+                    <span class="badge text-bg-light">score @attraction.Score</span>
+                    @if (!string.IsNullOrWhiteSpace(attraction.ReasonCode))
+                    {
+                        <span class="small text-muted">@attraction.ReasonCode — @attraction.Reason</span>
+                    }
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead><tr><th>Component</th><th>Points</th><th>Max</th></tr></thead>
+                        <tbody>
+                            @foreach (var component in attraction.Components)
+                            {
+                                <tr><td>@component.Name</td><td>@component.Points</td><td>@component.Max</td></tr>
+                            }
+                            @if (attraction.Components.Count == 0)
+                            {
+                                <tr><td colspan="3" class="text-muted">No components; the pair is not eligible.</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div></div>
+        }
+    }
+
+    @if (activeTab == "Pregnancies")
+    {
+        <div class="card mb-3"><div class="card-body">
+            <div class="d-flex flex-wrap gap-2 align-items-end">
+                <div class="form-check mt-4">
+                    <input class="form-check-input" type="checkbox" id="activeOnly" @bind="activeOnlyPregnancies" />
+                    <label class="form-check-label small" for="activeOnly">Active only</label>
+                </div>
+                <button class="btn btn-sm btn-outline-primary" type="button" @onclick="LoadPregnanciesAsync">Apply</button>
+                <div class="flex-grow-1"></div>
+                <div>
+                    <label class="form-label small mb-1">Cancel pregnancy id</label>
+                    <input class="form-control form-control-sm" type="number" @bind="cancelPregnancyId" />
+                </div>
+                <div>
+                    <label class="form-label small mb-1">Reason</label>
+                    <input class="form-control form-control-sm" @bind="operationReason" />
+                </div>
+                <button class="btn btn-sm btn-outline-danger" type="button" @onclick="CancelPregnancyAsync" disabled="@(isBusy || !confirmDestructive)">Cancel</button>
+            </div>
+        </div></div>
+
+        <div class="card"><div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm table-striped align-middle mb-0">
+                    <thead><tr><th>Pregnancy</th><th>Parents</th><th>Due</th><th>Months</th><th>Risk</th><th>Status</th><th>Source</th><th>Care</th></tr></thead>
+                    <tbody>
+                        @foreach (var pregnancy in pregnancies)
+                        {
+                            <tr>
+                                <td>#@pregnancy.NetworkId</td>
+                                <td>@pregnancy.CarryingParentName &amp; @pregnancy.OtherParentName</td>
+                                <td>@pregnancy.DueTick</td>
+                                <td>@pregnancy.MonthsRemaining</td>
+                                <td>@pregnancy.RiskBasisPoints bp</td>
+                                <td>@pregnancy.Status</td>
+                                <td>@pregnancy.Source</td>
+                                <td>@Money(pregnancy.CarePaid) paid · @Money(pregnancy.CareArrears) arrears</td>
+                            </tr>
+                        }
+                        @if (pregnancies.Count == 0)
+                        {
+                            <tr><td colspan="8" class="text-muted">No pregnancies.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div></div>
+    }
+
+    @if (activeTab == "Children")
+    {
+        <div class="card mb-3"><div class="card-body">
+            <div class="d-flex flex-wrap gap-2 align-items-end">
+                <div>
+                    <label class="form-label small mb-1">Age band</label>
+                    <select class="form-select form-select-sm" @bind="ageBandFilter">
+                        <option value="">All</option>
+                        <option value="infant">Infant</option>
+                        <option value="toddler">Toddler</option>
+                        <option value="school">School age</option>
+                        <option value="teen">Teen</option>
+                    </select>
+                </div>
+                <button class="btn btn-sm btn-outline-primary" type="button" @onclick="LoadChildrenAsync">Apply</button>
+                <div class="flex-grow-1"></div>
+                <div>
+                    <label class="form-label small mb-1">Child id</label>
+                    <input class="form-control form-control-sm" type="number" @bind="guardianChildId" />
+                </div>
+                <div>
+                    <label class="form-label small mb-1">Guardian id</label>
+                    <input class="form-control form-control-sm" type="number" @bind="guardianSimId" />
+                </div>
+                <div>
+                    <label class="form-label small mb-1">Reason</label>
+                    <input class="form-control form-control-sm" @bind="operationReason" />
+                </div>
+                <button class="btn btn-sm btn-outline-primary" type="button" @onclick="AssignGuardianAsync" disabled="@isBusy">Assign guardian</button>
+            </div>
+            <hr />
+            <div class="d-flex flex-wrap gap-2 align-items-end">
+                <div>
+                    <label class="form-label small mb-1">Trust id</label>
+                    <input class="form-control form-control-sm" type="number" @bind="releaseTrustId" />
+                </div>
+                <div class="flex-grow-1">
+                    <label class="form-label small mb-1">Reason</label>
+                    <input class="form-control form-control-sm" @bind="operationReason" />
+                </div>
+                <button class="btn btn-sm btn-outline-danger" type="button" @onclick="ReleaseTrustAsync" disabled="@(isBusy || !confirmDestructive)">Release trust</button>
+            </div>
+        </div></div>
+
+        <div class="card"><div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm table-striped align-middle mb-0">
+                    <thead><tr><th>Child</th><th>Age</th><th>Parents</th><th>Guardian</th><th>Household</th><th>School</th><th>Flags</th></tr></thead>
+                    <tbody>
+                        @foreach (var child in children)
+                        {
+                            <tr>
+                                <td>@child.Name <span class="small text-muted">#@child.NetworkId</span></td>
+                                <td>@child.Age</td>
+                                <td>@child.ParentANetworkId / @child.ParentBNetworkId</td>
+                                <td>@(child.GuardianNetworkId?.ToString() ?? "—")</td>
+                                <td>@child.Household</td>
+                                <td>@(child.Enrolled ? child.School : child.Unenrolled ? "Unenrolled" : "Not enrolled")</td>
+                                <td>
+                                    @if (child.Overcrowded)
+                                    {
+                                        <span class="badge text-bg-warning">Overcrowded</span>
+                                    }
+                                    @if (child.InStateCare)
+                                    {
+                                        <span class="badge text-bg-warning">State care</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        @if (children.Count == 0)
+                        {
+                            <tr><td colspan="7" class="text-muted">No children.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div></div>
+
+        <div class="card mt-3"><div class="card-body">
+            <h2 class="h6 text-uppercase text-muted">Guardianships</h2>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead><tr><th>Child</th><th>Guardian</th><th>Source</th><th>Since</th></tr></thead>
+                    <tbody>
+                        @foreach (var guardianship in guardianships)
+                        {
+                            <tr>
+                                <td>@guardianship.ChildName (#@guardianship.ChildNetworkId)</td>
+                                <td>@guardianship.GuardianName (#@guardianship.GuardianNetworkId)</td>
+                                <td>@guardianship.Source</td>
+                                <td>@guardianship.SinceTick</td>
+                            </tr>
+                        }
+                        @if (guardianships.Count == 0)
+                        {
+                            <tr><td colspan="4" class="text-muted">No guardianships.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div></div>
+    }
+
+    @if (activeTab == "Health")
+    {
+        <div class="card"><div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead><tr><th>Check</th><th>Level</th><th>Detail</th><th>Entity</th></tr></thead>
+                    <tbody>
+                        @foreach (var check in family.Health)
+                        {
+                            <tr>
+                                <td>@check.Name</td>
+                                <td><span class="badge @Badge(check.Level)">@check.Level</span></td>
+                                <td>@check.Detail</td>
+                                <td>
+                                    @if (check.EntityNetworkId is not null)
+                                    {
+                                        <a href="@check.Link">@check.EntityKind #@check.EntityNetworkId</a>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div></div>
+    }
+}
+
+@code {
+    private static readonly string[] Tabs = ["Overview", "Sims", "Relationships", "Attraction", "Pregnancies", "Children", "Health"];
+
+    private FamilyData? family;
+    private List<FamilySimData> sims = new();
+    private FamilySimDetailData? simDetail;
+    private List<FamilyRelationshipData> relationships = new();
+    private List<FamilyPregnancyData> pregnancies = new();
+    private List<FamilyChildData> children = new();
+    private List<FamilyGuardianshipData> guardianships = new();
+    private FamilyAttractionData? attraction;
+
+    private Timer? timer;
+    private string activeTab = "Overview";
+    private bool isLoading;
+    private bool isBusy;
+    private bool autoRefresh = true;
+    private string? error;
+    private string? message;
+    private DateTimeOffset? loadedAt;
+
+    private string stageFilter = string.Empty;
+    private string partneredFilter = string.Empty;
+    private string childrenFilter = string.Empty;
+    private string nameFilter = string.Empty;
+
+    private string relationshipKindFilter = string.Empty;
+    private string relationshipSourceFilter = string.Empty;
+    private ulong? relationshipSimId;
+
+    private ulong attractionSimId;
+    private ulong attractionCandidateId;
+
+    private bool activeOnlyPregnancies;
+    private ulong cancelPregnancyId;
+
+    private string ageBandFilter = string.Empty;
+    private ulong guardianChildId;
+    private ulong guardianSimId;
+    private ulong releaseTrustId;
+    private bool confirmDestructive;
+
+    private ulong operationSimA;
+    private ulong operationSimB;
+    private ulong carryingParentId;
+    private ulong otherParentId;
+    private string operationReason = "admin-review";
+    private bool overrideEligibility;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshAsync();
+        timer = new Timer(_ => InvokeAsync(OnTimerAsync), null,
+            TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10));
+    }
+
+    private async Task OnTimerAsync()
+    {
+        if (autoRefresh && !isLoading && !isBusy)
+            await RefreshAsync();
+    }
+
+    private async Task SwitchTabAsync(string tab)
+    {
+        if (activeTab == tab)
+            return;
+
+        activeTab = tab;
+        await RefreshAsync();
+    }
+
+    private async Task RefreshAsync()
+    {
+        isLoading = true;
+        error = null;
+        try
+        {
+            switch (activeTab)
+            {
+                case "Overview":
+                case "Health":
+                    family = await GameData.GetFamilyAsync();
+                    break;
+                case "Sims":
+                    await LoadSimsAsync();
+                    break;
+                case "Relationships":
+                    await LoadRelationshipsAsync();
+                    break;
+                case "Pregnancies":
+                    await LoadPregnanciesAsync();
+                    break;
+                case "Children":
+                    await LoadChildrenAsync();
+                    guardianships = await GameData.GetFamilyGuardianshipsAsync();
+                    break;
+            }
+
+            loadedAt = DateTimeOffset.Now;
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private Task LoadSimsAsync() =>
+        LoadAsync(async () =>
+        {
+            var page = await GameData.GetFamilySimsAsync(
+                take: 200,
+                stage: string.IsNullOrWhiteSpace(stageFilter) ? null : stageFilter,
+                partnered: ParseBool(partneredFilter),
+                hasChildren: ParseBool(childrenFilter),
+                name: string.IsNullOrWhiteSpace(nameFilter) ? null : nameFilter);
+            sims = page.Sims;
+        });
+
+    private Task LoadRelationshipsAsync() =>
+        LoadAsync(async () =>
+        {
+            var page = await GameData.GetFamilyRelationshipsAsync(
+                simId: relationshipSimId,
+                kind: string.IsNullOrWhiteSpace(relationshipKindFilter) ? null : relationshipKindFilter,
+                source: string.IsNullOrWhiteSpace(relationshipSourceFilter) ? null : relationshipSourceFilter);
+            relationships = page.Relationships;
+        });
+
+    private Task LoadPregnanciesAsync() =>
+        LoadAsync(async () =>
+        {
+            var page = await GameData.GetFamilyPregnanciesAsync(activeOnlyPregnancies);
+            pregnancies = page.Pregnancies;
+        });
+
+    private Task LoadChildrenAsync() =>
+        LoadAsync(async () =>
+        {
+            var page = await GameData.GetFamilyChildrenAsync(
+                ageBand: string.IsNullOrWhiteSpace(ageBandFilter) ? null : ageBandFilter);
+            children = page.Children;
+        });
+
+    private async Task LoadAsync(Func<Task> load)
+    {
+        try
+        {
+            await load();
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+    }
+
+    private async Task SelectSimAsync(ulong simId)
+    {
+        try
+        {
+            simDetail = await GameData.GetFamilySimAsync(simId);
+            operationSimA = simId;
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+    }
+
+    private async Task ExplainAttractionAsync()
+    {
+        isBusy = true;
+        error = null;
+        try
+        {
+            attraction = await GameData.GetFamilyAttractionAsync(attractionSimId, attractionCandidateId);
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private Task ForcePartnershipAsync() =>
+        RunAsync(
+            () => GameData.ForcePartnershipAsync(operationSimA, operationSimB, operationReason, overrideEligibility),
+            "Partnership queued.");
+
+    private Task EndPartnershipAsync() =>
+        RunAsync(
+            () => GameData.EndPartnershipAsync(operationSimA, operationSimB, operationReason),
+            "Partnership end queued.");
+
+    private Task StartPregnancyAsync() =>
+        RunAsync(
+            () => GameData.StartPregnancyAsync(carryingParentId, otherParentId, operationReason),
+            "Pregnancy queued.");
+
+    private Task CancelPregnancyAsync() =>
+        RunAsync(
+            () => GameData.CancelPregnancyAsync(cancelPregnancyId, operationReason),
+            "Pregnancy cancellation queued.");
+
+    private Task AssignGuardianAsync() =>
+        RunAsync(
+            () => GameData.AssignGuardianAsync(guardianChildId, guardianSimId, operationReason),
+            "Guardian assignment queued.");
+
+    private Task ReleaseTrustAsync() =>
+        RunAsync(
+            () => GameData.ReleaseTrustAsync(releaseTrustId, operationReason),
+            "Trust release queued.");
+
+    private async Task RunAsync(Func<Task> action, string success)
+    {
+        isBusy = true;
+        error = null;
+        message = null;
+        try
+        {
+            await action();
+            message = success;
+            confirmDestructive = false;
+            await Task.Delay(250);
+            await RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private static bool? ParseBool(string value) =>
+        bool.TryParse(value, out var parsed) ? parsed : null;
+
+    private static string Percent(decimal value) => (value * 100m).ToString("0.0") + "%";
+
+    private static string Money(decimal value) => value.ToString("N0");
+
+    private static string Badge(string? level) => level switch
+    {
+        "Pass" => "text-bg-success",
+        "Warn" => "text-bg-warning",
+        "Fail" => "text-bg-danger",
+        _ => "text-bg-secondary"
+    };
+
+    public ValueTask DisposeAsync()
+    {
+        timer?.Dispose();
+        return ValueTask.CompletedTask;
+    }
+}

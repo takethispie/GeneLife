@@ -1,7 +1,7 @@
 # Admin, Observability and Hardening — Summary
 
 **Folder:** `05-admin-observability-and-hardening/`
-**Status:** Planned (V4)
+**Status:** Done (V4a) — see [release checklist](release-checklist.md)
 
 **Depends on:** features 01–04
 **Feeds:** release, operations, long-run tuning
@@ -25,7 +25,7 @@ Make the family system operable, auditable, deterministic and durable. A feature
 3. Complete family event family and Marten projections.
 4. Determinism contract and replay suite.
 5. Performance and scale guardrails at 2,000 sims.
-6. Final schema 5 → 6 migration, restore and double-restore coverage.
+6. Final schema 5 → 10 migration, restore and double-restore coverage.
 7. Scenario suite and acceptance report.
 8. Release checklist and rollout notes.
 
@@ -73,6 +73,6 @@ The live read model is authoritative for the current tick; projections are the d
 - Every family event has an idempotent projection and a rebuild path.
 - The same seed and options reproduce the same family graph, births and money.
 - The 2,000-sim decade stays inside the tick budget.
-- Schema 5 → 6 migration, restore and double restore are exact.
+- Schema 5 → 10 migration, restore and double restore are exact.
 - The scenario suite and the existing balance suite pass.
 - The release checklist is complete and the rollout notes are recorded.

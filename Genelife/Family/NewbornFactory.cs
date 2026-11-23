@@ -46,7 +46,9 @@ public sealed class NewbornFactory
         var entity = world.Create(
             new GenName(string.Empty),
             new Needs(),
+            new CurrentAction(ActionType.Idle, 0f),
             new Alive(0),
+            new Location(0f, 0f),
             LifecycleFactory.Create(0, tick, economy.Clock, economy.Life.Policy),
             new Health(90f),
             new Wallet(Money.Zero),

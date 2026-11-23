@@ -62,7 +62,11 @@ public sealed class GuardianshipService
 
             MoveToGuardian(minor, guardian);
             if (world.Has<StateCare>(minor))
+            {
                 world.Remove<StateCare>(minor);
+                economy.Emit(new StateCareClosed(
+                    NetworkIdOf(minor), NetworkIdOf(guardian), "guardian-assigned", tick));
+            }
             economy.Emit(new GuardianshipAssigned(
                 NetworkIdOf(minor), NetworkIdOf(guardian), "relative", tick));
             return true;
@@ -76,6 +80,8 @@ public sealed class GuardianshipService
                 CaseWorker = Entity.Null,
                 MonthlyCost = options.StateCareMonthlyCost
             });
+            economy.Emit(new StateCareOpened(
+                NetworkIdOf(minor), options.StateCareMonthlyCost.Cents, tick));
             economy.Emit(new GuardianshipAssigned(
                 NetworkIdOf(minor), 0, "state-care", tick));
         }
@@ -87,6 +93,77 @@ public sealed class GuardianshipService
     {
         foreach (var ward in relationships.WardsOf(guardian).ToList())
             EnsureGuardian(ward, tick, out _, out _);
+    }
+
+    /// <summary>
+    /// Explicit admin assignment. Unlike <see cref="EnsureGuardian"/> this honors
+    /// the requested guardian, but it still enforces the same safety rules,
+    /// replaces any existing guardian edge and moves the child with the guardian.
+    /// </summary>
+    public bool AssignGuardian(Entity minor, Entity guardian, long tick, string reason, out string error)
+    {
+        error = string.Empty;
+        var policy = economy.Life.Policy;
+        if (!world.IsAlive(minor) || world.Has<Dead>(minor) || !world.Has<Alive>(minor) ||
+            world.Get<Alive>(minor).Age >= policy.WorkStartAge)
+        {
+            error = "minor-not-eligible";
+            return false;
+        }
+
+        if (guardian == Entity.Null || guardian == minor ||
+            !world.IsAlive(guardian) || world.Has<Dead>(guardian) || !world.Has<Alive>(guardian))
+        {
+            error = "guardian-not-found";
+            return false;
+        }
+
+        if (world.Get<Alive>(guardian).Age < policy.WorkStartAge)
+        {
+            error = "guardian-minor";
+            return false;
+        }
+
+        if (PregnancyService.IsDependent(world, guardian))
+        {
+            error = "guardian-dependent";
+            return false;
+        }
+
+        if (economy.Housing.HouseholdOf(guardian) == Entity.Null)
+        {
+            error = "guardian-no-household";
+            return false;
+        }
+
+        foreach (var existing in relationships.GuardiansOf(minor).ToList())
+        {
+            if (existing == guardian)
+                continue;
+            if (relationships.TryGetEdge(existing, minor, RelationshipKind.Guardian, out var edge))
+                service.RemoveEdge(edge);
+        }
+
+        if (!relationships.IsParentOf(guardian, minor) &&
+            !relationships.TryGetEdge(guardian, minor, RelationshipKind.Guardian, out _) &&
+            !service.TryCreatePair(
+                guardian, minor, RelationshipKind.Guardian,
+                RelationshipSource.Admin, tick, out _, out _, out var createError))
+        {
+            error = createError.ToString();
+            return false;
+        }
+
+        MoveToGuardian(minor, guardian);
+        if (world.Has<StateCare>(minor))
+        {
+            world.Remove<StateCare>(minor);
+            economy.Emit(new StateCareClosed(
+                NetworkIdOf(minor), NetworkIdOf(guardian), reason, tick));
+        }
+        economy.Emit(new GuardianshipAssigned(
+            NetworkIdOf(minor), NetworkIdOf(guardian), "admin", tick));
+        return true;
     }
 
     public void EnsureHouseholdMinors(Entity household, long tick)

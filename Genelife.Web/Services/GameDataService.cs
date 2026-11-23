@@ -379,6 +379,169 @@ public sealed class GameDataService
             new { targetPopulation, enabled },
             cancellationToken);
 
+    public Task<FamilyData> GetFamilyAsync(CancellationToken cancellationToken = default) =>
+        GetAdminAsync<FamilyData>("api/family", cancellationToken);
+
+    public Task<FamilySimPageData> GetFamilySimsAsync(
+        int take = 100,
+        int skip = 0,
+        string? stage = null,
+        bool? partnered = null,
+        bool? hasChildren = null,
+        ulong? householdId = null,
+        string? name = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = $"api/family/sims?take={take}&skip={skip}";
+        if (!string.IsNullOrWhiteSpace(stage))
+            query += $"&stage={Uri.EscapeDataString(stage)}";
+        if (partnered is not null)
+            query += $"&partnered={partnered.Value.ToString().ToLowerInvariant()}";
+        if (hasChildren is not null)
+            query += $"&hasChildren={hasChildren.Value.ToString().ToLowerInvariant()}";
+        if (householdId is not null)
+            query += $"&householdId={householdId.Value}";
+        if (!string.IsNullOrWhiteSpace(name))
+            query += $"&name={Uri.EscapeDataString(name)}";
+        return GetAdminAsync<FamilySimPageData>(query, cancellationToken);
+    }
+
+    public Task<FamilySimDetailData> GetFamilySimAsync(ulong simId, CancellationToken cancellationToken = default) =>
+        GetAdminAsync<FamilySimDetailData>($"api/family/sims/{simId}", cancellationToken);
+
+    public Task<FamilyRelationshipPageData> GetFamilyRelationshipsAsync(
+        ulong? simId = null,
+        string? kind = null,
+        string? source = null,
+        int take = 200,
+        int skip = 0,
+        CancellationToken cancellationToken = default)
+    {
+        var query = $"api/family/relationships?take={take}&skip={skip}";
+        if (simId is not null)
+            query += $"&simId={simId.Value}";
+        if (!string.IsNullOrWhiteSpace(kind))
+            query += $"&kind={Uri.EscapeDataString(kind)}";
+        if (!string.IsNullOrWhiteSpace(source))
+            query += $"&source={Uri.EscapeDataString(source)}";
+        return GetAdminAsync<FamilyRelationshipPageData>(query, cancellationToken);
+    }
+
+    public Task<FamilyPregnancyPageData> GetFamilyPregnanciesAsync(
+        bool activeOnly = false,
+        int take = 200,
+        int skip = 0,
+        CancellationToken cancellationToken = default) =>
+        GetAdminAsync<FamilyPregnancyPageData>(
+            $"api/family/pregnancies?activeOnly={activeOnly.ToString().ToLowerInvariant()}&take={take}&skip={skip}",
+            cancellationToken);
+
+    public Task<FamilyChildPageData> GetFamilyChildrenAsync(
+        string? ageBand = null,
+        ulong? guardianId = null,
+        int take = 200,
+        int skip = 0,
+        CancellationToken cancellationToken = default)
+    {
+        var query = $"api/family/children?take={take}&skip={skip}";
+        if (!string.IsNullOrWhiteSpace(ageBand))
+            query += $"&ageBand={Uri.EscapeDataString(ageBand)}";
+        if (guardianId is not null)
+            query += $"&guardianId={guardianId.Value}";
+        return GetAdminAsync<FamilyChildPageData>(query, cancellationToken);
+    }
+
+    public Task<List<FamilyGuardianshipData>> GetFamilyGuardianshipsAsync(
+        CancellationToken cancellationToken = default) =>
+        GetAdminAsync<List<FamilyGuardianshipData>>("api/family/guardianships", cancellationToken);
+
+    public Task<FamilyAttractionData> GetFamilyAttractionAsync(
+        ulong simId,
+        ulong candidateId,
+        CancellationToken cancellationToken = default) =>
+        GetAdminAsync<FamilyAttractionData>(
+            $"api/family/attraction?simId={simId}&candidateId={candidateId}",
+            cancellationToken);
+
+    public Task ForcePartnershipAsync(
+        ulong simAId,
+        ulong simBId,
+        string reason,
+        bool overrideEligibility = false,
+        CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(
+            HttpMethod.Post,
+            "api/family/partnerships/force",
+            new { simAId, simBId, reason, overrideEligibility },
+            cancellationToken);
+
+    public Task EndPartnershipAsync(
+        ulong simAId,
+        ulong simBId,
+        string reason,
+        CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(
+            HttpMethod.Post,
+            "api/family/partnerships/end",
+            new { simAId, simBId, reason },
+            cancellationToken);
+
+    public Task StartPregnancyAsync(
+        ulong carryingParentId,
+        ulong otherParentId,
+        string reason,
+        CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(
+            HttpMethod.Post,
+            "api/family/pregnancies",
+            new { carryingParentId, otherParentId, reason },
+            cancellationToken);
+
+    public Task CancelPregnancyAsync(
+        ulong pregnancyId,
+        string reason,
+        CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(
+            HttpMethod.Post,
+            $"api/family/pregnancies/{pregnancyId}/cancel",
+            new { reason },
+            cancellationToken);
+
+    public Task AssignGuardianAsync(
+        ulong childId,
+        ulong guardianId,
+        string reason,
+        CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(
+            HttpMethod.Post,
+            "api/family/guardianships",
+            new { childId, guardianId, reason },
+            cancellationToken);
+
+    public Task ReleaseTrustAsync(
+        ulong trustId,
+        string reason,
+        CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(
+            HttpMethod.Post,
+            $"api/family/trusts/{trustId}/release",
+            new { reason },
+            cancellationToken);
+
+    private async Task<T> GetAdminAsync<T>(string path, CancellationToken cancellationToken)
+    {
+        await EnsureAdminTokenAsync(cancellationToken);
+        using var response = await SendWithAuthRetryAsync(
+            () => http.GetAsync(path, cancellationToken), cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.Forbidden)
+            throw new UnauthorizedAccessException(LocalAdminUnavailableMessage);
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<T>(cancellationToken: cancellationToken)
+            ?? Activator.CreateInstance<T>();
+    }
+
     private async Task SendAdminJsonAsync(
         HttpMethod method,
         string path,

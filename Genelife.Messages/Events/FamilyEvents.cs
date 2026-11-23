@@ -8,9 +8,16 @@ public sealed record RelationshipFormed(
     string Source,
     long Tick);
 
-public sealed record RelationshipEnded(ulong RelationshipId, string Kind, long Tick);
+public sealed record RelationshipEnded(
+    ulong RelationshipId,
+    ulong FromSimId,
+    ulong ToSimId,
+    string Kind,
+    long Tick);
 
 public sealed record PartnershipFormed(ulong SimAId, ulong SimBId, int Score, long Tick);
+
+public sealed record PartnershipEnded(ulong SimAId, ulong SimBId, string Reason, long Tick);
 
 public sealed record PairingRejected(ulong SimId, ulong CandidateId, string Reason, long Tick);
 
@@ -43,6 +50,11 @@ public sealed record PregnancyLost(
     string Cause,
     long Tick);
 
+public sealed record PregnancyCancelled(
+    ulong PregnancyNetworkId,
+    string Reason,
+    long Tick);
+
 public sealed record ChildBorn(
     ulong ChildNetworkId,
     ulong ParentANetworkId,
@@ -60,6 +72,27 @@ public sealed record GuardianshipAssigned(
     ulong ChildNetworkId,
     ulong GuardianNetworkId,
     string Source,
+    long Tick);
+
+public sealed record StateCareOpened(
+    ulong ChildNetworkId,
+    long MonthlyCostCents,
+    long Tick);
+
+public sealed record StateCareClosed(
+    ulong ChildNetworkId,
+    ulong GuardianNetworkId,
+    string Reason,
+    long Tick);
+
+public sealed record FamilyAdminActionApplied(
+    Guid CommandId,
+    string Action,
+    string IssuedBy,
+    string Reason,
+    ulong SubjectA,
+    ulong SubjectB,
+    ulong SubjectC,
     long Tick);
 
 public sealed record ChildCostPaid(

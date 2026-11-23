@@ -20,6 +20,7 @@ public sealed class PairingSystem : ISimulationSystem
     private readonly RelationshipOptions options;
     private readonly RelationshipCache cache;
     private readonly HouseholdMergeService merger;
+    private long rejectionCount;
 
     public PairingSystem(
         World world,
@@ -164,8 +165,14 @@ public sealed class PairingSystem : ISimulationSystem
             cache.SetCooldown(sim, candidate, tick, until);
         }
 
-        economy.Emit(new PairingRejected(
-            NetworkIdOf(sim), NetworkIdOf(candidate), reason, tick));
+        // Rejections are high-volume by design. Emit the first 100 so operators
+        // can see the reason, then sample one in fifty to bound event-store growth.
+        rejectionCount++;
+        if (rejectionCount <= 100 || rejectionCount % 50 == 0)
+        {
+            economy.Emit(new PairingRejected(
+                NetworkIdOf(sim), NetworkIdOf(candidate), reason, tick));
+        }
     }
 
     private bool AcceptPair(Entity first, Entity second, long tick) =>

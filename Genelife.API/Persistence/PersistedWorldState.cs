@@ -2,7 +2,7 @@ namespace Genelife.Api.Persistence;
 
 public sealed class PersistedWorldState
 {
-    public const int CurrentSchemaVersion = 9;
+    public const int CurrentSchemaVersion = 10;
 
     public int SchemaVersion { get; set; }
     public long Tick { get; set; }
@@ -37,6 +37,7 @@ public sealed class PersistedWorldState
     public List<PersistedRelationship> Relationships { get; set; } = [];
     public List<PersistedPregnancy> Pregnancies { get; set; } = [];
     public List<PersistedTrust> Trusts { get; set; } = [];
+    public List<PersistedStateCare> StateCare { get; set; } = [];
     public List<PersistedConstructionProject> ConstructionProjects { get; set; } = [];
     public List<PersistedHousingSnapshot> HousingMetricHistory { get; set; } = [];
     public PersistedHousingMarket HousingMarket { get; set; } = new();
@@ -487,6 +488,14 @@ public sealed class PersistedRelationship
     public string Kind { get; set; } = string.Empty;
     public string Source { get; set; } = string.Empty;
     public long SinceTick { get; set; }
+    public long? EndedTick { get; set; }
+}
+
+public sealed class PersistedStateCare
+{
+    public ulong ChildNetworkId { get; set; }
+    public long SinceTick { get; set; }
+    public long MonthlyCostCents { get; set; }
 }
 
 public sealed class PersistedConstructionProject

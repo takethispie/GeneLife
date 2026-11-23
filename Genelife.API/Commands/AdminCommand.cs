@@ -310,6 +310,47 @@ public sealed record SetEnrollmentCommand(
     ulong SchoolId,
     bool Enrolled) : AdminCommand(CommandId, IssuedBy);
 
+public sealed record ForcePartnershipCommand(
+    Guid CommandId,
+    string IssuedBy,
+    ulong SimAId,
+    ulong SimBId,
+    bool OverrideEligibility,
+    string Reason) : AdminCommand(CommandId, IssuedBy);
+
+public sealed record EndPartnershipCommand(
+    Guid CommandId,
+    string IssuedBy,
+    ulong SimAId,
+    ulong SimBId,
+    string Reason) : AdminCommand(CommandId, IssuedBy);
+
+public sealed record StartPregnancyCommand(
+    Guid CommandId,
+    string IssuedBy,
+    ulong CarryingParentId,
+    ulong OtherParentId,
+    string Reason) : AdminCommand(CommandId, IssuedBy);
+
+public sealed record CancelPregnancyCommand(
+    Guid CommandId,
+    string IssuedBy,
+    ulong PregnancyId,
+    string Reason) : AdminCommand(CommandId, IssuedBy);
+
+public sealed record AssignGuardianCommand(
+    Guid CommandId,
+    string IssuedBy,
+    ulong ChildId,
+    ulong GuardianId,
+    string Reason) : AdminCommand(CommandId, IssuedBy);
+
+public sealed record ReleaseTrustCommand(
+    Guid CommandId,
+    string IssuedBy,
+    ulong TrustId,
+    string Reason) : AdminCommand(CommandId, IssuedBy);
+
 public sealed record CommandResult(
     Guid CommandId,
     bool Accepted,
