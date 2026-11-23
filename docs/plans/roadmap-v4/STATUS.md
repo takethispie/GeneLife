@@ -25,7 +25,7 @@
 | Events and Marten projections | Done (feature 05) | Family/relationship/pregnancy/child/household/estate events and idempotent projections |
 | Persistence and schema 5 → 11 | Done (features 01–05) | Traits (v6), relationships (v7), pregnancies/births (v8), trusts/inheritance (v9), state care and ended edges (v10), `HasWallet` (v11), restore tests |
 | Determinism and scale | Done (features 01–05) | Decade replay, seed sweep, legacy migration replay, 200-sim decade, 2,000-sim 1-year budget, 5,000-sim smoke, 2,000-sim ten-year run (p95 ~3.1 ms) and 30-year continuity |
-| Release acceptance | Done (feature 05) | Full PostgreSQL suite 531/0/2, both release scenarios and admin HTTP smoke recorded in [release evidence](05-admin-observability-and-hardening/release-evidence.md); browser E2E not automated |
+| Release acceptance | Done (feature 05) | Full PostgreSQL suite 531/0/2, both release scenarios and admin HTTP smoke recorded in [release evidence](05-admin-observability-and-hardening/release-evidence.md); admin `/family` browser E2E covers tabs, confirmations and command results |
 
 ## Verification plan
 
@@ -37,7 +37,7 @@
 | Family acceptance suite | after feature 03 |
 | Schema 5 → 11 migration and restore tests | after feature 05 persistence step |
 | 2,000-sim family performance scenario | done (release evidence) |
-| Admin family page smoke test | done at HTTP level (no browser automation) |
+| Admin family page smoke test | done at HTTP level and with Playwright coverage of `/family` tabs, confirmations and command results (`clients/browser/e2e/admin/family.spec.ts`) |
 | Full integration suite with PostgreSQL (`docker compose up -d postgres`) | done (531 total, 0 failed, 2 skipped) |
 
 Feature 01 verification (2026-11-23): `dotnet build GeneLife.sln` succeeds; `Genelife.UnitTests.Family`, `Persistence`, and the core simulation namespaces pass.
@@ -48,7 +48,7 @@ Feature 03 verification (2026-11-23): pregnancy domain, conception rate/replay, 
 
 Feature 04 verification (2026-11-23): heir order/shares, minor trusts/release/escheat, widowhood head/guardian transition, relative/state care, trust restore and continuity invariants pass. Births are counted in the population snapshot, immigration pauses with `TargetReached`, and the 200-sim decade remains green. Marten/integration namespaces still require PostgreSQL.
 
-Feature 05 verification (2026-11-23): family read model, paged/filtered admin routes, typed audited operations, `Family.razor`, Marten family projections, schema 11 persistence (state care, ended edges, `HasWallet`), decade replay, seed sweep, legacy migration replay, dangling-edge detection and projection coverage pass. Full PostgreSQL suite is 531 total / 0 failed / 2 skipped (~73 s); the 2,000-sim ten-year run holds p95 ~3.1 ms with a clean restore and no health `Fail`, and the 30-year continuity run records zero continuity/reproduction failures. Admin family reads and mutations pass at HTTP level (unauthorized read 401, web `/family` 200); no browser automation was available. See [release evidence](05-admin-observability-and-hardening/release-evidence.md) and [release checklist](05-admin-observability-and-hardening/release-checklist.md).
+Feature 05 verification (2026-11-23): family read model, paged/filtered admin routes, typed audited operations, `Family.razor`, Marten family projections, schema 11 persistence (state care, ended edges, `HasWallet`), decade replay, seed sweep, legacy migration replay, dangling-edge detection and projection coverage pass. Full PostgreSQL suite is 531 total / 0 failed / 2 skipped (~73 s); the 2,000-sim ten-year run holds p95 ~3.1 ms with a clean restore and no health `Fail`, and the 30-year continuity run records zero continuity/reproduction failures. Admin family reads and mutations pass at HTTP level (unauthorized read 401, web `/family` 200); the Playwright admin suite now covers the `/family` overview, all seven tabs, sim detail, empty states, destructive confirmation gating and command success/failure results. See [release evidence](05-admin-observability-and-hardening/release-evidence.md) and [release checklist](05-admin-observability-and-hardening/release-checklist.md).
 
 ## Current baseline
 
@@ -86,7 +86,6 @@ Feature 05 verification (2026-11-23): family read model, paged/filtered admin ro
 ## Next
 
 1. Recalibrate economy/consumption and add seeded-pair cohabitation so `CohabitOnPairing` can default to true without breaking the strict balance bands; re-run the 30-year continuity scenario before flipping the default.
-2. Add browser-level automated coverage for the admin family page; current smoke is HTTP-only.
-3. Carried-forward Warnings (non-blocking): 61 health warnings in the 2,000-sim ten-year run and four reproduction `Warn` levels in the 30-year run are documented signals, not Failures.
+2. Carried-forward Warnings (non-blocking): 61 health warnings in the 2,000-sim ten-year run and four reproduction `Warn` levels in the 30-year run are documented signals, not Failures.
 
 V4 is otherwise release-ready. See [release evidence](05-admin-observability-and-hardening/release-evidence.md).

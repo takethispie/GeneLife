@@ -9,7 +9,9 @@ export default tseslint.config(
       "coverage/**",
       "node_modules/**",
       "playwright-report/**",
+      "playwright-report-admin/**",
       "test-results/**",
+      "test-results-admin/**",
       "src/contracts/rest.generated.ts"
     ]
   },

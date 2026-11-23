@@ -111,6 +111,20 @@ npm run dev -- --host 127.0.0.1
 E2E_BASE_URL=http://127.0.0.1:5173 npx playwright test e2e/fixture-smoke.spec.ts
 ```
 
+The Blazor admin family page has its own browser suite. It starts `Genelife.Web`
+on `http://localhost:5068` and returns deterministic `/api/family*` responses
+from `e2e/admin/family-api.ts`, so no API or PostgreSQL is required:
+
+```bash
+npm run test:e2e:admin
+```
+
+Set `E2E_ADMIN_BASE_URL` to point at a different server and
+`E2E_ADMIN_START_SERVER=0` to reuse it without Playwright starting
+`Genelife.Web`. The suite covers the overview and all seven tabs, per-tab
+refreshes, sim detail, empty states, destructive confirmation gating, confirmation
+reset on tab switches, and command success/failure results.
+
 Live acceptance tests require the API, PostgreSQL and a running simulation:
 
 ```bash

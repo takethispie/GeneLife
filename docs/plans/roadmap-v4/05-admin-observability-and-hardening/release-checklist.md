@@ -28,6 +28,15 @@
 9. Confirm every destructive button requires the confirmation checkbox.
 10. Confirm `/api/family/*` returns 401/403 without the admin policy.
 
+Browser E2E for the page shell, tabs, confirmations and command results:
+
+```bash
+cd clients/browser
+npm ci
+npx playwright install chromium
+npm run test:e2e:admin
+```
+
 ## 3. Performance evidence
 
 | Scenario | Result |
@@ -68,7 +77,7 @@ Schema 10 adds `PersistedWorldState.StateCare` and `PersistedRelationship.EndedT
 ## 6. Known gaps
 
 - The 2,000-sim ten-year run and the 30-year continuity scenario are recorded and green; see [release evidence](release-evidence.md). The 61 health warnings in the 2,000-sim ten-year run and the four reproduction `Warn` levels in the 30-year run are documented signals, not `Fail`s.
-- The admin smoke test is HTTP-level only (status codes, auth, applied/audited operations, Blazor bootstrap). No browser automation was available, so interactive page behaviour is not covered by an automated test.
+- The admin page has HTTP-level smoke coverage and a Playwright browser suite for tabs, sim detail, empty states, confirmation gating and command success/failure results. The browser suite mocks the family API; live apply, audit and authorization remain covered by the HTTP smoke test and PostgreSQL integration tests.
 - `CohabitOnPairing` remains false. Enabling it breaks strict balance (wage share 0.9078 → 1.0527, vacancy 0.0854 → 0.2152) and worsens the 30-year run (overcrowded 1 → 12, vacancy 20.12% → 31.65%, health warnings 4 → 27). It needs economy/consumption recalibration and seeded-pair cohabitation, not a housing-only tweak.
 - Household composition projections are approximate; the live read model is authoritative for member-level data.
 - Same-sex pairing and adoption/surrogacy remain deferred.

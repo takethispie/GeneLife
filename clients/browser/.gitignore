@@ -2,7 +2,9 @@ node_modules
 dist
 coverage
 playwright-report
+playwright-report-admin
 test-results
+test-results-admin
 *.local
 .env
 .env.*

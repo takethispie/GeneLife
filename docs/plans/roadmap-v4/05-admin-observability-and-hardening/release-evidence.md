@@ -75,7 +75,7 @@ Source: `release-reports/thirty-year-continuity.json`.
 
 Continuity and reproduction report no `Fail` over three decades; the four `Warn` levels are the documented slow-growth signal, not a blocker.
 
-## 5. Admin smoke test
+## 5. Admin smoke test and browser E2E
 
 | Check | Result |
 |---|---|
@@ -84,8 +84,9 @@ Continuity and reproduction report no `Fail` over three decades; the four `Warn`
 | Force partnership | Applied and audited |
 | End partnership | Applied and audited |
 | Web `/family` | 200, Blazor bootstrap present |
+| Browser E2E (`clients/browser/e2e/admin/family.spec.ts`) | 5/5 passing against `Genelife.Web` with deterministic `/api/family*` mocks |
 
-**Limitation:** this is HTTP-level smoke only. No browser automation was available, so interactive page behaviour (tab refresh, confirmation checkbox, command-result rendering) was not exercised by an automated test. Feature 05 documented this gap; browser E2E automation is tracked separately.
+The Playwright suite covers the overview and all seven tabs, per-tab refresh calls, sim detail, paged empty states, destructive confirmation gating for end partnership, cancel pregnancy and release trust, confirmation reset on tab switches, command success messages with confirmation reset, and the command-failure error alert. It mocks the family API, so server-side apply, audit and authorization remain covered by the HTTP smoke rows above and the PostgreSQL integration suite.
 
 ## 6. Cohabitation (`CohabitOnPairing`)
 
@@ -106,5 +107,5 @@ Merging partners on pairing pulls extra residents into units, raising crowding a
 - Full suite green with PostgreSQL.
 - Both release scenarios recorded at target scale (2,000 sims / 10 years and 30 years).
 - Restore verified at 2,000 sims.
-- Admin family surface reachable and authorized at HTTP level.
+- Admin family surface reachable and authorized at HTTP level, and its interactive tabs, confirmations and command results exercised in Chromium.
 - The only open balance item, cohabitation, is explicitly deferred with before/after evidence rather than silently enabled.

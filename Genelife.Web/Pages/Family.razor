@@ -518,6 +518,10 @@
                     <input class="form-control form-control-sm" @bind="operationReason" />
                 </div>
                 <button class="btn btn-sm btn-outline-danger" type="button" @onclick="CancelPregnancyAsync" disabled="@(isBusy || !confirmDestructive)">Cancel</button>
+                <div class="form-check mb-0">
+                    <input class="form-check-input" type="checkbox" id="confirmPregnancy" @bind="confirmDestructive" />
+                    <label class="form-check-label small" for="confirmPregnancy">Confirm destructive change</label>
+                </div>
             </div>
         </div></div>
 
@@ -590,6 +594,10 @@
                     <input class="form-control form-control-sm" @bind="operationReason" />
                 </div>
                 <button class="btn btn-sm btn-outline-danger" type="button" @onclick="ReleaseTrustAsync" disabled="@(isBusy || !confirmDestructive)">Release trust</button>
+                <div class="form-check mb-0">
+                    <input class="form-check-input" type="checkbox" id="confirmTrust" @bind="confirmDestructive" />
+                    <label class="form-check-label small" for="confirmTrust">Confirm destructive change</label>
+                </div>
             </div>
         </div></div>
 
@@ -748,6 +756,7 @@
         if (activeTab == tab)
             return;
 
+        confirmDestructive = false;
         activeTab = tab;
         await RefreshAsync();
     }
