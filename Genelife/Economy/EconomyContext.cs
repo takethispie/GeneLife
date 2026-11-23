@@ -5,6 +5,7 @@ using Genelife.Components.Employment;
 using Genelife.Components.Finance;
 using Genelife.Components.Gen;
 using Genelife.Components.Housing;
+using Genelife.Family;
 using Genelife.Housing;
 using Genelife.Life;
 using Genelife.Values;
@@ -48,7 +49,8 @@ public sealed class EconomyContext
         SimulationClock? clock = null,
         int randomSeed = 1,
         HousingOptions? housingOptions = null,
-        LifeStagePolicy? lifePolicy = null)
+        LifeStagePolicy? lifePolicy = null,
+        GeneticsOptions? geneticsOptions = null)
     {
         World = world;
         Employment = employment ?? new EmploymentIndex();
@@ -56,6 +58,7 @@ public sealed class EconomyContext
         Clock = clock ?? SimulationClock.Default;
         Random = new SimulationRandom(randomSeed);
         HousingOptions = housingOptions ?? HousingOptions.Default;
+        Genetics = geneticsOptions ?? GeneticsOptions.Default;
         Housing = new HousingRegistry(world);
         Life = new LifeContext(world, Clock, Random, lifePolicy, randomSeed: randomSeed);
         Ledger = new FinanceLedger();
@@ -82,6 +85,7 @@ public sealed class EconomyContext
     public EmploymentIndex Employment { get; }
     public EconomyOptions Options { get; }
     public HousingOptions HousingOptions { get; }
+    public GeneticsOptions Genetics { get; }
     public HousingRegistry Housing { get; }
     public LifeContext Life { get; }
     public SimulationClock Clock { get; }

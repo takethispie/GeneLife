@@ -17,6 +17,7 @@ using Genelife.Components.Life;
 using Genelife.Components.Map;
 using Genelife.Economy;
 using Genelife.Enums;
+using Genelife.Family;
 using Genelife.Housing;
 using Genelife.Life;
 using Genelife.Map;
@@ -144,7 +145,10 @@ private readonly NetworkIdRegistry networkIds = new();
         intentRejections.Enqueue(new IntentRejection(playerId, sequence, code, message));
     }
 
-    public void Initialize(EconomyOptions? economyOptions = null, HousingOptions? housingOptions = null)
+    public void Initialize(
+        EconomyOptions? economyOptions = null,
+        HousingOptions? housingOptions = null,
+        GeneticsOptions? geneticsOptions = null)
     {
         lock (@lock)
         {
@@ -166,7 +170,8 @@ private readonly NetworkIdRegistry networkIds = new();
                 options: economyOptions,
                 clock: clock,
                 randomSeed: RandomSeed,
-                housingOptions: housingOptions);
+                housingOptions: housingOptions,
+                geneticsOptions: geneticsOptions);
             economy.Housing.AttachNetworkIdAllocator(entity => networkIds.Allocate(entity));
             economy.Life.AttachNetworkIdAllocator(entity => networkIds.Allocate(entity));
 
@@ -2626,6 +2631,26 @@ if (SnapshotsEnabled)
                 })
                 .ToList();
 
+            var traitIssues = TraitInvariants.Verify(world);
+            if (traitIssues.Count == 0)
+            {
+                status.Health.Add(new LifecycleHealthCheckStatus
+                {
+                    Name = "traits",
+                    Level = "Pass",
+                    Detail = "All living sims have valid trait sets"
+                });
+            }
+            else
+            {
+                status.Health.AddRange(traitIssues.Select(issue => new LifecycleHealthCheckStatus
+                {
+                    Name = issue.Name,
+                    Level = issue.Level,
+                    Detail = issue.Detail
+                }));
+            }
+
             return status;
         }
     }
@@ -2724,6 +2749,20 @@ if (SnapshotsEnabled)
 
                     if (economy.Housing.HouseholdBySim.TryGetValue(entity, out var household))
                         row.HouseholdNetworkId = GetNetworkId(world, household);
+
+                    if (world.Has<Traits>(entity))
+                    {
+                        var traits = world.Get<Traits>(entity);
+                        row.HasTraits = true;
+                        row.EyeColor = traits.EyeColor.ToString();
+                        row.HairColor = traits.HairColor.ToString();
+                        row.Handedness = traits.Handedness.ToString();
+                        row.Morphotype = traits.Morphotype.ToString();
+                        row.Aptitude = traits.Aptitude.ToString();
+                        row.HeightPotential = traits.HeightPotential.ToString();
+                        row.Sex = traits.Sex.ToString();
+                        row.Temperament = traits.Temperament.ToString();
+                    }
 
                     result.Add(row);
                 });
@@ -3571,6 +3610,22 @@ if (SnapshotsEnabled)
                 simByEntity[entity] = sim;
             });
 
+            var traitsQuery = new QueryDescription().WithAll<GenName, Traits>();
+            world.Query(in traitsQuery, (Entity entity, ref Traits traits) =>
+            {
+                if (!simByEntity.TryGetValue(entity, out var sim))
+                    return;
+                sim.EyeColor = (int)traits.EyeColor;
+                sim.HairColor = (int)traits.HairColor;
+                sim.Handedness = (int)traits.Handedness;
+                sim.Morphotype = (int)traits.Morphotype;
+                sim.Aptitude = (int)traits.Aptitude;
+                sim.HeightPotential = (int)traits.HeightPotential;
+                sim.Sex = (int)traits.Sex;
+                sim.Temperament = (int)traits.Temperament;
+                sim.TraitsMigrated = true;
+            });
+
             var jobSeekerQuery = new QueryDescription().WithAll<GenName, JobSeeker>();
             world.Query(in jobSeekerQuery, (Entity entity, ref JobSeeker js) =>
             {
@@ -4281,6 +4336,8 @@ if (SnapshotsEnabled)
                 BalanceBackfilled = true,
                 EconomyOptions = economy.Options,
                 HousingOptions = economy.HousingOptions,
+                GeneticsOptions = economy.Genetics,
+                AttractionModelVersion = AttractionCoefficients.CurrentVersion,
                 Map = mapState,
                 Placements = persistedPlacements,
                 HousingMigrated = true,
@@ -4446,7 +4503,7 @@ if (SnapshotsEnabled)
                     $"Cannot restore schema version {state.SchemaVersion}; expected {PersistedWorldState.CurrentSchemaVersion}");
 
             RandomSeed = state.RandomSeed == 0 ? 1 : state.RandomSeed;
-            Initialize(state.EconomyOptions, state.HousingOptions);
+            Initialize(state.EconomyOptions, state.HousingOptions, state.GeneticsOptions);
 
             if (state.Map.Tiles.Length > 0)
             {
@@ -4600,6 +4657,30 @@ if (SnapshotsEnabled)
                     Sales = sim.SkillSales
                 };
 
+                Traits traits;
+                if (!sim.TraitsMigrated)
+                {
+                    traits = TraitsGenerator.Create(
+                        RandomSeed, sim.NetworkId, TraitSource.Migration, economy.Genetics);
+                    TraitValidation.EnsureValid(traits, sim.NetworkId);
+                    sim.TraitsMigrated = true;
+                }
+                else
+                {
+                    traits = new Traits
+                    {
+                        EyeColor = (EyeColor)sim.EyeColor,
+                        HairColor = (HairColor)sim.HairColor,
+                        Handedness = (Handedness)sim.Handedness,
+                        Morphotype = (Morphotype)sim.Morphotype,
+                        Aptitude = (Aptitude)sim.Aptitude,
+                        HeightPotential = (HeightPotential)sim.HeightPotential,
+                        Sex = (Sex)sim.Sex,
+                        Temperament = (Temperament)sim.Temperament
+                    };
+                    TraitValidation.EnsureValid(traits, sim.NetworkId);
+                }
+
                 var spawnTile = ResolveRestoredTile(sim);
                 var (spawnX, spawnY) = mapContext is not null
                     ? mapContext.Options.ToWorld(spawnTile)
@@ -4623,7 +4704,8 @@ if (SnapshotsEnabled)
                     new Lifecycle(stage, ageTicks, sim.StageEnteredTick, cause, lastAgedTick)
                     {
                         MaxAgeFlagged = sim.MaxAgeFlagged
-                    }
+                    },
+                    traits
                 );
 
                 var walletCents = sim.WalletBalanceCents != 0

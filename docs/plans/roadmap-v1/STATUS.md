@@ -36,4 +36,4 @@ All tech-step documents under `01-economy/`, `02-housing/` and `03-life-stages/`
 
 1. Run the balance scenario at 1k–2k population and close the remaining gaps: turnover for vacancy/failures, wealth recycling for Gini, and demand recycling for wage share.
 2. Extend the lifecycle page with any remaining operator reports needed for live operations.
-3. Start a V2 client/gameplay roadmap if the backend scope is complete.
+3. V2, V3 and the 2026-11 balance pass are complete; the next roadmap is [V4 relationships and reproduction](../roadmap-v4/README.md).

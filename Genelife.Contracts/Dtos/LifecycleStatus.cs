@@ -104,6 +104,16 @@ public sealed class SimLifecycleStatus
     public long? UnemploymentCycle { get; set; }
     public bool IsDead { get; set; }
     public ulong? HouseholdNetworkId { get; set; }
+
+    public bool HasTraits { get; set; }
+    public string EyeColor { get; set; } = string.Empty;
+    public string HairColor { get; set; } = string.Empty;
+    public string Handedness { get; set; } = string.Empty;
+    public string Morphotype { get; set; } = string.Empty;
+    public string Aptitude { get; set; } = string.Empty;
+    public string HeightPotential { get; set; } = string.Empty;
+    public string Sex { get; set; } = string.Empty;
+    public string Temperament { get; set; } = string.Empty;
 }
 
 public sealed class PensionStatus

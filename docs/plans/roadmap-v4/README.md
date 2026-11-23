@@ -1,60 +1,94 @@
 # Roadmap V4 — Relationships, Attraction and Reproduction
 
-**Status:** Planning (first page)
-**Scope:** simulation, persistence and admin surfaces. No appearance rendering, no player pregnancy UI.
-**Depends on:** V1 households/estates/population continuity, V2 spatial index, V3 read-model conventions.
+**Scope:** server simulation, persistence, read models and admin surfaces. No appearance rendering, no player pregnancy UI, no matchmaking or social graph for players.
+
+**Target:** every sim has a deterministic inherited trait set; eligible sims form relationships through an explainable attraction score; partners can form households and have children; children inherit traits with mutation, are raised, schooled and eventually enter the workforce; births supplement immigration as a population-continuity path; inheritance follows family relationships; operators can inspect and audit the whole family graph.
+
+**Builds on:** V1 economy/housing/life stages, V2 spatial world and indices, V3 read-model and client conventions, the 2026-11 balance pass, `SimulationRandom`, `EstateSettlementSystem`, `PopulationInflowSystem`, `HousingRegistry`, `HouseholdRole.Child`, `Tenure.Dependent`, `HousingUnit.Capacity`.
+
+> Implementation status: in progress. Feature 01 (traits and genetics) is implemented; see [STATUS.md](STATUS.md) for the delivery checklist and verification plan.
 
 ---
 
-## Why this is next
+## Feature folders
 
-V1–V3 delivered a closed economy, housing, life stages, a 2D world and a browser client. The first item still missing from the README's planned features is **NPC relationships, attraction and reproduction**. Every prerequisite now exists:
+| Folder | Feature | Tech steps |
+|---|---|---|
+| [`01-traits-and-genetics/`](01-traits-and-genetics/summary.md) | Trait schema, seeded traits, inheritance, aptitude, persistence and calibration harness | 8 |
+| [`02-relationships-and-attraction/`](02-relationships-and-attraction/summary.md) | Relationship edges/index, eligibility, deterministic attraction, pairing and household merge | 11 |
+| [`03-reproduction-and-family/`](03-reproduction-and-family/summary.md) | Pregnancy, birth, newborn creation, childhood, household capacity and child costs | 11 |
+| [`04-continuity-and-inheritance/`](04-continuity-and-inheritance/summary.md) | Births vs immigration, widowhood, guardianship, inheritance and long-run balance | 7 |
+| [`05-admin-observability-and-hardening/`](05-admin-observability-and-hardening/summary.md) | Family read model, admin page, events/projections, determinism, scale, persistence and release | 8 |
 
-| Prerequisite | Evidence |
+Every feature folder contains:
+
+- `summary.md` — objective, baseline, deliverables, architecture, steps and definition of done.
+- `business/` — the feature explained in product-facing terms.
+- `tech/` — ordered implementation steps with context, design, tasks, files, contracts and acceptance.
+
+---
+
+## What exists today
+
+| Area | Current implementation |
 |---|---|
-| Households, rent and household finance | `Genelife/Components/Housing`, `HouseholdFinanceService` |
-| Estates and inheritance on death | `EstateSettlementSystem` |
-| Population continuity fallback | `PopulationInflowSystem`; births are explicitly excluded in `03-life-stages/business/06-population-continuity.md` |
-| Neighbour/radius queries | `SpatialIndex`, V2 spatial grid |
-| Trait feature schema | `AttractivenessService/` ML.NET prototype (currently orphaned, not in `GeneLife.sln`) |
+| Population | `PopulationGenerator` creates children, workers, retirees and elders; `PopulationInflowSystem` is the only long-run replacement path |
+| Life stages | `Lifecycle` (`Education`, `Work`, `Retirement`, `Elderly`), `LifeStagePolicy`, `StageProgressionSystem`, `SkillProfile`, `Health` |
+| Households | `Household`, `HouseholdMember`, `HouseholdRole` (`Head`, `Partner`, `Child`, `Relative`, `Other`), `Tenure.Dependent`, `Residence`, `HousingRegistry` |
+| Housing | `Property`, `HousingUnit` with `Capacity` and `OccupantCount`, `IsOvercrowded`, allocation, rent, eviction, construction, ownership |
+| Inheritance | `DeathProcessingSystem` computes heirs from current household members; `EstateSettlementSystem` pays debts, funeral, heirs and escheat |
+| Traits | None. Sims have age, name, `SkillProfile`, health and needs only |
+| Relationships | None. No parent, partner or guardian edge exists |
+| Reproduction | None. No pregnancy, birth path or newborn creation path |
+| Attraction | Orphaned `AttractivenessService` ML.NET prototype outside `GeneLife.sln`; not a runtime dependency |
+| Randomness | `SimulationRandom.For(streamName)`; `Random.Shared` is banned in simulation code |
+| Persistence | `PersistedWorldState` schema 5, persisted economy/housing options and `BalanceBackfilled` one-time migration |
+| Admin | Data, Economy, Housing, Lifecycle and Map pages; lifecycle and population read models |
+| Tests | Unit, persistence, snapshot, integration and the `BalanceScenarioTests` decade report |
 
-Reproduction also gives the population a second continuity path: today the only long-run replacement is immigration, so the age pyramid and workforce depend entirely on inflow policy.
+Initial family structure is weak: the generator creates one household per adult and assigns children to random adult households. V4 replaces that with explicit partnerships and parent edges for seeded populations, with a deterministic backfill for legacy saves.
 
 ---
 
-## Scope
+## Non-goals
 
-**In scope**
-
-- heritable trait model and trait generation for seeded sims and births;
-- relationship components/index (parent, child, partner, household ties);
-- deterministic attraction scoring and candidate selection;
-- partnership formation, household merge/split and housing capacity;
-- pregnancy, birth, childhood dependency and life-stage entry;
-- trait inheritance and mutation;
-- estate/housing changes when a partner or parent dies;
-- admin read model, API, page, metrics and alerts;
-- snapshot schema migration and deterministic restore.
-
-**Out of scope (for V4a)**
-
-- rendered appearance or portraits;
-- player-controlled pregnancy/childcare UX;
-- divorce/custody law, family-tree visualisation;
-- running the ML.NET model inside the tick loop;
-- multi-generation genealogy beyond what relationships and inheritance need.
+- No rendered appearance, portraits or genetic visual traits in the client.
+- No player-controlled pregnancy, childbirth or childcare UI.
+- No player matchmaking, chat, social feed or dating loop.
+- No divorce litigation, custody disputes or adoption market in V4a.
+- No complex genetic disease model, polygenic traits or hidden multi-allele simulation in V4a.
+- No `Microsoft.ML` or model inference inside the tick loop.
+- No family-tree visualisation beyond the admin read model.
+- No client-side authority over relationships, pregnancy or birth.
+- No changes to the V1 money loop that mint money; every family transfer is ledgered.
 
 ---
 
 ## Shared design decisions
 
-These are the decisions every V4 feature must follow. Change them here first.
+These are referenced by all five features. Change them only by editing this section first.
+
+### Time and cadence
+
+Reuse the existing clock: 1,200 ticks per year, 100 ticks per month, 300 ticks per payroll quarter.
+
+| Concern | Cadence |
+|---|---|
+| Relationship exposure | monthly |
+| Attraction score refresh | quarterly |
+| Pairing decision | quarterly |
+| Conception check | monthly |
+| Pregnancy progression | monthly |
+| Birth resolution | monthly |
+| Family/household reconciliation | monthly |
+| Family metrics | yearly |
+| Population and balance metrics | yearly |
+
+All new systems are registered by explicit order and must respect the collect → decide → apply rule. No entity creation, add, remove or destroy inside a query callback.
 
 ### Trait model
 
-The trait model is the schema shared by genetics, attraction and reproduction. It must mirror `AttractivenessService` so the existing model remains usable as an offline calibration oracle, while fitting the ECS.
-
-Today the simulation has age (`Alive`, `Lifecycle`), a name and six continuous skills (`SkillProfile`). It has **no sex, physical traits or temperament**.
+The trait model is the schema shared by genetics, attraction and reproduction. It mirrors the `AttractivenessService` feature set so the model remains usable as an offline calibration oracle, while fitting the ECS.
 
 ```csharp
 namespace Genelife.Components.Gen;
@@ -83,64 +117,213 @@ public record struct Traits
 
 | Decision | Rule |
 |---|---|
-| Categorical storage | `byte`-backed enums in one `Traits` record struct. No strings: ECS storage, snapshot size and determinism. |
+| Storage | `byte`-backed enums in one `Traits` record struct. No strings in hot state or snapshots. |
 | Age | Never duplicated. Derived from `Alive.Age` / `Lifecycle.AgeTicks`. |
-| Intelligence | `Aptitude` is a heritable aptitude that biases starting `SkillProfile`, not a second skill score. |
-| Hair naming | The prototype's `HairType` values are colours; canonical name is `HairColor`, with a mapping adapter for the model. |
-| Sex | V4 needs only pairing eligibility. Keep the enum minimal; do not infer identity or roles beyond that. |
-| Inheritance (V4a) | Each trait takes one parent's value plus a small `SimulationRandom` mutation. Add a hidden two-allele `Genome` layer only if recessive traits become a requirement. |
-| Genetic vs acquired | Genetics owns potential/aptitude (height potential, aptitude, temperament baseline). Runtime systems own realised values (skills, health, current height). |
-| Attraction evaluator | Deterministic C# score in the tick loop. Coefficients are calibrated offline against `Attractiveness.mlnet`; no `Microsoft.ML` dependency at runtime. |
-| Persistence | Traits are part of the snapshot; bump the schema version and backfill existing sims deterministically from world seed + `NetworkId`. |
-| Performance | Precompute one attractiveness vector per sim per cadence; generate candidates from household/workplace/school/spatial indices. Never O(n²) over the population. |
+| Intelligence | `Aptitude` is a heritable aptitude that biases starting `SkillProfile` and learning, not a second skill score. |
+| Hair naming | The prototype's `HairType` values are colours; canonical name is `HairColor`, with a mapping adapter for calibration. |
+| Sex | Used only for reproduction eligibility and pairing policy. No other system may read it for social role or pay. |
+| Inheritance (V4a) | Each trait takes one parent's value plus a bounded mutation. No hidden alleles in V4a. |
+| Genetic vs acquired | Genetics owns potential/aptitude and temperament baseline. Runtime systems own realised skills, health, income and housing. |
+| Attraction evaluator | Deterministic integer basis-point score in C#. Coefficients are calibrated offline; no ML runtime dependency. |
+| Fairness | Traits are simulation inputs, not player value judgments. Admin pages show them for debugging only; no public ranking. |
+| Persistence | Traits are persisted per sim; schema 5 → 6 with deterministic backfill from world seed + `NetworkId`. |
 
-`AttractivenessService` validates the field list but cannot ship as-is: it is not in the solution and loads a relative `.mlnet` file whose `.mbconfig` points at `D:\Dev\GeneLife\...`.
+### Relationship model
 
-### Relationships
+Relationships are directed edges stored on edge entities, not fixed slots on a sim:
 
-Relationships are directed facts with a type and optional household reference: `parent`, `child`, `partner`, `ex-partner`. Derived convenience links (siblings, grandparents) are computed, not stored. The relationship index is rebuilt on restore and updated only in apply phases, following `EmploymentIndex`.
+```csharp
+public enum RelationshipKind : byte
+{
+    Parent, Child, Partner, ExPartner, Guardian, Ward
+}
+
+public record struct Relationship
+{
+    public Entity From;
+    public Entity To;
+    public RelationshipKind Kind;
+    public long SinceTick;
+    public RelationshipSource Source;
+}
+```
+
+Rules:
+
+- Each edge is one direction. `Parent`/`Child`, `Guardian`/`Ward` and `Partner` are maintained as mirror pairs by the relationship service.
+- `ExPartner` is a historical fact; it does not remove the shared children or their edges.
+- Siblings, grandparents and in-laws are derived from parent and partner edges; they are not stored.
+- The relationship index is derived, rebuilt on restore and updated only in apply phases, following `EmploymentIndex` and `HousingRegistry`.
+- No self-edges, no duplicate same-kind edges, no ancestry cycles.
+- A sim may have at most one current `Partner` in V4a.
+
+### Attraction and pairing
+
+Attraction is explainable, deterministic and bounded:
+
+- Score in integer basis points from `0` to `10,000`.
+- Components: trait compatibility, age preference, proximity or shared institution, socioeconomic stability, health, and existing relationship status.
+- Candidate generation uses household, workplace, school and `SpatialIndex` neighbours; it never scans the whole population per sim.
+- Attractiveness vectors are precomputed per eligible sim per quarter.
+- Only opposite-sex pairs are eligible in V4a; same-sex pairing is deferred until the policy is revisited.
+- Pairing requires mutual eligibility, a score above the configured threshold, and mutual acceptance drawn from `SimulationRandom`.
+- Pairing creates mirrored `Partner` edges and attempts a household merge; a partnership may exist across households when capacity is unavailable.
+
+### Reproduction and family
+
+- `Pregnancy` is a separate entity with a `NetworkId`, a carrying parent, an other parent, conception tick, due tick, risk and status.
+- Conception requires an eligible current partnership, both parents alive and not dependent, a configured fertility window, no existing pregnancy, and a deterministic chance roll.
+- V4a defaults to one child per pregnancy. Twins are a future option.
+- Birth creates a newborn with `Lifecycle` age 0 in `Education`, `Tenure.Dependent`, `HouseholdRole.Child`, zero wallet, inherited traits and parent edges.
+- Newborns are not enrolled until `SchoolStartAge`; enrollment already guards on age.
+- A birth never mints money. Child costs are transfers through existing household, school, health and government flows.
+- A household may exceed unit capacity temporarily; overcrowding is visible and drives housing demand, not a blocked birth.
+
+### Household and housing
+
+- `HousingUnit.Capacity` and `OccupantCount` are authoritative for crowding.
+- `HousingRegistry.AddMember`/`RemoveMember`/`MoveIn`/`MoveOut` remain the only membership path.
+- Partnership merge moves the lower-priority sim into the higher-priority home when capacity allows; otherwise it records the partnership and leaves the household split.
+- Household head is deterministic: existing head, then oldest adult, then lowest `NetworkId`.
+- `Tenure.Dependent` covers children and other dependants; rent remains the household's responsibility.
+- Splitting a household on separation or death creates a new household only when a member cannot remain.
+
+### Continuity and inheritance
+
+- Births supplement immigration. `PopulationInflowSystem` keeps its target as a floor and reduces immigration when natural growth closes the gap.
+- `PopulationSnapshot` gains births, birth rate, children, average household size, orphan count and dependency ratio.
+- Inheritance uses relationship edges: partner and children first, then parents and siblings, then escheat to government.
+- A minor's share is held by the guardian until adulthood; the transfer is recorded and released on the minor's 18th birthday.
+- Owned housing transfers to the surviving partner or guardian, consistent with the current `TransferHousing` path.
+- All inheritance and child-cost money movements go through the ledger. The balance scenario must remain green.
 
 ### Determinism
 
-All pairing, conception, trait inheritance and mutation draws use the economy `SimulationRandom` streams with a documented cadence. A 10-year run must replay identically from a seed.
+- `Random.Shared` stays banned in simulation code.
+- Every draw uses `SimulationRandom` with a named stream: `traits.seed`, `traits.inheritance`, `relationships.exposure`, `attraction.pairing`, `reproduction.conception`, `reproduction.birth`, `names.child`.
+- Pair-keyed rolls derive from stable parent network ids and the tick, not from query order.
+- All candidate and edge iteration uses stable ordering (network id, then entity id).
+- A 10-year run must replay identically from the same seed and options.
+
+### Persistence
+
+`PersistedWorldState.CurrentSchemaVersion` moves from 5 to 6.
+
+- `PersistedSim` gains trait fields and a `TraitsMigrated` flag.
+- New lists: `PersistedRelationship`, `PersistedPregnancy`, `PersistedGuardianship` (if separate from relationship edges), and a `PersistedFamilyOptions`/`RelationshipOptions`/`ReproductionOptions` block.
+- Relationship/pregnancy indices are rebuilt on restore, never persisted as authoritative duplicates.
+- V5 → V6 backfills traits deterministically and marks legacy family data as `Source=Restored`; no parent edges are invented for old saves.
+- The existing `BalanceBackfilled` and persisted options behaviour must be preserved.
+
+### System ordering
+
+`SystemRegistry` rejects duplicate order numbers. V4 reserves:
+
+| Order | System | Cadence | Feature |
+|---|---|---|---|
+| 355 | `RelationshipExposureSystem` | 100 | 02 |
+| 360 | `AttractionSystem` | 300 | 02 |
+| 365 | `PairingSystem` | 300 | 02 |
+| 370 | `ConceptionSystem` | 100 | 03 |
+| 375 | `PregnancySystem` | 100 | 03 |
+| 380 | `BirthSystem` | 100 | 03 |
+| 385 | `FamilyHouseholdSystem` | 100 | 03 |
+| 621 | `FamilyMetricsSystem` | 1200 | 05 |
+| 622 | `ReproductionMetricsSystem` | 1200 | 05 |
+
+`TraitSystem` is not a tick system; traits are created with the sim or restored. Existing orders (`390` stage progression, `580` estate settlement, `590` population inflow, `620` population metrics) are unchanged except for explicit integration points.
+
+### Command, event and read-model path
+
+- HTTP admin mutations enqueue typed `AdminCommand`s and return `202`.
+- The tick loop drains commands at tick start and applies them under the write lock.
+- New events are immutable records in `Genelife.Messages/Events` and are written asynchronously by `SimulationEventWriter`.
+- Projections are idempotent and rebuildable.
+- The browser never accesses the world directly; it reads polling DTOs and command results.
+
+### Performance
+
+- Candidate generation is capped per sim and uses indices, never a full population cross-product.
+- Attractiveness vectors are cached per quarter and invalidated on trait/relationship changes.
+- The family read model paginates and filters on the server.
+- V4 acceptance runs the 10-year balance scenario plus a 2,000-sim family scenario inside the existing tick budgets.
 
 ---
 
 ## Delivery order
 
-| Step | Deliverable | Depends on |
+```mermaid
+flowchart TD
+    T[Traits and genetics]
+    R[Relationships and attraction]
+    F[Reproduction and family]
+    C[Continuity and inheritance]
+    A[Admin, observability and hardening]
+    T --> R --> F --> C
+    R --> A
+    F --> A
+    C --> A
+```
+
+1. **Traits and genetics** — the schema every later feature reads and writes. Nothing about attraction or inheritance can be tested without it.
+2. **Relationships and attraction** — parent/partner/guardian edges, eligibility, deterministic scoring and pairing.
+3. **Reproduction and family** — pregnancy, birth, childhood, household capacity and child costs.
+4. **Continuity and inheritance** — births vs immigration, widowhood, guardianship, inheritance and long-run population balance.
+5. **Admin, observability and hardening** — read model, page, events, projections, determinism, scale, persistence and release.
+
+Features are ordered, not strictly serial: the persistence model and trait generation can start immediately; the family read-model DTOs can be designed against fixtures before the reproduction systems are complete.
+
+---
+
+## Admin web deliverables
+
+| Page | Feature | Main actions |
 |---|---|---|
-| 1 | Trait schema, generation for seeded sims, snapshot migration/backfill | — |
-| 2 | Relationship components and index | 1 |
-| 3 | Deterministic attraction score + offline calibration harness | 1, 2 |
-| 4 | Partnership formation, household merge/split, housing capacity | 2, 3 |
-| 5 | Pregnancy, birth, childhood dependency and life-stage entry | 4 |
-| 6 | Trait inheritance and mutation on birth | 1, 5 |
-| 7 | Estate/housing changes on partner or parent death | 2, 4, 6 |
-| 8 | Births as a population-continuity path; immigration interaction | 5, 6 |
-| 9 | Admin read model, API, page, metrics and alerts | 2–8 |
-| 10 | Persistence, restore, determinism and decade acceptance run | all |
+| Family | 02, 03, 05 | inspect traits, relationships, partnerships, pregnancies, guardianships and household composition; filter by household, age, stage and relationship state |
+| Lifecycle | 04, 05 | show births, birth rate, replacement rate, children, orphans, average household size and dependency ratio |
+| Housing | 03, 05 | show household size, unit capacity, overcrowding and dependants |
+| Data | 01, 05 | show trait summary and family identifiers for a sim |
+| Economy | 03, 04, 05 | show child costs, school costs, inheritance transfers and family-related government spending |
+
+All pages use the existing polling read model, `EmptyState`, command result pattern and admin authorization. No direct world access from the browser.
+
+---
+
+## Repository conventions
+
+- Domain components: `Genelife/Components/Gen`, `Genelife/Components/Life`, `Genelife/Components/Housing`, new `Genelife/Components/Family`.
+- Domain rules and policies: `Genelife/Family` (traits, genetics, attraction, eligibility, reproduction, inheritance).
+- Systems: `Genelife/Systems`.
+- Events and commands: `Genelife.Messages`.
+- API, DTOs, projections, persistence and admin endpoints: `Genelife.API`; contracts and polling DTOs: `Genelife.Contracts`.
+- Tests: `Genelife.UnitTests/{Family,Systems,Persistence,Snapshots,Integration,Performance}` using xUnit and `World.Create()`.
+- Never persist `Entity` values; persist `NetworkId`.
+- Never create, add, remove or destroy entities inside a query callback.
+- Every tech step ends with `dotnet build GeneLife.sln` and the relevant unit-test run.
 
 ---
 
 ## Open questions
 
-1. **Pairing policy.** Age gap, consanguinity, exclusivity and same-sex pairing rules. The sim needs a clear eligibility function before attraction can be tested.
-2. **Births vs immigration.** Should births reduce the immigration budget one-for-one, or supplement it until the target population is reached? This changes the age pyramid.
-3. **Mutation and alleles.** Is single-parent-per-trait enough for V4a, or is a hidden `Genome` with dominance required?
-4. **Household capacity.** Units currently model occupancy implicitly. Can a couple and children share a unit without a new capacity field, or does `HousingUnit` need an explicit `Capacity`?
-5. **Child costs.** Which existing costs (food, school, healthcare) scale with children, and who pays when the household cannot?
-6. **Sex representation.** The simulation needs `Sex` only for reproduction eligibility. Decide whether any other system may read it, so the field does not quietly become a social-role switch.
-7. **Calibration.** How will the deterministic C# score be validated against the ML model's outputs without shipping the model?
+1. **Same-sex pairing and reproduction.** Same-sex pairing is disabled in V4a; only opposite-sex pairs are eligible for partnership and conception. Adoption and surrogacy are deferred. Revisit the policy before widening eligibility.
+2. **Divorce/separation.** V4a records `ExPartner` and splits households only for admin-driven or death-driven transitions. Full separation law is deferred.
+3. **Orphan care.** Guardian-first, then relatives, then state shelter. Confirm whether a dedicated orphanage entity is required or the existing shelter system is enough.
+4. **Child benefits.** Decide whether the government pays a child benefit or only existing school/health costs scale with children.
+5. **Inheritance shares.** Default split between partner and children, and whether minors' shares are held in trust or simply reserved.
+6. **Trait mutation rate.** Calibrate against population diversity; too high erases families, too low makes traits static.
 
 ---
 
-## Definition of done
+## Definition of done for V4
 
-- Seeded sims and births carry a deterministic `Traits` component; old snapshots migrate with a stable backfill.
-- A 10-year run produces births, and population continuity works without relying solely on immigration.
-- Partners form and households merge/split without breaking rent, housing capacity or estates.
-- Children inherit traits with mutation; the same seed replays identically.
-- Relationships and attraction outcomes are visible in the admin read model and page.
-- The money conservation test and the balance scenario remain green.
-- New unit tests cover trait generation, inheritance, eligibility, relationship indexing, birth, restore and the decade acceptance run.
+- Every seeded sim and every newborn has a deterministic `Traits` component; legacy snapshots migrate with a stable backfill.
+- Parent, child, partner and guardian edges are persisted, indexed and visible in the read model; no ancestry cycles or duplicate edges.
+- Eligible sims form partnerships through an explainable deterministic score; the same seed and options replay identically.
+- Partners merge or split households without breaking rent, capacity, tenure, estates or the money ledger.
+- Births create complete, consistent newborns with inherited traits, parent edges, household membership and a dependency record.
+- Children are raised, enrolled at school age and transition into work; child costs are funded by real transfers.
+- Births become a real continuity path and are reflected in population metrics, immigration policy and the balance scenario.
+- Inheritance follows family relationships, supports minors and guardians, and preserves ledger conservation.
+- The admin family page exposes traits, relationships, pregnancies, guardianships, household composition and health checks.
+- Schema 5 → 6 migration, restore, replay and the 10-year balance scenario pass.
+- The 2,000-sim family scenario stays within the existing tick budget.

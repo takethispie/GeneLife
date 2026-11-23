@@ -62,6 +62,16 @@ public static class SnapshotMigrations
             state.Placements.Clear();
         }
 
+        if (fromVersion <= 5)
+        {
+            // v6 adds heritable traits. They cannot be backfilled here because the
+            // deterministic backfill needs the world seed and each sim's network id;
+            // SimulationEngine.Restore generates them and sets TraitsMigrated.
+            state.GeneticsOptions ??= Genelife.Family.GeneticsOptions.Default;
+            if (string.IsNullOrWhiteSpace(state.AttractionModelVersion))
+                state.AttractionModelVersion = Genelife.Family.AttractionCoefficients.CurrentVersion;
+        }
+
         state.SchemaVersion = PersistedWorldState.CurrentSchemaVersion;
     }
 }

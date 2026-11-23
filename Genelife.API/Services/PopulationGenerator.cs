@@ -9,6 +9,7 @@ using Genelife.Components.Housing;
 using Genelife.Components.Life;
 using Genelife.Economy;
 using Genelife.Enums;
+using Genelife.Family;
 using Genelife.Housing;
 using Genelife.Life;
 using Genelife.Map;
@@ -41,6 +42,7 @@ public sealed class PopulationGenerator
     private readonly EconomyContext economy;
     private readonly EmploymentIndex employmentIndex;
     private readonly MapContext? map;
+    private int worldSeed = 1;
 
     public PopulationGenerator(
         World world,
@@ -66,6 +68,7 @@ public sealed class PopulationGenerator
         if (totalSims <= 0)
             throw new ArgumentOutOfRangeException(nameof(totalSims), "Total sims must be positive.");
 
+        worldSeed = seed;
         var random = new Random(seed);
         if (!economy.Government.Balance.IsPositive)
         {
@@ -210,6 +213,10 @@ public sealed class PopulationGenerator
 
         var networkId = networkIds.Allocate(entity);
         world.Add(entity, networkId);
+        var traits = TraitsGenerator.Create(worldSeed, networkId.Value, TraitSource.Seed, economy.Genetics);
+        world.Add(entity, traits);
+        AptitudeSkills.ApplyStartingBonus(ref profile, traits.Aptitude);
+        world.Get<SkillProfile>(entity) = profile;
         if (map is not null)
             MapSpawner.PlaceSim(world, entity, map, networkId.Value);
         economy.Emit(new SimCreated(networkId.Value, name, age));

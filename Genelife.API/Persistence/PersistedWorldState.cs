@@ -2,7 +2,7 @@ namespace Genelife.Api.Persistence;
 
 public sealed class PersistedWorldState
 {
-    public const int CurrentSchemaVersion = 5;
+    public const int CurrentSchemaVersion = 6;
 
     public int SchemaVersion { get; set; }
     public long Tick { get; set; }
@@ -11,6 +11,8 @@ public sealed class PersistedWorldState
     public bool BalanceBackfilled { get; set; }
     public Genelife.Economy.EconomyOptions? EconomyOptions { get; set; }
     public Genelife.Housing.HousingOptions? HousingOptions { get; set; }
+    public Genelife.Family.GeneticsOptions? GeneticsOptions { get; set; }
+    public string AttractionModelVersion { get; set; } = Genelife.Family.AttractionCoefficients.CurrentVersion;
     public PersistedMap Map { get; set; } = new();
     public List<PersistedPlacement> Placements { get; set; } = [];
     public bool HousingMigrated { get; set; }
@@ -66,6 +68,16 @@ public sealed class PersistedSim
     public bool IsLookingForWork { get; set; }
     public long DesiredSalaryCents { get; set; }
     public string? PlayerId { get; set; }
+
+    public int EyeColor { get; set; }
+    public int HairColor { get; set; }
+    public int Handedness { get; set; }
+    public int Morphotype { get; set; }
+    public int Aptitude { get; set; }
+    public int HeightPotential { get; set; }
+    public int Sex { get; set; }
+    public int Temperament { get; set; }
+    public bool TraitsMigrated { get; set; }
 
     // v1 compatibility: float units. v2 writes cents.
     public float WalletBalance { get; set; }

@@ -21,7 +21,11 @@ public sealed class SimulationRandom
         return new Random(unchecked(seed * 397 ^ StableHash(streamName)));
     }
 
-    private static int StableHash(string value)
+    /// <summary>
+    /// Stable FNV-1a hash used to derive per-entity seeds. Public so genetics can
+    /// derive trait-keyed seeds without depending on query or creation order.
+    /// </summary>
+    public static int StableHash(string value)
     {
         unchecked
         {

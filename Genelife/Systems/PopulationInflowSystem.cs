@@ -5,6 +5,7 @@ using Genelife.Components.Gen;
 using Genelife.Components.Housing;
 using Genelife.Components.Life;
 using Genelife.Economy;
+using Genelife.Family;
 using Genelife.Life;
 using Genelife.Enums;
 using Genelife.Housing;
@@ -163,8 +164,20 @@ public class PopulationInflowSystem : ISimulationSystem
             new JobSeeker(true, profile.ToMask(), life.Careers.SalaryForSkills(profile.Total)));
 
         life.AllocateNetworkId(sim);
+        var networkIdValue = LifeSystemHelpers.NetworkIdOf(world, sim);
+        var traits = TraitsGenerator.Create(
+            economy.Random.Seed, networkIdValue, TraitSource.Immigrant, economy.Genetics);
+        world.Add(sim, traits);
+        AptitudeSkills.ApplyStartingBonus(ref profile, traits.Aptitude);
+        world.Get<Components.Life.SkillProfile>(sim) = profile;
+        if (world.Has<JobSeeker>(sim))
+        {
+            ref var seeker = ref world.Get<JobSeeker>(sim);
+            seeker = new JobSeeker(true, profile.ToMask(), seeker.DesiredSalary);
+        }
+
         if (map is not null)
-            MapSpawner.PlaceSim(world, sim, map, LifeSystemHelpers.NetworkIdOf(world, sim));
+            MapSpawner.PlaceSim(world, sim, map, networkIdValue);
 
         var household = world.Create(new Household
         {

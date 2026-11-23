@@ -6,6 +6,7 @@ using Genelife.Components.Housing;
 using Genelife.Components.Life;
 using Genelife.Economy;
 using Genelife.Enums;
+using Genelife.Family;
 using Genelife.Messages.Events;
 
 namespace Genelife.Systems;
@@ -69,6 +70,8 @@ public class EducationSystem : ISimulationSystem
             if (gain <= 0f)
                 return;
 
+            var aptitude = world.TryGet<Traits>(entity, out var traits) ? traits.Aptitude : (Aptitude?)null;
+
             var emphasized = 0;
             foreach (var family in SkillProfile.Families)
             {
@@ -77,7 +80,10 @@ public class EducationSystem : ISimulationSystem
                 if (useEmphasis)
                     emphasized++;
                 var multiplier = useEmphasis ? EmphasisMultiplier : NonEmphasisShare;
-                profile.Add(family, gain * multiplier);
+                var learning = aptitude is { } value
+                    ? AptitudeSkills.LearningMultiplier(value, family)
+                    : 1f;
+                profile.Add(family, gain * multiplier * learning);
                 var after = profile.Get(family);
                 if (Crossed(before, after, 0.25f) || Crossed(before, after, 0.5f) || Crossed(before, after, 0.75f))
                     milestones.Add((entity, family, after));

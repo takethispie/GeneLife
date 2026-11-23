@@ -7,6 +7,7 @@ using Genelife.Components.Gen;
 using Genelife.Components.Life;
 using Genelife.Economy;
 using Genelife.Enums;
+using Genelife.Family;
 using Genelife.Life;
 using Genelife.Map;
 
@@ -42,6 +43,7 @@ public class SimRepository
 
         var networkId = networkIds.Allocate(entity);
         world.Add(entity, networkId);
+        AddTraits(entity, networkId, TraitSource.Admin);
         if (map is not null)
             MapSpawner.PlaceSim(world, entity, map, networkId.Value);
         economy?.Life.Index.OnBorn((economy?.Life.Policy ?? LifeStagePolicy.Default).StageFor(age));
@@ -64,10 +66,25 @@ public class SimRepository
 
         var networkId = networkIds.Allocate(entity);
         world.Add(entity, networkId);
+        AddTraits(entity, networkId, TraitSource.Player);
         if (map is not null)
             MapSpawner.PlaceSim(world, entity, map, networkId.Value);
         economy?.Life.Index.OnBorn((economy?.Life.Policy ?? LifeStagePolicy.Default).StageFor(age));
         return networkId;
+    }
+
+    private void AddTraits(Entity entity, NetworkId networkId, TraitSource source)
+    {
+        var traits = TraitsGenerator.Create(
+            economy?.Random.Seed ?? 1, networkId.Value, source, economy?.Genetics);
+        world.Add(entity, traits);
+
+        var profile = world.Has<SkillProfile>(entity) ? world.Get<SkillProfile>(entity) : new SkillProfile();
+        AptitudeSkills.ApplyStartingBonus(ref profile, traits.Aptitude);
+        if (world.Has<SkillProfile>(entity))
+            world.Get<SkillProfile>(entity) = profile;
+        else
+            world.Add(entity, profile);
     }
 
     public bool Delete(ulong networkId)
