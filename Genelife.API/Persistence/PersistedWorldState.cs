@@ -2,7 +2,7 @@ namespace Genelife.Api.Persistence;
 
 public sealed class PersistedWorldState
 {
-    public const int CurrentSchemaVersion = 10;
+    public const int CurrentSchemaVersion = 11;
 
     public int SchemaVersion { get; set; }
     public long Tick { get; set; }
@@ -93,6 +93,8 @@ public sealed class PersistedSim
     // v1 compatibility: float units. v2 writes cents.
     public float WalletBalance { get; set; }
     public long WalletBalanceCents { get; set; }
+
+    public bool HasWallet { get; set; }
 
     public long SavingsBalanceCents { get; set; }
     public long UnmetDemandCents { get; set; }

@@ -26,6 +26,7 @@ public class DeathProcessingSystem : ISimulationSystem
     private readonly RelationshipService? relationships;
     private readonly RelationshipIndex? relationshipIndex;
     private readonly GuardianshipService? guardianship;
+    private readonly TrustService? trusts;
     private readonly InheritanceOptions inheritanceOptions;
     private readonly int interval;
 
@@ -36,7 +37,8 @@ public class DeathProcessingSystem : ISimulationSystem
         RelationshipService? relationships = null,
         RelationshipIndex? relationshipIndex = null,
         GuardianshipService? guardianship = null,
-        InheritanceOptions? inheritanceOptions = null)
+        InheritanceOptions? inheritanceOptions = null,
+        TrustService? trusts = null)
     {
         this.world = world;
         this.economy = economy;
@@ -44,6 +46,7 @@ public class DeathProcessingSystem : ISimulationSystem
         this.relationshipIndex = relationshipIndex;
         this.guardianship = guardianship;
         this.inheritanceOptions = inheritanceOptions ?? InheritanceOptions.Default;
+        this.trusts = trusts;
         this.interval = interval ?? 1;
     }
 
@@ -178,6 +181,7 @@ public class DeathProcessingSystem : ISimulationSystem
             : Entity.Null;
 
         guardianship?.ReassignAfterGuardianDeath(entity, tick);
+        trusts?.ReassignAfterGuardianDeath(entity, tick);
         if (household != Entity.Null)
             guardianship?.EnsureHouseholdMinors(household, tick);
 
@@ -244,7 +248,7 @@ public class DeathProcessingSystem : ISimulationSystem
         {
             newHead = relationshipIndex.ExPartnersOf(deceased)
                 .Concat(relationshipIndex.PartnersOf(deceased))
-                .FirstOrDefault(candidate =>
+                .FirstOrNull(candidate =>
                     candidate != deceased && world.IsAlive(candidate) && !world.Has<Dead>(candidate));
         }
 

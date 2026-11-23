@@ -17,12 +17,14 @@ public sealed class TrustService
 {
     private readonly World world;
     private readonly EconomyContext economy;
+    private readonly RelationshipIndex? relationshipIndex;
     private ulong fallbackId = 4_000_000_000;
 
-    public TrustService(World world, EconomyContext economy)
+    public TrustService(World world, EconomyContext economy, RelationshipIndex? relationshipIndex = null)
     {
         this.world = world;
         this.economy = economy;
+        this.relationshipIndex = relationshipIndex;
     }
 
     public Func<Entity, NetworkId>? NetworkIdAllocator { get; set; }
@@ -38,6 +40,9 @@ public sealed class TrustService
     {
         if (!amount.IsPositive || beneficiary == Entity.Null || !world.IsAlive(beneficiary))
             return Entity.Null;
+
+        if (guardian != Entity.Null && (!world.IsAlive(guardian) || world.Has<Dead>(guardian)))
+            guardian = ReplacementGuardianFor(beneficiary, guardian, economy.Life.Policy.WorkStartAge);
 
         var trust = world.Create(new TrustAccount
         {
@@ -125,6 +130,63 @@ public sealed class TrustService
 
             Close(entity);
         }
+    }
+
+    /// <summary>
+    /// A trust's guardian is only a pointer for administrative/reporting purposes;
+    /// once that guardian dies the trust must not keep referencing them. Replace
+    /// the dead guardian with the beneficiary's currently assigned living adult
+    /// guardian, or clear it when no such guardian exists.
+    /// </summary>
+    public void ReassignAfterGuardianDeath(Entity guardian, long tick)
+    {
+        var workAge = economy.Life.Policy.WorkStartAge;
+        var updates = new List<(Entity Entity, Entity Guardian)>();
+
+        world.Query(in new QueryDescription().WithAll<TrustAccount>(),
+            (Entity entity, ref TrustAccount account) =>
+            {
+                var current = account.Guardian;
+                if (current == Entity.Null)
+                    return;
+                if (current != guardian && world.IsAlive(current) && !world.Has<Dead>(current))
+                    return;
+
+                updates.Add((entity, ReplacementGuardianFor(account.Beneficiary, guardian, workAge)));
+            });
+
+        foreach (var (entity, replacement) in updates)
+        {
+            if (!world.IsAlive(entity) || !world.Has<TrustAccount>(entity))
+                continue;
+
+            var account = world.Get<TrustAccount>(entity);
+            if (account.Guardian == replacement)
+                continue;
+
+            account.Guardian = replacement;
+            world.Get<TrustAccount>(entity) = account;
+        }
+    }
+
+    private Entity ReplacementGuardianFor(Entity beneficiary, Entity excluded, int workAge)
+    {
+        if (relationshipIndex is null || beneficiary == Entity.Null ||
+            !world.IsAlive(beneficiary) || world.Has<Dead>(beneficiary))
+            return Entity.Null;
+
+        foreach (var candidate in relationshipIndex.GuardiansOf(beneficiary))
+        {
+            if (candidate == Entity.Null || candidate == excluded)
+                continue;
+            if (!world.IsAlive(candidate) || world.Has<Dead>(candidate))
+                continue;
+            if (!world.Has<Alive>(candidate) || world.Get<Alive>(candidate).Age < workAge)
+                continue;
+            return candidate;
+        }
+
+        return Entity.Null;
     }
 
     public Money TotalHeld()

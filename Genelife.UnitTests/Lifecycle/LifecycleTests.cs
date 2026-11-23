@@ -507,6 +507,12 @@ public class LifecycleTests
             world.Add(heir, new HouseholdMember(household, HouseholdRole.Relative));
             engine.Economy.Housing.AddMember(head, household);
             engine.Economy.Housing.AddMember(heir, household);
+            engine.RelationshipService!.CreatePair(
+                head,
+                heir,
+                Genelife.Family.RelationshipKind.Parent,
+                Genelife.Family.RelationshipSource.Seed,
+                0);
             return 0;
         });
 

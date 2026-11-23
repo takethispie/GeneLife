@@ -79,6 +79,13 @@ public static class SnapshotMigrations
             state.StateCare ??= [];
         }
 
+        if (fromVersion <= 10)
+        {
+            foreach (var sim in state.Sims)
+                sim.HasWallet |= sim.WalletBalanceCents != 0 || sim.WalletBalance != 0 ||
+                                 sim.EmployerNetworkId != 0;
+        }
+
         if (fromVersion <= 8)
         {
             // v9 adds inheritance/guardianship policy and minor trusts. Older

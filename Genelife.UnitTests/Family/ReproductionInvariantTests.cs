@@ -68,6 +68,35 @@ public class ReproductionInvariantTests
     }
 
     [Fact]
+    public void ParentEdgeInvariantAppliesToMinorsButNotAdults()
+    {
+        var world = World.Create();
+        var economy = new EconomyContext(world);
+        var workStartAge = economy.Life.Policy.WorkStartAge;
+        var adult = world.Create(
+            new Alive(workStartAge),
+            new GenName("Adult"),
+            new Traits(),
+            new BirthRecord { PregnancyNetworkId = 1, BornTick = 1 });
+        var minor = world.Create(
+            new Alive(workStartAge - 1),
+            new GenName("Minor"),
+            new Traits(),
+            new BirthRecord { PregnancyNetworkId = 2, BornTick = 2 });
+
+        var issues = ReproductionInvariants.Verify(world, new RelationshipIndex(), economy);
+        var parentEdgeIssues = issues
+            .Where(issue => issue.Name == "newborn.parent-edges" && issue.Level == "Fail")
+            .ToList();
+
+        Assert.DoesNotContain(parentEdgeIssues,
+            issue => issue.Detail.StartsWith($"Newborn {adult.Id} "));
+        Assert.Single(parentEdgeIssues);
+        Assert.Contains(parentEdgeIssues,
+            issue => issue.Detail.StartsWith($"Newborn {minor.Id} "));
+    }
+
+    [Fact]
     public void OvercrowdedHouseholdIsAWarning()
     {
         var world = World.Create();

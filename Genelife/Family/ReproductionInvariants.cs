@@ -67,9 +67,12 @@ public static class ReproductionInvariants
                         !world.Has<GenName>(entity))
                         issues.Add(new Issue("newborn.components", "Fail",
                             $"Newborn {entity.Id} is missing a required component"));
-                    if (relationships.ParentsOf(entity).Count == 0)
+                    if (child &&
+                        relationships.ParentsOf(entity).Count == 0 &&
+                        !world.Has<StateCare>(entity) &&
+                        relationships.GuardiansOf(entity).Count == 0)
                         issues.Add(new Issue("newborn.parent-edges", "Fail",
-                            $"Newborn {entity.Id} has no parent edges"));
+                            $"Newborn {entity.Id} has no parent edges and no guardian or state-care fallback"));
                 }
 
                 if (!child)
@@ -97,7 +100,7 @@ public static class ReproductionInvariants
                     issues.Add(new Issue("housing.overcrowded", "Warn",
                         $"Household {household.Id} is overcrowded"));
 
-                var guardian = relationships.GuardiansOf(entity).FirstOrDefault();
+                var guardian = relationships.GuardiansOf(entity).FirstOrNull();
                 if (guardian != Entity.Null)
                 {
                     var guardianHousehold = economy.Housing.HouseholdOf(guardian);

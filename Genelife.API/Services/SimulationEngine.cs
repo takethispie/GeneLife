@@ -262,7 +262,7 @@ private readonly NetworkIdRegistry networkIds = new();
             this.inheritanceOptions.Validate();
             this.guardianshipOptions = guardianshipOptions ?? GuardianshipOptions.Default;
             this.guardianshipOptions.Validate();
-            trustService = new TrustService(world, economy)
+            trustService = new TrustService(world, economy, relationshipIndex)
             {
                 NetworkIdAllocator = entity => networkIds.Allocate(entity),
                 NetworkIdRemover = entity => networkIds.Remove(entity)
@@ -311,7 +311,8 @@ private readonly NetworkIdRegistry networkIds = new();
                 relationships: relationshipService,
                 relationshipIndex: relationshipIndex,
                 guardianship: guardianshipService,
-                inheritanceOptions: this.inheritanceOptions));
+                inheritanceOptions: this.inheritanceOptions,
+                trusts: trustService));
             systems.Register(new EstateSettlementSystem(
                 world,
                 economy,
@@ -3426,7 +3427,7 @@ if (SnapshotsEnabled)
                     if (!MatchesAgeBand(alive.Age, ageBand))
                         return;
 
-                    var guardian = relationshipIndex.GuardiansOf(entity).FirstOrDefault();
+                    var guardian = relationshipIndex.GuardiansOf(entity).FirstOrNull();
                     if (guardianId is not null && NetworkIdOf(world, guardian) != guardianId.Value)
                         return;
 
@@ -3472,7 +3473,7 @@ if (SnapshotsEnabled)
                         return;
 
                     var parents = relationshipIndex.ParentsOf(entity);
-                    var guardian = relationshipIndex.GuardiansOf(entity).FirstOrDefault();
+                    var guardian = relationshipIndex.GuardiansOf(entity).FirstOrNull();
                     if (!parents.Contains(sim) && guardian != sim)
                         return;
 
@@ -3487,7 +3488,7 @@ if (SnapshotsEnabled)
     private ChildStatusDto BuildChildStatus(Entity entity, Alive alive, ulong networkId)
     {
         var parents = relationshipIndex.ParentsOf(entity);
-        var guardian = relationshipIndex.GuardiansOf(entity).FirstOrDefault();
+        var guardian = relationshipIndex.GuardiansOf(entity).FirstOrNull();
         var household = economy!.Housing.HouseholdOf(entity);
         var householdId = household == Entity.Null ? 0 : GetNetworkId(world!, household);
         var enrolled = world!.Has<Enrollment>(entity) &&
@@ -3707,8 +3708,8 @@ if (SnapshotsEnabled)
         Entity household,
         ulong householdNetworkId)
     {
-        var partner = relationshipIndex.PartnersOf(entity).FirstOrDefault();
-        var guardian = relationshipIndex.GuardiansOf(entity).FirstOrDefault();
+        var partner = relationshipIndex.PartnersOf(entity).FirstOrNull();
+        var guardian = relationshipIndex.GuardiansOf(entity).FirstOrNull();
         var parents = relationshipIndex.ParentsOf(entity);
         var children = relationshipIndex.ChildrenOf(entity);
         var isOrphan = alive.Age < economy!.Life.Policy.WorkStartAge &&
@@ -4932,7 +4933,10 @@ if (SnapshotsEnabled)
             world.Query(in walletQuery, (Entity entity, ref Wallet wallet) =>
             {
                 if (simByEntity.TryGetValue(entity, out var sim))
+                {
+                    sim.HasWallet = true;
                     sim.WalletBalanceCents = wallet.Balance.Cents;
+                }
             });
 
             var savingsQuery = new QueryDescription().WithAll<GenName, SavingsAccount>();
@@ -6069,7 +6073,7 @@ if (SnapshotsEnabled)
                 var walletCents = sim.WalletBalanceCents != 0
                     ? sim.WalletBalanceCents
                     : (long)Math.Round((decimal)sim.WalletBalance * 100m);
-                if (walletCents != 0 || sim.EmployerNetworkId != 0)
+                if (sim.HasWallet || walletCents != 0 || sim.EmployerNetworkId != 0)
                     world.Add(entity, new Wallet(new Money(walletCents)));
 
                 if (sim.SavingsBalanceCents != 0)
@@ -6834,7 +6838,8 @@ if (SnapshotsEnabled)
                     relationships: relationshipService,
                     relationshipIndex: relationshipIndex,
                     guardianship: guardianshipService,
-                    inheritanceOptions: inheritanceOptions).Update(state.Tick);
+                    inheritanceOptions: inheritanceOptions,
+                    trusts: trustService).Update(state.Tick);
 
             economy.Life.EstateQueue.AddRange(estateRequests);
             if (economy.Life.EstateQueue.Count > 0)

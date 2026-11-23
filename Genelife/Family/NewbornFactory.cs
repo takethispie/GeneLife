@@ -57,8 +57,12 @@ public sealed class NewbornFactory
         var networkId = allocateNetworkId(entity);
         world.Add(entity, networkId);
 
-        var firstTraits = world.Has<Traits>(parentA) ? world.Get<Traits>(parentA) : default;
-        var secondTraits = world.Has<Traits>(parentB) ? world.Get<Traits>(parentB) : firstTraits;
+        var firstTraits = parentA != Entity.Null && world.IsAlive(parentA) && world.Has<Traits>(parentA)
+            ? world.Get<Traits>(parentA)
+            : default;
+        var secondTraits = parentB != Entity.Null && world.IsAlive(parentB) && world.Has<Traits>(parentB)
+            ? world.Get<Traits>(parentB)
+            : firstTraits;
         var inherited = parentA == Entity.Null
             ? TraitsGenerator.Create(economy.Random.Seed, networkId.Value, TraitSource.Seed, economy.Genetics)
             : parentB == Entity.Null

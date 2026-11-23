@@ -6,7 +6,7 @@
 
 **Builds on:** V1 economy/housing/life stages, V2 spatial world and indices, V3 read-model and client conventions, the 2026-11 balance pass, `SimulationRandom`, `EstateSettlementSystem`, `PopulationInflowSystem`, `HousingRegistry`, `HouseholdRole.Child`, `Tenure.Dependent`, `HousingUnit.Capacity`.
 
-> Implementation status: features 01 (traits), 02 (relationships/attraction), 03 (reproduction/family), 04 (continuity/inheritance) and 05 (admin/observability/hardening) are implemented; see [STATUS.md](STATUS.md) and the [feature 05 release checklist](05-admin-observability-and-hardening/release-checklist.md).
+> Implementation status: features 01 (traits), 02 (relationships/attraction), 03 (reproduction/family), 04 (continuity/inheritance) and 05 (admin/observability/hardening) are implemented and hardened; V4 is release-ready. The only open follow-up is enabling `CohabitOnPairing`, which needs economy/consumption recalibration. See [STATUS.md](STATUS.md), the [feature 05 release checklist](05-admin-observability-and-hardening/release-checklist.md) and [release evidence](05-admin-observability-and-hardening/release-evidence.md).
 
 ---
 
@@ -42,7 +42,7 @@ Every feature folder contains:
 | Reproduction | None. No pregnancy, birth path or newborn creation path |
 | Attraction | Orphaned `AttractivenessService` ML.NET prototype outside `GeneLife.sln`; not a runtime dependency |
 | Randomness | `SimulationRandom.For(streamName)`; `Random.Shared` is banned in simulation code |
-| Persistence | `PersistedWorldState` schema 5, persisted economy/housing options and `BalanceBackfilled` one-time migration |
+| Persistence | `PersistedWorldState` schema 5 (V4 advances to schema 11 with family, state-care, ended-edge and `HasWallet` persistence), persisted economy/housing options and `BalanceBackfilled` one-time migration |
 | Admin | Data, Economy, Housing, Lifecycle and Map pages; lifecycle and population read models |
 | Tests | Unit, persistence, snapshot, integration and the `BalanceScenarioTests` decade report |
 

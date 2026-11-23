@@ -75,6 +75,58 @@ public class WidowhoodTests
         Assert.True(context.World.Has<StateCare>(context.Child));
     }
 
+    [Fact]
+    public void MinorOutsideDeadParentsHouseholdGetsLivingGuardian()
+    {
+        var context = new Context();
+        MoveChildToSeparateHousehold(context);
+        var grandparent = context.World.Create(
+            new GenName("Grandparent"), new Alive(75), new Wallet(Money.Zero), new NetworkId(20));
+        var grandparentHousehold = context.World.Create(
+            new Household { Head = grandparent, Tenure = Tenure.Renter, MemberCount = 1 });
+        context.World.Add(grandparent, new HouseholdMember(grandparentHousehold, HouseholdRole.Head));
+        context.Economy.Housing.AddMember(grandparent, grandparentHousehold);
+        context.Service.CreatePair(
+            grandparent, context.Surviving, RelationshipKind.Parent, RelationshipSource.Seed, 1);
+        context.World.Add(context.Surviving, new Dead(5, DeathCause.Other));
+
+        context.Death.Update(10);
+
+        Assert.False(context.World.Has<StateCare>(context.Child));
+        Assert.True(context.Relationships.IsGuardianOf(grandparent, context.Child));
+        Assert.Equal(grandparentHousehold, context.Economy.Housing.HouseholdOf(context.Child));
+    }
+
+    [Fact]
+    public void OrphanedMinorOutsideHouseholdGetsStateCareAfterParentEdgesClear()
+    {
+        var context = new Context();
+        MoveChildToSeparateHousehold(context);
+        context.World.Add(context.Child, new BirthRecord { PregnancyNetworkId = 99, BornTick = 0 });
+        context.World.Add(context.Surviving, new Dead(5, DeathCause.Other));
+
+        context.Death.Update(10);
+
+        context.Service.RemoveEdgesForSim(context.Deceased);
+        context.Service.RemoveEdgesForSim(context.Surviving);
+
+        Assert.Empty(context.Relationships.ParentsOf(context.Child));
+        Assert.True(context.World.Has<StateCare>(context.Child));
+        var issues = ReproductionInvariants.Verify(context.World, context.Relationships, context.Economy);
+        Assert.DoesNotContain(issues,
+            issue => issue.Name == "newborn.parent-edges" && issue.Level == "Fail");
+    }
+
+    private static void MoveChildToSeparateHousehold(Context context)
+    {
+        var household = context.World.Create(
+            new Household { Head = context.Child, Tenure = Tenure.Renter, MemberCount = 1 },
+            new NetworkId(30));
+        context.Economy.Housing.RemoveMember(context.Child);
+        context.World.Get<HouseholdMember>(context.Child) = new HouseholdMember(household, HouseholdRole.Child);
+        context.Economy.Housing.AddMember(context.Child, household);
+    }
+
     private sealed class Context
     {
         public Context()

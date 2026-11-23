@@ -57,7 +57,7 @@ public sealed class EconomyContext
         Options = options ?? EconomyOptions.Default;
         Clock = clock ?? SimulationClock.Default;
         Random = new SimulationRandom(randomSeed);
-        HousingOptions = housingOptions ?? HousingOptions.Default;
+        HousingOptions = (housingOptions ?? HousingOptions.Default).Clone();
         Genetics = geneticsOptions ?? GeneticsOptions.Default;
         Housing = new HousingRegistry(world);
         Life = new LifeContext(world, Clock, Random, lifePolicy, randomSeed: randomSeed);

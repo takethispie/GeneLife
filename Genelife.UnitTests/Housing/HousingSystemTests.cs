@@ -314,4 +314,16 @@ public class HousingSystemTests
         world.Query(in new QueryDescription().WithAll<ConstructionProject>(), (ref ConstructionProject _) => count++);
         return count;
     }
+
+    [Fact]
+    public void EconomyContextsDoNotShareMutableHousingDefaults()
+    {
+        var first = new EconomyContext(World.Create());
+        var second = new EconomyContext(World.Create());
+
+        first.HousingOptions.ConstructionMonths = 42;
+
+        Assert.NotSame(first.HousingOptions, second.HousingOptions);
+        Assert.Equal(new HousingOptions().ConstructionMonths, second.HousingOptions.ConstructionMonths);
+    }
 }

@@ -3,7 +3,7 @@
 **Phase:** 8 — Release
 **Depends:** H01–H07
 **Estimate:** 1 session
-**Status:** Planned (V4)
+**Status:** Implemented (V4) — see [release evidence](../release-evidence.md)
 
 ## Goal
 
@@ -24,7 +24,7 @@ Ship V4 without silently changing existing worlds, losing family facts or regres
 
 ### Data and migration
 
-- [ ] Schema 5 → 10 migration rehearsed on a real save copy.
+- [ ] Schema 5 → 11 migration rehearsed on a real save copy (state care/ended edges at 10, `HasWallet` at 11).
 - [ ] No invented parent edges for legacy households.
 - [ ] Traits are deterministic across double restore.
 - [ ] Family options/coefficients are persisted.
@@ -78,7 +78,7 @@ Ship V4 without silently changing existing worlds, losing family facts or regres
 
 - Keep the previous build and the pre-migration snapshot copy.
 - A rollback restores the previous build and the saved V5 state.
-- Do not attempt to downgrade a V6 save in place.
+- Do not attempt to downgrade a schema 11 save in place.
 - Record the rollback decision and the reason in `STATUS.md`.
 
 ## Known gaps to carry forward

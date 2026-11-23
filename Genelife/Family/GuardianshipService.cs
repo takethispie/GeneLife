@@ -89,10 +89,31 @@ public sealed class GuardianshipService
         return true;
     }
 
+    /// <summary>
+    /// Every minor who depended on the deceased needs a fallback, not just
+    /// explicit wards. Children linked by Parent/Child edges may live in another
+    /// household, so relying on the household-minor pass alone would leave them
+    /// without a guardian once the dead parent's edges are removed.
+    /// </summary>
     public void ReassignAfterGuardianDeath(Entity guardian, long tick)
     {
-        foreach (var ward in relationships.WardsOf(guardian).ToList())
-            EnsureGuardian(ward, tick, out _, out _);
+        var workStartAge = economy.Life.Policy.WorkStartAge;
+        var dependents = new HashSet<Entity>();
+
+        foreach (var ward in relationships.WardsOf(guardian))
+            dependents.Add(ward);
+
+        foreach (var child in relationships.ChildrenOf(guardian))
+        {
+            if (!world.IsAlive(child) || world.Has<Dead>(child) ||
+                !world.Has<Alive>(child) ||
+                world.Get<Alive>(child).Age >= workStartAge)
+                continue;
+            dependents.Add(child);
+        }
+
+        foreach (var dependent in dependents)
+            EnsureGuardian(dependent, tick, out _, out _);
     }
 
     /// <summary>
@@ -215,7 +236,7 @@ public sealed class GuardianshipService
         return pool
             .OrderBy(NetworkIdOf)
             .ThenBy(candidate => candidate.Id)
-            .FirstOrDefault();
+            .FirstOrNull();
     }
 
     private void MoveToGuardian(Entity minor, Entity guardian)

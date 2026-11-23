@@ -29,4 +29,27 @@ public sealed class HousingOptions
     public int DefaultDistrictCapacity { get; set; } = 2_000;
 
     public static HousingOptions Default { get; } = new();
+
+    public HousingOptions Clone() => new()
+    {
+        AffordabilityRatio = AffordabilityRatio,
+        RentBurdenTrigger = RentBurdenTrigger,
+        TargetVacancyRate = TargetVacancyRate,
+        VacancyResponse = VacancyResponse,
+        MaxIndexStep = MaxIndexStep,
+        MinRentIndex = MinRentIndex,
+        MaxRentIndex = MaxRentIndex,
+        AnnualRentAdjustmentCap = AnnualRentAdjustmentCap,
+        MaxEvictionsPerCycle = MaxEvictionsPerCycle,
+        NoticeMonths = NoticeMonths,
+        MoveCooldownMonths = MoveCooldownMonths,
+        OverburdenMonthsBeforeMove = OverburdenMonthsBeforeMove,
+        MaxActiveConstructionProjects = MaxActiveConstructionProjects,
+        ConstructionMonths = ConstructionMonths,
+        ConstructionVacancyTrigger = ConstructionVacancyTrigger,
+        HomelessConstructionTrigger = HomelessConstructionTrigger,
+        SeedVacancyRate = SeedVacancyRate,
+        DefaultPropertyUpkeep = DefaultPropertyUpkeep,
+        DefaultDistrictCapacity = DefaultDistrictCapacity
+    };
 }

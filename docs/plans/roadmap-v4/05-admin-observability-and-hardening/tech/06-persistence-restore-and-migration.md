@@ -13,7 +13,7 @@ Persist the complete family graph, pregnancy/trust/guardianship state and option
 
 `PersistedWorldState.CurrentSchemaVersion` moves from 5 to 6 in T06 for traits. V4 adds relationships, pregnancies, trusts, state care and family options. The 2026-11 `BalanceBackfilled` migration and persisted economy/housing options must be preserved.
 
-> Implementation note (2026-11-23): features 01–04 already advanced the schema to 9 (traits 6, relationships 7, pregnancies/births 8, trusts/inheritance 9). Feature 05 adds state care and ended-edge metadata as schema 10; the migration remains additive and accepts any schema ≤ 9.
+> Implementation note (2026-11-23): features 01–04 advanced the schema to 9 (traits 6, relationships 7, pregnancies/births 8, trusts/inheritance 9). Feature 05 adds state care and ended-edge metadata as schema 10 and a `PersistedSim.HasWallet` flag as schema 11. The migration remains additive, accepts any schema ≤ 10, and `SnapshotMigrations.Upgrade` backfills `HasWallet` for older saves from a non-zero wallet balance or employer id.
 
 ## Design
 
@@ -22,6 +22,7 @@ Persist the complete family graph, pregnancy/trust/guardianship state and option
 `PersistedSim`:
 
 - trait fields and `TraitsMigrated` (T06).
+- `HasWallet` (schema 11) to distinguish an initialised wallet from a legacy sim with no wallet.
 
 `PersistedWorldState`:
 

@@ -246,13 +246,13 @@ public class EstateSettlementSystem : ISimulationSystem
         {
             newOwner = relationshipIndex.ExPartnersOf(request.Sim)
                 .Concat(relationshipIndex.PartnersOf(request.Sim))
-                .FirstOrDefault(candidate =>
+                .FirstOrNull(candidate =>
                     candidate != request.Sim && world.IsAlive(candidate) && !world.Has<Dead>(candidate));
 
             if (newOwner == Entity.Null)
             {
                 var minor = relationshipIndex.ChildrenOf(request.Sim)
-                    .FirstOrDefault(child =>
+                    .FirstOrNull(child =>
                         world.IsAlive(child) &&
                         world.Has<Alive>(child) &&
                         world.Get<Alive>(child).Age < economy.Life.Policy.WorkStartAge &&
@@ -272,7 +272,7 @@ public class EstateSettlementSystem : ISimulationSystem
         }
         if (newOwner == Entity.Null)
         {
-            newOwner = request.Heirs.FirstOrDefault(heir =>
+            newOwner = request.Heirs.FirstOrNull(heir =>
                 heir != request.Sim && world.IsAlive(heir) && !world.Has<Dead>(heir));
         }
 
@@ -288,7 +288,7 @@ public class EstateSettlementSystem : ISimulationSystem
     {
         var isMinor = world.Has<Alive>(heir) &&
                       world.Get<Alive>(heir).Age < economy.Life.Policy.WorkStartAge;
-        var guardian = relationshipIndex?.GuardiansOf(heir).FirstOrDefault() ?? Entity.Null;
+        var guardian = relationshipIndex?.GuardiansOf(heir).FirstOrNull() ?? Entity.Null;
         var releaseAgeTicks = (long)economy.Life.Policy.WorkStartAge * economy.Clock.TicksPerYear;
 
         if (isMinor && trusts is not null)
