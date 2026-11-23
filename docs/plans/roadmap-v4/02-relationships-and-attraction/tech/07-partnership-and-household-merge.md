@@ -3,7 +3,7 @@
 **Phase:** 7 — Household
 **Depends:** R01, R02, R06
 **Estimate:** 2 sessions
-**Status:** Planned (V4)
+**Status:** Done — merge implemented; `CohabitOnPairing` defaults false until births land
 
 ## Goal
 

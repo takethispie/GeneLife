@@ -2,7 +2,7 @@ namespace Genelife.Api.Persistence;
 
 public sealed class PersistedWorldState
 {
-    public const int CurrentSchemaVersion = 6;
+    public const int CurrentSchemaVersion = 7;
 
     public int SchemaVersion { get; set; }
     public long Tick { get; set; }
@@ -12,6 +12,7 @@ public sealed class PersistedWorldState
     public Genelife.Economy.EconomyOptions? EconomyOptions { get; set; }
     public Genelife.Housing.HousingOptions? HousingOptions { get; set; }
     public Genelife.Family.GeneticsOptions? GeneticsOptions { get; set; }
+    public Genelife.Family.RelationshipOptions? RelationshipOptions { get; set; }
     public string AttractionModelVersion { get; set; } = Genelife.Family.AttractionCoefficients.CurrentVersion;
     public PersistedMap Map { get; set; } = new();
     public List<PersistedPlacement> Placements { get; set; } = [];
@@ -29,6 +30,7 @@ public sealed class PersistedWorldState
     public List<PersistedHousingUnit> HousingUnits { get; set; } = [];
     public List<PersistedHousehold> Households { get; set; } = [];
     public List<PersistedHouseholdMember> HouseholdMembers { get; set; } = [];
+    public List<PersistedRelationship> Relationships { get; set; } = [];
     public List<PersistedConstructionProject> ConstructionProjects { get; set; } = [];
     public List<PersistedHousingSnapshot> HousingMetricHistory { get; set; } = [];
     public PersistedHousingMarket HousingMarket { get; set; } = new();
@@ -450,9 +452,19 @@ public sealed class PersistedHousehold
 
 public sealed class PersistedHouseholdMember
 {
-    public ulong HouseholdNetworkId { get; set; }
     public ulong SimNetworkId { get; set; }
-    public string Role { get; set; } = "Other";
+    public ulong HouseholdNetworkId { get; set; }
+    public string Role { get; set; } = string.Empty;
+}
+
+public sealed class PersistedRelationship
+{
+    public ulong NetworkId { get; set; }
+    public ulong FromSimNetworkId { get; set; }
+    public ulong ToSimNetworkId { get; set; }
+    public string Kind { get; set; } = string.Empty;
+    public string Source { get; set; } = string.Empty;
+    public long SinceTick { get; set; }
 }
 
 public sealed class PersistedConstructionProject

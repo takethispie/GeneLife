@@ -3,7 +3,7 @@
 **Phase:** 4 — Scoring
 **Depends:** R01–R03, T03 coefficients
 **Estimate:** 2 sessions
-**Status:** Planned (V4)
+**Status:** Done
 
 ## Goal
 

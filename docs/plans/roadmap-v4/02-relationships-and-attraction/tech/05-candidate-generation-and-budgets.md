@@ -3,7 +3,7 @@
 **Phase:** 5 — Scoring
 **Depends:** R02–R04
 **Estimate:** 2 sessions
-**Status:** Planned (V4)
+**Status:** Done
 
 ## Goal
 

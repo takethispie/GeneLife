@@ -3,7 +3,7 @@
 **Phase:** 6 — Pairing
 **Depends:** R03–R05
 **Estimate:** 2 sessions
-**Status:** Planned (V4)
+**Status:** Done
 
 ## Goal
 

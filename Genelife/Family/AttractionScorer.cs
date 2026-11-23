@@ -16,7 +16,7 @@ public readonly record struct AttractionScore(
     int Health,
     int Availability);
 
-public static class AttractionScorer
+public static partial class AttractionScorer
 {
     public const int ScoreScale = 10_000;
 

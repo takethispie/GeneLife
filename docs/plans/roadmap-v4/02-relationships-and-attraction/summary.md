@@ -1,7 +1,7 @@
 # Relationships and Attraction — Summary
 
 **Folder:** `02-relationships-and-attraction/`
-**Status:** Planned (V4)
+**Status:** Implemented (V4 feature 02; admin UI/projection and default cohabitation remain staged)
 
 **Depends on:** feature 01 traits and genetics, `SpatialIndex`, `HousingRegistry`, `EmploymentIndex`, lifecycle stages
 **Feeds:** reproduction and family, continuity and inheritance, admin family page

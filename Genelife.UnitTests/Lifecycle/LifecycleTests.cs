@@ -312,7 +312,10 @@ public class LifecycleTests
                 world,
                 engine.NetworkIds,
                 engine.Economy!,
-                engine.EmploymentIndex!);
+                engine.EmploymentIndex!,
+                relationshipIndex: engine.Relationships,
+                relationshipService: engine.RelationshipService!,
+                relationshipOptions: engine.RelationshipOptions);
             return generator.Generate(60, seed: 7);
         });
 
@@ -608,7 +611,10 @@ public class LifecycleTests
                 world,
                 engine.NetworkIds,
                 engine.Economy!,
-                engine.EmploymentIndex!);
+                engine.EmploymentIndex!,
+                relationshipIndex: engine.Relationships,
+                relationshipService: engine.RelationshipService!,
+                relationshipOptions: engine.RelationshipOptions);
             generator.Generate(60, seed: 21);
             return 0;
         });

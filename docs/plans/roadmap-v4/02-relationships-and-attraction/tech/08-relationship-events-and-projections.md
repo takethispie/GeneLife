@@ -3,7 +3,7 @@
 **Phase:** 8 — Events
 **Depends:** R01–R07
 **Estimate:** 1–2 sessions
-**Status:** Planned (V4)
+**Status:** Partial — family events emitted; Marten projection pending
 
 ## Goal
 

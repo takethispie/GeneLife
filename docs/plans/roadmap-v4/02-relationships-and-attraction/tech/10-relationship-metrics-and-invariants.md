@@ -3,7 +3,7 @@
 **Phase:** 10 — Observability
 **Depends:** R01–R09
 **Estimate:** 1 session
-**Status:** Planned (V4)
+**Status:** Partial — invariants done; yearly metrics history pending
 
 ## Goal
 

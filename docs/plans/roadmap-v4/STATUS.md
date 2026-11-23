@@ -1,6 +1,6 @@
 # Roadmap V4 — Status
 
-**Status:** In progress — feature 01 (traits and genetics) implemented; feature 02 next
+**Status:** In progress — features 01–02 implemented; feature 03 next
 **Builds on:** V1 economy/housing/life stages, V2 spatial world, V3 read-model conventions
 **Scope:** traits and genetics, relationships and attraction, reproduction and family, continuity and inheritance, admin/hardening
 **Primary risk:** family state touches households, housing capacity, estates, population continuity and the money ledger at the same time
@@ -12,19 +12,19 @@
 | Trait schema and generation | Done (feature 01) | `Traits` component, seeded traits, unit tests |
 | Inheritance and mutation | Done (feature 01) | Parent-pair inheritance, mutation bounds, replay test |
 | Offline attraction calibration | Partial (feature 01) | Prototype mapping, runtime coefficients and scorer skeleton; calibration CLI still offline |
-| Relationship components and index | Planned | Edge entities, mirror pairs, rebuild test |
-| Eligibility and attraction score | Planned | Policy tests, score explainability, determinism test |
-| Pairing and household merge | Planned (opposite-sex only) | Partner edges, move-in/out, capacity and rent tests |
+| Relationship components and index | Done (feature 02) | Edge entities, mirror pairs, rebuild test |
+| Eligibility and attraction score | Done (feature 02) | Policy tests, scorer components, admin explanation |
+| Pairing and household merge | Done (feature 02; opposite-sex only) | Partner edges, capacity-aware merge, cohabitation opt-in |
 | Pregnancy and birth | Planned | Pregnancy lifecycle, newborn creation, parent edges |
 | Childhood and school entry | Planned | Dependent marker, age-gated enrollment, aging test |
 | Child costs and household finance | Planned | Ledgered costs, arrears, no minting |
 | Births vs immigration | Planned | Target-floor policy, population metrics |
 | Widowhood and guardianship | Planned | Head reassignment, guardian assignment, minor share |
 | Inheritance rules | Planned | Partner/child/relative/escheat split, conservation test |
-| Family read model and admin page | Planned | `/api/family`, `Family.razor`, health checks |
-| Events and Marten projections | Planned | Family projection documents and replay |
-| Persistence and schema 5 → 6 | Done (feature 01) | Trait fields, deterministic backfill, double-restore test |
-| Determinism and scale | Partial (feature 01) | Trait generation replay and balance scenario run; 2,000-sim family budget pending |
+| Family read model and admin page | Partial (feature 02) | `/api/family` and health checks done; `Family.razor` pending |
+| Events and Marten projections | Partial (feature 02) | Family events emitted; Marten projection pending |
+| Persistence and schema 5 → 7 | Done (features 01–02) | Traits (v6) and relationships (v7), backfill and restore tests |
+| Determinism and scale | Partial (features 01–02) | Trait and pairing replay, balance scenario; 2,000-sim family budget pending |
 | Release acceptance | Planned | Full suite, balance scenario, admin smoke test |
 
 ## Verification plan
@@ -40,12 +40,15 @@
 | Admin family page smoke test | before release |
 | Full integration suite with PostgreSQL (`docker compose up -d postgres`) | before release |
 
-Feature 01 verification (2026-11-23): `dotnet build GeneLife.sln` succeeds; `Genelife.UnitTests.Family`, `Persistence`, and the core simulation namespaces pass. The Marten/integration/performance namespaces still require PostgreSQL and were not part of this pass.
+Feature 01 verification (2026-11-23): `dotnet build GeneLife.sln` succeeds; `Genelife.UnitTests.Family`, `Persistence`, and the core simulation namespaces pass.
+
+Feature 02 verification (2026-11-23): relationship domain/index/eligibility/scorer/candidate/merge/persistence/admin tests pass; the 60- and 200-sim balance scenarios pass with `CohabitOnPairing = false`. Marten/integration/performance namespaces still require PostgreSQL.
 
 ## Current baseline
 
-- `PersistedWorldState.CurrentSchemaVersion` is 6, with persisted economy/housing/genetics options, the `BalanceBackfilled` migration and deterministic trait backfill from schema 5.
+- `PersistedWorldState.CurrentSchemaVersion` is 7, with persisted economy/housing/genetics/relationship options, relationship edges, the `BalanceBackfilled` migration, deterministic trait backfill from schema 5 and relationship restore from schema 6.
 - Every production creation path (seed, immigrant, player, admin) writes a `Traits` component; inheritance and mutation helpers exist for feature 03 births.
+- Seeded worlds create opposite-sex partner edges and parent edges. `CohabitOnPairing` defaults to false for V4a staging so existing household/economy balance holds until births add household formation; set it true to exercise capacity-aware merge.
 - `HouseholdRole.Child` and `Tenure.Dependent` already exist but are not tied to parent edges.
 - `HousingUnit.Capacity` and `OccupantCount` already exist; the generator still creates one household per adult.
 - `DeathProcessingSystem` inherits through current household membership, not relationships.
@@ -72,7 +75,7 @@ Feature 01 verification (2026-11-23): `dotnet build GeneLife.sln` succeeds; `Gen
 
 ## Next
 
-1. Implement feature 02, steps R01–R03 (relationship domain model, index, eligibility with opposite-sex pairing).
-2. Add relationship persistence and the eligibility policy tests before pairing and household merge.
-3. Complete the offline calibration CLI when the relationship fixture lands; runtime scoring already uses pinned integer coefficients.
-4. Start feature 03 conception/birth only after partner edges and parent/child edges replay cleanly.
+1. Implement feature 03 conception, pregnancy and birth on top of partner/parent edges.
+2. Add birth-driven household formation so `CohabitOnPairing` can default to true without raising housing vacancy.
+3. Complete the Marten family projection and `Family.razor` admin page.
+4. Re-run the 2,000-sim budget and full PostgreSQL integration suite before release.

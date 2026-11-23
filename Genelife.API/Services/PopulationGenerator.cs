@@ -42,6 +42,9 @@ public sealed class PopulationGenerator
     private readonly EconomyContext economy;
     private readonly EmploymentIndex employmentIndex;
     private readonly MapContext? map;
+    private readonly RelationshipIndex relationshipIndex;
+    private readonly RelationshipService relationshipService;
+    private readonly RelationshipOptions relationshipOptions;
     private int worldSeed = 1;
 
     public PopulationGenerator(
@@ -49,13 +52,26 @@ public sealed class PopulationGenerator
         NetworkIdRegistry networkIds,
         EconomyContext economy,
         EmploymentIndex employmentIndex,
-        MapContext? map = null)
+        MapContext? map = null,
+        RelationshipIndex? relationshipIndex = null,
+        RelationshipService? relationshipService = null,
+        RelationshipOptions? relationshipOptions = null)
     {
         this.world = world;
         this.networkIds = networkIds;
         this.economy = economy;
         this.employmentIndex = employmentIndex;
         this.map = map;
+        this.relationshipIndex = relationshipIndex ?? new RelationshipIndex();
+        this.relationshipService = relationshipService ?? new RelationshipService(world, this.relationshipIndex)
+        {
+            NetworkIdAllocator = entity => networkIds.Allocate(entity),
+            NetworkIdRemover = entity => networkIds.Remove(entity)
+        };
+        this.relationshipOptions = relationshipOptions ?? RelationshipOptions.Default;
+        this.relationshipIndex.NetworkIdResolver = entity =>
+            world.Has<NetworkId>(entity) ? world.Get<NetworkId>(entity).Value : (ulong)entity.Id;
+        this.relationshipOptions.Validate();
     }
 
     public PopulationGenerationResult Generate(
@@ -149,7 +165,12 @@ public sealed class PopulationGenerator
                 Money.FromUnits(200 + random.Next(0, 400)), profile: AdultProfile(random), retired: true));
         }
 
-        var households = BuildHouseholds(workers, retirees, elders, education, random, tick);
+        var adultEntities = workers.Concat(retirees).Concat(elders).ToList();
+        var familyBuilder = new SeedFamilyBuilder(world, relationshipIndex, relationshipService, relationshipOptions);
+        familyBuilder.BuildPairs(adultEntities, tick);
+
+        var households = BuildHouseholds(
+            workers, retirees, elders, education, familyBuilder, random, tick);
         var employed = DirectHire(workers, tick);
         var housed = CountHoused();
 
@@ -262,6 +283,7 @@ public sealed class PopulationGenerator
         List<Entity> retirees,
         List<Entity> elders,
         List<Entity> children,
+        SeedFamilyBuilder familyBuilder,
         Random random,
         long tick)
     {
@@ -271,15 +293,7 @@ public sealed class PopulationGenerator
 
         foreach (var adult in adults)
         {
-            var household = world.Create(new Household
-            {
-                Head = adult,
-                Unit = Entity.Null,
-                Tenure = Tenure.Renter,
-                MoveInTick = tick,
-                MemberCount = 1
-            });
-            world.Add(household, networkIds.Allocate(household));
+            var household = CreateHousehold(adult, tick);
             world.Add(adult, new HouseholdMember(household, HouseholdRole.Head));
             economy.Housing.AddMember(adult, household);
             allocator.TryAssignBest(household, tick);
@@ -289,19 +303,60 @@ public sealed class PopulationGenerator
         if (households.Count > 0)
         {
             foreach (var child in children)
-            {
-                var household = households[random.Next(households.Count)];
-                var data = world.Get<Household>(household);
-                data.MemberCount++;
-                world.Get<Household>(household) = data;
-
-                world.Add(child, new HouseholdMember(household, HouseholdRole.Child));
-                economy.Housing.AddMember(child, household);
-            }
+                AssignChild(child, households, random, familyBuilder, tick);
         }
 
         return households.Count;
     }
+
+    private Entity CreateHousehold(Entity head, long tick)
+    {
+        var household = world.Create(new Household
+        {
+            Head = head,
+            Unit = Entity.Null,
+            Tenure = Tenure.Renter,
+            MoveInTick = tick,
+            MemberCount = 1
+        });
+        world.Add(household, networkIds.Allocate(household));
+        return household;
+    }
+
+    private void AssignChild(
+        Entity child,
+        IReadOnlyList<Entity> households,
+        Random random,
+        SeedFamilyBuilder familyBuilder,
+        long tick)
+    {
+        var target = households[random.Next(households.Count)];
+
+        world.Add(child, new HouseholdMember(target, HouseholdRole.Child));
+        economy.Housing.AddMember(child, target);
+
+        var parentSet = new HashSet<Entity>();
+        foreach (var member in economy.Housing.GetMembers(target))
+        {
+            if (member == child || !world.IsAlive(member) || !world.Has<Alive>(member))
+                continue;
+            parentSet.Add(member);
+            foreach (var partner in relationshipIndex.PartnersOf(member))
+                parentSet.Add(partner);
+        }
+
+        var parents = parentSet
+            .Where(parent => world.IsAlive(parent))
+            .OrderBy(NetworkIdOf)
+            .ThenBy(parent => parent.Id)
+            .ToList();
+        familyBuilder.CreateParentEdges(child, parents, tick);
+    }
+
+
+
+    private ulong NetworkIdOf(Entity entity) =>
+        world.Has<NetworkId>(entity) ? world.Get<NetworkId>(entity).Value : (ulong)entity.Id;
 
     private int DirectHire(List<Entity> workers, long tick)
     {
@@ -505,48 +560,57 @@ public sealed class PopulationGenerator
         return companyCount;
     }
 
-    private void EnsureHousing(int adultCount)
+    private void EnsureHousing(int householdCount)
     {
         var landlords = CompanyLandlords();
+        var targetUnits = (int)Math.Ceiling(
+            householdCount * (1d + (double)economy.HousingOptions.SeedVacancyRate));
         var total = 0;
         world.Query(in new QueryDescription().WithAll<Property>(), (ref Property _) => total++);
-        if (total == 0)
-            HousingBootstrap.CreateStock(world, economy, 0, landlords: landlords, map: map);
 
-        var targetUnits = (int)Math.Ceiling(
-            adultCount * (1d + (double)economy.HousingOptions.SeedVacancyRate));
+        if (total == 0)
+        {
+            var shelter = Math.Min(6, targetUnits / 8);
+            var luxury = Math.Min(3, targetUnits / 20);
+            var comfortable = Math.Min(12, Math.Max(0, (targetUnits - shelter - luxury) / 3));
+            var basic = Math.Max(0, targetUnits - shelter - luxury - comfortable);
+
+            if (basic > 0)
+                AddBasicUnits(basic, landlords);
+            if (comfortable > 0)
+                HousingBootstrap.CreateProperty(
+                    world, economy, "Central", HousingTier.Comfortable,
+                    comfortable, 0.8f, 0.65f, 0, map: map);
+            if (luxury > 0)
+                HousingBootstrap.CreateProperty(
+                    world, economy, "Central", HousingTier.Luxury,
+                    luxury, 0.95f, 0.8f, 0, map: map);
+            if (shelter > 0)
+                HousingBootstrap.CreateShelter(world, economy, "Central", shelter, 0, map);
+        }
+
         var units = 0;
         world.Query(in new QueryDescription().WithAll<HousingUnit>(), (ref HousingUnit _) => units++);
         if (units < targetUnits)
+            AddBasicUnits(targetUnits - units, landlords);
+    }
+
+    private void AddBasicUnits(int toAdd, IReadOnlyList<Entity> landlords)
+    {
+        if (toAdd <= 0)
+            return;
+
+        if (landlords.Count > 0)
         {
-            var toAdd = targetUnits - units;
-            if (landlords.Count > 0)
-            {
-                HousingBootstrap.CreateDistributedProperty(
-                    world,
-                    economy,
-                    "Central",
-                    HousingTier.Basic,
-                    toAdd,
-                    landlords,
-                    0.6f,
-                    0.5f,
-                    0,
-                    map: map);
-            }
-            else
-            {
-                HousingBootstrap.CreateProperty(
-                    world,
-                    economy,
-                    "Central",
-                    HousingTier.Basic,
-                    toAdd,
-                    0.6f,
-                    0.5f,
-                    0,
-                    map: map);
-            }
+            HousingBootstrap.CreateDistributedProperty(
+                world, economy, "Central", HousingTier.Basic, toAdd,
+                landlords, 0.6f, 0.5f, 0, map: map);
+        }
+        else
+        {
+            HousingBootstrap.CreateProperty(
+                world, economy, "Central", HousingTier.Basic, toAdd,
+                0.6f, 0.5f, 0, map: map);
         }
     }
 

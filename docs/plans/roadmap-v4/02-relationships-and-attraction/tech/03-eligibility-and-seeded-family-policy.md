@@ -3,7 +3,7 @@
 **Phase:** 3 — Policy
 **Depends:** R01, R02, feature 01
 **Estimate:** 2 sessions
-**Status:** Planned (V4)
+**Status:** Done — opposite-sex only enforced by `AllowSameSexPairing = false`
 
 ## Goal
 
@@ -25,7 +25,7 @@ public sealed class RelationshipOptions
     public int MinimumPairingAge { get; set; } = 18;
     public int MaximumPairingAge { get; set; } = 70;
     public int MaxAgeGap { get; set; } = 15;
-    public bool AllowSameSexPairing { get; set; } = true;
+    public bool AllowSameSexPairing { get; set; } = false; // V4a decision: opposite-sex only
     public decimal SeedPartnershipShare { get; set; } = 0.60m;
     public int PairingThreshold { get; set; } = 5_500;
     public int MaxCandidatesPerSim { get; set; } = 24;
@@ -40,7 +40,7 @@ Eligibility checks, in order:
 3. Age gap within `MaxAgeGap`.
 4. No current `Partner`.
 5. Not parent/child, sibling, grandparent, aunt/uncle or first cousin.
-6. Same-sex allowed only if `AllowSameSexPairing`.
+6. Same-sex pairs are rejected by default; only `AllowSameSexPairing = true` re-enables them.
 7. Neither sim is in a pairing cooldown with the other.
 
 Eligibility returns a named reason for rejection so the admin can explain it.

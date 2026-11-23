@@ -33,7 +33,10 @@ public class BalanceScenarioTests
                 world,
                 engine.NetworkIds,
                 engine.Economy!,
-                engine.EmploymentIndex!);
+                engine.EmploymentIndex!,
+                relationshipIndex: engine.Relationships,
+                relationshipService: engine.RelationshipService!,
+                relationshipOptions: engine.RelationshipOptions);
             generator.Generate(sims, seed: seed);
             return 0;
         });
@@ -89,7 +92,10 @@ public class BalanceScenarioTests
                 engine.NetworkIds,
                 engine.Economy!,
                 engine.EmploymentIndex!,
-                engine.MapContext);
+                engine.MapContext,
+                relationshipIndex: engine.Relationships,
+                relationshipService: engine.RelationshipService!,
+                relationshipOptions: engine.RelationshipOptions);
             generator.Generate(200, seed: 21);
             return 0;
         });

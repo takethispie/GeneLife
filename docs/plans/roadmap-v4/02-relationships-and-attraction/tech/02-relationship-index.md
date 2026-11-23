@@ -3,7 +3,7 @@
 **Phase:** 2 — Foundation
 **Depends:** R01
 **Estimate:** 1–2 sessions
-**Status:** Planned (V4)
+**Status:** Done
 
 ## Goal
 

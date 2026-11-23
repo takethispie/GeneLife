@@ -72,6 +72,14 @@ public static class SnapshotMigrations
                 state.AttractionModelVersion = Genelife.Family.AttractionCoefficients.CurrentVersion;
         }
 
+        if (fromVersion <= 6)
+        {
+            // v7 adds relationship edges. Older saves have no family edges, which
+            // is valid; new partner/parent edges are created by simulation systems.
+            state.RelationshipOptions ??= Genelife.Family.RelationshipOptions.Default;
+            state.Relationships ??= [];
+        }
+
         state.SchemaVersion = PersistedWorldState.CurrentSchemaVersion;
     }
 }

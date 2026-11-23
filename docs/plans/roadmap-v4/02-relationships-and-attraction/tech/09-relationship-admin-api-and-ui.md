@@ -3,7 +3,7 @@
 **Phase:** 9 — Admin
 **Depends:** R01–R08
 **Estimate:** 2 sessions
-**Status:** Planned (V4)
+**Status:** Partial — API and health done; Razor page pending
 
 ## Goal
 

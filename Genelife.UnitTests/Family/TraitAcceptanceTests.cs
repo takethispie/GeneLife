@@ -17,7 +17,10 @@ public class TraitAcceptanceTests
         engine.ExecuteWithWorld(world =>
         {
             var generator = new PopulationGenerator(
-                world, engine.NetworkIds, engine.Economy!, engine.EmploymentIndex!);
+                world, engine.NetworkIds, engine.Economy!, engine.EmploymentIndex!,
+                relationshipIndex: engine.Relationships,
+                relationshipService: engine.RelationshipService!,
+                relationshipOptions: engine.RelationshipOptions);
             generator.Generate(200, seed: 4242);
             return 0;
         });
@@ -78,7 +81,10 @@ public class TraitAcceptanceTests
         engine.ExecuteWithWorld(world =>
         {
             var generator = new PopulationGenerator(
-                world, engine.NetworkIds, engine.Economy!, engine.EmploymentIndex!);
+                world, engine.NetworkIds, engine.Economy!, engine.EmploymentIndex!,
+                relationshipIndex: engine.Relationships,
+                relationshipService: engine.RelationshipService!,
+                relationshipOptions: engine.RelationshipOptions);
             generator.Generate(sims, seed: seed);
             return 0;
         });

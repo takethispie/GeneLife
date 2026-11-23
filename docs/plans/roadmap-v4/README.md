@@ -6,7 +6,7 @@
 
 **Builds on:** V1 economy/housing/life stages, V2 spatial world and indices, V3 read-model and client conventions, the 2026-11 balance pass, `SimulationRandom`, `EstateSettlementSystem`, `PopulationInflowSystem`, `HousingRegistry`, `HouseholdRole.Child`, `Tenure.Dependent`, `HousingUnit.Capacity`.
 
-> Implementation status: in progress. Feature 01 (traits and genetics) is implemented; see [STATUS.md](STATUS.md) for the delivery checklist and verification plan.
+> Implementation status: in progress. Features 01 (traits) and 02 (relationships/attraction) are implemented; see [STATUS.md](STATUS.md) for the delivery checklist and verification plan.
 
 ---
 
@@ -166,6 +166,7 @@ Attraction is explainable, deterministic and bounded:
 - Candidate generation uses household, workplace, school and `SpatialIndex` neighbours; it never scans the whole population per sim.
 - Attractiveness vectors are precomputed per eligible sim per quarter.
 - Only opposite-sex pairs are eligible in V4a; same-sex pairing is deferred until the policy is revisited.
+- Pairing keeps partners in separate households by default (`CohabitOnPairing = false`) until births add household formation; capacity-aware merge is implemented and opt-in.
 - Pairing requires mutual eligibility, a score above the configured threshold, and mutual acceptance drawn from `SimulationRandom`.
 - Pairing creates mirrored `Partner` edges and attempts a household merge; a partnership may exist across households when capacity is unavailable.
 

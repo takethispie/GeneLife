@@ -7,6 +7,7 @@ using Genelife.Components.Housing;
 using Genelife.Components.Life;
 using Genelife.Economy;
 using Genelife.Enums;
+using Genelife.Family;
 using Genelife.Life;
 using Genelife.Messages.Events;
 using Genelife.Values;
@@ -22,12 +23,18 @@ public class DeathProcessingSystem : ISimulationSystem
 {
     private readonly World world;
     private readonly EconomyContext economy;
+    private readonly RelationshipService? relationships;
     private readonly int interval;
 
-    public DeathProcessingSystem(World world, EconomyContext economy, int? interval = null)
+    public DeathProcessingSystem(
+        World world,
+        EconomyContext economy,
+        int? interval = null,
+        RelationshipService? relationships = null)
     {
         this.world = world;
         this.economy = economy;
+        this.relationships = relationships;
         this.interval = interval ?? 1;
     }
 
@@ -82,6 +89,7 @@ public class DeathProcessingSystem : ISimulationSystem
 
     private void Process(Entity entity, long tick, Dictionary<Entity, List<Entity>> applicationsByApplicant)
     {
+        relationships?.RemoveEdgesForSim(entity);
         var life = economy.Life;
         var lifecycle = world.Get<Lifecycle>(entity);
         var alive = world.Has<Alive>(entity) ? world.Get<Alive>(entity) : new Alive();

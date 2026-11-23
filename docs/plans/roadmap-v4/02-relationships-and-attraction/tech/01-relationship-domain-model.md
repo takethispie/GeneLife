@@ -3,7 +3,7 @@
 **Phase:** 1 — Foundation
 **Depends:** T01 traits
 **Estimate:** 1–2 sessions
-**Status:** Planned (V4)
+**Status:** Done
 
 ## Goal
 

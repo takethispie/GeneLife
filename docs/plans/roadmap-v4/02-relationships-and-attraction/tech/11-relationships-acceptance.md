@@ -3,7 +3,7 @@
 **Phase:** 11 — Verification
 **Depends:** R01–R10
 **Estimate:** 1–2 sessions
-**Status:** Planned (V4)
+**Status:** Done
 
 ## Goal
 

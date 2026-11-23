@@ -10,6 +10,7 @@ using Genelife.Api.Commands;
 using Genelife.Api.Repositories;
 using Genelife.Components.Company;
 using Genelife.Components.Employment;
+using Genelife.Components.Family;
 using Genelife.Components.Finance;
 using Genelife.Components.Gen;
 using Genelife.Components.Housing;
@@ -45,6 +46,10 @@ public class SimulationEngine : IDisposable
     private MapSnapshotCacheKey cachedMapSnapshotKey;
     private SimulationClock clock = SimulationClock.Default;
     private EmploymentIndex? employmentIndex;
+    private RelationshipOptions relationshipOptions = RelationshipOptions.Default;
+    private RelationshipIndex relationshipIndex = new();
+    private RelationshipService? relationshipService;
+    private RelationshipCache relationshipCache = new();
     private SystemRegistry? systems;
     private bool isRunning;
     private long tick;
@@ -98,6 +103,10 @@ private readonly NetworkIdRegistry networkIds = new();
     public int MapVersion { get { lock (@lock) { return mapContext?.Version ?? 0; } } }
     public int RandomSeed { get; set; } = 1;
     public EmploymentIndex? EmploymentIndex { get { lock (@lock) { return employmentIndex; } } }
+    public RelationshipIndex Relationships { get { lock (@lock) { return relationshipIndex; } } }
+    public RelationshipService? RelationshipService { get { lock (@lock) { return relationshipService; } } }
+    public RelationshipOptions RelationshipOptions { get { lock (@lock) { return relationshipOptions; } } }
+    public RelationshipCache RelationshipCache { get { lock (@lock) { return relationshipCache; } } }
     public NetworkIdRegistry NetworkIds => networkIds;
     public SnapshotHistory SnapshotHistory => history;
     public long LastSnapshotBuildTimeMs { get; private set; }
@@ -148,7 +157,8 @@ private readonly NetworkIdRegistry networkIds = new();
     public void Initialize(
         EconomyOptions? economyOptions = null,
         HousingOptions? housingOptions = null,
-        GeneticsOptions? geneticsOptions = null)
+        GeneticsOptions? geneticsOptions = null,
+        RelationshipOptions? relationshipOptions = null)
     {
         lock (@lock)
         {
@@ -175,6 +185,32 @@ private readonly NetworkIdRegistry networkIds = new();
             economy.Housing.AttachNetworkIdAllocator(entity => networkIds.Allocate(entity));
             economy.Life.AttachNetworkIdAllocator(entity => networkIds.Allocate(entity));
 
+            this.relationshipOptions = relationshipOptions ?? RelationshipOptions.Default;
+            this.relationshipOptions.Validate();
+            relationshipIndex = new RelationshipIndex();
+            relationshipCache = new RelationshipCache();
+            relationshipIndex.NetworkIdResolver = entity =>
+                world.Has<NetworkId>(entity) ? world.Get<NetworkId>(entity).Value : (ulong)entity.Id;
+            relationshipService = new RelationshipService(world, relationshipIndex)
+            {
+                NetworkIdAllocator = entity => networkIds.Allocate(entity),
+                NetworkIdRemover = entity => networkIds.Remove(entity),
+                EdgeCreated = (edge, relationship) => economy?.Emit(new RelationshipFormed(
+                    GetNetworkId(world, edge),
+                    GetNetworkId(world, relationship.From),
+                    GetNetworkId(world, relationship.To),
+                    relationship.Kind.ToString(),
+                    relationship.Source.ToString(),
+                    relationship.SinceTick)),
+                EdgeChanged = (edge, relationship) => economy?.Emit(new RelationshipFormed(
+                    GetNetworkId(world, edge),
+                    GetNetworkId(world, relationship.From),
+                    GetNetworkId(world, relationship.To),
+                    relationship.Kind.ToString(),
+                    relationship.Source.ToString(),
+                    relationship.SinceTick))
+            };
+
             systems = new SystemRegistry();
             systems.Register(new NeedsDecaySystem(world));
             systems.Register(new PathfindingSystem(world, mapContext.Map, movementIndex, MovementOptions.PathRequestBudgetPerTick));
@@ -190,6 +226,9 @@ private readonly NetworkIdRegistry networkIds = new();
             systems.Register(new WorkScheduleSystem(world, economy, mapContext, movementIndex, CommuteOptions));
             systems.Register(new AttendanceSystem(world, economy));
             systems.Register(new CareerSystem(world, economy));
+            systems.Register(new RelationshipExposureSystem(world, economy, relationshipIndex, this.relationshipOptions, relationshipCache));
+            systems.Register(new AttractionSystem(world, economy, relationshipIndex, this.relationshipOptions, relationshipCache));
+            systems.Register(new PairingSystem(world, economy, relationshipService!, relationshipIndex, this.relationshipOptions, relationshipCache));
             systems.Register(new StageProgressionSystem(world, economy));
             systems.Register(new HiringSystem(world, employmentIndex, 25, economy));
             systems.Register(new PensionSystem(world, economy));
@@ -197,7 +236,7 @@ private readonly NetworkIdRegistry networkIds = new();
             systems.Register(new ElderDeclineSystem(world, economy));
             systems.Register(new MortalitySystem(world, economy));
             systems.Register(new NeedsDeathSystem(world, economy));
-            systems.Register(new DeathProcessingSystem(world, economy));
+            systems.Register(new DeathProcessingSystem(world, economy, relationships: relationshipService));
             systems.Register(new EstateSettlementSystem(world, economy));
             systems.Register(new PopulationInflowSystem(world, economy, mapContext));
             systems.Register(new PopulationMetricsSystem(world, economy));
@@ -248,6 +287,9 @@ private readonly NetworkIdRegistry networkIds = new();
             movementIndex = null;
             mapMetrics = null;
             employmentIndex = null;
+            relationshipService = null;
+            relationshipCache.Clear();
+            relationshipIndex.Clear();
             systems = null;
             history.Clear();
             networkIds.Clear();
@@ -1045,7 +1087,15 @@ if (SnapshotsEnabled)
 
             case GeneratePopulationCommand generate:
             {
-                var generator = new PopulationGenerator(world, networkIds, economy!, employmentIndex!, mapContext);
+                var generator = new PopulationGenerator(
+                    world,
+                    networkIds,
+                    economy!,
+                    employmentIndex!,
+                    mapContext,
+                    relationshipIndex,
+                    relationshipService,
+                    relationshipOptions);
                 var result = generator.Generate(
                     generate.TotalSims,
                     generate.Seed,
@@ -2651,7 +2701,253 @@ if (SnapshotsEnabled)
                 }));
             }
 
+            var relationshipIssues = RelationshipInvariants.Verify(world, relationshipIndex);
+            if (relationshipIssues.Count == 0)
+            {
+                status.Health.Add(new LifecycleHealthCheckStatus
+                {
+                    Name = "relationships",
+                    Level = "Pass",
+                    Detail = "Relationship edges and mirrors are consistent"
+                });
+            }
+            else
+            {
+                status.Health.AddRange(relationshipIssues.Select(issue => new LifecycleHealthCheckStatus
+                {
+                    Name = issue.Name,
+                    Level = issue.Level,
+                    Detail = issue.Detail
+                }));
+            }
+
             return status;
+        }
+    }
+
+    public FamilyStatus BuildFamilyStatus()
+    {
+        lock (@lock)
+        {
+            var status = new FamilyStatus
+            {
+                SeedPartnershipShare = relationshipOptions.SeedPartnershipShare,
+                SameSexPairingAllowed = relationshipOptions.AllowSameSexPairing,
+                CohabitOnPairing = relationshipOptions.CohabitOnPairing
+            };
+            if (world is null || economy is null)
+                return status;
+
+            var adults = 0;
+            var minors = 0;
+            world.Query(in new QueryDescription().WithAll<Alive>().WithNone<Dead>(),
+                (Entity entity, ref Alive alive) =>
+                {
+                    if (alive.Age < 18)
+                        minors++;
+                    else
+                        adults++;
+                });
+
+            status.Population = adults + minors;
+            status.Adults = adults;
+            status.Minors = minors;
+            status.PairedSims = relationshipsCount(sim => relationshipIndex.PartnersOf(sim).Count > 0);
+            status.SingleAdults = Math.Max(0, adults - status.PairedSims);
+
+            world.Query(in new QueryDescription().WithAll<Relationship>(),
+                (Entity _, ref Relationship relationship) =>
+                {
+                    switch (relationship.Kind)
+                    {
+                        case RelationshipKind.Parent:
+                            status.ParentEdges++;
+                            break;
+                        case RelationshipKind.Guardian:
+                            status.GuardianEdges++;
+                            break;
+                        case RelationshipKind.Partner:
+                            status.Partnerships++;
+                            break;
+                        case RelationshipKind.ExPartner:
+                            status.ExPartnerships++;
+                            break;
+                    }
+                });
+            status.Partnerships /= 2;
+            status.ExPartnerships /= 2;
+
+            var issues = new List<LifecycleHealthCheckStatus>();
+            var traitIssues = TraitInvariants.Verify(world);
+            issues.AddRange(traitIssues.Select(issue => new LifecycleHealthCheckStatus
+            {
+                Name = issue.Name,
+                Level = issue.Level,
+                Detail = issue.Detail
+            }));
+
+            var relationshipIssues = RelationshipInvariants.Verify(world, relationshipIndex);
+            if (relationshipIssues.Count == 0)
+            {
+                issues.Add(new LifecycleHealthCheckStatus
+                {
+                    Name = "relationships",
+                    Level = "Pass",
+                    Detail = "Relationship edges and mirrors are consistent"
+                });
+            }
+            else
+            {
+                issues.AddRange(relationshipIssues.Select(issue => new LifecycleHealthCheckStatus
+                {
+                    Name = issue.Name,
+                    Level = issue.Level,
+                    Detail = issue.Detail
+                }));
+            }
+
+            if (traitIssues.Count == 0)
+            {
+                issues.Add(new LifecycleHealthCheckStatus
+                {
+                    Name = "traits",
+                    Level = "Pass",
+                    Detail = "Trait invariants pass"
+                });
+            }
+            status.Health = issues;
+            return status;
+        }
+    }
+
+    private int relationshipsCount(Func<Entity, bool> predicate)
+    {
+        var count = 0;
+        world!.Query(in new QueryDescription().WithAll<Alive>().WithNone<Dead>(),
+            (Entity entity, ref Alive _) =>
+            {
+                if (predicate(entity))
+                    count++;
+            });
+        return count;
+    }
+
+    public FamilyRelationshipPage BuildFamilyRelationships(
+        ulong? simId = null,
+        string? kind = null,
+        string? source = null,
+        int take = 100,
+        int skip = 0)
+    {
+        lock (@lock)
+        {
+            var page = new FamilyRelationshipPage
+            {
+                Take = Math.Clamp(take, 1, 500),
+                Skip = Math.Max(0, skip)
+            };
+            if (world is null)
+                return page;
+
+            RelationshipKind? kindFilter = Enum.TryParse<RelationshipKind>(kind, true, out var parsedKind)
+                ? parsedKind
+                : null;
+            RelationshipSource? sourceFilter = Enum.TryParse<RelationshipSource>(source, true, out var parsedSource)
+                ? parsedSource
+                : null;
+
+            var relationships = new List<(ulong NetworkId, FamilyRelationshipStatus Status)>();
+            world.Query(in new QueryDescription().WithAll<Relationship, NetworkId>(),
+                (Entity entity, ref Relationship relationship, ref NetworkId networkId) =>
+                {
+                    if (kindFilter is not null && relationship.Kind != kindFilter.Value)
+                        return;
+                    if (sourceFilter is not null && relationship.Source != sourceFilter.Value)
+                        return;
+
+                    var fromId = NetworkIdOf(world, relationship.From);
+                    var toId = NetworkIdOf(world, relationship.To);
+                    if (simId is not null && simId.Value != fromId && simId.Value != toId)
+                        return;
+
+                    relationships.Add((networkId.Value, new FamilyRelationshipStatus
+                    {
+                        NetworkId = networkId.Value,
+                        FromSimId = fromId,
+                        FromName = NameOf(relationship.From),
+                        ToSimId = toId,
+                        ToName = NameOf(relationship.To),
+                        Kind = relationship.Kind.ToString(),
+                        Source = relationship.Source.ToString(),
+                        SinceTick = relationship.SinceTick
+                    }));
+                });
+
+            relationships.Sort((a, b) => a.NetworkId.CompareTo(b.NetworkId));
+            page.Total = relationships.Count;
+            page.Relationships = relationships
+                .Skip(page.Skip)
+                .Take(page.Take)
+                .Select(pair => pair.Status)
+                .ToList();
+            return page;
+        }
+    }
+
+    private string NameOf(Entity entity) =>
+        world is not null && world.IsAlive(entity) && world.Has<GenName>(entity)
+            ? world.Get<GenName>(entity).Name
+            : string.Empty;
+
+    public AttractionExplanationStatus BuildAttractionExplanation(ulong simId, ulong candidateId)
+    {
+        lock (@lock)
+        {
+            var result = new AttractionExplanationStatus
+            {
+                SimId = simId,
+                CandidateId = candidateId
+            };
+            if (world is null || economy is null ||
+                !networkIds.TryGetEntity(new NetworkId(simId), out var first) ||
+                !networkIds.TryGetEntity(new NetworkId(candidateId), out var second))
+            {
+                result.ReasonCode = "not-found";
+                result.Reason = "One or both sims do not exist.";
+                return result;
+            }
+
+            var eligibility = EligibilityPolicy.Evaluate(
+                world,
+                relationshipIndex,
+                first,
+                second,
+                relationshipOptions,
+                (a, b) => relationshipCache.InCooldown(a, b, tick));
+            result.Eligible = eligibility.Eligible;
+            result.ReasonCode = eligibility.Code;
+            result.Reason = eligibility.Reason;
+            if (!eligibility.Eligible || !world.Has<Traits>(first) || !world.Has<Traits>(second))
+                return result;
+
+            var input = AttractionInputFactory.Create(
+                world,
+                economy,
+                first,
+                second,
+                !relationshipIndex.HasPartner(first) && !relationshipCache.InCooldown(first, second, tick),
+                !relationshipIndex.HasPartner(second) && !relationshipCache.InCooldown(first, second, tick));
+            var score = AttractionScorer.Score(input, eligibility, relationshipOptions);
+            result.Score = score.Score;
+            result.Components = score.Components
+                .Select(component => new AttractionComponentStatus
+                {
+                    Name = component.Name,
+                    Points = component.Points,
+                    Max = component.Max
+                })
+                .ToList();
+            return result;
         }
     }
 
@@ -4108,6 +4404,21 @@ if (SnapshotsEnabled)
                     });
                 });
 
+            var relationships = new List<PersistedRelationship>();
+            world.Query(in new QueryDescription().WithAll<Relationship>(),
+                (Entity entity, ref Relationship relationship) =>
+                {
+                    relationships.Add(new PersistedRelationship
+                    {
+                        NetworkId = GetNetworkId(world, entity),
+                        FromSimNetworkId = GetNetworkId(world, relationship.From),
+                        ToSimNetworkId = GetNetworkId(world, relationship.To),
+                        Kind = relationship.Kind.ToString(),
+                        Source = relationship.Source.ToString(),
+                        SinceTick = relationship.SinceTick
+                    });
+                });
+
             var constructionProjects = new List<PersistedConstructionProject>();
             world.Query(in new QueryDescription().WithAll<ConstructionProject, NetworkId>(),
                 (Entity entity, ref ConstructionProject project, ref NetworkId nid) =>
@@ -4337,6 +4648,7 @@ if (SnapshotsEnabled)
                 EconomyOptions = economy.Options,
                 HousingOptions = economy.HousingOptions,
                 GeneticsOptions = economy.Genetics,
+                RelationshipOptions = relationshipOptions,
                 AttractionModelVersion = AttractionCoefficients.CurrentVersion,
                 Map = mapState,
                 Placements = persistedPlacements,
@@ -4359,6 +4671,7 @@ if (SnapshotsEnabled)
                 HousingUnits = housingUnits,
                 Households = households,
                 HouseholdMembers = householdMembers,
+                Relationships = relationships,
                 ConstructionProjects = constructionProjects,
                 HousingMetricHistory = housingMetricHistory,
                 HousingMarket = housingMarket,
@@ -4503,7 +4816,11 @@ if (SnapshotsEnabled)
                     $"Cannot restore schema version {state.SchemaVersion}; expected {PersistedWorldState.CurrentSchemaVersion}");
 
             RandomSeed = state.RandomSeed == 0 ? 1 : state.RandomSeed;
-            Initialize(state.EconomyOptions, state.HousingOptions, state.GeneticsOptions);
+            Initialize(
+                state.EconomyOptions,
+                state.HousingOptions,
+                state.GeneticsOptions,
+                state.RelationshipOptions);
 
             if (state.Map.Tiles.Length > 0)
             {
@@ -5063,6 +5380,31 @@ if (SnapshotsEnabled)
                         : HouseholdRole.Other));
             }
 
+            foreach (var persisted in state.Relationships)
+            {
+                if (!simEntities.TryGetValue(persisted.FromSimNetworkId, out var from) ||
+                    !simEntities.TryGetValue(persisted.ToSimNetworkId, out var to))
+                    continue;
+                if (!Enum.TryParse<RelationshipKind>(persisted.Kind, out var kind) ||
+                    !Enum.TryParse<RelationshipSource>(persisted.Source, out var source))
+                    continue;
+
+                var edge = world!.Create(new Relationship
+                {
+                    From = from,
+                    To = to,
+                    Kind = kind,
+                    Source = source,
+                    SinceTick = persisted.SinceTick
+                });
+                var relationshipNetworkId = new NetworkId(persisted.NetworkId);
+                world.Add(edge, relationshipNetworkId);
+                networkIds.AllocateWithValue(edge, relationshipNetworkId);
+            }
+
+            relationshipIndex.Rebuild(world!);
+            relationshipCache.Clear();
+
             foreach (var project in state.ConstructionProjects)
             {
                 var entity = world!.Create(new ConstructionProject
@@ -5324,7 +5666,7 @@ if (SnapshotsEnabled)
             }
 
             if (economy.Life.DeathQueue.Count > 0)
-                new DeathProcessingSystem(world!, economy).Update(state.Tick);
+                new DeathProcessingSystem(world!, economy, relationships: relationshipService).Update(state.Tick);
 
             economy.Life.EstateQueue.AddRange(estateRequests);
             if (economy.Life.EstateQueue.Count > 0)
