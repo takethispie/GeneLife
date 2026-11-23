@@ -274,13 +274,12 @@ public class HousingDevelopmentSystem : ISimulationSystem
             var paid = economy.Government.Balance.Min(amount);
             if (paid.IsPositive)
             {
-                economy.Government.Balance -= paid;
                 economy.Ledger.Record(
                     Guid.NewGuid(),
                     tick,
                     LedgerKind.ConstructionCost,
                     EconomyAccountIds.Government,
-                    null,
+                    EconomyAccountIds.Government,
                     paid,
                     "housing.construction.municipal");
             }
@@ -300,11 +299,12 @@ public class HousingDevelopmentSystem : ISimulationSystem
                 payable,
                 LedgerKind.ConstructionCost,
                 Guid.NewGuid(),
-                null,
+                EconomyAccountIds.Government,
                 "housing.construction",
                 tick))
             return Money.Zero;
 
+        economy.Government.Balance += payable;
         return payable;
     }
 

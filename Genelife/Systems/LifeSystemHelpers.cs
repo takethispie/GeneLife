@@ -1,5 +1,6 @@
 using Arch.Core;
 using Arch.Core.Extensions;
+using Genelife.Components.Company;
 using Genelife.Components.Employment;
 using Genelife.Components.Gen;
 using Genelife.Components.Life;
@@ -41,11 +42,11 @@ public static class LifeSystemHelpers
         if (world.Has<CurrentAction>(sim))
             world.Get<CurrentAction>(sim).Type = Enums.ActionType.Idle;
 
+        RepostSeat(world, economy, employee, tick);
         OfficeSeatAccounting.RefreshUsedSeats(world, employee.Office);
 
         if (retire)
         {
-            RepostSeat(world, employee);
             economy?.Emit(new EmployeeRetired(
                 NetworkIdOf(world, sim),
                 NetworkIdOf(world, employee.Company),
@@ -54,14 +55,24 @@ public static class LifeSystemHelpers
         }
     }
 
-    private static void RepostSeat(World world, Employee employee)
+    private static void RepostSeat(World world, EconomyContext? economy, Employee employee, long tick)
     {
+        if (!world.IsAlive(employee.Company) || !world.Has<CompanyAccount>(employee.Company))
+            return;
+
+        var account = world.Get<CompanyAccount>(employee.Company);
+        if (account.State is CompanySolvency.Insolvent or CompanySolvency.Bankrupt)
+            return;
+        if (!world.IsAlive(employee.Office) || !world.Has<Office>(employee.Office) ||
+            world.Get<Office>(employee.Office).IsClosed)
+            return;
+
         Entity postingEntity = Entity.Null;
         JobPosting posting = default;
         world.Query(in new QueryDescription().WithAll<JobPosting>(),
             (Entity entity, ref JobPosting candidate) =>
             {
-                if (postingEntity != Entity.Null || candidate.IsClosed)
+                if (postingEntity != Entity.Null)
                     return;
                 if (candidate.Company != employee.Company ||
                     candidate.Office != employee.Office ||
@@ -77,8 +88,11 @@ public static class LifeSystemHelpers
         world.Create(new OpenPosition(postingEntity));
         posting.OpenSeats++;
         posting.TotalSeats++;
+        posting.IsClosed = false;
         world.Get<JobPosting>(postingEntity) = posting;
-        OfficeSeatAccounting.RefreshUsedSeats(world, employee.Office);
+        economy?.Emit(new JobSeatReserved(
+            world.Has<NetworkId>(postingEntity) ? world.Get<NetworkId>(postingEntity).Value : 0UL,
+            1));
     }
 
     public static void RemoveJobSearch(World world, Entity sim)

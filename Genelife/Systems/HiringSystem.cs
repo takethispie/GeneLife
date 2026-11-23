@@ -91,7 +91,7 @@ public class HiringSystem : ISimulationSystem
                     ? world.Get<NetworkId>(hire.PostingEntity).Value
                     : 0UL;
                 var companyNetworkId = CompanyAccountService.NetworkIdOf(world, posting.Company);
-                world.Destroy(hire.PostingEntity);
+                posting.IsClosed = true;
                 economy?.Emit(new JobPostingClosed(postingNetworkId, companyNetworkId));
             }
         }

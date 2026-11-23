@@ -167,30 +167,37 @@ public class EnrollmentSystem : ISimulationSystem
             var due = school.MonthlyCost * enrolled;
             if (school.Owner != Entity.Null && world.IsAlive(school.Owner) && world.Has<CompanyAccount>(school.Owner))
             {
-                economy.Accounts.TryDebit(
-                    school.Owner,
-                    due,
-                    LedgerKind.SchoolCost,
-                    Guid.NewGuid(),
-                    null,
-                    "school.cost",
-                    tick);
+                var account = world.Get<CompanyAccount>(school.Owner);
+                var paid = account.Balance.Min(due);
+                if (paid.IsPositive &&
+                    economy.Accounts.TryDebit(
+                        school.Owner,
+                        paid,
+                        LedgerKind.SchoolCost,
+                        Guid.NewGuid(),
+                        EconomyAccountIds.Government,
+                        "school.cost",
+                        tick))
+                {
+                    economy.Government.Balance += paid;
+                }
                 continue;
             }
 
-            var paid = due.Min(economy.Government.Balance);
-            if (!paid.IsPositive)
+            // Public education is provided in kind: the government must be
+            // solvent enough to fund it, but no cash leaves the public account.
+            var publicPaid = due.Min(economy.Government.Balance);
+            if (!publicPaid.IsPositive)
                 continue;
 
-            economy.Government.Balance -= paid;
             economy.Ledger.Record(
                 Guid.NewGuid(),
                 tick,
                 LedgerKind.SchoolCost,
                 EconomyAccountIds.Government,
-                LifeSystemHelpers.NetworkIdOf(world, entity) is var id && id != 0 ? id : null,
-                paid,
-                "school.cost");
+                EconomyAccountIds.Government,
+                publicPaid,
+                "school.cost.public");
         }
     }
 }

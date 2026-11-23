@@ -68,7 +68,38 @@ public sealed class PopulationGenerator
 
         var random = new Random(seed);
         if (!economy.Government.Balance.IsPositive)
-            economy.Government.Balance = Money.FromUnits(500_000m);
+        {
+            var endowment = economy.Options.SeededGovernmentFundPerSim * totalSims;
+            if (endowment.IsPositive)
+            {
+                economy.Government.Balance = endowment;
+                economy.Ledger.Record(
+                    Guid.NewGuid(),
+                    tick,
+                    LedgerKind.CapitalInjected,
+                    null,
+                    EconomyAccountIds.Government,
+                    endowment,
+                    "population.government.seed");
+            }
+        }
+
+        var pensionSeed = economy.Options.SeededPensionFundPerSim * totalSims;
+        if (!economy.Pension.Balance.IsPositive && pensionSeed.IsPositive &&
+            economy.Government.Balance >= pensionSeed)
+        {
+            economy.Government.Balance -= pensionSeed;
+            economy.Pension.Balance += pensionSeed;
+            economy.Ledger.Record(
+                Guid.NewGuid(),
+                tick,
+                LedgerKind.PensionContribution,
+                EconomyAccountIds.Government,
+                EconomyAccountIds.PensionFund,
+                pensionSeed,
+                "population.pension.seed");
+        }
+
         var childCount = children ?? Math.Max(0, totalSims * 22 / 100);
         var adultCount = adults ?? Math.Max(0, totalSims - childCount);
         if (childCount + adultCount > totalSims)
@@ -182,6 +213,18 @@ public sealed class PopulationGenerator
         if (map is not null)
             MapSpawner.PlaceSim(world, entity, map, networkId.Value);
         economy.Emit(new SimCreated(networkId.Value, name, age));
+
+        if (cash.IsPositive)
+        {
+            economy.Ledger.Record(
+                Guid.NewGuid(),
+                tick,
+                LedgerKind.Grant,
+                null,
+                networkId.Value,
+                cash,
+                "population.seed");
+        }
 
         if (lookingForWork)
             world.Add(entity, new JobSeeker(true, profile.ToMask(),
@@ -309,13 +352,6 @@ public sealed class PopulationGenerator
             posting.OpenSeats = seats.Count;
             posting.IsClosed = seats.Count == 0;
             world.Get<JobPosting>(postingEntity) = posting;
-            if (posting.IsClosed)
-                world.Destroy(postingEntity);
-            foreach (var seat in seats)
-            {
-                if (world.IsAlive(seat))
-                    world.Destroy(seat);
-            }
         }
 
         return hired;
@@ -378,6 +414,13 @@ public sealed class PopulationGenerator
         return entity;
     }
 
+    private static readonly string[] CompanyNames =
+    {
+        "Northwind", "Bluebird", "Cedar", "Harbor", "Summit", "Prairie", "Atlas",
+        "Beacon", "Copper", "Delta", "Ember", "Falcon", "Granite", "Hollow",
+        "Iron", "Juniper", "Keystone", "Lumen", "Maple", "Nimbus"
+    };
+
     private int EnsureCompanies(int workCount, long tick)
     {
         var existing = 0;
@@ -385,22 +428,49 @@ public sealed class PopulationGenerator
         if (existing > 0)
             return existing;
 
+        var employmentShare = Math.Clamp(1m - economy.Options.SeedUnemploymentRate, 0.5m, 1m);
+        var seats = (int)Math.Round(workCount * (double)employmentShare);
+        if (seats <= 0)
+            return 0;
+
+        const int maxSeatsPerCompany = 10;
+        const int minSeatsPerCompany = 4;
+        var companyCount = Math.Max(1, (int)Math.Ceiling(seats / (double)maxSeatsPerCompany));
+        if (seats / companyCount < minSeatsPerCompany)
+            companyCount = Math.Max(1, seats / minSeatsPerCompany);
+
         var companyRepository = new CompanyRepository(world, employmentIndex, networkIds, economy, map: map);
         var postingRepository = new JobPostingRepository(world, networkIds, economy);
-        var seatsPerCompany = Math.Max(4, Math.Min(10, workCount / 2));
         var skills = new[] { Skill.Sales, Skill.Programming, Skill.Engineering };
+        var baseSeats = seats / companyCount;
+        var remainder = seats % companyCount;
 
-        for (var i = 0; i < 2; i++)
+        for (var i = 0; i < companyCount; i++)
         {
-            var companyName = i == 0 ? "Northwind" : "Bluebird";
-            var companyId = companyRepository.Add(companyName);
+            var companySeats = baseSeats + (i < remainder ? 1 : 0);
+            if (companySeats <= 0)
+                continue;
+
+            var companyName = i < CompanyNames.Length
+                ? CompanyNames[i]
+                : $"{CompanyNames[i % CompanyNames.Length]} {i / CompanyNames.Length + 1}";
+            NetworkId companyId;
+            try
+            {
+                companyId = companyRepository.Add(
+                    companyName,
+                    capital: economy.Options.SeededCompanyCapital);
+            }
+            catch (InvalidOperationException)
+            {
+                break;
+            }
             economy.Emit(new CompanyCreated(companyId.Value, companyName));
             if (!networkIds.TryGetEntity(companyId, out var company))
                 continue;
             if (world.Has<CompanyAccount>(company))
             {
                 ref var account = ref world.Get<CompanyAccount>(company);
-                account.Balance = Money.FromUnits(1_000_000m);
                 account.State = CompanySolvency.Healthy;
             }
 
@@ -418,36 +488,75 @@ public sealed class PopulationGenerator
             postingRepository.Open(
                 companyId,
                 officeNetworkId,
-                i == 0 ? "Sales Associate" : "Engineer",
-                Money.FromUnits(900 + i * 150),
+                i % 2 == 0 ? "Sales Associate" : "Engineer",
+                Money.FromUnits(900 + (i % 2) * 150),
                 skills[i % skills.Length],
-                seatsPerCompany,
+                companySeats,
                 tick);
         }
 
-        return 2;
+        return companyCount;
     }
 
     private void EnsureHousing(int adultCount)
     {
+        var landlords = CompanyLandlords();
         var total = 0;
         world.Query(in new QueryDescription().WithAll<Property>(), (ref Property _) => total++);
         if (total == 0)
-            HousingBootstrap.CreateStock(world, economy, 0, map: map);
+            HousingBootstrap.CreateStock(world, economy, 0, landlords: landlords, map: map);
 
-        var vacancy = economy.Housing.VacancyCount();
-        if (vacancy < adultCount)
+        var targetUnits = (int)Math.Ceiling(
+            adultCount * (1d + (double)economy.HousingOptions.SeedVacancyRate));
+        var units = 0;
+        world.Query(in new QueryDescription().WithAll<HousingUnit>(), (ref HousingUnit _) => units++);
+        if (units < targetUnits)
         {
-            HousingBootstrap.CreateProperty(
-                world,
-                economy,
-                "Central",
-                HousingTier.Basic,
-                adultCount - vacancy,
-                0.6f,
-                0.5f,
-                0);
+            var toAdd = targetUnits - units;
+            if (landlords.Count > 0)
+            {
+                HousingBootstrap.CreateDistributedProperty(
+                    world,
+                    economy,
+                    "Central",
+                    HousingTier.Basic,
+                    toAdd,
+                    landlords,
+                    0.6f,
+                    0.5f,
+                    0,
+                    map: map);
+            }
+            else
+            {
+                HousingBootstrap.CreateProperty(
+                    world,
+                    economy,
+                    "Central",
+                    HousingTier.Basic,
+                    toAdd,
+                    0.6f,
+                    0.5f,
+                    0,
+                    map: map);
+            }
         }
+    }
+
+    private List<Entity> CompanyLandlords()
+    {
+        var companies = new List<Entity>();
+        world.Query(in new QueryDescription().WithAll<CompanyName, NetworkId>(),
+            (Entity entity, ref CompanyName _, ref NetworkId _) => companies.Add(entity));
+        companies.Sort((a, b) =>
+        {
+            var hasA = networkIds.TryGetNetworkId(a, out var idA);
+            var hasB = networkIds.TryGetNetworkId(b, out var idB);
+            if (hasA && hasB)
+                return idA.Value.CompareTo(idB.Value);
+            return a.Id.CompareTo(b.Id);
+        });
+        return companies;
     }
 
     private static SkillProfile ChildProfile(Random random)

@@ -8,6 +8,9 @@ public sealed class PersistedWorldState
     public long Tick { get; set; }
     public int RandomSeed { get; set; } = 1;
     public int MigratedFromVersion { get; set; }
+    public bool BalanceBackfilled { get; set; }
+    public Genelife.Economy.EconomyOptions? EconomyOptions { get; set; }
+    public Genelife.Housing.HousingOptions? HousingOptions { get; set; }
     public PersistedMap Map { get; set; } = new();
     public List<PersistedPlacement> Placements { get; set; } = [];
     public bool HousingMigrated { get; set; }

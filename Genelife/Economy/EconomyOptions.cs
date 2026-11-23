@@ -13,6 +13,44 @@ public sealed class EconomyOptions
     public Money InitialCompanyReserve { get; set; } = Money.FromUnits(2_500m);
     public Money InitialBankCapital { get; set; } = Money.FromUnits(100_000m);
 
+    /// <summary>
+    /// Capital for each company created by the population seed. Kept separate
+    /// from <see cref="InitialCompanyCapital"/> because a seeded world needs
+    /// enough working capital per worker for payroll to survive a decade and
+    /// for UBI-only money creation to stay inside the 0-10% per decade target.
+    /// </summary>
+    public Money SeededCompanyCapital { get; set; } = Money.FromUnits(1_200_000m);
+
+    /// <summary>
+    /// Government endowment per seeded sim. This is the buffer that funds
+    /// pensions, benefits and municipal services before tax revenue arrives.
+    /// </summary>
+    public Money SeededGovernmentFundPerSim { get; set; } = Money.FromUnits(10_000m);
+
+    /// <summary>
+    /// Pre-funded pension balance per seeded sim, transferred from the
+    /// government endowment so the fund starts inside the funding-ratio band.
+    /// </summary>
+    public Money SeededPensionFundPerSim { get; set; } = Money.FromUnits(6_000m);
+
+    /// <summary>
+    /// Share of working-stage adults deliberately left without a seat at seed
+    /// time. Creates the frictional unemployment the balance targets expect.
+    /// </summary>
+    public decimal SeedUnemploymentRate { get; set; } = 0.05m;
+
+    /// <summary>
+    /// Labour-market stabiliser. Job growth triggers when unemployment rises
+    /// above <see cref="TargetUnemploymentRate"/> plus
+    /// <see cref="JobGrowthTrigger"/>, and creates government-funded companies
+    /// of <see cref="JobGrowthSeatsPerCompany"/> seats.
+    /// </summary>
+    public decimal TargetUnemploymentRate { get; set; } = 0.06m;
+    public decimal JobGrowthTrigger { get; set; } = 0.01m;
+    public Money JobGrowthCompanyCapital { get; set; } = Money.FromUnits(300_000m);
+    public int JobGrowthSeatsPerCompany { get; set; } = 10;
+    public int JobGrowthMaxPerYear { get; set; } = 3;
+
     public decimal IncomeTaxRate { get; set; } = 0.12m;
     public decimal EmployeePensionRate { get; set; } = 0.05m;
     public decimal EmployerPensionRate { get; set; } = 0.05m;
@@ -22,7 +60,7 @@ public sealed class EconomyOptions
     public Money UniversalBasicIncome { get; set; } = Money.FromUnits(50m);
     public int BasicIncomeIntervalTicks { get; set; } = 100;
 
-    public Money MonthlyConsumptionBudget { get; set; } = Money.FromUnits(100m);
+    public Money MonthlyConsumptionBudget { get; set; } = Money.FromUnits(200m);
     public decimal FoodShare { get; set; } = 0.45m;
     public decimal HygieneShare { get; set; } = 0.15m;
     public decimal LeisureShare { get; set; } = 0.20m;
@@ -35,7 +73,7 @@ public sealed class EconomyOptions
 
     public Money DefaultOfficeOperatingCost { get; set; } = Money.FromUnits(200m);
 
-    public Money SavingsBuffer { get; set; } = Money.FromUnits(300m);
+    public Money SavingsBuffer { get; set; } = Money.FromUnits(1_000m);
     public Money MinimumCash { get; set; } = Money.FromUnits(100m);
 
     public decimal LoanAnnualRate { get; set; } = 0.08m;

@@ -66,6 +66,19 @@ public class EstateSettlementSystem : ISimulationSystem
         var funeral = assets.Min(FuneralCost);
         var remaining = assets - funeral;
 
+        if (funeral.IsPositive)
+        {
+            economy.Government.Balance += funeral;
+            economy.Ledger.Record(
+                Guid.NewGuid(),
+                tick,
+                LedgerKind.FuneralCost,
+                request.SimNetworkId,
+                EconomyAccountIds.Government,
+                funeral,
+                "estate.funeral");
+        }
+
         var arrears = Money.FromUnits((decimal)request.HouseholdRentArrears + (decimal)request.HouseholdUtilityArrears);
         var debtsPaid = remaining.Min(arrears);
         remaining -= debtsPaid;

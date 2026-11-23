@@ -263,7 +263,7 @@ public class LifecycleTests
         Assert.Equal(Money.Zero, world.Get<Wallet>(sim).Balance);
         Assert.Equal(Money.FromUnits(900m), world.Get<Wallet>(heir).Balance);
         Assert.True(economy.Life.MortalityLog.Count > 0);
-        Assert.True(economy.Government.Balance.IsZero);
+        Assert.Equal(Money.FromUnits(100m), economy.Government.Balance);
     }
 
     [Fact]

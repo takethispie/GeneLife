@@ -43,5 +43,6 @@ public enum LedgerKind
     SavingsWithdrawal,
     SavingsInterest,
     WriteOff,
-    Grant
+    Grant,
+    FuneralCost
 }

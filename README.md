@@ -28,9 +28,8 @@ The AppHost launches the browser client on `http://localhost:5173` and injects
 - full NPC lifecycle: education, work, retirement, health, mortality, estates and population inflow
 
 ## Planned Features
-- relationship between NPC with an attraction algorithm
-- genetic material with reproductive capabilities (NPC can have children)
-  merging DNA in a semi-realistic way
+- relationship between NPCs with an attraction algorithm — planned in [Roadmap V4](docs/plans/roadmap-v4/README.md)
+- genetic material with reproductive capabilities (NPC can have children), merging DNA in a semi-realistic way — planned in [Roadmap V4](docs/plans/roadmap-v4/README.md)
 - water, electricity consumption
 - advanced grocery system
 

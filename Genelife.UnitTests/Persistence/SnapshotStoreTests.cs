@@ -116,6 +116,44 @@ public class SnapshotStoreTests : IDisposable
     }
 
     [Fact]
+    public Task LoadLatest_RestoresBalanceOptions()
+    {
+        using var store = CreateStore();
+        store.InitializeAsync().GetAwaiter().GetResult();
+
+        var state = new PersistedWorldState
+        {
+            SchemaVersion = PersistedWorldState.CurrentSchemaVersion,
+            Tick = 1,
+            BalanceBackfilled = true,
+            EconomyOptions = new Genelife.Economy.EconomyOptions
+            {
+                MonthlyConsumptionBudget = Genelife.Values.Money.FromUnits(777m),
+                SavingsBuffer = Genelife.Values.Money.FromUnits(321m)
+            },
+            HousingOptions = new Genelife.Housing.HousingOptions
+            {
+                SeedVacancyRate = 0.07m,
+                MaxActiveConstructionProjects = 2
+            }
+        };
+
+        store.Save(state);
+
+        var loaded = store.LoadLatest();
+        Assert.NotNull(loaded);
+        Assert.True(loaded!.BalanceBackfilled);
+        Assert.NotNull(loaded.EconomyOptions);
+        Assert.Equal(Genelife.Values.Money.FromUnits(777m).Cents, loaded.EconomyOptions!.MonthlyConsumptionBudget.Cents);
+        Assert.Equal(Genelife.Values.Money.FromUnits(321m).Cents, loaded.EconomyOptions.SavingsBuffer.Cents);
+        Assert.NotNull(loaded.HousingOptions);
+        Assert.Equal(0.07m, loaded.HousingOptions!.SeedVacancyRate);
+        Assert.Equal(2, loaded.HousingOptions.MaxActiveConstructionProjects);
+
+        return Task.CompletedTask;
+    }
+
+    [Fact]
     public Task LoadLatest_ReturnsLatestByTick()
     {
         using var store = CreateStore();

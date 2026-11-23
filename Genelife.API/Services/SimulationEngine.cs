@@ -144,7 +144,7 @@ private readonly NetworkIdRegistry networkIds = new();
         intentRejections.Enqueue(new IntentRejection(playerId, sequence, code, message));
     }
 
-    public void Initialize()
+    public void Initialize(EconomyOptions? economyOptions = null, HousingOptions? housingOptions = null)
     {
         lock (@lock)
         {
@@ -160,7 +160,13 @@ private readonly NetworkIdRegistry networkIds = new();
             metrics = new Metrics();
             employmentIndex = new EmploymentIndex();
             clock = new SimulationClock(ClockOptions);
-            economy = new EconomyContext(world, employmentIndex, clock: clock, randomSeed: RandomSeed);
+            economy = new EconomyContext(
+                world,
+                employmentIndex,
+                options: economyOptions,
+                clock: clock,
+                randomSeed: RandomSeed,
+                housingOptions: housingOptions);
             economy.Housing.AttachNetworkIdAllocator(entity => networkIds.Allocate(entity));
             economy.Life.AttachNetworkIdAllocator(entity => networkIds.Allocate(entity));
 
@@ -204,6 +210,7 @@ private readonly NetworkIdRegistry networkIds = new();
             systems.Register(new CorporateTaxSystem(world, economy));
             systems.Register(new CreditSystem(world, economy));
             systems.Register(new CompanySolvencySystem(world, economy));
+            systems.Register(new JobGrowthSystem(world, networkIds, economy, employmentIndex, mapContext));
             systems.Register(new JobSeekerSystem(world, 100, economy));
             systems.Register(new HousingDevelopmentSystem(world, economy, mapContext));
             systems.Register(new EconomyMetricsSystem(world, economy));
@@ -4271,6 +4278,9 @@ if (SnapshotsEnabled)
                 SchemaVersion = PersistedWorldState.CurrentSchemaVersion,
                 Tick = currentTick,
                 RandomSeed = economy.Random.Seed,
+                BalanceBackfilled = true,
+                EconomyOptions = economy.Options,
+                HousingOptions = economy.HousingOptions,
                 Map = mapState,
                 Placements = persistedPlacements,
                 HousingMigrated = true,
@@ -4436,7 +4446,7 @@ if (SnapshotsEnabled)
                     $"Cannot restore schema version {state.SchemaVersion}; expected {PersistedWorldState.CurrentSchemaVersion}");
 
             RandomSeed = state.RandomSeed == 0 ? 1 : state.RandomSeed;
-            Initialize();
+            Initialize(state.EconomyOptions, state.HousingOptions);
 
             if (state.Map.Tiles.Length > 0)
             {
@@ -5330,6 +5340,81 @@ if (SnapshotsEnabled)
             }
 
             tick = state.Tick;
+
+            if (!state.BalanceBackfilled)
+                BackfillBalanceStock(state, tick);
         }
+    }
+
+    /// <summary>
+    /// One-time migration for saves created before the 2026-11 balance pass.
+    /// New saves are captured with <see cref="PersistedWorldState.BalanceBackfilled"/>
+    /// set, so this only runs for legacy snapshots.
+    /// </summary>
+    private void BackfillBalanceStock(PersistedWorldState state, long tick)
+    {
+        var living = economy!.Life.Index.TotalLiving;
+        var pensionSeed = economy.Options.SeededPensionFundPerSim * living;
+        if (!economy.Pension.Balance.IsPositive && pensionSeed.IsPositive &&
+            economy.Government.Balance >= pensionSeed)
+        {
+            economy.Government.Balance -= pensionSeed;
+            economy.Pension.Balance += pensionSeed;
+            economy.Ledger.Record(
+                Guid.NewGuid(),
+                tick,
+                LedgerKind.PensionContribution,
+                EconomyAccountIds.Government,
+                EconomyAccountIds.PensionFund,
+                pensionSeed,
+                "restore.pension.backfill");
+        }
+
+        var companies = new List<Entity>();
+        world!.Query(in new QueryDescription().WithAll<CompanyName, NetworkId>(),
+            (Entity entity, ref CompanyName _, ref NetworkId _) => companies.Add(entity));
+        companies.Sort((a, b) =>
+        {
+            var hasA = networkIds.TryGetNetworkId(a, out var idA);
+            var hasB = networkIds.TryGetNetworkId(b, out var idB);
+            if (hasA && hasB)
+                return idA.Value.CompareTo(idB.Value);
+            return a.Id.CompareTo(b.Id);
+        });
+
+        var companyOwnedProperties = 0;
+        world!.Query(in new QueryDescription().WithAll<Property>(),
+            (ref Property property) =>
+            {
+                if (property.Owner != Entity.Null)
+                    companyOwnedProperties++;
+            });
+
+        if (companyOwnedProperties == 0 && companies.Count > 0)
+        {
+            var basicProperties = new List<Entity>();
+            world!.Query(in new QueryDescription().WithAll<Property>(),
+                (Entity entity, ref Property property) =>
+                {
+                    if (property.Owner == Entity.Null && !property.IsShelter &&
+                        property.Name.Contains("Basic", StringComparison.OrdinalIgnoreCase))
+                        basicProperties.Add(entity);
+                });
+
+            for (var i = 0; i < basicProperties.Count; i++)
+            {
+                var owner = companies[i % companies.Count];
+                economy.Housing.SetPropertyOwner(basicProperties[i], owner);
+                var data = world!.Get<Property>(basicProperties[i]);
+                data.Owner = owner;
+                world.Get<Property>(basicProperties[i]) = data;
+            }
+        }
+
+        // Legacy saves keep the old 2-company stock. Run one growth year now;
+        // subsequent years are handled by the registered JobGrowthSystem.
+        new JobGrowthSystem(world!, networkIds, economy, employmentIndex!, mapContext).Update(tick);
+
+        state.BalanceBackfilled = true;
     }
 }

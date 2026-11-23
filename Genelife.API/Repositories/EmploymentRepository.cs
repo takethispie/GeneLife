@@ -94,8 +94,6 @@ public sealed class EmploymentRepository
             }
         }
 
-        ReopenSeatIfPostingExists(employee);
-
         economy?.Emit(new EmployeeFired(
             CompanyAccountService.NetworkIdOf(world, company),
             simNetworkId));
@@ -122,37 +120,5 @@ public sealed class EmploymentRepository
         {
             Severance = severance
         });
-    }
-
-    private void ReopenSeatIfPostingExists(Employee employee)
-    {
-        Entity postingEntity = Entity.Null;
-        JobPosting posting = default;
-        var query = new QueryDescription().WithAll<JobPosting>();
-        world.Query(in query, (Entity entity, ref JobPosting candidate) =>
-        {
-            if (postingEntity != Entity.Null)
-                return;
-            if (candidate.Company != employee.Company ||
-                candidate.Office != employee.Office ||
-                candidate.IsClosed ||
-                !string.Equals(candidate.Position, employee.Position, StringComparison.Ordinal))
-                return;
-            postingEntity = entity;
-            posting = candidate;
-        });
-
-        if (postingEntity == Entity.Null)
-            return;
-
-        world.Create(new OpenPosition(postingEntity));
-        posting.OpenSeats++;
-        posting.TotalSeats++;
-        if (world.IsAlive(postingEntity))
-            world.Get<JobPosting>(postingEntity) = posting;
-        OfficeSeatAccounting.RefreshUsedSeats(world, employee.Office);
-        economy?.Emit(new JobSeatReserved(
-            world.Has<NetworkId>(postingEntity) ? world.Get<NetworkId>(postingEntity).Value : 0UL,
-            1));
     }
 }

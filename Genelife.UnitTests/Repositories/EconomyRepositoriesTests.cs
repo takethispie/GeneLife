@@ -100,4 +100,54 @@ public class EconomyRepositoriesTests
         Assert.All(applications, entity =>
             Assert.Equal(ApplicationStatus.Rejected, world.Get<JobApplication>(entity).Status));
     }
+
+    [Fact]
+    public void EmploymentRepository_Fire_ReopensExactlyOneSeat()
+    {
+        var world = World.Create();
+        var economy = new EconomyContext(world);
+        var networkIds = new NetworkIdRegistry();
+        var companies = new CompanyRepository(world, economy.Employment, networkIds, economy);
+        var offices = new OfficeRepository(world, networkIds, economy);
+        var postings = new JobPostingRepository(world, networkIds, economy);
+        var employment = new EmploymentRepository(world, economy.Employment, networkIds, economy);
+
+        var companyId = companies.Add("Acme", createHeadquarters: false);
+        var officeId = offices.Add(companyId, "Main", 2, Money.FromUnits(50m));
+        var postingId = postings.Open(
+            companyId,
+            officeId,
+            "Dev",
+            Money.FromUnits(1000m),
+            Skill.Programming,
+            seats: 1);
+
+        networkIds.TryGetEntity(postingId, out var posting);
+        var seats = new List<Entity>();
+        world.Query(in new QueryDescription().WithAll<OpenPosition>(),
+            (Entity entity, ref OpenPosition _) => seats.Add(entity));
+        foreach (var seat in seats)
+            world.Destroy(seat);
+
+        ref var postingData = ref world.Get<JobPosting>(posting);
+        postingData.OpenSeats = 0;
+        postingData.IsClosed = true;
+
+        networkIds.TryGetEntity(companyId, out var company);
+        networkIds.TryGetEntity(officeId, out var office);
+        var sim = world.Create(
+            new GenName("Worker"),
+            new Employee(company, office, "Dev", Money.FromUnits(1000m)));
+        var simId = networkIds.Allocate(sim);
+
+        Assert.True(employment.Fire(simId.Value, 100));
+
+        Assert.Equal(1, world.Get<JobPosting>(posting).OpenSeats);
+        Assert.False(world.Get<JobPosting>(posting).IsClosed);
+
+        var openSeats = 0;
+        world.Query(in new QueryDescription().WithAll<OpenPosition>(),
+            (ref OpenPosition _) => openSeats++);
+        Assert.Equal(1, openSeats);
+    }
 }

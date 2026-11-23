@@ -67,7 +67,7 @@ public class HiringSystemTests
     }
 
     [Fact]
-    public void Update_PreservesApplicationDetailsAfterPostingIsDestroyed()
+    public void Update_PreservesApplicationDetailsAfterPostingIsClosed()
     {
         var world = World.Create();
         var index = new EmploymentIndex();
@@ -79,7 +79,8 @@ public class HiringSystemTests
         system.Update();
         system.Update();
 
-        Assert.False(world.IsAlive(posting));
+        Assert.True(world.IsAlive(posting));
+        Assert.True(world.Get<JobPosting>(posting).IsClosed);
 
         var applications = new List<JobApplication>();
         var query = new QueryDescription().WithAll<JobApplication>();
@@ -177,7 +178,7 @@ public class HiringSystemTests
     }
 
     [Fact]
-    public void Update_DestroysFilledPosting()
+    public void Update_ClosesFilledPosting()
     {
         var world = World.Create();
         var index = new EmploymentIndex();
@@ -189,7 +190,8 @@ public class HiringSystemTests
         system.Update();
         system.Update();
 
-        Assert.False(world.IsAlive(posting));
+        Assert.True(world.IsAlive(posting));
+        Assert.True(world.Get<JobPosting>(posting).IsClosed);
     }
 
     [Fact]

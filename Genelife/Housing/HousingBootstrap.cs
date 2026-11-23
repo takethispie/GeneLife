@@ -1,5 +1,6 @@
 using Arch.Core;
 using Arch.Core.Extensions;
+using Genelife.Components.Company;
 using Genelife.Components.Housing;
 using Genelife.Enums;
 using Genelife.Economy;
@@ -19,13 +20,65 @@ public static class HousingBootstrap
         EconomyContext economy,
         long tick,
         string district = "Central",
+        IReadOnlyList<Entity>? landlords = null,
         MapContext? map = null)
     {
         var created = 0;
-        created += CreateProperty(world, economy, district, HousingTier.Basic, 30, 0.6f, 0.5f, tick, map: map);
+        created += landlords is { Count: > 0 }
+            ? CreateDistributedProperty(world, economy, district, HousingTier.Basic, 30, landlords, 0.6f, 0.5f, tick, map)
+            : CreateProperty(world, economy, district, HousingTier.Basic, 30, 0.6f, 0.5f, tick, map: map);
         created += CreateProperty(world, economy, district, HousingTier.Comfortable, 12, 0.8f, 0.65f, tick, map: map);
         created += CreateProperty(world, economy, district, HousingTier.Luxury, 3, 0.95f, 0.8f, tick, map: map);
         created += CreateShelter(world, economy, district, 6, tick, map);
+        return created;
+    }
+
+    /// <summary>
+    /// Splits a unit block across landlords so rental income reaches several
+    /// company accounts instead of concentrating in a single owner.
+    /// </summary>
+    public static int CreateDistributedProperty(
+        World world,
+        EconomyContext economy,
+        string district,
+        HousingTier tier,
+        int unitCount,
+        IReadOnlyList<Entity> landlords,
+        float condition,
+        float neighbourhood,
+        long tick,
+        MapContext? map = null)
+    {
+        if (unitCount <= 0 || landlords.Count == 0)
+            return 0;
+
+        var created = 0;
+        var baseUnits = unitCount / landlords.Count;
+        var remainder = unitCount % landlords.Count;
+        for (var i = 0; i < landlords.Count; i++)
+        {
+            var count = baseUnits + (i < remainder ? 1 : 0);
+            if (count <= 0)
+                continue;
+
+            var owner = landlords[i];
+            var ownerName = world.IsAlive(owner) && world.Has<CompanyName>(owner)
+                ? world.Get<CompanyName>(owner).Name
+                : $"Owner {i + 1}";
+            created += CreateProperty(
+                world,
+                economy,
+                district,
+                tier,
+                count,
+                condition,
+                neighbourhood,
+                tick,
+                owner: owner,
+                name: $"{district} {tier} ({ownerName})",
+                map: map);
+        }
+
         return created;
     }
 

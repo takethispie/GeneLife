@@ -4,11 +4,17 @@ The current simulation pays wages into `Wallet` without taking the money from an
 
 V1 treats money as a finite quantity owned by somebody at all times.
 
-INPUT FROM USER: every NPC and player should get 50 buck every 100 tick no matter their status, it is the only not-closed part of the economy
+## Universal basic income (implemented)
+
+Every living NPC and the player receive **50 units every 100 ticks**, regardless of employment, health or housing status. This is the single approved money-creation source in the closed loop.
+
+- Implementation: `BasicIncomeSystem` (order 440), configured by `EconomyOptions.UniversalBasicIncome` and `BasicIncomeIntervalTicks`.
+- Ledger: every payment is recorded as `LedgerKind.BasicIncome` from the null source to the recipient, so the audit trail shows exactly how much was minted.
+- Everything else is a transfer: wages debit company accounts, spending credits companies, rent credits landlords, tax credits government.
 
 ## Principles
 
-1. **Conservation.** Wages debit a company account. Spending credits a company account. Rent credits a landlord. Tax credits the government. Only explicit sources create money: initial company capital and initial household cash.
+1. **Conservation.** Wages debit a company account. Spending credits a company account. Rent credits a landlord. Tax credits the government. Only explicit sources create money: initial company capital, initial household cash and the universal basic income.
 2. **Traceability.** Every movement is a ledger entry with a kind, source, destination, amount and tick. No silent balance edits in gameplay systems.
 3. **Constraint.** A payment that cannot be funded changes state instead of succeeding: partial wages become arrears, unpaid rent becomes debt, an unfunded company becomes insolvent.
 4. **Observability.** The admin can answer "where did this money go?" for any company or household without reading code.

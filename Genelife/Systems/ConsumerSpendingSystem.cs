@@ -84,6 +84,12 @@ public class ConsumerSpendingSystem : ISimulationSystem
 
         var options = economy.Options;
         var budget = options.MonthlyConsumptionBudget;
+
+        // Savings above the emergency floor are spendable. Without this, a
+        // household can accumulate years of savings while consumption stays
+        // liquidity-constrained to the wallet balance.
+        ExplicitlyWithdrawForConsumption(tick, sim, budget);
+
         var available = wallet.Balance.Min(budget);
         var spent = Money.Zero;
         var unmet = Money.Zero;
@@ -129,6 +135,40 @@ public class ConsumerSpendingSystem : ISimulationSystem
             world.Add(sim, state);
 
         return (spent, unmet);
+    }
+
+    private void ExplicitlyWithdrawForConsumption(long tick, Entity sim, Money budget)
+    {
+        if (!world.Has<SavingsAccount>(sim))
+            return;
+
+        ref var wallet = ref world.Get<Wallet>(sim);
+        if (wallet.Balance >= budget)
+            return;
+
+        ref var savings = ref world.Get<SavingsAccount>(sim);
+        var floor = economy.Options.SavingsBuffer;
+        var drawable = savings.Balance - floor;
+        if (!drawable.IsPositive)
+            return;
+
+        var withdraw = (budget - wallet.Balance).Min(drawable);
+        if (!withdraw.IsPositive)
+            return;
+
+        savings.Balance -= withdraw;
+        savings.LifetimeWithdrawn += withdraw;
+        wallet.Balance += withdraw;
+        var networkId = CompanyAccountService.NetworkIdOf(world, sim);
+        economy.Ledger.Record(
+            Guid.NewGuid(),
+            tick,
+            LedgerKind.SavingsWithdrawal,
+            networkId,
+            networkId,
+            withdraw,
+            "savings.consumption");
+        economy.Emit(new SavingsWithdrawn(networkId, withdraw.Cents, tick));
     }
 
     private Money Buy(

@@ -134,20 +134,21 @@ public class MaintenanceSystem : ISimulationSystem
 
         if (owner == Entity.Null)
         {
-            var paid = economy.Government.Balance.Min(due);
-            if (paid.IsPositive)
+            // Municipal stock is maintained in kind. No cash leaves the public
+            // account, but a sufficient balance is still required to fund it.
+            var service = economy.Government.Balance.Min(due);
+            if (service.IsPositive)
             {
-                economy.Government.Balance -= paid;
                 economy.Ledger.Record(
                     Guid.NewGuid(),
                     tick,
                     LedgerKind.MaintenancePaid,
                     EconomyAccountIds.Government,
-                    null,
-                    paid,
+                    EconomyAccountIds.Government,
+                    service,
                     "housing.upkeep.municipal");
             }
-            return paid;
+            return service;
         }
 
         if (world.IsAlive(owner) && world.Has<CompanyName>(owner))
@@ -160,10 +161,11 @@ public class MaintenanceSystem : ISimulationSystem
                     paid,
                     LedgerKind.MaintenancePaid,
                     Guid.NewGuid(),
-                    null,
+                    EconomyAccountIds.Government,
                     "housing.upkeep",
                     tick))
             {
+                economy.Government.Balance += paid;
                 return paid;
             }
             return Money.Zero;
@@ -176,10 +178,13 @@ public class MaintenanceSystem : ISimulationSystem
                 due,
                 LedgerKind.MaintenancePaid,
                 tick,
-                null,
+                EconomyAccountIds.Government,
                 "housing.upkeep",
                 out var shortfall);
-            return due - shortfall;
+            var paid = due - shortfall;
+            if (paid.IsPositive)
+                economy.Government.Balance += paid;
+            return paid;
         }
 
         return Money.Zero;

@@ -26,13 +26,14 @@ All tech-step documents under `01-economy/`, `02-housing/` and `03-life-stages/`
 ## Known limitations
 
 - V1 is a backend/admin simulation. There is no player-facing game client in this roadmap.
-- Population balance is validated for stability, not tuned to a specific target unemployment or wealth distribution.
+- Population balance is asserted at 200 sims for a decade (`BalanceScenarioTests`); 1k/2k long-run tuning is still open.
+- The 2026-11 balance pass fixed the fixed-company seed, money leaks and pension capitalization; vacancy, company failures and wealth Gini remain outside target (see `01-economy/business/04-balance-targets.md`).
 - Performance guardrails are synthetic-tier budgets, not an end-to-end browser load test.
 - Marten read-model projections are eventually consistent through the background event writer.
 - The full suite requires PostgreSQL; unit-only runs still exercise systems that do not need Marten.
 
 ## Next
 
-1. Run long-run balance experiments at 2k+ population and tune inflow, wages, rent and pension parameters.
+1. Run the balance scenario at 1k–2k population and close the remaining gaps: turnover for vacancy/failures, wealth recycling for Gini, and demand recycling for wage share.
 2. Extend the lifecycle page with any remaining operator reports needed for live operations.
 3. Start a V2 client/gameplay roadmap if the backend scope is complete.

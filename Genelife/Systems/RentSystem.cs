@@ -268,6 +268,7 @@ public class RentSystem : ISimulationSystem
         if (world.IsAlive(landlord) && world.Has<CompanyName>(landlord))
         {
             economy.Accounts.ApplySettlement(landlord, amount, tick, revenue: true);
+            economy.RevenueThisYear += amount;
             return;
         }
 

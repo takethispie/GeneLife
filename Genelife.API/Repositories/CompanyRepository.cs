@@ -38,7 +38,7 @@ public class CompanyRepository
         this.map = map;
     }
 
-    public NetworkId Add(string name, bool createHeadquarters = true)
+    public NetworkId Add(string name, bool createHeadquarters = true, Money? capital = null)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Company name is required.", nameof(name));
@@ -47,14 +47,14 @@ public class CompanyRepository
         var networkId = networkIds.Allocate(entity);
         world.Add(entity, networkId);
 
-        var capital = options.InitialCompanyCapital;
+        var initialCapital = capital ?? options.InitialCompanyCapital;
         if (economy is not null)
         {
-            economy.Accounts.GetOrCreate(entity, capital, 0, "company.seed");
+            economy.Accounts.GetOrCreate(entity, initialCapital, 0, "company.seed");
         }
         else
         {
-            world.Add(entity, CompanyAccount.Create(capital, 0));
+            world.Add(entity, CompanyAccount.Create(initialCapital, 0));
         }
 
         if (createHeadquarters)
@@ -79,6 +79,8 @@ public class CompanyRepository
                 {
                     networkIds.Remove(officeEntity);
                     world.Destroy(officeEntity);
+                    networkIds.Remove(entity);
+                    world.Destroy(entity);
                     throw new InvalidOperationException(
                         $"Unable to place headquarters: {placement.Error} {placement.Message}");
                 }

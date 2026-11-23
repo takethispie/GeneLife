@@ -20,10 +20,11 @@ public sealed class HousingOptions
     public int NoticeMonths { get; set; } = 1;
     public int MoveCooldownMonths { get; set; } = 3;
     public int OverburdenMonthsBeforeMove { get; set; } = 2;
-    public int MaxActiveConstructionProjects { get; set; } = 3;
+    public int MaxActiveConstructionProjects { get; set; } = 1;
     public int ConstructionMonths { get; set; } = 6;
-    public decimal ConstructionVacancyTrigger { get; set; } = 0.03m;
+    public decimal ConstructionVacancyTrigger { get; set; } = 0.005m;
     public decimal HomelessConstructionTrigger { get; set; } = 0.07m;
+    public decimal SeedVacancyRate { get; set; } = 0.01m;
     public Money DefaultPropertyUpkeep { get; set; } = Money.FromUnits(50m);
     public int DefaultDistrictCapacity { get; set; } = 2_000;
 
