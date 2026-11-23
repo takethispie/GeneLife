@@ -72,6 +72,15 @@ public static class SnapshotMigrations
                 state.AttractionModelVersion = Genelife.Family.AttractionCoefficients.CurrentVersion;
         }
 
+        if (fromVersion <= 7)
+        {
+            // v8 adds reproduction and family housing policy options. Older saves
+            // have no pregnancies, which is valid.
+            state.ReproductionOptions ??= Genelife.Family.ReproductionOptions.Default;
+            state.FamilyHousingPolicy ??= Genelife.Family.FamilyHousingPolicy.Default;
+            state.Pregnancies ??= [];
+        }
+
         if (fromVersion <= 6)
         {
             // v7 adds relationship edges. Older saves have no family edges, which

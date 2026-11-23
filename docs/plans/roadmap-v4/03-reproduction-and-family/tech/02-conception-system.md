@@ -3,7 +3,7 @@
 **Phase:** 2 — Conception
 **Depends:** F01, R03, R06
 **Estimate:** 1–2 sessions
-**Status:** Planned (V4)
+**Status:** Done
 
 ## Goal
 

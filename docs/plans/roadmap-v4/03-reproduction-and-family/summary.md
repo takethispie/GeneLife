@@ -1,7 +1,7 @@
 # Reproduction and Family — Summary
 
 **Folder:** `03-reproduction-and-family/`
-**Status:** Planned (V4)
+**Status:** Implemented core (V4 feature 03; projections, admin mutations/UI, yearly metrics and cohabitation recalibration remain staged)
 
 **Depends on:** features 01 and 02, `Household`, `HousingUnit.Capacity`, `HousingRegistry`, `School`, `Health`, `HouseholdFinanceService`
 **Feeds:** continuity and inheritance, family read model, long-run population balance

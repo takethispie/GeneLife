@@ -3,7 +3,7 @@
 **Phase:** 6 — Household
 **Depends:** F04, R07, `HousingRegistry`, `HousingAllocator`
 **Estimate:** 2 sessions
-**Status:** Planned (V4)
+**Status:** Partial — adult-child release and registry repair done; guardian-change moves and full merge retry pending
 
 ## Goal
 

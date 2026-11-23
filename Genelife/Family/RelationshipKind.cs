@@ -20,7 +20,8 @@ public enum RelationshipSource : byte
     Attraction,
     Admin,
     Migration,
-    Death
+    Death,
+    Birth
 }
 
 public static class RelationshipMirrors

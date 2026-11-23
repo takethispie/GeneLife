@@ -3,7 +3,7 @@
 **Phase:** 7 — Economy
 **Depends:** F04–F06, `HouseholdFinanceService`, `ConsumerSpendingSystem`, `School`, `HealthSystem`
 **Estimate:** 2 sessions
-**Status:** Planned (V4)
+**Status:** Partial — guardian-paid dependent consumption and conservation done; child benefit and yearly cost reporting pending
 
 ## Goal
 

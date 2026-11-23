@@ -3,7 +3,7 @@
 **Phase:** 9 — Admin
 **Depends:** F01–F08
 **Estimate:** 1–2 sessions
-**Status:** Planned (V4)
+**Status:** Partial — pregnancy/child/guardian read endpoints done; mutations and Razor page pending
 
 ## Goal
 

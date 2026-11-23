@@ -4,7 +4,9 @@ using Genelife.Components.Company;
 using Genelife.Components.Employment;
 using Genelife.Components.Finance;
 using Genelife.Components.Gen;
+using Genelife.Components.Housing;
 using Genelife.Economy;
+using Genelife.Family;
 using Genelife.Messages.Events;
 using Genelife.Values;
 
@@ -75,7 +77,8 @@ public class ConsumerSpendingSystem : ISimulationSystem
 
     private (Money Spent, Money Unmet) Spend(long tick, Entity sim, List<Supplier> suppliers, Random random)
     {
-        ref var wallet = ref world.Get<Wallet>(sim);
+        var payer = PayerFor(sim);
+        ref var wallet = ref world.Get<Wallet>(payer);
         var state = world.Has<ConsumptionState>(sim)
             ? world.Get<ConsumptionState>(sim)
             : new ConsumptionState();
@@ -88,7 +91,7 @@ public class ConsumerSpendingSystem : ISimulationSystem
         // Savings above the emergency floor are spendable. Without this, a
         // household can accumulate years of savings while consumption stays
         // liquidity-constrained to the wallet balance.
-        ExplicitlyWithdrawForConsumption(tick, sim, budget);
+        ExplicitlyWithdrawForConsumption(tick, payer, budget);
 
         var available = wallet.Balance.Min(budget);
         var spent = Money.Zero;
@@ -101,22 +104,22 @@ public class ConsumerSpendingSystem : ISimulationSystem
         var foodBudget = requiredBudget.Min(budget.Multiply(options.FoodShare));
         var hygieneBudget = (requiredBudget - foodBudget).Min(budget.Multiply(options.HygieneShare));
 
-        spent += Buy("Food", foodBudget, sim, suppliers, random, ref state, ref unmet, tick);
-        spent += Buy("Hygiene", hygieneBudget, sim, suppliers, random, ref state, ref unmet, tick);
+        spent += Buy("Food", foodBudget, sim, payer, suppliers, random, ref state, ref unmet, tick);
+        spent += Buy("Hygiene", hygieneBudget, sim, payer, suppliers, random, ref state, ref unmet, tick);
 
         var remaining = available - requiredBudget;
         if (remaining.IsPositive)
         {
             var leisureBudget = remaining.Min(budget.Multiply(options.LeisureShare));
-            spent += Buy("Leisure", leisureBudget, sim, suppliers, random, ref state, ref unmet, tick);
+            spent += Buy("Leisure", leisureBudget, sim, payer, suppliers, random, ref state, ref unmet, tick);
             remaining -= leisureBudget;
 
             var healthBudget = remaining.Min(budget.Multiply(options.HealthShare));
-            spent += Buy("Health", healthBudget, sim, suppliers, random, ref state, ref unmet, tick);
+            spent += Buy("Health", healthBudget, sim, payer, suppliers, random, ref state, ref unmet, tick);
             remaining -= healthBudget;
 
             var durableBudget = remaining;
-            spent += Buy("Durable", durableBudget, sim, suppliers, random, ref state, ref unmet, tick);
+            spent += Buy("Durable", durableBudget, sim, payer, suppliers, random, ref state, ref unmet, tick);
         }
 
         if (available < budget)
@@ -135,6 +138,15 @@ public class ConsumerSpendingSystem : ISimulationSystem
             world.Add(sim, state);
 
         return (spent, unmet);
+    }
+
+    private Entity PayerFor(Entity sim)
+    {
+        if (!ChildhoodPolicy.IsDependentChild(world, sim, economy.Life.Policy))
+            return sim;
+
+        var guardian = ChildhoodPolicy.GuardianOf(world, economy, sim);
+        return guardian != Entity.Null && world.Has<Wallet>(guardian) ? guardian : sim;
     }
 
     private void ExplicitlyWithdrawForConsumption(long tick, Entity sim, Money budget)
@@ -175,6 +187,7 @@ public class ConsumerSpendingSystem : ISimulationSystem
         string category,
         Money budget,
         Entity sim,
+        Entity payer,
         List<Supplier> suppliers,
         Random random,
         ref ConsumptionState state,
@@ -191,7 +204,7 @@ public class ConsumerSpendingSystem : ISimulationSystem
             return Money.Zero;
         }
 
-        ref var wallet = ref world.Get<Wallet>(sim);
+        ref var wallet = ref world.Get<Wallet>(payer);
         var amount = budget.Min(wallet.Balance);
         if (!amount.IsPositive)
             return Money.Zero;
@@ -200,7 +213,7 @@ public class ConsumerSpendingSystem : ISimulationSystem
         economy.BookRevenue(
             supplier.Company,
             category,
-            CompanyAccountService.NetworkIdOf(world, sim),
+            CompanyAccountService.NetworkIdOf(world, payer),
             amount,
             tick);
 

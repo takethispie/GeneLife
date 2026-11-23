@@ -3,7 +3,7 @@
 **Phase:** 10 — Observability
 **Depends:** F01–F09
 **Estimate:** 1–2 sessions
-**Status:** Planned (V4)
+**Status:** Partial — reproduction invariants done; yearly metrics pending
 
 ## Goal
 

@@ -3,7 +3,7 @@
 **Phase:** 5 — Family
 **Depends:** F04, `Lifecycle`, `StageProgressionSystem`, `EnrollmentSystem`, `EducationSystem`
 **Estimate:** 1–2 sessions
-**Status:** Planned (V4)
+**Status:** Done
 
 ## Goal
 

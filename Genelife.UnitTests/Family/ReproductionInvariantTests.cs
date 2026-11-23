@@ -1,0 +1,90 @@
+using Arch.Core;
+using Genelife.Components.Employment;
+using Genelife.Components.Family;
+using Genelife.Components.Gen;
+using Genelife.Components.Housing;
+using Genelife.Components.Life;
+using Genelife.Economy;
+using Genelife.Enums;
+using Genelife.Family;
+using Genelife.Values;
+
+namespace Genelife.UnitTests.Family;
+
+public class ReproductionInvariantTests
+{
+    [Fact]
+    public void DuplicateActivePregnancyIsAFailure()
+    {
+        var world = World.Create();
+        var economy = new EconomyContext(world);
+        var carrying = world.Create(new Alive(30), new Traits(), new NetworkId(1));
+        var other = world.Create(new Alive(31), new Traits(), new NetworkId(2));
+        for (var i = 0; i < 2; i++)
+            world.Create(new Pregnancy
+            {
+                CarryingParent = carrying,
+                OtherParent = other,
+                ConceivedTick = 0,
+                DueTick = 100,
+                Status = PregnancyStatus.Active,
+                ChildrenExpected = 1
+            });
+
+        var issues = ReproductionInvariants.Verify(world, new RelationshipIndex(), economy);
+
+        Assert.Contains(issues, issue => issue.Name == "pregnancy.duplicate-active" && issue.Level == "Fail");
+    }
+
+    [Fact]
+    public void ChildEmploymentIsAFailure()
+    {
+        var world = World.Create();
+        var economy = new EconomyContext(world);
+        world.Create(
+            new Alive(10),
+            new Employee(Entity.Null, Entity.Null, "Test", Money.FromUnits(10m)));
+
+        var issues = ReproductionInvariants.Verify(world, new RelationshipIndex(), economy);
+
+        Assert.Contains(issues, issue => issue.Name == "child.employed" && issue.Level == "Fail");
+    }
+
+    [Fact]
+    public void NewbornWithoutParentEdgesIsAFailure()
+    {
+        var world = World.Create();
+        var economy = new EconomyContext(world);
+        world.Create(
+            new Alive(0),
+            new GenName("Foundling"),
+            new Traits(),
+            new BirthRecord { PregnancyNetworkId = 1, BornTick = 1 },
+            new HouseholdMember(Entity.Null, HouseholdRole.Child));
+
+        var issues = ReproductionInvariants.Verify(world, new RelationshipIndex(), economy);
+
+        Assert.Contains(issues, issue => issue.Name == "newborn.parent-edges" && issue.Level == "Fail");
+    }
+
+    [Fact]
+    public void OvercrowdedHouseholdIsAWarning()
+    {
+        var world = World.Create();
+        var economy = new EconomyContext(world);
+        var parent = world.Create(new Alive(35), new Wallet(Money.Zero));
+        var child = world.Create(new Alive(8), new Wallet(Money.Zero));
+        var household = world.Create(new Household { Head = parent, Tenure = Tenure.Renter, MemberCount = 2 });
+        world.Add(parent, new HouseholdMember(household, HouseholdRole.Head));
+        world.Add(child, new HouseholdMember(household, HouseholdRole.Child));
+        economy.Housing.AddMember(parent, household);
+        economy.Housing.AddMember(child, household);
+        var property = world.Create(new Property("Central", "Central", Entity.Null, 1));
+        var unit = world.Create(new HousingUnit(property, "1", HousingTier.Basic, 1, Money.FromUnits(100m)));
+        economy.Housing.MoveIn(unit, household);
+
+        var issues = ReproductionInvariants.Verify(world, new RelationshipIndex(), economy);
+
+        Assert.Contains(issues, issue => issue.Name == "housing.overcrowded" && issue.Level == "Warn");
+    }
+}

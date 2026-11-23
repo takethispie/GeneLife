@@ -3,7 +3,7 @@
 **Phase:** 8 — Events
 **Depends:** F01–F07
 **Estimate:** 1–2 sessions
-**Status:** Planned (V4)
+**Status:** Partial — events emitted; Marten projections pending
 
 ## Goal
 

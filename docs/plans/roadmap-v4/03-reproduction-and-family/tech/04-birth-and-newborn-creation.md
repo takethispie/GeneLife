@@ -3,7 +3,7 @@
 **Phase:** 4 — Birth
 **Depends:** F01–F03, T04, R01, `HousingRegistry`
 **Estimate:** 2 sessions
-**Status:** Planned (V4)
+**Status:** Done
 
 ## Goal
 

@@ -5,6 +5,7 @@ using Genelife.Components.Gen;
 using Genelife.Components.Life;
 using Genelife.Economy;
 using Genelife.Enums;
+using Genelife.Family;
 using Genelife.Life;
 using Genelife.Messages.Events;
 using Genelife.Values;
@@ -108,6 +109,7 @@ public class StageProgressionSystem : ISimulationSystem
 
     private void EnterWork(Entity sim, long tick)
     {
+        ChildhoodPolicy.ClearDependentMarker(world, sim);
         EnrollmentHelpers.ReleaseSeat(world, sim, economy.Life.Index);
 
         if (world.Has<RetirementIncome>(sim))

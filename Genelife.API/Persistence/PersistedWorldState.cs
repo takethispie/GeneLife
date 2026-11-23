@@ -2,7 +2,7 @@ namespace Genelife.Api.Persistence;
 
 public sealed class PersistedWorldState
 {
-    public const int CurrentSchemaVersion = 7;
+    public const int CurrentSchemaVersion = 8;
 
     public int SchemaVersion { get; set; }
     public long Tick { get; set; }
@@ -13,6 +13,8 @@ public sealed class PersistedWorldState
     public Genelife.Housing.HousingOptions? HousingOptions { get; set; }
     public Genelife.Family.GeneticsOptions? GeneticsOptions { get; set; }
     public Genelife.Family.RelationshipOptions? RelationshipOptions { get; set; }
+    public Genelife.Family.ReproductionOptions? ReproductionOptions { get; set; }
+    public Genelife.Family.FamilyHousingPolicy? FamilyHousingPolicy { get; set; }
     public string AttractionModelVersion { get; set; } = Genelife.Family.AttractionCoefficients.CurrentVersion;
     public PersistedMap Map { get; set; } = new();
     public List<PersistedPlacement> Placements { get; set; } = [];
@@ -31,6 +33,7 @@ public sealed class PersistedWorldState
     public List<PersistedHousehold> Households { get; set; } = [];
     public List<PersistedHouseholdMember> HouseholdMembers { get; set; } = [];
     public List<PersistedRelationship> Relationships { get; set; } = [];
+    public List<PersistedPregnancy> Pregnancies { get; set; } = [];
     public List<PersistedConstructionProject> ConstructionProjects { get; set; } = [];
     public List<PersistedHousingSnapshot> HousingMetricHistory { get; set; } = [];
     public PersistedHousingMarket HousingMarket { get; set; } = new();
@@ -80,6 +83,8 @@ public sealed class PersistedSim
     public int Sex { get; set; }
     public int Temperament { get; set; }
     public bool TraitsMigrated { get; set; }
+    public ulong BirthPregnancyNetworkId { get; set; }
+    public long BirthTick { get; set; }
 
     // v1 compatibility: float units. v2 writes cents.
     public float WalletBalance { get; set; }
@@ -571,4 +576,26 @@ public sealed class PersistedPlacement
     public int EntryX { get; set; }
     public int EntryY { get; set; }
     public int Rotation { get; set; }
+}
+
+
+public sealed class PersistedPregnancy
+{
+    public ulong NetworkId { get; set; }
+    public ulong CarryingParentNetworkId { get; set; }
+    public ulong OtherParentNetworkId { get; set; }
+    public long ConceivedTick { get; set; }
+    public long DueTick { get; set; }
+    public int RiskBasisPoints { get; set; }
+    public int HealthAtConception { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public string Source { get; set; } = string.Empty;
+    public long LastProgressTick { get; set; }
+    public int ChildrenExpected { get; set; }
+    public int Complications { get; set; }
+    public long CarePaidCents { get; set; }
+    public long CareArrearsCents { get; set; }
+    public int CareMonths { get; set; }
+    public int MissedCareMonths { get; set; }
+    public long ResolvedTick { get; set; }
 }

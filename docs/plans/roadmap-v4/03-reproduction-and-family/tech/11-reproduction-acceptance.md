@@ -3,7 +3,7 @@
 **Phase:** 11 — Verification
 **Depends:** F01–F10
 **Estimate:** 1–2 sessions
-**Status:** Planned (V4)
+**Status:** Partial — acceptance, conserve and balance scenarios pass; 2,000-sim performance pending
 
 ## Goal
 
