@@ -16,7 +16,7 @@ public class FamilyAcceptanceTests
         Assert.Equal(100, status.Population);
         Assert.Equal(100, status.Traits.WithTraits);
         Assert.Equal(0, status.Traits.MissingTraits);
-        Assert.Equal(8, status.Traits.Categories.Count);
+        Assert.Equal(10, status.Traits.Categories.Count);
         Assert.InRange(status.Traits.FemaleShare, 0.35m, 0.65m);
         Assert.All(status.Traits.Categories, category => Assert.NotEmpty(category.Values));
     }

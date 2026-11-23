@@ -112,6 +112,90 @@ public static class SnapshotMigrations
             state.Relationships ??= [];
         }
 
+        if (fromVersion <= 11)
+        {
+            // v12 adds player profiles, player life bindings and family
+            // invitations. Reconstruct the safe subset from existing components.
+            state.PlayerProfiles ??= [];
+            state.PlayerLives ??= [];
+            state.FamilyInvitations ??= [];
+
+            if (state.PlayerProfiles.Count == 0)
+            {
+                var memberBySim = state.HouseholdMembers
+                    .GroupBy(member => member.SimNetworkId)
+                    .ToDictionary(group => group.Key, group => group.First());
+                var householdById = state.Households
+                    .GroupBy(household => household.NetworkId)
+                    .ToDictionary(group => group.Key, group => group.First());
+
+                foreach (var sim in state.Sims.Where(sim => !string.IsNullOrWhiteSpace(sim.PlayerId)))
+                {
+                    state.PlayerProfiles.Add(new PersistedPlayerProfile
+                    {
+                        PlayerId = sim.PlayerId!,
+                        SimNetworkId = sim.NetworkId,
+                        ContinuationPolicy = "Heir",
+                        AwaitingContinuation = false,
+                        Observer = false,
+                        CreatedTick = 0,
+                        LastActionTick = 0,
+                        LastSequence = 0
+                    });
+
+                    var life = new PersistedPlayerLife
+                    {
+                        SimNetworkId = sim.NetworkId,
+                        HasEmployment = sim.EmployerNetworkId != 0,
+                        EmploymentOfficeNetworkId = sim.WorkOfficeNetworkId != 0
+                            ? sim.WorkOfficeNetworkId
+                            : sim.OfficeNetworkId,
+                        HiredTick = sim.HiredAtTick,
+                        EmploymentSource = "AdminAssigned"
+                    };
+
+                    if (memberBySim.TryGetValue(sim.NetworkId, out var member) &&
+                        householdById.TryGetValue(member.HouseholdNetworkId, out var household))
+                    {
+                        life.HouseholdNetworkId = household.NetworkId;
+                        life.UnitNetworkId = household.UnitNetworkId;
+                        life.LeaseStartTick = household.MoveInTick;
+                        life.LeaseActive = household.UnitNetworkId != 0;
+                    }
+
+                    state.PlayerLives.Add(life);
+                }
+            }
+        }
+
+        if (fromVersion <= 12)
+        {
+            state.PlayerProfiles ??= [];
+            state.PlayerLives ??= [];
+            state.FamilyInvitations ??= [];
+            foreach (var sim in state.Sims)
+            {
+                if (!sim.AppearanceMigrated)
+                {
+                    sim.AppearanceVersion = 0;
+                    sim.AppearanceMigrated = false;
+                }
+            }
+        }
+
+        if (fromVersion <= 13)
+        {
+            state.UtilityNetworks ??= [];
+            state.ServiceLinks ??= [];
+            state.HouseholdMeters ??= [];
+            state.StoreInventories ??= [];
+            state.Nutrition ??= [];
+            if (state.GroceryCatalogVersion <= 0)
+                state.GroceryCatalogVersion = Genelife.Components.Consumption.GroceryCatalog.Version;
+            // Networks, links, meters and initial stock are bootstrapped during
+            // restore so no legacy household is silently cut off.
+        }
+
         state.SchemaVersion = PersistedWorldState.CurrentSchemaVersion;
     }
 }

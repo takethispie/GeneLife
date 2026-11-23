@@ -33,7 +33,7 @@ public class JobSeekerSystem : ISimulationSystem
         this.cadenceInterval = cadenceInterval;
         queryDescription = new QueryDescription()
             .WithAll<Alive>()
-            .WithNone<Employee, JobSeeker, Dead>();
+            .WithNone<Employee, JobSeeker, Dead, PlayerControlled>();
     }
 
     public string Name => "JobSeeker";

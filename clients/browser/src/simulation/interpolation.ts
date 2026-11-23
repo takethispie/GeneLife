@@ -1,9 +1,13 @@
 /** Authoritative position for one sim at one server tick. */
+import type { AppearanceStatus } from "../contracts/hub";
+
 export interface SimPosition {
   x: number;
   y: number;
   tileX: number;
   tileY: number;
+  appearance?: AppearanceStatus | null;
+  isPlayerControlled?: boolean;
 }
 
 export interface SimFrame {
@@ -145,6 +149,8 @@ export function interpolateFrames(
       y: older.y + dy * alpha,
       tileX: newer.tileX,
       tileY: newer.tileY,
+      appearance: newer.appearance,
+      isPlayerControlled: newer.isPlayerControlled,
       interpolated: true,
       snapped: false
     });

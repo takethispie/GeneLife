@@ -11,7 +11,7 @@ public static class TraitValidation
 {
     public static IReadOnlyList<string> Validate(in Traits traits)
     {
-        var errors = new List<string>(8);
+        var errors = new List<string>(10);
         Check(errors, traits.EyeColor, nameof(Traits.EyeColor));
         Check(errors, traits.HairColor, nameof(Traits.HairColor));
         Check(errors, traits.Handedness, nameof(Traits.Handedness));
@@ -20,6 +20,8 @@ public static class TraitValidation
         Check(errors, traits.HeightPotential, nameof(Traits.HeightPotential));
         Check(errors, traits.Sex, nameof(Traits.Sex));
         Check(errors, traits.Temperament, nameof(Traits.Temperament));
+        Check(errors, traits.SkinTone, nameof(Traits.SkinTone));
+        Check(errors, traits.FaceShape, nameof(Traits.FaceShape));
         return errors;
     }
 

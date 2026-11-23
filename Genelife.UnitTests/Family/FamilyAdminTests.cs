@@ -128,6 +128,6 @@ public class FamilyAdminTests
 
         var traits = engine.BuildTraitDistribution();
         Assert.Equal(status.Population, traits.WithTraits);
-        Assert.Equal(8, traits.Categories.Count);
+        Assert.Equal(10, traits.Categories.Count);
     }
 }

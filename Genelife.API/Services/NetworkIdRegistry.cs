@@ -7,7 +7,9 @@ public sealed class NetworkIdRegistry
 {
     private readonly Dictionary<NetworkId, Entity> entitiesByNetworkId = new();
     private readonly Dictionary<Entity, NetworkId> networkIdsByEntity = new();
+    private const ulong InfrastructureStart = 1_000_000;
     private ulong nextValue = 1;
+    private ulong nextInfrastructure = InfrastructureStart;
 
     public int Count => entitiesByNetworkId.Count;
 
@@ -17,6 +19,23 @@ public sealed class NetworkIdRegistry
             return existing;
 
         var networkId = new NetworkId(nextValue++);
+        entitiesByNetworkId[networkId] = entity;
+        networkIdsByEntity[entity] = networkId;
+        return networkId;
+    }
+
+    /// <summary>
+    /// Allocates a high-range id for infrastructure children (utility networks,
+    /// links, stock rows). These ids are persistable but never consume the
+    /// normal id sequence, so adding infrastructure does not shift existing
+    /// deterministic sim/household ids.
+    /// </summary>
+    public NetworkId AllocateInfrastructure(Entity entity)
+    {
+        if (networkIdsByEntity.TryGetValue(entity, out var existing))
+            return existing;
+
+        var networkId = new NetworkId(nextInfrastructure++);
         entitiesByNetworkId[networkId] = entity;
         networkIdsByEntity[entity] = networkId;
         return networkId;
@@ -58,8 +77,15 @@ public sealed class NetworkIdRegistry
             throw new ArgumentException($"NetworkId {networkId.Value} is already mapped");
         entitiesByNetworkId[networkId] = entity;
         networkIdsByEntity[entity] = networkId;
-        if (networkId.Value >= nextValue)
+        if (networkId.Value >= InfrastructureStart)
+        {
+            if (networkId.Value >= nextInfrastructure)
+                nextInfrastructure = networkId.Value + 1;
+        }
+        else if (networkId.Value >= nextValue)
+        {
             nextValue = networkId.Value + 1;
+        }
     }
 
     public void Clear()

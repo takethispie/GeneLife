@@ -1,8 +1,9 @@
-import { Sprite, Text, Texture, type Container } from "pixi.js";
+import { Container, Sprite, Text } from "pixi.js";
 import type { Camera } from "./camera";
 import type { RenderSim } from "../simulation/interpolation";
 import type { RenderState } from "../simulation/store";
-import { DisplayPool } from "./pools";
+import { AppearanceSpritePool } from "./appearance/sprite-pool";
+import type { SceneTextures } from "./textures";
 
 export interface SimLayerStats {
   visible: number;
@@ -10,31 +11,23 @@ export interface SimLayerStats {
   localVisible: boolean;
 }
 
-const NPC_COLOR = 0xf2b544;
 const PLAYER_COLOR = 0xa78bfa;
 const LOCAL_COLOR = 0x67e8f9;
 const DEAD_COLOR = 0x6b7280;
 
 /**
- * Renders interpolated sim positions as pooled sprites. The local player is
- * larger, ringed and always drawn above other sims.
+ * Renders interpolated sims as pooled layered appearance sprites. The same
+ * descriptor hash composes the same layers; position and scale are updated per
+ * frame without reallocating textures.
  */
 export class SimLayer {
-  private readonly pool: DisplayPool<Sprite>;
+  private readonly appearance: AppearanceSpritePool;
   private readonly ring: Sprite;
   private readonly label: Text;
 
-  constructor(
-    container: Container,
-    textures: { circle: Texture; ring: Texture }
-  ) {
+  constructor(container: Container, textures: SceneTextures) {
     container.sortableChildren = true;
-    this.pool = new DisplayPool(() => {
-      const sprite = new Sprite(textures.circle);
-      sprite.anchor.set(0.5);
-      container.addChild(sprite);
-      return sprite;
-    });
+    this.appearance = new AppearanceSpritePool(container, textures.sim);
 
     this.ring = new Sprite(textures.ring);
     this.ring.anchor.set(0.5);
@@ -63,8 +56,8 @@ export class SimLayer {
     camera: Camera,
     tileSize: number
   ): SimLayerStats {
-    this.pool.begin();
-    const size = tileSize * 0.78;
+    this.appearance.begin();
+    const baseSize = tileSize * 0.9;
     let visible = 0;
     let localVisible = false;
     let local: RenderSim | null = null;
@@ -72,15 +65,11 @@ export class SimLayer {
     for (const sim of state?.sims.values() ?? []) {
       if (!camera.isWorldVisible(sim.x, sim.y, tileSize)) continue;
 
-      const sprite = this.pool.acquire();
       const isLocal = sim.networkId === ownSimId;
-      const isPlayer = isLocal || false;
-      sprite.position.set(sim.x, sim.y);
-      sprite.width = isLocal ? size * 1.25 : size;
-      sprite.height = isLocal ? size * 1.25 : size;
-      sprite.tint = isLocal ? LOCAL_COLOR : isPlayer ? PLAYER_COLOR : NPC_COLOR;
-      sprite.alpha = isLocal ? 1 : 0.92;
-      sprite.zIndex = isLocal ? 50 : 10;
+      const isPlayer = sim.isPlayerControlled === true || isLocal;
+      const size = isLocal ? baseSize * 1.15 : baseSize;
+      const { container } = this.appearance.acquire(sim.appearance, size, isPlayer, isLocal);
+      container.position.set(sim.x, sim.y);
       visible++;
 
       if (isLocal) {
@@ -89,13 +78,13 @@ export class SimLayer {
       }
     }
 
-    this.pool.end();
+    this.appearance.end();
 
     if (local !== null) {
       this.ring.visible = true;
       this.ring.position.set(local.x, local.y);
-      this.ring.width = tileSize * 1.4;
-      this.ring.height = tileSize * 1.4;
+      this.ring.width = tileSize * 1.45;
+      this.ring.height = tileSize * 1.45;
 
       this.label.visible = true;
       this.label.text = ownSimName === "" ? "You" : ownSimName;
@@ -114,15 +103,15 @@ export class SimLayer {
   }
 
   renderNoWorld(): SimLayerStats {
-    this.pool.begin();
-    this.pool.end();
+    this.appearance.begin();
+    this.appearance.end();
     this.ring.visible = false;
     this.label.visible = false;
     return { visible: 0, total: 0, localVisible: false };
   }
 
   destroy(): void {
-    this.pool.destroy();
+    this.appearance.destroy();
     this.ring.destroy();
     this.label.destroy();
   }

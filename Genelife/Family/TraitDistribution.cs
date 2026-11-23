@@ -30,6 +30,8 @@ public static class TraitDistribution
         var height = NewCounts<HeightPotential>();
         var sex = NewCounts<Sex>();
         var temperament = NewCounts<Temperament>();
+        var skinTone = NewCounts<SkinTone>();
+        var faceShape = NewCounts<FaceShape>();
 
         var query = new QueryDescription().WithAll<Alive>().WithNone<Dead>();
         world.Query(in query, (Entity entity, ref Alive _) =>
@@ -51,6 +53,8 @@ public static class TraitDistribution
             Increment(height, traits.HeightPotential.ToString());
             Increment(sex, traits.Sex.ToString());
             Increment(temperament, traits.Temperament.ToString());
+            Increment(skinTone, traits.SkinTone.ToString());
+            Increment(faceShape, traits.FaceShape.ToString());
         });
 
         return new TraitDistributionSnapshot
@@ -68,7 +72,9 @@ public static class TraitDistribution
                 [nameof(Traits.Aptitude)] = aptitude,
                 [nameof(Traits.HeightPotential)] = height,
                 [nameof(Traits.Sex)] = sex,
-                [nameof(Traits.Temperament)] = temperament
+                [nameof(Traits.Temperament)] = temperament,
+                [nameof(Traits.SkinTone)] = skinTone,
+                [nameof(Traits.FaceShape)] = faceShape
             }
         };
     }

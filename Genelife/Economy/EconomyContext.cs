@@ -6,6 +6,7 @@ using Genelife.Components.Finance;
 using Genelife.Components.Gen;
 using Genelife.Components.Housing;
 using Genelife.Family;
+using Genelife.Consumption;
 using Genelife.Housing;
 using Genelife.Life;
 using Genelife.Values;
@@ -83,6 +84,8 @@ public sealed class EconomyContext
 
     public World World { get; }
     public EmploymentIndex Employment { get; }
+    public UtilityOptions UtilityOptions { get; set; } = new();
+
     public EconomyOptions Options { get; }
     public HousingOptions HousingOptions { get; }
     public GeneticsOptions Genetics { get; }

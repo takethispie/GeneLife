@@ -55,6 +55,19 @@ export interface MapDelta {
   removed: number[];
 }
 
+export interface AppearanceStatus {
+  skinTone: number;
+  faceShape: number;
+  hairColor: number;
+  hairStyle: number;
+  eyeColor: number;
+  bodyFrame: number;
+  heightScale: number;
+  ageBand: number;
+  expression: number;
+  appearanceVersion: number;
+}
+
 export interface SimStatus {
   networkId: number;
   name: string;
@@ -86,6 +99,7 @@ export interface SimStatus {
   topSkill: string;
   seniority: string;
   isDead: boolean;
+  appearance?: AppearanceStatus | null;
 }
 
 export interface CompanyStatus {

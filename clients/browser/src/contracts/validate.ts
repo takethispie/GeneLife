@@ -1,4 +1,5 @@
 import type {
+  AppearanceStatus,
   CompanyStatus,
   Intent,
   IntentRejected,
@@ -212,8 +213,34 @@ export function validateSim(value: unknown, path = "sim"): SimStatus {
     health: optionalNumber(record, "health", path),
     topSkill: optionalString(record, "topSkill", path),
     seniority: optionalString(record, "seniority", path),
-    isDead: optionalBoolean(record, "isDead", path)
+    isDead: optionalBoolean(record, "isDead", path),
+    appearance: validateAppearance(record.appearance, `${path}.appearance`)
   };
+}
+
+export function validateAppearance(value: unknown, path = "appearance"): AppearanceStatus | null {
+  if (value === undefined || value === null) return null;
+  const record = asRecord(value, path);
+  return {
+    skinTone: requireByte(record, "skinTone", path, 6),
+    faceShape: requireByte(record, "faceShape", path, 5),
+    hairColor: requireByte(record, "hairColor", path, 5),
+    hairStyle: requireByte(record, "hairStyle", path, 7),
+    eyeColor: requireByte(record, "eyeColor", path, 5),
+    bodyFrame: requireByte(record, "bodyFrame", path, 3),
+    heightScale: requireByte(record, "heightScale", path, 101),
+    ageBand: requireByte(record, "ageBand", path, 5),
+    expression: requireByte(record, "expression", path, 4),
+    appearanceVersion: requireByte(record, "appearanceVersion", path, 256)
+  };
+}
+
+function requireByte(record: Record<string, unknown>, key: string, path: string, maxExclusive: number): number {
+  const value = record[key];
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 0 || value >= maxExclusive) {
+    throw new ContractError(`${key} must be an integer in 0..${maxExclusive - 1}`, `${path}.${key}`);
+  }
+  return value;
 }
 
 export function validateCompany(value: unknown, path = "company"): CompanyStatus {

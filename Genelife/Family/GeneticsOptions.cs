@@ -18,6 +18,8 @@ public sealed class GeneticsOptions
     public int[] HairColorWeights { get; set; } = [35, 30, 20, 10, 5];
     public int[] HandednessWeights { get; set; } = [88, 10, 2];
     public int[] MorphotypeWeights { get; set; } = [30, 45, 25];
+    public int[] SkinToneWeights { get; set; } = [8, 20, 24, 20, 18, 10];
+    public int[] FaceShapeWeights { get; set; } = [35, 25, 15, 15, 10];
 
     public static GeneticsOptions Default { get; } = new();
 
@@ -38,6 +40,8 @@ public sealed class GeneticsOptions
         ValidateWeights(HairColorWeights, nameof(HairColorWeights), EnumValues<HairColor>.Count);
         ValidateWeights(HandednessWeights, nameof(HandednessWeights), EnumValues<Handedness>.Count);
         ValidateWeights(MorphotypeWeights, nameof(MorphotypeWeights), EnumValues<Morphotype>.Count);
+        ValidateWeights(SkinToneWeights, nameof(SkinToneWeights), EnumValues<SkinTone>.Count);
+        ValidateWeights(FaceShapeWeights, nameof(FaceShapeWeights), EnumValues<FaceShape>.Count);
     }
 
     public static void ValidateWeights(int[]? weights, string name, int expectedLength)

@@ -1,0 +1,55 @@
+using Genelife.Api.Auth;
+using Genelife.Api.Social;
+using Genelife.Social;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Wolverine.Http;
+
+namespace Genelife.Api.Endpoints.Wolverine;
+
+/// <summary>
+/// Bounded social presence and privacy. Players only see nearby or same-venue
+/// records; admin sees the full online presence list. No private simulation
+/// state is exposed.
+/// </summary>
+public static class SocialEndpoints
+{
+    [WolverineGet("/api/social/presence")]
+    [Authorize(Policy = AuthPolicies.Player)]
+    public static PlayerDirectoryDto Presence(
+        PlayerDirectoryService directory,
+        HttpContext http,
+        string scope = "nearby",
+        int radius = 12)
+    {
+        var parsed = Enum.TryParse<PresenceScope>(scope, ignoreCase: true, out var presenceScope)
+            ? presenceScope
+            : PresenceScope.Nearby;
+        var playerId = http.User.GetPlayerId() ?? string.Empty;
+        return directory.Directory(playerId, parsed, radius);
+    }
+
+    [WolverineGet("/api/social/admin/presence")]
+    [Authorize(Policy = AuthPolicies.Admin)]
+    public static IReadOnlyList<PlayerPresenceDto> AdminPresence(PlayerDirectoryService directory) =>
+        directory.AdminPresence();
+
+    [WolverineGet("/api/social/privacy")]
+    [Authorize(Policy = AuthPolicies.Player)]
+    public static SocialPrivacyDto Privacy(PlayerDirectoryService directory, HttpContext http) =>
+        directory.GetPrivacy(http.User.GetPlayerId() ?? string.Empty);
+
+    [WolverinePut("/api/social/privacy")]
+    [Authorize(Policy = AuthPolicies.Player)]
+    public static SocialPrivacyDto SetPrivacy(
+        SocialPrivacyUpdateRequest request,
+        PlayerDirectoryService directory,
+        HttpContext http)
+    {
+        var playerId = http.User.GetPlayerId() ?? string.Empty;
+        directory.SetPrivacy(playerId, new SocialPrivacyDto(
+            request.ShowDisplayName,
+            request.AllowNearbyForNonFriends));
+        return directory.GetPrivacy(playerId);
+    }
+}

@@ -76,6 +76,7 @@ public sealed class WorldHub : Hub
 
         registry.Register(Context.ConnectionId, playerId);
         replicationTracker.RestoreForConnection(Context.ConnectionId, playerId);
+        engine.MarkPlayerConnected(playerId);
         if (autoCreatePlayerSim)
             engine.EnsurePlayerSim(playerId);
         engine.EnsurePlayerSpawn(playerId);
@@ -141,7 +142,10 @@ public sealed class WorldHub : Hub
         ViewportRateLimits.TryRemove(Context.ConnectionId, out _);
         viewports.Remove(Context.ConnectionId);
         if (playerId is not null && registry.GetConnections(playerId).Count == 0)
+        {
             viewports.RemovePlayer(playerId);
+            engine.MarkPlayerDisconnected(playerId);
+        }
 
         replicationTracker.Remove(Context.ConnectionId);
         replicationMetrics.Remove(Context.ConnectionId);
@@ -353,8 +357,18 @@ public sealed class WorldHub : Hub
             return new IntentResult(false, "PlayerId mismatch");
         }
 
+        var reservedPlayerCommand = false;
+        if (intent is PlayerActionIntent)
+        {
+            if (!engine.TryReservePlayerCommand(playerId))
+                return new IntentResult(false, "Too many player actions are already pending");
+            reservedPlayerCommand = true;
+        }
+
         if (!commandQueue.TryEnqueue(intent, out var queueError))
         {
+            if (reservedPlayerCommand)
+                engine.ReleasePlayerCommand(playerId);
             return new IntentResult(false, queueError ?? "Failed to enqueue intent");
         }
 

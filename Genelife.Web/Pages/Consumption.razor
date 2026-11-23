@@ -1,0 +1,221 @@
+@page "/consumption"
+@using Genelife.Web.Services
+@inject GameDataService GameData
+
+<PageTitle>Consumption</PageTitle>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+    <div>
+        <h1 class="mb-1">Consumption</h1>
+        <p class="text-muted mb-0">Utility networks, household meters, outages, grocery stock, spoilage and nutrition.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <select class="form-select" @bind="level" style="min-width: 11rem">
+            <option value="">All households</option>
+            <option value="full">Full service</option>
+            <option value="reduced">Reduced service</option>
+            <option value="cutoff">Cut off</option>
+            <option value="arrears">In arrears</option>
+        </select>
+        <button class="btn btn-primary" type="button" @onclick="LoadAsync" disabled="@isLoading">Refresh</button>
+    </div>
+</div>
+
+@if (error is not null)
+{
+    <div class="alert alert-danger"><div class="fw-semibold">Could not load consumption.</div><div class="small">@error</div></div>
+}
+@if (message is not null)
+{
+    <div class="alert alert-info py-2">@message</div>
+}
+
+@if (overview is not null)
+{
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card h-100"><div class="card-body">
+                <div class="text-muted small">Households</div>
+                <div class="fs-3 fw-semibold">@overview.Households</div>
+                <div class="small text-muted">@overview.ReducedHouseholds reduced &middot; @overview.CutOffHouseholds cut off</div>
+            </div></div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card h-100"><div class="card-body">
+                <div class="text-muted small">Grocery</div>
+                <div class="fs-3 fw-semibold">@overview.Stores</div>
+                <div class="small text-muted">@overview.StockUnits stock units &middot; catalog v@overview.GroceryCatalogVersion</div>
+            </div></div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card h-100"><div class="card-body">
+                <div class="text-muted small">Poor nutrition</div>
+                <div class="fs-3 fw-semibold">@overview.MalnourishedHouseholds</div>
+                <div class="small text-muted">@string.Join(" · ", overview.Nutrition.Select(bucket => $"{bucket.Band} {bucket.Count}"))</div>
+            </div></div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card h-100"><div class="card-body">
+                <div class="text-muted small">Spoiled this year</div>
+                <div class="fs-3 fw-semibold">@overview.SpoiledThisYear</div>
+                <div class="small text-muted">goods destroyed, never money</div>
+            </div></div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-12 col-xl-6">
+            <div class="card">
+                <div class="card-header">Utility networks</div>
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead><tr><th>Service</th><th>State</th><th>Production</th><th>Capacity</th><th>Load</th><th>Reserve</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach (var network in overview.Networks)
+                            {
+                                <tr>
+                                    <td>@network.Service</td>
+                                    <td><span class="badge @Badge(network.State)">@network.State</span></td>
+                                    <td>@network.Production</td>
+                                    <td>@network.Capacity</td>
+                                    <td>@network.Load</td>
+                                    <td>@network.Reserve</td>
+                                    <td><button class="btn btn-sm btn-outline-secondary" @onclick="() => RepairAsync(network.Service)">Repair +100</button></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-xl-6">
+            <div class="card">
+                <div class="card-header">Grocery stores</div>
+                <div class="card-body" style="max-height: 26rem; overflow-y: auto;">
+                    @foreach (var store in stores?.Items ?? Array.Empty<ConsumptionStoreData>())
+                    {
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="fw-semibold">@store.Name <span class="small text-muted">#@store.StoreNetworkId</span></div>
+                                <button class="btn btn-sm btn-outline-secondary" @onclick="() => RestockAsync(store.StoreNetworkId)">Restock</button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-sm mb-0">
+                                    <thead><tr><th>Item</th><th>Stock</th><th>Price</th></tr></thead>
+                                    <tbody>
+                                        @foreach (var item in store.Items)
+                                        {
+                                            <tr class="@(item.Stock == 0 ? "table-danger" : null)">
+                                                <td>@item.ItemId</td>
+                                                <td>@item.Stock</td>
+                                                <td>@Money(item.PriceCents)</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mt-4">
+        <div class="card-header">Household meters</div>
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead><tr><th>Household</th><th>Unit</th><th>Occupants</th><th>Water</th><th>Electricity</th><th>Arrears</th><th>Rent arrears</th></tr></thead>
+                <tbody>
+                    @foreach (var household in households?.Items ?? Array.Empty<ConsumptionHouseholdData>())
+                    {
+                        <tr class="@(household.NoUtilities ? "table-warning" : null)">
+                            <td>#@household.HouseholdId</td>
+                            <td>#@household.UnitId</td>
+                            <td>@household.Occupants</td>
+                            <td>@household.WaterLevel <span class="small text-muted">(@household.WaterUsage)</span></td>
+                            <td>@household.ElectricityLevel <span class="small text-muted">(@household.ElectricityUsage)</span></td>
+                            <td>@Money(household.ArrearsCents)</td>
+                            <td>@Money(household.RentArrearsCents)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (households?.Items.Count == 0)
+        {
+            <div class="p-3 text-muted">No households match this filter.</div>
+        }
+    </div>
+}
+
+@code {
+    private ConsumptionOverviewData? overview;
+    private ConsumptionHouseholdPageData? households;
+    private ConsumptionStorePageData? stores;
+    private string level = string.Empty;
+    private string reason = "operator inspection";
+    private bool isLoading;
+    private string? error;
+    private string? message;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        if (isLoading) return;
+        isLoading = true;
+        error = null;
+        try
+        {
+            overview = await GameData.GetConsumptionOverviewAsync();
+            households = await GameData.GetConsumptionHouseholdsAsync(200, 0, level);
+            stores = await GameData.GetConsumptionStoresAsync(50, 0);
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task RepairAsync(string service)
+    {
+        try
+        {
+            await GameData.RepairUtilityNetworkAsync(service, 100, reason);
+            message = $"Repair command queued for {service}.";
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+    }
+
+    private async Task RestockAsync(ulong storeNetworkId)
+    {
+        try
+        {
+            await GameData.RestockStoreAsync(storeNetworkId, reason);
+            message = $"Restock command queued for store {storeNetworkId}.";
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+    }
+
+    private static string Money(long cents) => $"${cents / 100m:N2}";
+    private static string Badge(string state) => state switch
+    {
+        "Normal" => "text-bg-success",
+        "Strained" => "text-bg-warning",
+        "Overloaded" => "text-bg-danger",
+        "Offline" => "text-bg-dark",
+        _ => "text-bg-secondary"
+    };
+}

@@ -156,7 +156,10 @@ public class SimRepository
                 Health = world.Has<Health>(entity) ? (decimal)world.Get<Health>(entity).Value : 0m,
                 TopSkill = world.Has<SkillProfile>(entity) ? TopSkill(world.Get<SkillProfile>(entity)) : string.Empty,
                 Seniority = world.Has<Employee>(entity) ? world.Get<Employee>(entity).Seniority.ToString() : string.Empty,
-                IsDead = world.Has<Dead>(entity)
+                IsDead = world.Has<Dead>(entity),
+                Appearance = Genelife.Api.Appearance.AppearanceMapper.TryDerive(world, entity, out var appearance)
+                    ? Genelife.Api.Appearance.AppearanceMapper.ToDto(appearance)
+                    : null
             });
         });
 

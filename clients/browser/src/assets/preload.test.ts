@@ -14,7 +14,7 @@ describe("preloadAssets", () => {
       throw new Error("offline");
     });
     const result = await preloadAssets(ASSET_MANIFEST, fetchImpl);
-    expect(result.missing).toHaveLength(3);
+    expect(result.missing).toHaveLength(4);
     expect(result.loaded).toHaveLength(0);
   });
 });

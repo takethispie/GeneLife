@@ -3,12 +3,18 @@ using System.Collections.Concurrent;
 using System.Threading.Channels;
 using Arch.Core;
 using Arch.Core.Extensions;
+using Genelife.Api.Appearance;
+using Genelife.Api.Consumption;
 using Genelife.Api.DTOs;
+using Genelife.Api.Social;
+using Genelife.Appearance;
 using Genelife.Api.Persistence;
 using Genelife.Api.Snapshots;
 using Genelife.Api.Commands;
 using Genelife.Api.Repositories;
 using Genelife.Components.Company;
+using Genelife.Components.Consumption;
+using Genelife.Consumption;
 using Genelife.Components.Employment;
 using Genelife.Components.Family;
 using Genelife.Components.Finance;
@@ -16,6 +22,7 @@ using Genelife.Components.Gen;
 using Genelife.Components.Housing;
 using Genelife.Components.Life;
 using Genelife.Components.Map;
+using Genelife.Components.Player;
 using Genelife.Economy;
 using Genelife.Enums;
 using Genelife.Family;
@@ -23,6 +30,8 @@ using Genelife.Housing;
 using Genelife.Life;
 using Genelife.Map;
 using Genelife.Messages.Events;
+using Genelife.Player;
+using Genelife.Social;
 using Genelife.Systems;
 using Genelife.Values;
 using Marten;
@@ -81,6 +90,15 @@ private readonly NetworkIdRegistry networkIds = new();
         });
     private long droppedEventCount;
     private readonly HashSet<Guid> processedMessageIds = new(1024);
+    private readonly PlayerRegistry playerRegistry = new();
+    private PlayerActionService? playerActions;
+    private readonly ConcurrentDictionary<Guid, PlayerCommandResult> playerCommandResults = new();
+    private readonly ConcurrentDictionary<string, ConcurrentQueue<PlayerCommandResult>> playerCommandAudit =
+        new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, int> pendingPlayerCommands = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, byte> disconnectedPlayers = new(StringComparer.Ordinal);
+    private const int MaxPendingPlayerCommands = 8;
+    private const int MaxAuditRowsPerPlayer = 50;
     private readonly IDocumentStore? documentStore;
     private readonly WorldSaveService? worldSaveService;
     private static readonly string[] ActionNames = Enum.GetNames<ActionType>();
@@ -125,6 +143,7 @@ private readonly NetworkIdRegistry networkIds = new();
     public TrustService? Trusts { get { lock (@lock) { return trustService; } } }
     public GuardianshipService? Guardianship { get { lock (@lock) { return guardianshipService; } } }
     public NetworkIdRegistry NetworkIds => networkIds;
+    public PlayerRegistry Players => playerRegistry;
     public SnapshotHistory SnapshotHistory => history;
     public long LastSnapshotBuildTimeMs { get; private set; }
     public double LastTickMilliseconds { get; private set; }
@@ -274,6 +293,23 @@ private readonly NetworkIdRegistry networkIds = new();
                 relationshipService!,
                 this.guardianshipOptions);
 
+            playerRegistry.Clear();
+            playerCommandResults.Clear();
+            playerCommandAudit.Clear();
+            pendingPlayerCommands.Clear();
+            disconnectedPlayers.Clear();
+            playerActions = new PlayerActionService(
+                world,
+                economy,
+                networkIds,
+                playerRegistry,
+                relationshipIndex,
+                relationshipService!,
+                pregnancyIndex,
+                pregnancyService!,
+                this.relationshipOptions,
+                this.reproductionOptions);
+
             systems = new SystemRegistry();
             systems.Register(new NeedsDecaySystem(world));
             systems.Register(new PathfindingSystem(world, mapContext.Map, movementIndex, MovementOptions.PathRequestBudgetPerTick));
@@ -341,6 +377,28 @@ private readonly NetworkIdRegistry networkIds = new();
             systems.Register(new HousingDevelopmentSystem(world, economy, mapContext));
             systems.Register(new EconomyMetricsSystem(world, economy));
             systems.Register(new HousingMetricsSystem(world, economy));
+            systems.Register(new UtilityConsumptionSystem(
+                world,
+                economy,
+                entity => networkIds.AllocateInfrastructure(entity)));
+            systems.Register(new UtilityOutageSystem(world, economy));
+            systems.Register(new GroceryStockSystem(
+                world,
+                economy,
+                entity => networkIds.AllocateInfrastructure(entity)));
+            systems.Register(new PlayerLifecycleSystem(
+                world,
+                economy,
+                playerRegistry,
+                relationshipIndex,
+                this.inheritanceOptions,
+                CreateContinuationSim));
+            systems.Register(new PlayerEmploymentSystem(world, economy));
+            systems.Register(new PlayerHouseholdSystem(world, economy));
+            systems.Register(new PlayerConsumptionSystem(world, economy));
+            systems.Register(new PlayerLifeMetricsSystem(world, economy, playerRegistry));
+            systems.Register(new NutritionSystem(world, economy));
+            systems.Register(new ConsumptionMetricsSystem(world, economy));
 
             networkIds.Clear();
             history.Clear();
@@ -377,6 +435,12 @@ private readonly NetworkIdRegistry networkIds = new();
             newbornFactory = null;
             trustService = null;
             guardianshipService = null;
+            playerActions = null;
+            playerRegistry.Clear();
+            playerCommandResults.Clear();
+            playerCommandAudit.Clear();
+            pendingPlayerCommands.Clear();
+            disconnectedPlayers.Clear();
             systems = null;
             history.Clear();
             networkIds.Clear();
@@ -653,6 +717,68 @@ if (SnapshotsEnabled)
         return commandResults.TryGetValue(commandId, out var result) ? result : null;
     }
 
+    public bool TryReservePlayerCommand(string playerId)
+    {
+        if (string.IsNullOrWhiteSpace(playerId))
+            return false;
+
+        while (true)
+        {
+            if (!pendingPlayerCommands.TryGetValue(playerId, out var current))
+            {
+                if (pendingPlayerCommands.TryAdd(playerId, 1))
+                    return true;
+                continue;
+            }
+
+            if (current >= MaxPendingPlayerCommands)
+                return false;
+            if (pendingPlayerCommands.TryUpdate(playerId, current + 1, current))
+                return true;
+        }
+    }
+
+    public void ReleasePlayerCommand(string playerId)
+    {
+        if (string.IsNullOrWhiteSpace(playerId))
+            return;
+
+        while (pendingPlayerCommands.TryGetValue(playerId, out var current))
+        {
+            if (current <= 1)
+            {
+                if (pendingPlayerCommands.TryRemove(playerId, out _))
+                    return;
+            }
+            else if (pendingPlayerCommands.TryUpdate(playerId, current - 1, current))
+            {
+                return;
+            }
+        }
+    }
+
+    public void MarkPlayerConnected(string playerId)
+    {
+        if (!string.IsNullOrWhiteSpace(playerId))
+            disconnectedPlayers.TryRemove(playerId, out _);
+    }
+
+    public void MarkPlayerDisconnected(string playerId)
+    {
+        if (!string.IsNullOrWhiteSpace(playerId))
+            disconnectedPlayers[playerId] = 0;
+    }
+
+    public PlayerCommandResult? GetPlayerCommandResult(Guid commandId) =>
+        playerCommandResults.TryGetValue(commandId, out var result) ? result : null;
+
+    public IReadOnlyList<PlayerCommandResult> GetPlayerCommandAudit(string playerId, int take = 20)
+    {
+        if (take <= 0 || !playerCommandAudit.TryGetValue(playerId, out var queue))
+            return Array.Empty<PlayerCommandResult>();
+        return queue.Reverse().Take(Math.Min(take, MaxAuditRowsPerPlayer)).ToArray();
+    }
+
     private void DrainPlayerIntents()
     {
         if (commandQueue is null)
@@ -662,7 +788,16 @@ if (SnapshotsEnabled)
         {
             lock (@lock)
             {
-                if (!isRunning || world is null || mapContext is null || movementIndex is null)
+                if (!isRunning || world is null)
+                    return;
+
+                if (intent is PlayerActionIntent playerAction)
+                {
+                    ApplyPlayerAction(playerAction);
+                    return;
+                }
+
+                if (mapContext is null || movementIndex is null)
                     return;
 
                 if (intent is MoveIntent move)
@@ -671,6 +806,97 @@ if (SnapshotsEnabled)
                     ApplyUseBuildingIntent(use);
             }
         });
+    }
+
+    private void ApplyPlayerAction(PlayerActionIntent intent)
+    {
+        if (string.IsNullOrWhiteSpace(intent.PlayerId) || intent.CommandId == Guid.Empty)
+            return;
+
+        try
+        {
+            if (playerCommandResults.ContainsKey(intent.CommandId))
+                return;
+            if (disconnectedPlayers.ContainsKey(intent.PlayerId))
+            {
+                CompletePlayerCommand(intent, PlayerCommandStatus.Rejected, "disconnected",
+                    "The player disconnected before the action was applied.", applied: false);
+                return;
+            }
+
+            if (lastIntentSequence.TryGetValue(intent.PlayerId, out var last) &&
+                intent.Sequence > 0 && intent.Sequence <= last)
+            {
+                CompletePlayerCommand(intent, PlayerCommandStatus.Superseded, "stale_sequence",
+                    "Intent sequence is stale.", applied: false);
+                return;
+            }
+            if (intent.Sequence > 0)
+                lastIntentSequence[intent.PlayerId] = intent.Sequence;
+
+            if (playerActions is null)
+            {
+                CompletePlayerCommand(intent, PlayerCommandStatus.Rejected, "world_not_ready",
+                    "The world is not ready yet.", applied: false);
+                return;
+            }
+
+            var sim = ResolvePlayerSim(intent.PlayerId, intent.SimNetworkId);
+            if (sim != Entity.Null && world.Has<NetworkId>(sim))
+                intent = intent with { SimNetworkId = world.Get<NetworkId>(sim).Value };
+            var result = playerActions.Apply(intent.PlayerId, sim, intent.Kind, intent.Payload, tick);
+            CompletePlayerCommand(
+                intent,
+                result.Applied ? PlayerCommandStatus.Applied : PlayerCommandStatus.Rejected,
+                result.Code,
+                result.Message,
+                applied: result.Applied);
+        }
+        finally
+        {
+            ReleasePlayerCommand(intent.PlayerId);
+        }
+    }
+
+    private void CompletePlayerCommand(
+        PlayerActionIntent intent,
+        PlayerCommandStatus status,
+        string? code,
+        string? message,
+        bool applied)
+    {
+        var result = new PlayerCommandResult(
+            intent.CommandId,
+            intent.PlayerId,
+            intent.Kind,
+            status,
+            code,
+            message,
+            tick);
+
+        playerCommandResults[intent.CommandId] = result;
+        var queue = playerCommandAudit.GetOrAdd(
+            intent.PlayerId,
+            _ => new ConcurrentQueue<PlayerCommandResult>());
+        queue.Enqueue(result);
+        while (queue.Count > MaxAuditRowsPerPlayer && queue.TryDequeue(out _))
+        {
+        }
+
+        if (applied)
+            playerRegistry.RecordCommand();
+
+        economy?.Emit(new PlayerCommandApplied(
+            intent.CommandId,
+            intent.PlayerId,
+            intent.SimNetworkId,
+            intent.Kind.ToString(),
+            status.ToString(),
+            code,
+            tick));
+
+        if (status != PlayerCommandStatus.Applied)
+            RejectIntent(intent.PlayerId, intent.Sequence, code ?? "rejected", message ?? "Command rejected.");
     }
 
     private void ApplyMoveIntent(MoveIntent intent)
@@ -841,6 +1067,9 @@ if (SnapshotsEnabled)
         else
             world.Add(sim, current);
 
+        if (action.Value == ActionType.Working)
+            playerActions?.RecordWorkPresence(sim, tick);
+
         if (!world.Has<MoveTarget>(sim))
             return;
         var target = world.Get<MoveTarget>(sim);
@@ -916,16 +1145,55 @@ if (SnapshotsEnabled)
             if (!isRunning || world is null || string.IsNullOrWhiteSpace(playerId))
                 return 0;
 
+            if (playerRegistry.TryGet(playerId, out var known) &&
+                (known.AwaitingContinuation || known.Observer))
+                return 0;
+
             var existing = ResolvePlayerSim(playerId, 0);
             if (existing != Entity.Null && world.IsAlive(existing) && !world.Has<Dead>(existing))
+            {
+                RegisterPlayerSim(playerId, existing);
                 return world.Has<NetworkId>(existing) ? world.Get<NetworkId>(existing).Value : 0;
+            }
 
-            var repository = new SimRepository(world, networkIds, economy, mapContext);
-            var name = playerId.Length > 20 ? $"Player-{playerId[..20]}" : $"Player-{playerId}";
-            var networkId = repository.Add(name, 25, playerId);
-            Emit(new SimCreated(networkId.Value, name, 25));
-            return networkId.Value;
+            var entity = CreateContinuationSim(playerId);
+            if (entity is null)
+                return 0;
+
+            return world.Has<NetworkId>(entity.Value) ? world.Get<NetworkId>(entity.Value).Value : 0;
         }
+    }
+
+    private Entity? CreateContinuationSim(string playerId)
+    {
+        if (!isRunning || world is null || economy is null)
+            return null;
+
+        var repository = new SimRepository(world, networkIds, economy, mapContext);
+        var name = playerId.Length > 20 ? $"Player-{playerId[..20]}" : $"Player-{playerId}";
+        var networkId = repository.Add(name, 25, playerId);
+        Emit(new SimCreated(networkId.Value, name, 25));
+
+        if (!networkIds.TryGetEntity(networkId, out var entity) || !world.IsAlive(entity))
+            return null;
+
+        RegisterPlayerSim(playerId, entity);
+        return entity;
+    }
+
+    private void RegisterPlayerSim(string playerId, Entity entity)
+    {
+        if (world is null || !world.IsAlive(entity))
+            return;
+
+        var isNew = !playerRegistry.TryGet(playerId, out _);
+        var profile = playerRegistry.GetOrCreate(playerId, entity, tick);
+        profile.LastSimNetworkId = world.Has<NetworkId>(entity) ? world.Get<NetworkId>(entity).Value : 0;
+        profile.Observer = false;
+        disconnectedPlayers.TryRemove(playerId, out _);
+
+        if (isNew)
+            Emit(new PlayerProfileCreated(profile.LastSimNetworkId, playerId, tick));
     }
 
     public void EnsurePlayerSpawn(string playerId)
@@ -938,6 +1206,8 @@ if (SnapshotsEnabled)
             var sim = ResolvePlayerSim(playerId, 0);
             if (sim == Entity.Null || !world.IsAlive(sim))
                 return;
+
+            RegisterPlayerSim(playerId, sim);
 
             if (world.Has<TilePosition>(sim) && mapContext.Map.IsWalkable(world.Get<TilePosition>(sim).Tile))
                 return;
@@ -1756,6 +2026,133 @@ if (SnapshotsEnabled)
                 EmitFamilyAdminAction(
                     releaseTrust, "release-trust", releaseTrust.TrustId, 0, 0);
                 return new { trustId = releaseTrust.TrustId };
+            }
+
+            case SetPlayerContinuationCommand setContinuation:
+            {
+                if (!playerRegistry.TryGet(setContinuation.PlayerId, out var profile))
+                    throw new InvalidOperationException("Player not found.");
+                if (!Enum.TryParse<PlayerContinuationPolicy>(setContinuation.Policy, ignoreCase: true, out var policy))
+                    throw new InvalidOperationException("Unknown continuation policy.");
+
+                profile.ContinuationPolicy = policy;
+                profile.Observer = policy == PlayerContinuationPolicy.Observer;
+                economy!.Emit(new PlayerAdminActionApplied(
+                    setContinuation.CommandId,
+                    "set-continuation",
+                    setContinuation.IssuedBy,
+                    setContinuation.PlayerId,
+                    setContinuation.Reason,
+                    tick,
+                    policy.ToString()));
+                return new { playerId = profile.PlayerId, policy = policy.ToString() };
+            }
+
+            case DetachPlayerSimCommand detach:
+            {
+                if (!playerRegistry.TryGet(detach.PlayerId, out var profile))
+                    throw new InvalidOperationException("Player not found.");
+
+                var previousSimId = profile.ControlledSim != Entity.Null &&
+                                    world.IsAlive(profile.ControlledSim)
+                    ? GetNetworkId(world, profile.ControlledSim)
+                    : profile.LastSimNetworkId;
+                if (profile.ControlledSim != Entity.Null && world.IsAlive(profile.ControlledSim) &&
+                    world.Has<PlayerControlled>(profile.ControlledSim))
+                {
+                    world.Remove<PlayerControlled>(profile.ControlledSim);
+                }
+                profile.LastSimNetworkId = previousSimId;
+                profile.ControlledSim = Entity.Null;
+                profile.AwaitingContinuation = true;
+                economy!.Emit(new PlayerAwaitingContinuation(
+                    previousSimId,
+                    profile.PlayerId,
+                    tick));
+                economy.Emit(new PlayerAdminActionApplied(
+                    detach.CommandId,
+                    "detach",
+                    detach.IssuedBy,
+                    detach.PlayerId,
+                    detach.Reason,
+                    tick));
+                return new { playerId = profile.PlayerId, detached = true };
+            }
+
+            case ForcePlayerContinuationCommand forceContinuation:
+            {
+                if (!playerRegistry.TryGet(forceContinuation.PlayerId, out var profile))
+                    throw new InvalidOperationException("Player not found.");
+                if (!Enum.TryParse<PlayerContinuationPolicy>(forceContinuation.Policy, ignoreCase: true, out var policy))
+                    throw new InvalidOperationException("Unknown continuation policy.");
+
+                profile.ContinuationPolicy = policy;
+                profile.Observer = policy == PlayerContinuationPolicy.Observer;
+                if (profile.ControlledSim != Entity.Null && world.IsAlive(profile.ControlledSim) &&
+                    world.Has<PlayerControlled>(profile.ControlledSim))
+                {
+                    world.Remove<PlayerControlled>(profile.ControlledSim);
+                }
+                profile.LastSimNetworkId = profile.ControlledSim != Entity.Null &&
+                                           world.IsAlive(profile.ControlledSim)
+                    ? GetNetworkId(world, profile.ControlledSim)
+                    : profile.LastSimNetworkId;
+                profile.ControlledSim = Entity.Null;
+                profile.AwaitingContinuation = true;
+                economy!.Emit(new PlayerAdminActionApplied(
+                    forceContinuation.CommandId,
+                    "force-continuation",
+                    forceContinuation.IssuedBy,
+                    forceContinuation.PlayerId,
+                    forceContinuation.Reason,
+                    tick,
+                    policy.ToString()));
+                return new { playerId = profile.PlayerId, policy = policy.ToString(), awaiting = true };
+            }
+
+            case RestockStoreCommand restock:
+            {
+                if (!networkIds.TryGetEntity(new NetworkId(restock.StoreNetworkId), out var store) ||
+                    !world.Has<Office>(store))
+                    throw new InvalidOperationException("Store not found.");
+
+                var grocery = new Genelife.Consumption.GroceryStoreService(
+                    world,
+                    economy!,
+                    entity => networkIds.AllocateInfrastructure(entity));
+                grocery.RestockStore(store, tick, economy!.Clock.MonthOfYear(tick));
+                economy.Emit(new ConsumptionAdminActionApplied(
+                    restock.CommandId,
+                    "restock",
+                    restock.IssuedBy,
+                    restock.StoreNetworkId.ToString(),
+                    restock.Reason,
+                    tick));
+                return new { store = restock.StoreNetworkId, restocked = true };
+            }
+
+            case RepairUtilityNetworkCommand repair:
+            {
+                if (!Enum.TryParse<UtilityService>(repair.Service, ignoreCase: true, out var service))
+                    throw new InvalidOperationException("Unknown utility service.");
+
+                var utility = new Genelife.Consumption.UtilityNetworkService(
+                    world,
+                    economy!,
+                    entity => networkIds.AllocateInfrastructure(entity),
+                    economy!.UtilityOptions);
+                var cost = Money.FromUnits(repair.Units * 2m);
+                if (!utility.ExpandCapacity(service, repair.Units, cost, tick))
+                    throw new InvalidOperationException("Utility network repair failed.");
+
+                economy.Emit(new ConsumptionAdminActionApplied(
+                    repair.CommandId,
+                    "utility-repair",
+                    repair.IssuedBy,
+                    repair.Service,
+                    repair.Reason,
+                    tick));
+                return new { service = service.ToString(), units = repair.Units };
             }
 
             default:
@@ -2970,6 +3367,670 @@ if (SnapshotsEnabled)
 
             return status;
         }
+    }
+
+    public ConsumptionOverviewStatus BuildConsumptionOverview()
+    {
+        lock (@lock)
+        {
+            if (world is null || economy is null)
+                return new ConsumptionOverviewStatus(
+                    Array.Empty<UtilityNetworkStatus>(), 0, 0, 0, 0, 0, 0,
+                    Array.Empty<NutritionBucketStatus>(), 0, GroceryCatalog.Version);
+
+            var networks = new List<UtilityNetworkStatus>();
+            world.Query(in new QueryDescription().WithAll<UtilityNetwork>(),
+                (Entity entity, ref UtilityNetwork _) =>
+                    networks.Add(ConsumptionReadModel.Network(world, entity)));
+            networks.Sort((a, b) => string.Compare(a.Service, b.Service, StringComparison.Ordinal));
+
+            var households = 0;
+            var cutoff = 0;
+            var reduced = 0;
+            world.Query(in new QueryDescription().WithAll<Household, HouseholdMeter>(),
+                (ref Household _, ref HouseholdMeter meter) =>
+                {
+                    households++;
+                    if (meter.WaterLevel == ServiceLevel.CutOff || meter.ElectricityLevel == ServiceLevel.CutOff) cutoff++;
+                    else if (meter.WaterLevel == ServiceLevel.Reduced || meter.ElectricityLevel == ServiceLevel.Reduced) reduced++;
+                });
+
+            var stores = new HashSet<Entity>();
+            var stockUnits = 0;
+            world.Query(in new QueryDescription().WithAll<StoreInventory, StoreStockLink>(),
+                (ref StoreInventory inventory, ref StoreStockLink link) =>
+                {
+                    stores.Add(link.Store);
+                    stockUnits += Math.Max(0, inventory.Stock);
+                });
+
+            var healthy = 0;
+            var poor = 0;
+            var critical = 0;
+            world.Query(in new QueryDescription().WithAll<NutritionState>(),
+                (ref NutritionState nutrition) =>
+                {
+                    if (nutrition.Balance > 20) healthy++;
+                    else if (nutrition.Balance < 0) critical++;
+                    else poor++;
+                });
+
+            var buckets = new List<NutritionBucketStatus>
+            {
+                new("balanced", healthy),
+                new("marginal", poor),
+                new("poor", critical)
+            };
+
+            return new ConsumptionOverviewStatus(
+                networks,
+                households,
+                cutoff,
+                reduced,
+                stores.Count,
+                stockUnits,
+                0,
+                buckets,
+                critical,
+                GroceryCatalog.Version);
+        }
+    }
+
+    public IReadOnlyList<UtilityNetworkStatus> BuildConsumptionNetworks()
+    {
+        lock (@lock)
+        {
+            if (world is null)
+                return Array.Empty<UtilityNetworkStatus>();
+            var rows = new List<UtilityNetworkStatus>();
+            world.Query(in new QueryDescription().WithAll<UtilityNetwork>(),
+                (Entity entity, ref UtilityNetwork _) => rows.Add(ConsumptionReadModel.Network(world, entity)));
+            rows.Sort((a, b) => string.Compare(a.Service, b.Service, StringComparison.Ordinal));
+            return rows;
+        }
+    }
+
+    public ConsumptionHouseholdPage BuildConsumptionHouseholds(
+        int take = 100,
+        int skip = 0,
+        string? level = null)
+    {
+        lock (@lock)
+        {
+            if (world is null || economy is null)
+                return new ConsumptionHouseholdPage(Array.Empty<ConsumptionHouseholdStatus>(), 0);
+
+            take = Math.Clamp(take, 1, 500);
+            skip = Math.Max(0, skip);
+            var rows = new List<ConsumptionHouseholdStatus>();
+            world.Query(in new QueryDescription().WithAll<Household>(),
+                (Entity entity, ref Household household) =>
+                {
+                    var meter = world.Has<HouseholdMeter>(entity) ? world.Get<HouseholdMeter>(entity) : default;
+                    if (!string.IsNullOrWhiteSpace(level) &&
+                        !string.Equals(level, "all", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var matches = level.Trim().ToLowerInvariant() switch
+                        {
+                            "cutoff" => meter.WaterLevel == ServiceLevel.CutOff || meter.ElectricityLevel == ServiceLevel.CutOff,
+                            "reduced" => meter.WaterLevel == ServiceLevel.Reduced || meter.ElectricityLevel == ServiceLevel.Reduced,
+                            "full" => meter.WaterLevel == ServiceLevel.Full && meter.ElectricityLevel == ServiceLevel.Full,
+                            "arrears" => meter.Arrears.IsPositive || household.RentArrears.IsPositive,
+                            _ => true
+                        };
+                        if (!matches) return;
+                    }
+                    rows.Add(ConsumptionReadModel.Household(
+                        world,
+                        entity,
+                        household.Unit,
+                        economy.Housing.MemberCount(entity)));
+                });
+            rows.Sort((a, b) => b.ArrearsCents.CompareTo(a.ArrearsCents));
+            return new ConsumptionHouseholdPage(rows.Skip(skip).Take(take).ToList(), rows.Count);
+        }
+    }
+
+    public ConsumptionStorePage BuildConsumptionStores(int take = 100, int skip = 0)
+    {
+        lock (@lock)
+        {
+            if (world is null)
+                return new ConsumptionStorePage(Array.Empty<ConsumptionStoreStatus>(), 0);
+
+            var stores = new Dictionary<Entity, List<StoreItemStatus>>();
+            world.Query(in new QueryDescription().WithAll<StoreInventory, StoreStockLink>(),
+                (ref StoreInventory inventory, ref StoreStockLink link) =>
+                {
+                    if (!stores.TryGetValue(link.Store, out var items))
+                    {
+                        items = new List<StoreItemStatus>();
+                        stores[link.Store] = items;
+                    }
+                    var item = inventory.ItemIndex >= 0 && inventory.ItemIndex < GroceryCatalog.Items.Count
+                        ? GroceryCatalog.Items[inventory.ItemIndex].Id
+                        : $"item-{inventory.ItemIndex}";
+                    items.Add(new StoreItemStatus(
+                        inventory.ItemIndex,
+                        item,
+                        inventory.Stock,
+                        inventory.CurrentPrice.Cents,
+                        inventory.LastRestockTick));
+                });
+
+            var rows = stores
+                .OrderBy(pair => GetNetworkId(world, pair.Key))
+                .Select(pair => new ConsumptionStoreStatus(
+                    GetNetworkId(world, pair.Key),
+                    world.Has<Office>(pair.Key) ? world.Get<Office>(pair.Key).OfficeName : $"Store {GetNetworkId(world, pair.Key)}",
+                    pair.Value.OrderBy(item => item.ItemIndex).ToList()))
+                .ToList();
+
+            return new ConsumptionStorePage(rows.Skip(Math.Max(0, skip)).Take(Math.Clamp(take, 1, 500)).ToList(), rows.Count);
+        }
+    }
+
+    public PlayerPresenceDto? BuildPlayerPresence(string playerId)
+    {
+        lock (@lock)
+        {
+            if (world is null || string.IsNullOrWhiteSpace(playerId) ||
+                !playerRegistry.TryGet(playerId, out var profile) ||
+                profile.ControlledSim == Entity.Null ||
+                !world.IsAlive(profile.ControlledSim) ||
+                world.Has<Dead>(profile.ControlledSim))
+                return null;
+
+            var sim = profile.ControlledSim;
+            var tile = world.Has<TilePosition>(sim) ? world.Get<TilePosition>(sim).Tile : default;
+            Entity building = Entity.Null;
+            world.Query(in new QueryDescription().WithAll<Placement>(),
+                (Entity entity, ref Placement placement) =>
+                {
+                    if (building == Entity.Null && placement.Covers(tile))
+                        building = entity;
+                });
+
+            var buildingId = building != Entity.Null ? GetNetworkId(world, building) : (ulong?)null;
+            var inVenue = building != Entity.Null && world.Has<Placement>(building) &&
+                          world.Get<Placement>(building).Kind is BuildingKind.Store or BuildingKind.Civic;
+            var appearance = AppearanceMapper.TryDerive(world, sim, out var descriptor)
+                ? AppearanceMapper.ToDto(descriptor)
+                : null;
+
+            return new PlayerPresenceDto(
+                playerId,
+                world.Has<GenName>(sim) ? world.Get<GenName>(sim).Name : null,
+                GetNetworkId(world, sim),
+                tile.X,
+                tile.Y,
+                buildingId,
+                inVenue ? PresenceState.InVenue.ToString() : PresenceState.Online.ToString(),
+                appearance,
+                tick);
+        }
+    }
+
+    public IReadOnlyList<PlayerPresenceDto> BuildPlayerPresence(IReadOnlyCollection<string> playerIds)
+    {
+        var rows = new List<PlayerPresenceDto>();
+        foreach (var playerId in playerIds.OrderBy(id => id, StringComparer.Ordinal))
+        {
+            var presence = BuildPlayerPresence(playerId);
+            if (presence is not null)
+                rows.Add(presence);
+        }
+        return rows;
+    }
+
+    public AppearancePage BuildAppearancePage(int take = 100, int skip = 0, string? search = null)
+    {
+        lock (@lock)
+        {
+            if (world is null)
+                return new AppearancePage(Array.Empty<AppearanceSimStatus>(), 0);
+
+            take = Math.Clamp(take, 1, 500);
+            skip = Math.Max(0, skip);
+            var rows = new List<AppearanceSimStatus>();
+            var query = new QueryDescription().WithAll<GenName, Traits, Alive>().WithNone<Dead>();
+
+            world.Query(in query, (Entity entity, ref GenName name, ref Traits traits, ref Alive alive) =>
+            {
+                if (!string.IsNullOrWhiteSpace(search) &&
+                    !name.Name.Contains(search.Trim(), StringComparison.OrdinalIgnoreCase) &&
+                    !AppearanceMapper.StableKey(world, entity).ToString().Contains(search.Trim(), StringComparison.Ordinal))
+                    return;
+                if (!AppearanceMapper.TryDerive(world, entity, out var descriptor))
+                    return;
+                rows.Add(Genelife.Api.Appearance.AppearanceReadModel.Build(world, entity));
+            });
+
+            rows.Sort((a, b) =>
+            {
+                var byName = string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
+                return byName != 0 ? byName : a.NetworkId.CompareTo(b.NetworkId);
+            });
+
+            return new AppearancePage(rows.Skip(skip).Take(take).ToList(), rows.Count);
+        }
+    }
+
+    public AppearanceSimStatus? BuildAppearance(ulong simNetworkId)
+    {
+        lock (@lock)
+        {
+            if (world is null || !networkIds.TryGetEntity(new NetworkId(simNetworkId), out var entity))
+                return null;
+            if (!AppearanceMapper.TryDerive(world, entity, out _))
+                return null;
+            return Genelife.Api.Appearance.AppearanceReadModel.Build(world, entity);
+        }
+    }
+
+    public AppearanceFamilyStatus? BuildAppearanceFamily(ulong simNetworkId)
+    {
+        lock (@lock)
+        {
+            if (world is null || !networkIds.TryGetEntity(new NetworkId(simNetworkId), out var focal))
+                return null;
+            if (!AppearanceMapper.TryDerive(world, focal, out var focalDescriptor))
+                return null;
+
+            var members = new List<AppearanceFamilyMemberStatus>();
+            var related = new HashSet<Entity>();
+            var parents = relationshipIndex.ParentsOf(focal);
+            var children = relationshipIndex.ChildrenOf(focal);
+
+            foreach (var parent in parents)
+                AddMember(members, related, parent, "parent", focalDescriptor);
+            foreach (var child in children)
+                AddMember(members, related, child, "child", focalDescriptor);
+
+            var siblings = new HashSet<Entity>();
+            foreach (var parent in parents)
+                foreach (var sibling in relationshipIndex.ChildrenOf(parent))
+                    if (sibling != focal)
+                        siblings.Add(sibling);
+            foreach (var sibling in siblings)
+                AddMember(members, related, sibling, "sibling", focalDescriptor);
+
+            return new AppearanceFamilyStatus(
+                Genelife.Api.Appearance.AppearanceReadModel.Build(world, focal),
+                members);
+        }
+    }
+
+    private void AddMember(
+        List<AppearanceFamilyMemberStatus> members,
+        HashSet<Entity> seen,
+        Entity entity,
+        string relation,
+        AppearanceDescriptor focal)
+    {
+        if (entity == Entity.Null || !world!.IsAlive(entity) || world.Has<Dead>(entity) ||
+            !seen.Add(entity) || !AppearanceMapper.TryDerive(world, entity, out var descriptor))
+            return;
+
+        var resemblance = FamilyResemblance.Compare(focal, descriptor);
+        members.Add(new AppearanceFamilyMemberStatus(
+            relation,
+            Genelife.Api.Appearance.AppearanceReadModel.Build(world, entity),
+            resemblance.SharesSkinTone,
+            resemblance.SharesFaceShape,
+            resemblance.SharesHairColor,
+            resemblance.SharesEyeColor,
+            resemblance.SharedFields,
+            resemblance.Score));
+    }
+
+    public AppearanceSimStatus? BuildOwnAppearance(string playerId)
+    {
+        lock (@lock)
+        {
+            if (world is null || string.IsNullOrWhiteSpace(playerId) ||
+                !playerRegistry.TryGet(playerId, out var profile) ||
+                profile.ControlledSim == Entity.Null || !world.IsAlive(profile.ControlledSim))
+                return null;
+            if (!AppearanceMapper.TryDerive(world, profile.ControlledSim, out _))
+                return null;
+            return Genelife.Api.Appearance.AppearanceReadModel.Build(world, profile.ControlledSim);
+        }
+    }
+
+    public PlayerOverviewStatus BuildPlayerOverview()
+    {
+        lock (@lock)
+        {
+            if (world is null || economy is null)
+                return new PlayerOverviewStatus(0, 0, 0, 0, 0, 0, 0, 0, 0);
+
+            var active = 0;
+            var awaiting = 0;
+            var employed = 0;
+            var housed = 0;
+
+            foreach (var profile in playerRegistry.All())
+            {
+                if (profile.AwaitingContinuation)
+                {
+                    awaiting++;
+                    continue;
+                }
+
+                var sim = profile.ControlledSim;
+                if (sim == Entity.Null || !world.IsAlive(sim) || world.Has<Dead>(sim))
+                    continue;
+
+                active++;
+                if (world.Has<Employee>(sim))
+                    employed++;
+                if (world.Has<PlayerHousing>(sim) && world.Get<PlayerHousing>(sim).LeaseActive)
+                    housed++;
+            }
+
+            return new PlayerOverviewStatus(
+                playerRegistry.Players.Count,
+                active,
+                awaiting,
+                employed,
+                housed,
+                CountPendingPlayerInvitations(),
+                playerRegistry.DeathsThisYear,
+                playerRegistry.ContinuationsThisYear,
+                playerRegistry.CommandsAppliedThisYear);
+        }
+    }
+
+    public PlayerLifePage BuildPlayerLives(
+        int take = 100,
+        int skip = 0,
+        string? search = null,
+        string? state = null)
+    {
+        lock (@lock)
+        {
+            if (world is null || economy is null)
+                return new PlayerLifePage(Array.Empty<PlayerLifeStatus>(), 0);
+
+            take = Math.Clamp(take, 1, 500);
+            skip = Math.Max(0, skip);
+
+            var rows = new List<PlayerLifeStatus>();
+            foreach (var profile in playerRegistry.All().OrderBy(p => p.PlayerId, StringComparer.Ordinal))
+            {
+                var status = BuildPlayerLifeStatus(profile);
+                if (!MatchesPlayerFilter(status, search, state))
+                    continue;
+                rows.Add(status);
+            }
+
+            return new PlayerLifePage(rows.Skip(skip).Take(take).ToList(), rows.Count);
+        }
+    }
+
+    public PlayerLifeStatus? BuildPlayerLife(string playerId)
+    {
+        lock (@lock)
+        {
+            if (world is null || economy is null || string.IsNullOrWhiteSpace(playerId))
+                return null;
+            if (!playerRegistry.TryGet(playerId, out var profile))
+                return null;
+            return BuildPlayerLifeStatus(profile);
+        }
+    }
+
+    public IReadOnlyList<PlayerInvitationStatus> BuildPlayerInvitations(string playerId)
+    {
+        lock (@lock)
+        {
+            if (world is null || string.IsNullOrWhiteSpace(playerId) ||
+                !playerRegistry.TryGet(playerId, out var profile) ||
+                profile.ControlledSim == Entity.Null ||
+                !world.IsAlive(profile.ControlledSim))
+                return Array.Empty<PlayerInvitationStatus>();
+
+            return PendingInvitations(profile.ControlledSim).ToList();
+        }
+    }
+
+    private PlayerLifeStatus BuildPlayerLifeStatus(PlayerProfile profile)
+    {
+        var worldRef = world!;
+        var sim = profile.ControlledSim;
+        var simAlive = sim != Entity.Null && worldRef.IsAlive(sim);
+        var simNetworkId = simAlive && worldRef.Has<NetworkId>(sim)
+            ? worldRef.Get<NetworkId>(sim).Value
+            : profile.LastSimNetworkId;
+
+        var name = simAlive && worldRef.Has<GenName>(sim) ? worldRef.Get<GenName>(sim).Name : null;
+        var alive = simAlive && worldRef.Has<Alive>(sim) ? worldRef.Get<Alive>(sim) : new Alive(0);
+        var health = simAlive && worldRef.Has<Health>(sim) ? worldRef.Get<Health>(sim).Value : 0f;
+        var needs = simAlive && worldRef.Has<Needs>(sim) ? worldRef.Get<Needs>(sim) : new Needs();
+        var wallet = simAlive && worldRef.Has<Wallet>(sim) ? worldRef.Get<Wallet>(sim).Balance.Cents : 0;
+        var savings = simAlive && worldRef.Has<SavingsAccount>(sim)
+            ? worldRef.Get<SavingsAccount>(sim).Balance.Cents
+            : 0;
+
+        var employment = new PlayerEmploymentStatus(false, 0, 0, string.Empty, string.Empty, 0, false, 0, 0);
+        if (simAlive && worldRef.Has<Employee>(sim))
+        {
+            var employee = worldRef.Get<Employee>(sim);
+            var record = worldRef.Has<EmploymentRecord>(sim) ? worldRef.Get<EmploymentRecord>(sim) : default;
+            var playerEmployment = worldRef.Has<PlayerEmployment>(sim)
+                ? worldRef.Get<PlayerEmployment>(sim)
+                : default;
+            employment = new PlayerEmploymentStatus(
+                true,
+                GetNetworkId(worldRef, employee.Company),
+                GetNetworkId(worldRef, employee.Office),
+                employee.Position,
+                employee.Seniority.ToString(),
+                employee.SalaryPerCycle.Cents,
+                worldRef.Has<CurrentAction>(sim) && worldRef.Get<CurrentAction>(sim).Type == ActionType.Working,
+                playerEmployment.ConsecutiveMissedShifts,
+                playerEmployment.LastAttendedTick);
+        }
+
+        var housing = new PlayerHousingStatus(false, 0, 0, 0, null, null, null, 0, 0, 0, false, 0, 0);
+        if (simAlive && worldRef.Has<PlayerHousing>(sim))
+        {
+            var lease = worldRef.Get<PlayerHousing>(sim);
+            var household = lease.Household;
+            var unit = lease.Unit;
+            if (household != Entity.Null && worldRef.IsAlive(household) && worldRef.Has<Household>(household))
+            {
+                var householdData = worldRef.Get<Household>(household);
+                if (unit != Entity.Null && worldRef.IsAlive(unit) && worldRef.Has<HousingUnit>(unit))
+                {
+                    var unitData = worldRef.Get<HousingUnit>(unit);
+                    var property = unitData.Property;
+                    var propertyName = property != Entity.Null && worldRef.IsAlive(property) &&
+                                       worldRef.Has<Property>(property)
+                        ? worldRef.Get<Property>(property).Name
+                        : null;
+                    var pantry = worldRef.Has<HouseholdPantry>(household)
+                        ? worldRef.Get<HouseholdPantry>(household)
+                        : default;
+                    housing = new PlayerHousingStatus(
+                        true,
+                        GetNetworkId(worldRef, household),
+                        GetNetworkId(worldRef, unit),
+                        GetNetworkId(worldRef, property),
+                        propertyName,
+                        unitData.UnitNumber,
+                        unitData.Tier.ToString(),
+                        householdData.MonthlyRent.Cents,
+                        householdData.RentArrears.Cents,
+                        householdData.UtilityArrears.Cents,
+                        lease.LeaseActive,
+                        pantry.FoodUnits,
+                        pantry.HouseholdGoods);
+                }
+                else
+                {
+                    housing = housing with
+                    {
+                        HouseholdId = GetNetworkId(worldRef, household),
+                        RentCents = householdData.MonthlyRent.Cents,
+                        RentArrearsCents = householdData.RentArrears.Cents,
+                        UtilityArrearsCents = householdData.UtilityArrears.Cents
+                    };
+                }
+            }
+        }
+
+        PlayerJobOfferStatus? jobOffer = null;
+        if (simAlive && worldRef.Has<PlayerJobOffer>(sim))
+        {
+            var offer = worldRef.Get<PlayerJobOffer>(sim);
+            jobOffer = new PlayerJobOfferStatus(
+                offer.OfferId,
+                GetNetworkId(worldRef, offer.Posting),
+                offer.Position,
+                offer.SalaryPerCycle.Cents,
+                offer.ExpiresTick);
+        }
+
+        PlayerLeaseOfferStatus? leaseOffer = null;
+        if (simAlive && worldRef.Has<PlayerLeaseOffer>(sim))
+        {
+            var offer = worldRef.Get<PlayerLeaseOffer>(sim);
+            leaseOffer = new PlayerLeaseOfferStatus(
+                offer.OfferId,
+                GetNetworkId(worldRef, offer.Unit),
+                GetNetworkId(worldRef, offer.Property),
+                offer.MonthlyRent.Cents,
+                offer.ExpiresTick);
+        }
+
+        ulong? partnerSimId = null;
+        string? partnerName = null;
+        var children = 0;
+        if (simAlive)
+        {
+            var partner = relationshipIndex.PartnersOf(sim)
+                .FirstOrNull(candidate => worldRef.IsAlive(candidate) && !worldRef.Has<Dead>(candidate));
+            if (partner != Entity.Null && worldRef.IsAlive(partner))
+            {
+                partnerSimId = GetNetworkId(worldRef, partner);
+                partnerName = worldRef.Has<GenName>(partner) ? worldRef.Get<GenName>(partner).Name : null;
+            }
+            children = relationshipIndex.ChildrenOf(sim)
+                .Count(child => worldRef.IsAlive(child) && !worldRef.Has<Dead>(child));
+        }
+
+        var invitations = simAlive
+            ? PendingInvitations(sim).ToList()
+            : new List<PlayerInvitationStatus>();
+
+        var audit = GetPlayerCommandAudit(profile.PlayerId, 10)
+            .Select(result => new PlayerActionAuditStatus(
+                result.CommandId,
+                result.Kind.ToString(),
+                result.Status.ToString(),
+                result.Code,
+                result.AppliedTick))
+            .ToList();
+
+        return new PlayerLifeStatus(
+            profile.PlayerId,
+            simNetworkId,
+            name,
+            alive.Age,
+            health,
+            needs.Hunger,
+            needs.Energy,
+            needs.Hygiene,
+            needs.Bladder,
+            wallet,
+            savings,
+            simAlive && !worldRef.Has<Dead>(sim),
+            profile.AwaitingContinuation,
+            profile.ContinuationPolicy.ToString(),
+            profile.Observer,
+            simAlive && worldRef.Has<NutritionState>(sim) ? worldRef.Get<NutritionState>(sim).Balance : 0,
+            simAlive && worldRef.Has<NutritionState>(sim) ? worldRef.Get<NutritionState>(sim).ConsecutivePoorDays : 0,
+            partnerSimId,
+            partnerName,
+            children,
+            employment,
+            housing,
+            jobOffer,
+            leaseOffer,
+            invitations,
+            audit);
+    }
+
+    private IEnumerable<PlayerInvitationStatus> PendingInvitations(Entity sim)
+    {
+        var rows = new List<PlayerInvitationStatus>();
+        world!.Query(in new QueryDescription().WithAll<FamilyInvitation>(),
+            (ref FamilyInvitation invitation) =>
+            {
+                if (invitation.Status != FamilyInvitationStatus.Pending)
+                    return;
+                if (invitation.From != sim && invitation.To != sim)
+                    return;
+                rows.Add(new PlayerInvitationStatus(
+                    invitation.Id,
+                    GetNetworkId(world!, invitation.From),
+                    GetNetworkId(world!, invitation.To),
+                    invitation.Kind.ToString(),
+                    invitation.Status.ToString(),
+                    invitation.ExpiresTick,
+                    invitation.CreatedTick));
+            });
+        return rows
+            .OrderByDescending(row => row.CreatedTick)
+            .ThenBy(row => row.Id);
+    }
+
+    private int CountPendingPlayerInvitations()
+    {
+        var players = new HashSet<Entity>();
+        foreach (var profile in playerRegistry.All())
+            if (profile.ControlledSim != Entity.Null && world!.IsAlive(profile.ControlledSim))
+                players.Add(profile.ControlledSim);
+
+        var count = 0;
+        world!.Query(in new QueryDescription().WithAll<FamilyInvitation>(),
+            (ref FamilyInvitation invitation) =>
+            {
+                if (invitation.Status == FamilyInvitationStatus.Pending &&
+                    (players.Contains(invitation.From) || players.Contains(invitation.To)))
+                    count++;
+            });
+        return count;
+    }
+
+    private static bool MatchesPlayerFilter(PlayerLifeStatus status, string? search, string? state)
+    {
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            var matches = status.PlayerId.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                          (status.Name?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false);
+            if (!matches)
+                return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(state))
+        {
+            return state.Trim().ToLowerInvariant() switch
+            {
+                "active" => status.IsAlive && !status.AwaitingContinuation,
+                "awaiting" => status.AwaitingContinuation,
+                "employed" => status.Employment.Employed,
+                "unemployed" => status.IsAlive && !status.Employment.Employed,
+                "housed" => status.Housing.Housed,
+                "homeless" => status.IsAlive && !status.Housing.Housed,
+                _ => true
+            };
+        }
+
+        return true;
     }
 
     public FamilyStatus BuildFamilyStatus()
@@ -4657,6 +5718,9 @@ if (SnapshotsEnabled)
                 TimeRemaining = MathF.Round(action.TimeRemaining, 2)
             };
 
+            if (Genelife.Api.Appearance.AppearanceMapper.TryDerive(world, entity, out var appearanceDescriptor))
+                status.Appearance = Genelife.Api.Appearance.AppearanceMapper.ToDto(appearanceDescriptor);
+
             if (world.Has<Location>(entity))
             {
                 ref var location = ref world.Get<Location>(entity);
@@ -4812,6 +5876,14 @@ if (SnapshotsEnabled)
             var applications = new List<PersistedApplication>();
             var loans = new List<PersistedLoan>();
             var pendingRevenue = new List<PersistedPendingRevenue>();
+            var playerProfiles = new List<PersistedPlayerProfile>();
+            var playerLives = new List<PersistedPlayerLife>();
+            var familyInvitations = new List<PersistedFamilyInvitation>();
+            var utilityNetworks = new List<PersistedUtilityNetwork>();
+            var serviceLinks = new List<PersistedServiceLink>();
+            var householdMeters = new List<PersistedHouseholdMeter>();
+            var storeInventories = new List<PersistedStoreInventory>();
+            var nutritionRows = new List<PersistedNutrition>();
             var simByEntity = new Dictionary<Entity, PersistedSim>();
 
             var simQuery = new QueryDescription().WithAll<GenName, Needs, Alive, NetworkId>();
@@ -4849,6 +5921,10 @@ if (SnapshotsEnabled)
                 sim.HeightPotential = (int)traits.HeightPotential;
                 sim.Sex = (int)traits.Sex;
                 sim.Temperament = (int)traits.Temperament;
+                sim.SkinTone = (int)traits.SkinTone;
+                sim.FaceShape = (int)traits.FaceShape;
+                sim.AppearanceVersion = AppearanceDescriptor.CurrentVersion;
+                sim.AppearanceMigrated = true;
                 sim.TraitsMigrated = true;
             });
 
@@ -5663,6 +6739,181 @@ if (SnapshotsEnabled)
                 }
             }
 
+            foreach (var profile in playerRegistry.All().OrderBy(p => p.PlayerId, StringComparer.Ordinal))
+            {
+                playerProfiles.Add(new PersistedPlayerProfile
+                {
+                    PlayerId = profile.PlayerId,
+                    SimNetworkId = profile.LastSimNetworkId,
+                    ContinuationPolicy = profile.ContinuationPolicy.ToString(),
+                    AwaitingContinuation = profile.AwaitingContinuation,
+                    Observer = profile.Observer,
+                    CreatedTick = profile.CreatedTick,
+                    LastActionTick = profile.LastActionTick,
+                    LastSequence = profile.LastSequence
+                });
+
+                var sim = profile.ControlledSim;
+                if (sim == Entity.Null || !world.IsAlive(sim) || !world.Has<NetworkId>(sim))
+                    continue;
+
+                var life = new PersistedPlayerLife
+                {
+                    SimNetworkId = world.Get<NetworkId>(sim).Value
+                };
+
+                if (world.Has<PlayerEmployment>(sim))
+                {
+                    var employment = world.Get<PlayerEmployment>(sim);
+                    life.HasEmployment = true;
+                    life.EmploymentOfficeNetworkId = GetNetworkId(world, employment.Office);
+                    life.HiredTick = employment.HiredTick;
+                    life.LastAttendedTick = employment.LastAttendedTick;
+                    life.ConsecutiveMissedShifts = employment.ConsecutiveMissedShifts;
+                    life.EmploymentSource = employment.Source.ToString();
+                    life.AttendedThisMonth = employment.AttendedThisMonth;
+                }
+
+                if (world.Has<PlayerHousing>(sim))
+                {
+                    var lease = world.Get<PlayerHousing>(sim);
+                    life.HouseholdNetworkId = GetNetworkId(world, lease.Household);
+                    life.UnitNetworkId = GetNetworkId(world, lease.Unit);
+                    life.LeaseStartTick = lease.LeaseStartTick;
+                    life.DepositCents = lease.Deposit.Cents;
+                    life.LeaseActive = lease.LeaseActive;
+                }
+
+                if (world.Has<PlayerJobOffer>(sim))
+                {
+                    var offer = world.Get<PlayerJobOffer>(sim);
+                    life.JobOfferId = offer.OfferId;
+                    life.JobOfferPostingNetworkId = GetNetworkId(world, offer.Posting);
+                    life.JobOfferOfficeNetworkId = GetNetworkId(world, offer.Office);
+                    life.JobOfferPosition = offer.Position;
+                    life.JobOfferSalaryCents = offer.SalaryPerCycle.Cents;
+                    life.JobOfferCreatedTick = offer.CreatedTick;
+                    life.JobOfferExpiresTick = offer.ExpiresTick;
+                }
+
+                if (world.Has<PlayerLeaseOffer>(sim))
+                {
+                    var offer = world.Get<PlayerLeaseOffer>(sim);
+                    life.LeaseOfferId = offer.OfferId;
+                    life.LeaseOfferUnitNetworkId = GetNetworkId(world, offer.Unit);
+                    life.LeaseOfferPropertyNetworkId = GetNetworkId(world, offer.Property);
+                    life.LeaseOfferRentCents = offer.MonthlyRent.Cents;
+                    life.LeaseOfferCreatedTick = offer.CreatedTick;
+                    life.LeaseOfferExpiresTick = offer.ExpiresTick;
+                }
+
+                var pantryOwner = sim;
+                if (life.HouseholdNetworkId != 0 &&
+                    networkIds.TryGetEntity(new NetworkId(life.HouseholdNetworkId), out var pantryHousehold) &&
+                    world.IsAlive(pantryHousehold))
+                {
+                    pantryOwner = pantryHousehold;
+                }
+                if (world.IsAlive(pantryOwner) && world.Has<HouseholdPantry>(pantryOwner))
+                {
+                    var pantry = world.Get<HouseholdPantry>(pantryOwner);
+                    life.FoodUnits = pantry.FoodUnits;
+                    life.HouseholdGoods = pantry.HouseholdGoods;
+                    life.LastPurchaseTick = pantry.LastPurchaseTick;
+                }
+
+                playerLives.Add(life);
+            }
+
+            world.Query(in new QueryDescription().WithAll<FamilyInvitation, NetworkId>(),
+                (Entity entity, ref FamilyInvitation invitation, ref NetworkId nid) =>
+                {
+                    familyInvitations.Add(new PersistedFamilyInvitation
+                    {
+                        NetworkId = nid.Value,
+                        Id = invitation.Id,
+                        FromSimNetworkId = GetNetworkId(world, invitation.From),
+                        ToSimNetworkId = GetNetworkId(world, invitation.To),
+                        Kind = invitation.Kind.ToString(),
+                        Status = invitation.Status.ToString(),
+                        CreatedTick = invitation.CreatedTick,
+                        ExpiresTick = invitation.ExpiresTick
+                    });
+                });
+
+            world.Query(in new QueryDescription().WithAll<UtilityNetwork, NetworkId>(),
+                (ref UtilityNetwork network, ref NetworkId nid) =>
+                {
+                    utilityNetworks.Add(new PersistedUtilityNetwork
+                    {
+                        NetworkId = nid.Value,
+                        Service = network.Service.ToString(),
+                        Production = network.Production,
+                        Capacity = network.Capacity,
+                        Load = network.Load,
+                        Reserve = network.Reserve,
+                        State = network.State.ToString()
+                    });
+                });
+
+            world.Query(in new QueryDescription().WithAll<BuildingServiceLink, ServiceLinkOwner>(),
+                (Entity entity, ref BuildingServiceLink link, ref ServiceLinkOwner owner) =>
+                {
+                    serviceLinks.Add(new PersistedServiceLink
+                    {
+                        NetworkId = GetNetworkId(world, entity),
+                        BuildingNetworkId = GetNetworkId(world, owner.Building),
+                        UtilityNetworkId = GetNetworkId(world, link.Network),
+                        Service = link.Service.ToString(),
+                        Demand = link.Demand,
+                        Connected = link.Connected,
+                        Priority = link.Priority
+                    });
+                });
+
+            world.Query(in new QueryDescription().WithAll<HouseholdMeter>(),
+                (Entity entity, ref HouseholdMeter meter) =>
+                {
+                    householdMeters.Add(new PersistedHouseholdMeter
+                    {
+                        HouseholdNetworkId = GetNetworkId(world, entity),
+                        WaterUsage = meter.WaterUsage,
+                        ElectricityUsage = meter.ElectricityUsage,
+                        WaterLevel = meter.WaterLevel.ToString(),
+                        ElectricityLevel = meter.ElectricityLevel.ToString(),
+                        ArrearsCents = meter.Arrears.Cents,
+                        LastReadingTick = meter.LastReadingTick,
+                        ConsecutivePoorMonths = meter.ConsecutivePoorMonths,
+                        LastCutOffTick = meter.LastCutOffTick
+                    });
+                });
+
+            world.Query(in new QueryDescription().WithAll<StoreInventory, StoreStockLink>(),
+                (Entity entity, ref StoreInventory inventory, ref StoreStockLink link) =>
+                {
+                    storeInventories.Add(new PersistedStoreInventory
+                    {
+                        NetworkId = GetNetworkId(world, entity),
+                        StoreNetworkId = GetNetworkId(world, link.Store),
+                        ItemIndex = inventory.ItemIndex,
+                        Stock = inventory.Stock,
+                        CurrentPriceCents = inventory.CurrentPrice.Cents,
+                        LastRestockTick = inventory.LastRestockTick
+                    });
+                });
+
+            world.Query(in new QueryDescription().WithAll<NutritionState>(),
+                (Entity entity, ref NutritionState nutrition) =>
+                {
+                    nutritionRows.Add(new PersistedNutrition
+                    {
+                        SimNetworkId = GetNetworkId(world, entity),
+                        Balance = nutrition.Balance,
+                        ConsecutivePoorDays = nutrition.ConsecutivePoorDays,
+                        LastMealTick = nutrition.LastMealTick
+                    });
+                });
+
             return new PersistedWorldState
             {
                 SchemaVersion = PersistedWorldState.CurrentSchemaVersion,
@@ -5687,6 +6938,15 @@ if (SnapshotsEnabled)
                 MortalityLog = mortalityLog,
                 EstateQueue = estateQueue,
                 Immigration = immigration,
+                PlayerProfiles = playerProfiles,
+                PlayerLives = playerLives,
+                FamilyInvitations = familyInvitations,
+                UtilityNetworks = utilityNetworks,
+                ServiceLinks = serviceLinks,
+                HouseholdMeters = householdMeters,
+                StoreInventories = storeInventories,
+                Nutrition = nutritionRows,
+                GroceryCatalogVersion = GroceryCatalog.Version,
                 Sims = sims,
                 Companies = companies,
                 Offices = offices,
@@ -6025,10 +7285,37 @@ if (SnapshotsEnabled)
                     sim.HeightPotential = (int)traits.HeightPotential;
                     sim.Sex = (int)traits.Sex;
                     sim.Temperament = (int)traits.Temperament;
+                    sim.SkinTone = (int)traits.SkinTone;
+                    sim.FaceShape = (int)traits.FaceShape;
+                    sim.AppearanceVersion = AppearanceDescriptor.CurrentVersion;
+                    sim.AppearanceMigrated = true;
                     sim.TraitsMigrated = true;
                 }
                 else
                 {
+                    if (!sim.AppearanceMigrated)
+                    {
+                        var (skin, face) = AppearanceDerivation.BackfillGenes(
+                            RandomSeed, sim.NetworkId, AppearanceDescriptor.CurrentVersion);
+                        sim.SkinTone = (int)skin;
+                        sim.FaceShape = (int)face;
+                        sim.AppearanceVersion = AppearanceDescriptor.CurrentVersion;
+                        sim.AppearanceMigrated = true;
+                        economy?.Emit(new AppearanceMigrated(
+                            sim.NetworkId,
+                            AppearanceDescriptor.CurrentVersion,
+                            sim.SkinTone,
+                            sim.FaceShape,
+                            0));
+                    }
+
+                    if (sim.AppearanceVersion > AppearanceDescriptor.CurrentVersion)
+                    {
+                        throw new InvalidOperationException(
+                            $"Sim {sim.NetworkId} has appearance version {sim.AppearanceVersion}, " +
+                            $"newer than supported version {AppearanceDescriptor.CurrentVersion}.");
+                    }
+
                     traits = new Traits
                     {
                         EyeColor = (EyeColor)sim.EyeColor,
@@ -6038,9 +7325,18 @@ if (SnapshotsEnabled)
                         Aptitude = (Aptitude)sim.Aptitude,
                         HeightPotential = (HeightPotential)sim.HeightPotential,
                         Sex = (Sex)sim.Sex,
-                        Temperament = (Temperament)sim.Temperament
+                        Temperament = (Temperament)sim.Temperament,
+                        SkinTone = (SkinTone)sim.SkinTone,
+                        FaceShape = (FaceShape)sim.FaceShape
                     };
                     TraitValidation.EnsureValid(traits, sim.NetworkId);
+
+                    var descriptor = AppearanceDerivation.Derive(
+                        traits,
+                        sim.Age,
+                        sim.NetworkId,
+                        (byte)sim.AppearanceVersion);
+                    AppearanceValidation.EnsureValid(descriptor, $"network id {sim.NetworkId}");
                 }
 
                 var spawnTile = ResolveRestoredTile(sim);
@@ -6552,6 +7848,288 @@ if (SnapshotsEnabled)
                     MonthlyCost = new Money(persisted.MonthlyCostCents)
                 });
             }
+
+            playerRegistry.Clear();
+            foreach (var persisted in state.PlayerProfiles)
+            {
+                Entity sim = Entity.Null;
+                if (persisted.SimNetworkId != 0 &&
+                    simEntities.TryGetValue(persisted.SimNetworkId, out var resolvedSim))
+                    sim = resolvedSim;
+
+                var profile = playerRegistry.GetOrCreate(persisted.PlayerId, sim, persisted.CreatedTick);
+                profile.ContinuationPolicy = Enum.TryParse<PlayerContinuationPolicy>(
+                    persisted.ContinuationPolicy, ignoreCase: true, out var policy)
+                    ? policy
+                    : PlayerContinuationPolicy.Heir;
+                profile.AwaitingContinuation = persisted.AwaitingContinuation || sim == Entity.Null;
+                profile.Observer = persisted.Observer;
+                profile.CreatedTick = persisted.CreatedTick;
+                profile.LastActionTick = persisted.LastActionTick;
+                profile.LastSequence = persisted.LastSequence;
+                profile.LastSimNetworkId = persisted.SimNetworkId;
+
+                if (sim != Entity.Null && world!.IsAlive(sim) && !world.Has<Dead>(sim) &&
+                    !persisted.AwaitingContinuation && !world.Has<PlayerControlled>(sim))
+                {
+                    world.Add(sim, new PlayerControlled(persisted.PlayerId));
+                }
+            }
+
+            foreach (var persisted in state.PlayerLives)
+            {
+                if (!simEntities.TryGetValue(persisted.SimNetworkId, out var sim) || !world!.IsAlive(sim))
+                    continue;
+
+                if (persisted.HasEmployment)
+                {
+                    Entity office = Entity.Null;
+                    if (persisted.EmploymentOfficeNetworkId != 0)
+                        officeEntities.TryGetValue(persisted.EmploymentOfficeNetworkId, out office);
+                    if (office == Entity.Null && world.Has<Employee>(sim))
+                        office = world.Get<Employee>(sim).Office;
+
+                    world.Add(sim, new PlayerEmployment(
+                        office,
+                        persisted.HiredTick,
+                        Enum.TryParse<PlayerEmploymentSource>(persisted.EmploymentSource, out var source)
+                            ? source
+                            : PlayerEmploymentSource.PlayerApplied)
+                    {
+                        LastAttendedTick = persisted.LastAttendedTick,
+                        ConsecutiveMissedShifts = persisted.ConsecutiveMissedShifts,
+                        AttendedThisMonth = persisted.AttendedThisMonth
+                    });
+                }
+
+                Entity household = Entity.Null;
+                if (persisted.HouseholdNetworkId != 0)
+                    householdEntities.TryGetValue(persisted.HouseholdNetworkId, out household);
+                Entity unit = Entity.Null;
+                if (persisted.UnitNetworkId != 0)
+                    unitEntities.TryGetValue(persisted.UnitNetworkId, out unit);
+
+                if (household != Entity.Null)
+                {
+                    world.Add(sim, new PlayerHousing(
+                        household,
+                        unit,
+                        persisted.LeaseStartTick,
+                        new Money(persisted.DepositCents))
+                    {
+                        LeaseActive = persisted.LeaseActive
+                    });
+
+                    if (!world.Has<HouseholdPantry>(household))
+                    {
+                        world.Add(household, new HouseholdPantry
+                        {
+                            FoodUnits = persisted.FoodUnits,
+                            HouseholdGoods = persisted.HouseholdGoods,
+                            LastPurchaseTick = persisted.LastPurchaseTick
+                        });
+                    }
+                }
+                else if (!world.Has<HouseholdPantry>(sim) &&
+                         (persisted.FoodUnits != 0 || persisted.HouseholdGoods != 0))
+                {
+                    world.Add(sim, new HouseholdPantry
+                    {
+                        FoodUnits = persisted.FoodUnits,
+                        HouseholdGoods = persisted.HouseholdGoods,
+                        LastPurchaseTick = persisted.LastPurchaseTick
+                    });
+                }
+
+                if (persisted.JobOfferId != Guid.Empty &&
+                    postingEntities.TryGetValue(persisted.JobOfferPostingNetworkId, out var posting))
+                {
+                    officeEntities.TryGetValue(persisted.JobOfferOfficeNetworkId, out var offerOffice);
+                    world.Add(sim, new PlayerJobOffer
+                    {
+                        OfferId = persisted.JobOfferId,
+                        Posting = posting,
+                        Office = offerOffice,
+                        Position = persisted.JobOfferPosition,
+                        SalaryPerCycle = new Money(persisted.JobOfferSalaryCents),
+                        CreatedTick = persisted.JobOfferCreatedTick,
+                        ExpiresTick = persisted.JobOfferExpiresTick
+                    });
+                }
+
+                if (persisted.LeaseOfferId != Guid.Empty &&
+                    unitEntities.TryGetValue(persisted.LeaseOfferUnitNetworkId, out var offerUnit))
+                {
+                    propertyEntities.TryGetValue(persisted.LeaseOfferPropertyNetworkId, out var offerProperty);
+                    world.Add(sim, new PlayerLeaseOffer
+                    {
+                        OfferId = persisted.LeaseOfferId,
+                        Unit = offerUnit,
+                        Property = offerProperty,
+                        MonthlyRent = new Money(persisted.LeaseOfferRentCents),
+                        CreatedTick = persisted.LeaseOfferCreatedTick,
+                        ExpiresTick = persisted.LeaseOfferExpiresTick
+                    });
+                }
+            }
+
+            foreach (var persisted in state.FamilyInvitations)
+            {
+                if (!simEntities.TryGetValue(persisted.FromSimNetworkId, out var from) ||
+                    !simEntities.TryGetValue(persisted.ToSimNetworkId, out var to))
+                    continue;
+                if (!Enum.TryParse<FamilyInvitationKind>(persisted.Kind, out var kind) ||
+                    !Enum.TryParse<FamilyInvitationStatus>(persisted.Status, out var status))
+                    continue;
+
+                var entity = world!.Create(new FamilyInvitation(
+                    persisted.Id,
+                    from,
+                    to,
+                    kind,
+                    persisted.CreatedTick,
+                    persisted.ExpiresTick)
+                {
+                    Status = status
+                });
+                if (persisted.NetworkId != 0)
+                {
+                    var invitationId = new NetworkId(persisted.NetworkId);
+                    world.Add(entity, invitationId);
+                    networkIds.AllocateWithValue(entity, invitationId);
+                }
+                else
+                {
+                    world.Add(entity, networkIds.Allocate(entity));
+                }
+            }
+
+            var utilityNetworkEntities = new Dictionary<ulong, Entity>();
+            foreach (var persisted in state.UtilityNetworks)
+            {
+                var entity = world!.Create(new UtilityNetwork
+                {
+                    Service = Enum.TryParse<UtilityService>(persisted.Service, out var service)
+                        ? service
+                        : UtilityService.Water,
+                    Production = Math.Max(0, persisted.Production),
+                    Capacity = Math.Max(0, persisted.Capacity),
+                    Load = Math.Max(0, persisted.Load),
+                    Reserve = Math.Max(0, persisted.Reserve),
+                    State = Enum.TryParse<UtilityNetworkState>(persisted.State, out var networkState)
+                        ? networkState
+                        : UtilityNetworkState.Normal
+                });
+                var networkId = new NetworkId(persisted.NetworkId);
+                world.Add(entity, networkId);
+                networkIds.AllocateWithValue(entity, networkId);
+                utilityNetworkEntities[persisted.NetworkId] = entity;
+            }
+
+            foreach (var persisted in state.ServiceLinks)
+            {
+                Entity building = Entity.Null;
+                if (!propertyEntities.TryGetValue(persisted.BuildingNetworkId, out building))
+                    officeEntities.TryGetValue(persisted.BuildingNetworkId, out building);
+                if (building == Entity.Null ||
+                    !utilityNetworkEntities.TryGetValue(persisted.UtilityNetworkId, out var network) ||
+                    !Enum.TryParse<UtilityService>(persisted.Service, out var service))
+                    continue;
+
+                var entity = world!.Create(
+                    new BuildingServiceLink
+                    {
+                        Network = network,
+                        Service = service,
+                        Demand = Math.Max(0, persisted.Demand),
+                        Connected = persisted.Connected,
+                        Priority = persisted.Priority
+                    },
+                    new ServiceLinkOwner { Building = building });
+                var linkId = persisted.NetworkId != 0
+                    ? new NetworkId(persisted.NetworkId)
+                    : networkIds.Allocate(entity);
+                world.Add(entity, linkId);
+                if (persisted.NetworkId != 0)
+                    networkIds.AllocateWithValue(entity, linkId);
+            }
+
+            foreach (var persisted in state.HouseholdMeters)
+            {
+                if (!householdEntities.TryGetValue(persisted.HouseholdNetworkId, out var household))
+                    continue;
+                world!.Add(household, new HouseholdMeter
+                {
+                    WaterUsage = Math.Max(0, persisted.WaterUsage),
+                    ElectricityUsage = Math.Max(0, persisted.ElectricityUsage),
+                    WaterLevel = Enum.TryParse<ServiceLevel>(persisted.WaterLevel, out var waterLevel)
+                        ? waterLevel
+                        : ServiceLevel.Full,
+                    ElectricityLevel = Enum.TryParse<ServiceLevel>(persisted.ElectricityLevel, out var electricityLevel)
+                        ? electricityLevel
+                        : ServiceLevel.Full,
+                    Arrears = new Money(persisted.ArrearsCents),
+                    LastReadingTick = persisted.LastReadingTick,
+                    ConsecutivePoorMonths = Math.Max(0, persisted.ConsecutivePoorMonths),
+                    LastCutOffTick = persisted.LastCutOffTick
+                });
+            }
+
+            foreach (var persisted in state.StoreInventories)
+            {
+                if (!officeEntities.TryGetValue(persisted.StoreNetworkId, out var store))
+                    continue;
+                var entity = world!.Create(
+                    new StoreInventory
+                    {
+                        ItemIndex = persisted.ItemIndex,
+                        Stock = Math.Max(0, persisted.Stock),
+                        CurrentPrice = new Money(persisted.CurrentPriceCents),
+                        LastRestockTick = persisted.LastRestockTick
+                    },
+                    new StoreStockLink { Store = store });
+                var inventoryId = persisted.NetworkId != 0
+                    ? new NetworkId(persisted.NetworkId)
+                    : networkIds.Allocate(entity);
+                world.Add(entity, inventoryId);
+                if (persisted.NetworkId != 0)
+                    networkIds.AllocateWithValue(entity, inventoryId);
+            }
+
+            foreach (var persisted in state.Nutrition)
+            {
+                if (!simEntities.TryGetValue(persisted.SimNetworkId, out var sim))
+                    continue;
+                world!.Add(sim, new NutritionState
+                {
+                    Balance = Math.Clamp(persisted.Balance, -100, 100),
+                    ConsecutivePoorDays = Math.Max(0, persisted.ConsecutivePoorDays),
+                    LastMealTick = persisted.LastMealTick
+                });
+            }
+
+            var consumptionBootstrap = new Genelife.Consumption.UtilityNetworkService(
+                world!,
+                economy!,
+                entity => networkIds.AllocateInfrastructure(entity));
+            consumptionBootstrap.EnsureNetworks();
+            consumptionBootstrap.EnsureBuildingLinks();
+            foreach (var (_, householdEntity) in householdEntities)
+            {
+                if (!world!.Has<HouseholdMeter>(householdEntity))
+                    world.Add(householdEntity, new HouseholdMeter
+                    {
+                        WaterLevel = ServiceLevel.Full,
+                        ElectricityLevel = ServiceLevel.Full
+                    });
+            }
+
+            var groceryBootstrap = new Genelife.Consumption.GroceryStoreService(
+                world!,
+                economy!,
+                entity => networkIds.AllocateInfrastructure(entity));
+            foreach (var (_, officeEntity) in officeEntities)
+                groceryBootstrap.EnsureInventory(officeEntity, tick);
 
             relationshipIndex.Rebuild(world!);
             relationshipCache.Clear();

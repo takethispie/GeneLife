@@ -8,9 +8,9 @@ namespace Genelife.UnitTests.Family;
 public class TraitDomainTests
 {
     [Fact]
-    public void Traits_IsEightBytesAndContainsNoAgeField()
+    public void Traits_IsTenBytesAndContainsNoAgeField()
     {
-        Assert.Equal(8, Marshal.SizeOf<Traits>());
+        Assert.Equal(10, Marshal.SizeOf<Traits>());
         Assert.DoesNotContain(
             typeof(Traits).GetFields(BindingFlags.Public | BindingFlags.Instance),
             field => field.Name.Equals("Age", StringComparison.OrdinalIgnoreCase));
@@ -27,6 +27,8 @@ public class TraitDomainTests
         AssertRoundTrip<HeightPotential>();
         AssertRoundTrip<Sex>();
         AssertRoundTrip<Temperament>();
+        AssertRoundTrip<SkinTone>();
+        AssertRoundTrip<FaceShape>();
     }
 
     [Fact]

@@ -1,0 +1,20 @@
+namespace Genelife.Messages.Events;
+
+public sealed record AppearanceDerived(
+    ulong SimNetworkId,
+    byte AppearanceVersion,
+    uint DescriptorHash,
+    long Tick);
+
+public sealed record AppearanceMigrated(
+    ulong SimNetworkId,
+    byte AppearanceVersion,
+    int SkinTone,
+    int FaceShape,
+    long Tick);
+
+public sealed record AppearanceVersionChanged(
+    ulong SimNetworkId,
+    byte FromVersion,
+    byte ToVersion,
+    long Tick);

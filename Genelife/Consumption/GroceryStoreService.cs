@@ -1,0 +1,276 @@
+using Arch.Core;
+using Arch.Core.Extensions;
+using Genelife.Components.Consumption;
+using Genelife.Components.Gen;
+using Genelife.Economy;
+using Genelife.Messages.Events;
+using Genelife.Values;
+
+namespace Genelife.Consumption;
+
+/// <summary>
+/// Store inventory creation and lookup. Every store holds one inventory entity
+/// per catalog item; stock and price live there, never on the catalog.
+/// </summary>
+public sealed class GroceryStoreService
+{
+    private readonly World world;
+    private readonly EconomyContext economy;
+    private readonly Func<Entity, NetworkId> allocateNetworkId;
+    private readonly GroceryOptions options;
+    private readonly int maxStock;
+    private readonly Dictionary<(Entity Store, int Item), Entity> inventoryIndex = new();
+    private bool indexLoaded;
+
+    public GroceryStoreService(
+        World world,
+        EconomyContext economy,
+        Func<Entity, NetworkId> allocateNetworkId,
+        GroceryOptions? options = null)
+    {
+        this.world = world;
+        this.economy = economy;
+        this.allocateNetworkId = allocateNetworkId;
+        this.options = options ?? GroceryOptions.Default;
+        maxStock = this.options.StockPerItem;
+    }
+
+    public void EnsureInventory(Entity store, long tick)
+    {
+        for (var index = 0; index < GroceryCatalog.Items.Count; index++)
+        {
+            if (FindInventory(store, index, out _, out _))
+                continue;
+
+            var item = GroceryCatalog.Items[index];
+            var entity = world.Create(
+                new StoreInventory
+                {
+                    ItemIndex = index,
+                    Stock = maxStock,
+                    CurrentPrice = GroceryPricingPolicy.Price(item, maxStock, maxStock, 0, options),
+                    LastRestockTick = tick
+                },
+                new StoreStockLink { Store = store });
+            var id = allocateNetworkId(entity);
+            world.Add(entity, id);
+            inventoryIndex[(store, index)] = entity;
+        }
+    }
+
+    private void EnsureIndex()
+    {
+        if (indexLoaded)
+            return;
+        indexLoaded = true;
+        world.Query(in new QueryDescription().WithAll<StoreInventory, StoreStockLink>(),
+            (Entity entity, ref StoreInventory inventory, ref StoreStockLink link) =>
+                inventoryIndex[(link.Store, inventory.ItemIndex)] = entity);
+    }
+
+    public bool FindInventory(Entity store, int itemIndex, out Entity entity, out StoreInventory inventory)
+    {
+        EnsureIndex();
+        if (inventoryIndex.TryGetValue((store, itemIndex), out var indexed) &&
+            world.IsAlive(indexed) && world.Has<StoreInventory>(indexed))
+        {
+            entity = indexed;
+            inventory = world.Get<StoreInventory>(indexed);
+            return true;
+        }
+
+        var found = Entity.Null;
+        var foundInventory = default(StoreInventory);
+        world.Query(in new QueryDescription().WithAll<StoreInventory, StoreStockLink>(),
+            (Entity candidate, ref StoreInventory data, ref StoreStockLink link) =>
+            {
+                if (found != Entity.Null || link.Store != store || data.ItemIndex != itemIndex)
+                    return;
+                found = candidate;
+                foundInventory = data;
+            });
+        entity = found;
+        inventory = foundInventory;
+        if (found != Entity.Null)
+            inventoryIndex[(store, itemIndex)] = found;
+        return found != Entity.Null;
+    }
+
+    public void Restock(long tick, long monthOfYear)
+    {
+        var stores = new List<Entity>();
+        world.Query(in new QueryDescription().WithAll<Components.Company.Office>(),
+            (Entity entity, ref Components.Company.Office _) => stores.Add(entity));
+        stores.Sort((a, b) => a.Id.CompareTo(b.Id));
+
+        var supplier = FindSupplier(stores);
+        foreach (var store in stores)
+        {
+            EnsureInventory(store, tick);
+            var storeCompany = world.Has<Components.Company.Office>(store)
+                ? world.Get<Components.Company.Office>(store).Company
+                : Entity.Null;
+            for (var index = 0; index < GroceryCatalog.Items.Count; index++)
+            {
+                if (!FindInventory(store, index, out var entity, out var inventory))
+                    continue;
+                if (inventory.Stock >= options.RestockThreshold + options.RestockAmount)
+                    continue;
+
+                var item = GroceryCatalog.Items[index];
+                var units = Math.Min(options.RestockAmount, maxStock - inventory.Stock);
+                if (units <= 0)
+                    continue;
+                var cost = item.BasePrice * units;
+                if (!PaySupplier(storeCompany, supplier, cost, tick))
+                    continue;
+
+                inventory.Stock += units;
+                inventory.LastRestockTick = tick;
+                inventory.CurrentPrice = GroceryPricingPolicy.Price(
+                    item, inventory.Stock, maxStock, (int)(monthOfYear % 12), options);
+                world.Get<StoreInventory>(entity) = inventory;
+                economy.Emit(new GroceryRestocked(GetNetworkId(store), units, cost.Cents, tick));
+            }
+        }
+    }
+
+    public void RestockStore(Entity store, long tick, int monthOfYear = 0)
+    {
+        EnsureInventory(store, tick);
+        var storeCompany = world.Has<Components.Company.Office>(store)
+            ? world.Get<Components.Company.Office>(store).Company
+            : Entity.Null;
+        var supplier = FindSupplier(new List<Entity> { store });
+        for (var index = 0; index < GroceryCatalog.Items.Count; index++)
+        {
+            if (!FindInventory(store, index, out var entity, out var inventory))
+                continue;
+            if (inventory.Stock >= options.RestockThreshold + options.RestockAmount)
+                continue;
+            var item = GroceryCatalog.Items[index];
+            var units = Math.Min(options.RestockAmount, maxStock - inventory.Stock);
+            if (units <= 0)
+                continue;
+            var cost = item.BasePrice * units;
+            if (!PaySupplier(storeCompany, supplier, cost, tick))
+                continue;
+            inventory.Stock += units;
+            inventory.LastRestockTick = tick;
+            inventory.CurrentPrice = GroceryPricingPolicy.Price(
+                item, inventory.Stock, maxStock, (int)(monthOfYear % 12), options);
+            world.Get<StoreInventory>(entity) = inventory;
+            economy.Emit(new GroceryRestocked(GetNetworkId(store), units, cost.Cents, tick));
+        }
+    }
+
+    public void Spoil(long tick)
+    {
+        var inventories = new List<(Entity Entity, StoreInventory Inventory, Entity Store)>();
+        world.Query(in new QueryDescription().WithAll<StoreInventory, StoreStockLink>(),
+            (Entity entity, ref StoreInventory inventory, ref StoreStockLink link) =>
+                inventories.Add((entity, inventory, link.Store)));
+        inventories.Sort((a, b) => a.Entity.Id.CompareTo(b.Entity.Id));
+
+        foreach (var (entity, inventory, store) in inventories)
+        {
+            if (inventory.Stock <= 0 || inventory.ItemIndex < 0 ||
+                inventory.ItemIndex >= GroceryCatalog.Items.Count)
+                continue;
+            var item = GroceryCatalog.Items[inventory.ItemIndex];
+            if (tick - inventory.LastRestockTick <= item.ShelfLifeTicks + options.SpoilageGraceTicks)
+                continue;
+
+            economy.Emit(new GrocerySpoiled(
+                GetNetworkId(store), item.Id, inventory.Stock, "shelf_life", tick));
+            var updated = inventory;
+            updated.Stock = 0;
+            world.Get<StoreInventory>(entity) = updated;
+        }
+    }
+
+    public Money PriceFor(Entity store, int itemIndex, int monthOfYear)
+    {
+        if (!FindInventory(store, itemIndex, out _, out var inventory))
+            return GroceryCatalog.Items[itemIndex].BasePrice;
+        var item = GroceryCatalog.Items[itemIndex];
+        return GroceryPricingPolicy.Price(item, inventory.Stock, maxStock, monthOfYear, options);
+    }
+
+    public bool TrySell(Entity store, int itemIndex, int units, out Money price)
+    {
+        price = Money.Zero;
+        if (units <= 0 || itemIndex < 0 || itemIndex >= GroceryCatalog.Items.Count)
+            return false;
+        if (!FindInventory(store, itemIndex, out var entity, out var inventory) ||
+            inventory.Stock < units)
+            return false;
+
+        price = inventory.CurrentPrice * units;
+        inventory.Stock -= units;
+        world.Get<StoreInventory>(entity) = inventory;
+        return true;
+    }
+
+    private Entity FindSupplier(List<Entity> stores)
+    {
+        foreach (var store in stores)
+        {
+            if (world.Has<Components.Company.Office>(store))
+            {
+                var company = world.Get<Components.Company.Office>(store).Company;
+                if (world.IsAlive(company))
+                    return company;
+            }
+        }
+        return Entity.Null;
+    }
+
+    private bool PaySupplier(Entity storeCompany, Entity supplier, Money cost, long tick)
+    {
+        if (!cost.IsPositive)
+            return true;
+        if (supplier == Entity.Null || !world.IsAlive(supplier) || supplier == storeCompany)
+            return false;
+
+        Entity payer = storeCompany;
+        if (payer == Entity.Null || !world.IsAlive(payer))
+            payer = Entity.Null;
+
+        if (payer != Entity.Null && economy.Accounts.TryGet(payer, out var account))
+        {
+            if (account.Balance < cost)
+                return false;
+            account.Balance -= cost;
+            economy.Accounts.Set(payer, account);
+        }
+        else if (economy.Government.Balance < cost)
+        {
+            return false;
+        }
+        else
+        {
+            economy.Government.Balance -= cost;
+        }
+
+        // The supplier is a real company; the transfer is ledgered and keeps
+        // total money constant (no mint on restock).
+        economy.Accounts.ApplySettlement(supplier, cost, tick, revenue: true);
+        economy.RevenueThisYear += cost;
+
+        economy.Ledger.Record(
+            Guid.NewGuid(),
+            tick,
+            Components.Finance.LedgerKind.ConsumerSpending,
+            payer == Entity.Null ? EconomyAccountIds.Government : GetNetworkId(payer),
+            GetNetworkId(supplier),
+            cost,
+            "grocery.restock");
+        return true;
+    }
+
+    private ulong GetNetworkId(Entity entity) =>
+        world.IsAlive(entity) && world.Has<NetworkId>(entity)
+            ? world.Get<NetworkId>(entity).Value
+            : 0UL;
+}

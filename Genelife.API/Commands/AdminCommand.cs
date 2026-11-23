@@ -357,3 +357,36 @@ public sealed record CommandResult(
     string? Error,
     object? Payload,
     DateTimeOffset CompletedAt);
+
+public sealed record SetPlayerContinuationCommand(
+    Guid CommandId,
+    string IssuedBy,
+    string PlayerId,
+    string Policy,
+    string Reason) : AdminCommand(CommandId, IssuedBy);
+
+public sealed record DetachPlayerSimCommand(
+    Guid CommandId,
+    string IssuedBy,
+    string PlayerId,
+    string Reason) : AdminCommand(CommandId, IssuedBy);
+
+public sealed record ForcePlayerContinuationCommand(
+    Guid CommandId,
+    string IssuedBy,
+    string PlayerId,
+    string Policy,
+    string Reason) : AdminCommand(CommandId, IssuedBy);
+
+public sealed record RestockStoreCommand(
+    Guid CommandId,
+    string IssuedBy,
+    ulong StoreNetworkId,
+    string Reason) : AdminCommand(CommandId, IssuedBy);
+
+public sealed record RepairUtilityNetworkCommand(
+    Guid CommandId,
+    string IssuedBy,
+    string Service,
+    int Units,
+    string Reason) : AdminCommand(CommandId, IssuedBy);

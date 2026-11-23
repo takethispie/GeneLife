@@ -391,3 +391,38 @@ body,
     top: 12px;
   }
 }
+
+.social-directory {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  max-width: 240px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(8, 18, 28, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  color: #e2e8f0;
+  font: 12px/1.35 system-ui, sans-serif;
+  pointer-events: none;
+}
+
+.social-directory-header {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.social-directory-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.social-directory-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+.social-directory-name { color: #67e8f9; }
+.social-directory-meta, .social-directory-empty { color: #94a3b8; }

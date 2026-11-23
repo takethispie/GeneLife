@@ -57,6 +57,9 @@ builder.Services.AddHostedService(provider => provider.GetRequiredService<Simula
 builder.Services.AddHostedService<SimulationEventWriter>();
 
 builder.Services.AddSingleton<ICommandQueue, CommandQueue>();
+builder.Services.AddSingleton<Genelife.Social.SocialPrivacyRegistry>();
+builder.Services.AddSingleton<Genelife.Api.Social.PlayerDirectoryService>();
+builder.Services.AddSingleton<PlayerCommandService>();
 builder.Services.AddSingleton<Genelife.Api.Snapshots.ReplicationTracker>();
 builder.Services.AddSingleton<Genelife.Api.Snapshots.ReplicationMetrics>();
 builder.Services.AddSingleton<Genelife.Api.Snapshots.ViewportRegistry>();
@@ -118,6 +121,7 @@ if (useMartenReads)
         opts.Projections.Add<Genelife.Api.Projections.ChildProjection>(JasperFx.Events.Projections.ProjectionLifecycle.Inline);
         opts.Projections.Add<Genelife.Api.Projections.HouseholdCompositionProjection>(JasperFx.Events.Projections.ProjectionLifecycle.Inline);
         opts.Projections.Add<Genelife.Api.Projections.EstateProjection>(JasperFx.Events.Projections.ProjectionLifecycle.Inline);
+        opts.Projections.Add<Genelife.Api.Projections.PlayerProjection>(JasperFx.Events.Projections.ProjectionLifecycle.Inline);
     })
         .UseLightweightSessions();
 }

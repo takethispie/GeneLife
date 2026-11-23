@@ -21,6 +21,7 @@ public class HousingSystemTests
     {
         var world = World.Create();
         var economy = new EconomyContext(world);
+        economy.UtilityOptions.SubsidyBasisPoints = 0;
         var (_, unit) = TestHousing.CreateUnit(world, economy, 10, 11);
         var sim = TestHousing.Sim(world, 1, 1000m);
         var household = TestHousing.Household(world, economy.Housing, sim, unit, 120m);

@@ -39,7 +39,7 @@ public class HiringSystem : ISimulationSystem
         this.cadenceInterval = cadenceInterval;
         jobPostingsQuery = new QueryDescription().WithAll<JobPosting>();
         openPositionsQuery = new QueryDescription().WithAll<OpenPosition>();
-        jobSeekersQuery = new QueryDescription().WithAll<JobSeeker>().WithNone<Employee, Components.Gen.Dead>();
+        jobSeekersQuery = new QueryDescription().WithAll<JobSeeker>().WithNone<Employee, Components.Gen.Dead, Components.Gen.PlayerControlled>();
         applicationsQuery = new QueryDescription().WithAll<JobApplication>();
     }
 
@@ -319,12 +319,81 @@ public class HiringSystem : ISimulationSystem
         return true;
     }
 
+    /// <summary>
+    /// Hires one explicitly chosen applicant (a player accepting an offer)
+    /// through the same seat, solvency, freeze, fee and index path as the NPC
+    /// hiring pass.
+    /// </summary>
+    public bool TryHireApplicant(Entity applicant, Entity postingEntity, long tick, out string? error)
+    {
+        error = null;
+
+        if (!world.IsAlive(applicant) || world.Has<Components.Gen.Dead>(applicant))
+        {
+            error = "That sim is not available.";
+            return false;
+        }
+        if (world.Has<Employee>(applicant))
+        {
+            error = "That sim is already employed.";
+            return false;
+        }
+        if (!world.IsAlive(postingEntity) || !world.Has<JobPosting>(postingEntity))
+        {
+            error = "That posting no longer exists.";
+            return false;
+        }
+
+        var posting = world.Get<JobPosting>(postingEntity);
+        if (posting.IsClosed || posting.OpenSeats <= 0)
+        {
+            error = "That posting is no longer open.";
+            return false;
+        }
+
+        var seat = Entity.Null;
+        world.Query(in openPositionsQuery, (Entity entity, ref OpenPosition open) =>
+        {
+            if (seat == Entity.Null && open.Posting == postingEntity)
+                seat = entity;
+        });
+        if (seat == Entity.Null)
+        {
+            error = "There are no open seats for that posting.";
+            return false;
+        }
+
+        var hire = new HireDecision(applicant, postingEntity, posting, seat, Entity.Null);
+        if (!TryHire(tick, hire))
+        {
+            error = "The company could not hire right now.";
+            return false;
+        }
+
+        if (world.IsAlive(seat))
+            world.Destroy(seat);
+
+        posting = world.Get<JobPosting>(postingEntity);
+        posting.OpenSeats = Math.Max(0, posting.OpenSeats - 1);
+        if (posting.OpenSeats == 0)
+        {
+            posting.IsClosed = true;
+            var postingNetworkId = world.Has<NetworkId>(postingEntity)
+                ? world.Get<NetworkId>(postingEntity).Value
+                : 0UL;
+            economy?.Emit(new JobPostingClosed(
+                postingNetworkId,
+                CompanyAccountService.NetworkIdOf(world, posting.Company)));
+        }
+        world.Get<JobPosting>(postingEntity) = posting;
+        return true;
+    }
+
     private void Accept(Entity appEntity)
     {
         if (world.IsAlive(appEntity))
             world.Get<JobApplication>(appEntity).Status = ApplicationStatus.Accepted;
     }
-
     private void Reject(Entity appEntity)
     {
         if (world.IsAlive(appEntity))

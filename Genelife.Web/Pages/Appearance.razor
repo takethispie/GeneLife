@@ -1,0 +1,213 @@
+@page "/appearance"
+@using Genelife.Web.Appearance
+@using Genelife.Web.Services
+@inject GameDataService GameData
+@implements IAsyncDisposable
+
+<PageTitle>Appearance</PageTitle>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+    <div>
+        <h1 class="mb-1">Appearance</h1>
+        <p class="text-muted mb-0">Deterministic trait-derived descriptors, layered portraits and family resemblance.</p>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+        <input class="form-control" style="min-width: 18rem" @bind="search" @bind:event="oninput" placeholder="Search sim name or network id" />
+        <button class="btn btn-primary" type="button" @onclick="LoadAsync" disabled="@isLoading">Search</button>
+    </div>
+</div>
+
+@if (error is not null)
+{
+    <div class="alert alert-danger"><div class="fw-semibold">Could not load appearance.</div><div class="small">@error</div></div>
+}
+
+<div class="row g-4">
+    <div class="col-12 col-xl-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Sims</span>
+                <span class="small text-muted">@(page?.Total ?? 0) living</span>
+            </div>
+            <div class="list-group list-group-flush" style="max-height: 34rem; overflow-y: auto;">
+                @if (page is not null)
+                {
+                    @foreach (var sim in page.Items)
+                    {
+                        <button type="button" class="list-group-item list-group-item-action d-flex align-items-center gap-3 @(focal?.NetworkId == sim.NetworkId ? "active" : null)" @onclick="() => SelectAsync(sim)">
+                            <span style="width: 42px; height: 56px; display: block;">@((MarkupString)AppearanceSvgRenderer.Render(sim, 42, 56))</span>
+                            <span class="flex-grow-1">
+                                <span class="d-block fw-semibold">@sim.Name</span>
+                                <span class="small opacity-75">#@sim.NetworkId · age @sim.Age · @sim.Stage</span>
+                            </span>
+                            @if (sim.IsPlayerControlled)
+                            {
+                                <span class="badge text-bg-info">Player</span>
+                            }
+                        </button>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-xl-8">
+        @if (focal is null)
+        {
+            <div class="alert alert-secondary">Select a sim to preview its descriptor and layers.</div>
+        }
+        else
+        {
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="d-flex gap-4 align-items-start">
+                        <div style="width: 150px; height: 200px; flex: 0 0 auto;">@((MarkupString)AppearanceSvgRenderer.Render(focal, 150, 200))</div>
+                        <div class="flex-grow-1">
+                            <h2 class="h5 mb-1">@focal.Name</h2>
+                            <div class="small text-muted mb-2">Network @focal.NetworkId · age @focal.Age · @focal.Stage @(focal.IsPlayerControlled ? "· player controlled" : "")</div>
+                            <div class="row g-2">
+                                <div class="col-6 col-md-4"><span class="text-muted small d-block">Skin</span>@focal.Descriptor.SkinTone</div>
+                                <div class="col-6 col-md-4"><span class="text-muted small d-block">Face</span>@focal.Descriptor.FaceShape</div>
+                                <div class="col-6 col-md-4"><span class="text-muted small d-block">Hair</span>@focal.Descriptor.HairStyle / @focal.Descriptor.HairColor</div>
+                                <div class="col-6 col-md-4"><span class="text-muted small d-block">Eyes</span>@focal.Descriptor.EyeColor</div>
+                                <div class="col-6 col-md-4"><span class="text-muted small d-block">Body</span>@focal.Descriptor.BodyFrame</div>
+                                <div class="col-6 col-md-4"><span class="text-muted small d-block">Height</span>@focal.Descriptor.HeightScale</div>
+                                <div class="col-6 col-md-4"><span class="text-muted small d-block">Age band</span>@focal.Descriptor.AgeBand</div>
+                                <div class="col-6 col-md-4"><span class="text-muted small d-block">Expression</span>@focal.Descriptor.Expression</div>
+                                <div class="col-6 col-md-4"><span class="text-muted small d-block">Version</span>@focal.Descriptor.AppearanceVersion / layer @focal.Layers.LayerOrderVersion</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-responsive mt-3">
+                        <table class="table table-sm mb-0">
+                            <tbody>
+                                <tr><th style="width: 10rem">Body</th><td><code>@focal.Layers.BodyPart</code></td></tr>
+                                <tr><th>Skin palette</th><td><code>@focal.Layers.SkinPalette</code></td></tr>
+                                <tr><th>Outfit</th><td><code>@focal.Layers.OutfitPart</code></td></tr>
+                                <tr><th>Face</th><td><code>@focal.Layers.FacePart</code></td></tr>
+                                <tr><th>Eyes</th><td><code>@focal.Layers.EyePart</code></td></tr>
+                                <tr><th>Hair</th><td><code>@focal.Layers.HairPart</code></td></tr>
+                                <tr><th>Expression</th><td><code>@focal.Layers.ExpressionPart</code></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <h2 class="h5">Family comparison</h2>
+            @if (family is null || family.Members.Count == 0)
+            {
+                <div class="text-muted small">No living parents, children or siblings to compare.</div>
+            }
+            else
+            {
+                <div class="row g-3">
+                    @foreach (var member in family.Members)
+                    {
+                        <div class="col-6 col-md-4">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <div style="width: 90px; height: 120px; margin: 0 auto;">@((MarkupString)AppearanceSvgRenderer.Render(member.Sim, 90, 120))</div>
+                                    <div class="fw-semibold mt-2">@member.Sim.Name</div>
+                                    <div class="small text-muted">@member.Relation · age @member.Sim.Age</div>
+                                    <div class="small mt-2">Shared genes: @member.SharedFields / 4</div>
+                                    <div class="small text-muted">skin @(member.SharesSkinTone ? "yes" : "no") · face @(member.SharesFaceShape ? "yes" : "no") · hair @(member.SharesHairColor ? "yes" : "no") · eyes @(member.SharesEyeColor ? "yes" : "no")</div>
+                                    <div class="progress mt-2" style="height: 5px"><div class="progress-bar" style="width: @(member.ResemblanceScore * 100)%"></div></div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+
+            @if (missingDiagnostics.Count > 0)
+            {
+                <div class="alert alert-warning mt-3">
+                    <div class="fw-semibold">Missing atlas parts</div>
+                    <ul class="mb-0 small">
+                        @foreach (var diagnostic in missingDiagnostics)
+                        {
+                            <li>@diagnostic</li>
+                        }
+                    </ul>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    private AppearancePageData? page;
+    private AppearanceSimData? focal;
+    private AppearanceFamilyData? family;
+    private string search = string.Empty;
+    private bool isLoading;
+    private string? error;
+    private readonly List<string> missingDiagnostics = new();
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        error = null;
+        try
+        {
+            page = await GameData.GetAppearancePageAsync(search, 200);
+            if (focal is not null)
+            {
+                var match = page.Items.FirstOrDefault(item => item.NetworkId == focal.NetworkId);
+                if (match is not null)
+                    await SelectAsync(match);
+                else
+                    focal = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SelectAsync(AppearanceSimData sim)
+    {
+        error = null;
+        try
+        {
+            focal = await GameData.GetAppearanceAsync(sim.NetworkId);
+            family = await GameData.GetAppearanceFamilyAsync(sim.NetworkId);
+            missingDiagnostics.Clear();
+            foreach (var part in AllParts(focal))
+            {
+                if (!IsKnownPart(part))
+                    missingDiagnostics.Add($"Unknown part id '{part}'");
+            }
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+    }
+
+    private static bool IsKnownPart(string? part) =>
+        !string.IsNullOrWhiteSpace(part) &&
+        part.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_') &&
+        part.Contains('-', StringComparison.Ordinal);
+
+    private static IEnumerable<string> AllParts(AppearanceSimData sim)
+    {
+        yield return sim.Layers.BodyPart;
+        yield return sim.Layers.SkinPalette;
+        yield return sim.Layers.FacePart;
+        yield return sim.Layers.EyePart;
+        yield return sim.Layers.HairPart;
+        yield return sim.Layers.OutfitPart;
+        yield return sim.Layers.ExpressionPart;
+    }
+
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+}

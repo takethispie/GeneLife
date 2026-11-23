@@ -5,6 +5,7 @@ namespace Genelife.Api.Commands;
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
 [JsonDerivedType(typeof(MoveIntent), "move")]
 [JsonDerivedType(typeof(UseBuildingIntent), "useBuilding")]
+[JsonDerivedType(typeof(PlayerActionIntent), "playerAction")]
 public abstract record Intent
 {
     [JsonPropertyOrder(-1)]

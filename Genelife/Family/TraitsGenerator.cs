@@ -57,7 +57,9 @@ public static class TraitsGenerator
             Aptitude = Pick(random, options.AptitudeWeights, EnumValues<Aptitude>.Items),
             HeightPotential = Pick(random, options.HeightWeights, EnumValues<HeightPotential>.Items),
             Sex = random.NextDouble() < (double)options.FemaleShare ? Sex.Female : Sex.Male,
-            Temperament = Pick(random, options.TemperamentWeights, EnumValues<Temperament>.Items)
+            Temperament = Pick(random, options.TemperamentWeights, EnumValues<Temperament>.Items),
+            SkinTone = Pick(random, options.SkinToneWeights, EnumValues<SkinTone>.Items),
+            FaceShape = Pick(random, options.FaceShapeWeights, EnumValues<FaceShape>.Items)
         };
     }
 

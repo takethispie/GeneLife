@@ -1,0 +1,395 @@
+@page "/players"
+@page "/player"
+@using Genelife.Web.Services
+@inject GameDataService GameData
+@implements IAsyncDisposable
+
+<PageTitle>Players</PageTitle>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+    <div>
+        <h1 class="mb-1">Players</h1>
+        <p class="text-muted mb-0">Player-controlled sims, employment, household, pantry, family state and continuation.</p>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+        <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" id="autoRefreshPlayers" @bind="autoRefresh" />
+            <label class="form-check-label" for="autoRefreshPlayers">Auto-refresh</label>
+        </div>
+        <button class="btn btn-primary" type="button" @onclick="RefreshAsync" disabled="@isLoading">
+            @if (isLoading)
+            {
+                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+            }
+            Refresh
+        </button>
+    </div>
+</div>
+
+@if (error is not null)
+{
+    <div class="alert alert-danger">
+        <div class="fw-semibold">Could not load player data.</div>
+        <div class="small">@error</div>
+    </div>
+}
+
+@if (message is not null)
+{
+    <div class="alert alert-info py-2">@message</div>
+}
+
+@if (overview is not null)
+{
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="card h-100"><div class="card-body">
+                <div class="text-muted small">Players</div>
+                <div class="fs-3 fw-semibold">@overview.Players</div>
+                <div class="small text-muted">@overview.Active active &middot; @overview.AwaitingContinuation awaiting</div>
+            </div></div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="card h-100"><div class="card-body">
+                <div class="text-muted small">Employed</div>
+                <div class="fs-3 fw-semibold">@overview.Employed</div>
+                <div class="small text-muted">payroll and attendance shared with NPCs</div>
+            </div></div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="card h-100"><div class="card-body">
+                <div class="text-muted small">Housed</div>
+                <div class="fs-3 fw-semibold">@overview.Housed</div>
+                <div class="small text-muted">@overview.PendingInvitations pending invitations</div>
+            </div></div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="card h-100"><div class="card-body">
+                <div class="text-muted small">This year</div>
+                <div class="fs-3 fw-semibold">@overview.CommandsAppliedThisYear</div>
+                <div class="small text-muted">@overview.DeathsThisYear deaths &middot; @overview.ContinuationsThisYear continuations</div>
+            </div></div>
+        </div>
+    </div>
+}
+
+<div class="row g-2 align-items-end mb-3">
+    <div class="col-12 col-md-4">
+        <label class="form-label small mb-1" for="playerSearch">Search</label>
+        <input id="playerSearch" class="form-control" @bind="search" @bind:event="oninput" placeholder="player id or sim name" />
+    </div>
+    <div class="col-6 col-md-3">
+        <label class="form-label small mb-1" for="playerState">State</label>
+        <select id="playerState" class="form-select" @bind="state">
+            <option value="">All</option>
+            <option value="active">Active</option>
+            <option value="awaiting">Awaiting continuation</option>
+            <option value="employed">Employed</option>
+            <option value="unemployed">Unemployed</option>
+            <option value="housed">Housed</option>
+            <option value="homeless">Homeless</option>
+        </select>
+    </div>
+    <div class="col-6 col-md-2">
+        <button class="btn btn-outline-secondary w-100" type="button" @onclick="RefreshAsync" disabled="@isLoading">Apply</button>
+    </div>
+</div>
+
+@if (lifePage is not null)
+{
+    <div class="table-responsive">
+        <table class="table table-sm align-middle">
+            <thead>
+                <tr>
+                    <th>Player</th>
+                    <th>Sim</th>
+                    <th>State</th>
+                    <th>Wallet</th>
+                    <th>Employment</th>
+                    <th>Housing</th>
+                    <th>Family</th>
+                    <th>Last action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in lifePage.Items)
+                {
+                    <tr class="@(selected?.PlayerId == row.PlayerId ? "table-active" : null)" role="button" @onclick="() => SelectAsync(row)">
+                        <td><code>@Short(row.PlayerId)</code></td>
+                        <td>
+                            <div>@(row.Name ?? "—")</div>
+                            <div class="small text-muted">@row.SimNetworkId &middot; age @row.Age</div>
+                        </td>
+                        <td>
+                            @if (row.AwaitingContinuation)
+                            {
+                                <span class="badge text-bg-warning">Awaiting</span>
+                            }
+                            else if (!row.IsAlive)
+                            {
+                                <span class="badge text-bg-secondary">Inactive</span>
+                            }
+                            else
+                            {
+                                <span class="badge text-bg-success">Active</span>
+                            }
+                            <div class="small text-muted">@row.ContinuationPolicy</div>
+                        </td>
+                        <td>@Money(row.WalletCents)<div class="small text-muted">savings @Money(row.SavingsCents)</div></td>
+                        <td>
+                            @if (row.Employment.Employed)
+                            {
+                                <div>@row.Employment.Position</div>
+                                <div class="small text-muted">@Money(row.Employment.SalaryCents)/mo &middot; missed @row.Employment.ConsecutiveMissedShifts</div>
+                            }
+                            else
+                            {
+                                <span class="text-muted">Unemployed</span>
+                            }
+                        </td>
+                        <td>
+                            @if (row.Housing.Housed)
+                            {
+                                <div>@(row.Housing.PropertyName ?? "Home") @row.Housing.UnitNumber</div>
+                                <div class="small text-muted">@Money(row.Housing.RentCents)/mo &middot; pantry @row.Housing.FoodUnits food / @row.Housing.HouseholdGoods goods</div>
+                                @if (row.Housing.RentArrearsCents + row.Housing.UtilityArrearsCents > 0)
+                                {
+                                    <div class="small text-danger">arrears @Money(row.Housing.RentArrearsCents + row.Housing.UtilityArrearsCents)</div>
+                                }
+                            }
+                            else
+                            {
+                                <span class="text-muted">Homeless</span>
+                            }
+                        </td>
+                        <td>
+                            <div>@(row.PartnerName ?? "—")</div>
+                            <div class="small text-muted">@row.Children children &middot; @row.Invitations.Count invites</div>
+                        </td>
+                        <td>
+                            @if (row.RecentActions.Count > 0)
+                            {
+                                <div>@row.RecentActions[0].Kind</div>
+                                <div class="small text-muted">@row.RecentActions[0].Status @(row.RecentActions[0].Code is null ? "" : $"· {row.RecentActions[0].Code}")</div>
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (lifePage.Items.Count == 0)
+    {
+        <div class="text-muted">No players match the current filters.</div>
+    }
+    <div class="small text-muted">Showing @lifePage.Items.Count of @lifePage.Total.</div>
+}
+
+@if (selected is not null)
+{
+    <div class="card mt-4">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h2 class="h5 mb-1">@(selected.Name ?? selected.PlayerId)</h2>
+                    <div class="small text-muted">Needs: hunger @Math.Round(selected.Hunger) &middot; energy @Math.Round(selected.Energy) &middot; hygiene @Math.Round(selected.Hygiene) &middot; bladder @Math.Round(selected.Bladder) &middot; health @Math.Round(selected.Health) &middot; nutrition @selected.NutritionBalance (@selected.ConsecutivePoorDays poor days)</div>
+                </div>
+                <button class="btn btn-sm btn-outline-secondary" type="button" @onclick="() => selected = null">Close</button>
+            </div>
+
+            @if (selected.JobOffer is not null)
+            {
+                <div class="alert alert-info py-2 mt-3 mb-0">Job offer: @selected.JobOffer.Position at @selected.JobOffer.PostingId (expires @selected.JobOffer.ExpiresTick). Amount @Money(selected.JobOffer.SalaryCents).</div>
+            }
+            @if (selected.LeaseOffer is not null)
+            {
+                <div class="alert alert-info py-2 mt-3 mb-0">Lease offer: unit @selected.LeaseOffer.UnitId for @Money(selected.LeaseOffer.RentCents)/mo (expires @selected.LeaseOffer.ExpiresTick).</div>
+            }
+
+            <h3 class="h6 mt-4">Recent actions</h3>
+            @if (selected.RecentActions.Count == 0)
+            {
+                <div class="text-muted small">No player actions yet.</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead><tr><th>Tick</th><th>Action</th><th>Status</th><th>Code</th></tr></thead>
+                        <tbody>
+                            @foreach (var action in selected.RecentActions)
+                            {
+                                <tr>
+                                    <td>@action.Tick</td>
+                                    <td>@action.Kind</td>
+                                    <td>@action.Status</td>
+                                    <td>@(action.Code ?? "—")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+
+            <div class="row g-2 align-items-end mt-3">
+                <div class="col-12 col-md-3">
+                    <label class="form-label small mb-1">Continuation policy</label>
+                    <select class="form-select" @bind="policy">
+                        <option value="Heir">Heir</option>
+                        <option value="NewSim">New sim</option>
+                        <option value="Observer">Observer</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-5">
+                    <label class="form-label small mb-1">Reason</label>
+                    <input class="form-control" @bind="reason" placeholder="Required audit reason" />
+                </div>
+                <div class="col-6 col-md-2">
+                    <button class="btn btn-outline-primary w-100" type="button" @onclick="SaveContinuationAsync" disabled="@isBusy">Save</button>
+                </div>
+                <div class="col-6 col-md-2">
+                    <button class="btn btn-outline-danger w-100" type="button" @onclick="DetachAsync" disabled="@isBusy">Detach sim</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private PlayerOverviewData? overview;
+    private PlayerLifePageData? lifePage;
+    private PlayerLifeData? selected;
+    private string search = string.Empty;
+    private string state = string.Empty;
+    private string policy = "Heir";
+    private string reason = string.Empty;
+    private bool autoRefresh = true;
+    private bool isLoading;
+    private bool isBusy;
+    private string? error;
+    private string? message;
+    private CancellationTokenSource? cts;
+    private Timer? timer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshAsync();
+        timer = new Timer(_ => _ = InvokeAsync(RefreshAsync), null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
+    }
+
+    protected override async Task OnParametersSetAsync() => await RefreshAsync();
+
+    private async Task SelectAsync(PlayerLifeData row)
+    {
+        selected = row;
+        policy = row.ContinuationPolicy;
+        reason = string.Empty;
+    }
+
+    private async Task RefreshAsync()
+    {
+        if (isLoading)
+            return;
+
+        isLoading = true;
+        error = null;
+        try
+        {
+            cts?.Cancel();
+            cts = new CancellationTokenSource();
+            var token = cts.Token;
+            overview = await GameData.GetPlayerOverviewAsync(token);
+            lifePage = await GameData.GetPlayerLivesAsync(200, 0, search, state, token);
+            if (selected is not null)
+            {
+                var refreshed = lifePage.Items.FirstOrDefault(row => row.PlayerId == selected.PlayerId);
+                if (refreshed is not null)
+                {
+                    selected = refreshed;
+                    policy = refreshed.ContinuationPolicy;
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SaveContinuationAsync()
+    {
+        if (selected is null)
+            return;
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            error = "A reason is required.";
+            return;
+        }
+
+        isBusy = true;
+        error = null;
+        try
+        {
+            await GameData.SetPlayerContinuationAsync(selected.PlayerId, policy, reason);
+            message = "Continuation preference queued.";
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task DetachAsync()
+    {
+        if (selected is null)
+            return;
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            error = "A reason is required.";
+            return;
+        }
+
+        isBusy = true;
+        error = null;
+        try
+        {
+            await GameData.DetachPlayerAsync(selected.PlayerId, reason);
+            message = "Detach command queued.";
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private static string Money(long cents) => $"${cents / 100m:N2}";
+    private static string Short(string value) => value.Length <= 12 ? value : value[..12] + "…";
+
+    public ValueTask DisposeAsync()
+    {
+        timer?.Dispose();
+        cts?.Cancel();
+        cts?.Dispose();
+        return ValueTask.CompletedTask;
+    }
+}

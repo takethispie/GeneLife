@@ -379,6 +379,114 @@ public sealed class GameDataService
             new { targetPopulation, enabled },
             cancellationToken);
 
+    public Task<ConsumptionOverviewData> GetConsumptionOverviewAsync(CancellationToken cancellationToken = default) =>
+        GetAdminAsync<ConsumptionOverviewData>("api/consumption", cancellationToken);
+
+    public Task<ConsumptionHouseholdPageData> GetConsumptionHouseholdsAsync(
+        int take = 100,
+        int skip = 0,
+        string? level = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = $"api/consumption/households?take={take}&skip={skip}";
+        if (!string.IsNullOrWhiteSpace(level))
+            query += $"&level={Uri.EscapeDataString(level)}";
+        return GetAdminAsync<ConsumptionHouseholdPageData>(query, cancellationToken);
+    }
+
+    public Task<ConsumptionStorePageData> GetConsumptionStoresAsync(
+        int take = 100,
+        int skip = 0,
+        CancellationToken cancellationToken = default) =>
+        GetAdminAsync<ConsumptionStorePageData>($"api/consumption/stores?take={take}&skip={skip}", cancellationToken);
+
+    public Task RestockStoreAsync(
+        ulong storeNetworkId,
+        string reason,
+        CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(
+            HttpMethod.Post,
+            $"api/consumption/stores/{storeNetworkId}/restock",
+            new { reason },
+            cancellationToken);
+
+    public Task RepairUtilityNetworkAsync(
+        string service,
+        int units,
+        string reason,
+        CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(
+            HttpMethod.Post,
+            $"api/consumption/networks/{Uri.EscapeDataString(service)}/repair",
+            new { units, reason },
+            cancellationToken);
+
+    public Task<AppearancePageData> GetAppearancePageAsync(
+        string? search = null,
+        int take = 100,
+        int skip = 0,
+        CancellationToken cancellationToken = default)
+    {
+        var query = $"api/appearance?take={take}&skip={skip}";
+        if (!string.IsNullOrWhiteSpace(search))
+            query += $"&search={Uri.EscapeDataString(search)}";
+        return GetAdminAsync<AppearancePageData>(query, cancellationToken);
+    }
+
+    public Task<AppearanceSimData> GetAppearanceAsync(
+        ulong simNetworkId,
+        CancellationToken cancellationToken = default) =>
+        GetAdminAsync<AppearanceSimData>($"api/appearance/{simNetworkId}", cancellationToken);
+
+    public Task<AppearanceFamilyData> GetAppearanceFamilyAsync(
+        ulong simNetworkId,
+        CancellationToken cancellationToken = default) =>
+        GetAdminAsync<AppearanceFamilyData>($"api/appearance/{simNetworkId}/family", cancellationToken);
+
+    public Task<PlayerOverviewData> GetPlayerOverviewAsync(CancellationToken cancellationToken = default) =>
+        GetAdminAsync<PlayerOverviewData>("api/player", cancellationToken);
+
+    public Task<PlayerLifePageData> GetPlayerLivesAsync(
+        int take = 100,
+        int skip = 0,
+        string? search = null,
+        string? state = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = $"api/player/lives?take={take}&skip={skip}";
+        if (!string.IsNullOrWhiteSpace(search))
+            query += $"&search={Uri.EscapeDataString(search)}";
+        if (!string.IsNullOrWhiteSpace(state))
+            query += $"&state={Uri.EscapeDataString(state)}";
+        return GetAdminAsync<PlayerLifePageData>(query, cancellationToken);
+    }
+
+    public Task<PlayerLifeData> GetPlayerLifeAsync(
+        string playerId,
+        CancellationToken cancellationToken = default) =>
+        GetAdminAsync<PlayerLifeData>($"api/player/lives/{Uri.EscapeDataString(playerId)}", cancellationToken);
+
+    public Task SetPlayerContinuationAsync(
+        string playerId,
+        string policy,
+        string reason,
+        CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(
+            HttpMethod.Post,
+            $"api/player/{Uri.EscapeDataString(playerId)}/continuation",
+            new { policy, reason },
+            cancellationToken);
+
+    public Task DetachPlayerAsync(
+        string playerId,
+        string reason,
+        CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(
+            HttpMethod.Post,
+            $"api/player/{Uri.EscapeDataString(playerId)}/detach",
+            new { reason },
+            cancellationToken);
+
     public Task<FamilyData> GetFamilyAsync(CancellationToken cancellationToken = default) =>
         GetAdminAsync<FamilyData>("api/family", cancellationToken);
 

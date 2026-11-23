@@ -1,6 +1,8 @@
 using Arch.Core;
 using Arch.Core.Extensions;
 using Genelife.Components.Company;
+using Genelife.Components.Consumption;
+using Genelife.Consumption;
 using Genelife.Components.Finance;
 using Genelife.Components.Gen;
 using Genelife.Components.Housing;
@@ -74,12 +76,20 @@ public class RentSystem : ISimulationSystem
 
             var unitData = world.Get<HousingUnit>(unit);
             var occupants = registry.MemberCount(entity);
-            var utilityDue = HousingCostPolicy.UtilityBill(
-                unitData.Tier,
-                occupants,
-                unitData.Capacity,
-                clock.MonthOfYear(tick),
-                unitData.Condition);
+            var meter = world.Has<HouseholdMeter>(entity) ? world.Get<HouseholdMeter>(entity) : default;
+            var hasMeter = world.Has<HouseholdMeter>(entity);
+            var tariff = UtilityTariff.FromOptions(economy.UtilityOptions);
+            var fullUtilityDue = hasMeter
+                ? tariff.WaterBill(meter.WaterUsage) + tariff.ElectricityBill(meter.ElectricityUsage)
+                : HousingCostPolicy.UtilityBill(
+                    unitData.Tier,
+                    occupants,
+                    unitData.Capacity,
+                    clock.MonthOfYear(tick),
+                    unitData.Condition);
+            var subsidy = fullUtilityDue.Multiply(
+                Math.Clamp(economy.UtilityOptions.SubsidyBasisPoints, 0, 10_000) / 10_000m);
+            var utilityDue = fullUtilityDue - subsidy;
             var rentDue = data.Tenure == Tenure.Owner
                 ? Money.Zero
                 : data.Tenure == Tenure.Sheltered
@@ -139,14 +149,28 @@ public class RentSystem : ISimulationSystem
                 {
                     if (data.UtilityArrears.IsPositive)
                         data.UtilityArrears = ClearUtilityArrears(tick, entity, data.UtilityArrears);
+                    if (hasMeter && world.Has<HouseholdMeter>(entity))
+                    {
+                        meter.Arrears = data.UtilityArrears;
+                        meter.ConsecutivePoorMonths = 0;
+                        meter.WaterLevel = ServiceLevel.Full;
+                        meter.ElectricityLevel = ServiceLevel.Full;
+                        world.Get<HouseholdMeter>(entity) = meter;
+                    }
                     data.NoUtilities = data.UtilityArrears.IsPositive;
                     economy.Emit(new UtilityBillPaid(NetworkIdOf(entity), NetworkIdOf(unit), utilityPaid.Cents, tick));
                 }
                 else
                 {
                     var missed = utilityDue - utilityPaid;
-                    data.UtilityArrears = (data.UtilityArrears + missed).Min(utilityDue * 2);
+                    data.UtilityArrears = data.UtilityArrears + missed;
                     data.NoUtilities = true;
+                    if (hasMeter && world.Has<HouseholdMeter>(entity))
+                    {
+                        meter.Arrears = data.UtilityArrears;
+                        meter.ConsecutivePoorMonths = meter.ConsecutivePoorMonths + 1;
+                        world.Get<HouseholdMeter>(entity) = meter;
+                    }
                     economy.Emit(new UtilityArrearsRecorded(
                         NetworkIdOf(entity),
                         utilityDue.Cents,

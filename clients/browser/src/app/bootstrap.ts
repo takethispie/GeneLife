@@ -31,6 +31,7 @@ import { Hud } from "../ui/hud";
 import { NotificationCenter, type NotificationKind } from "../ui/notifications";
 import { SettingsStore } from "../ui/settings";
 import { UiStore } from "../ui/ui-store";
+import { PlayerDirectoryPanel } from "../ui/social/directory";
 import { LoadingScreen } from "./loading";
 
 export interface ClientRuntime {
@@ -210,6 +211,13 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
       onSelectBuilding: (building) => selection.select(building),
       focusCanvas: () => pixi.app.canvas.focus()
     }
+  });
+
+  const playerDirectory = new PlayerDirectoryPanel({
+    root,
+    apiBaseUrl: config.apiBaseUrl,
+    token: () => session.store.token,
+    onError: (message) => notify("warning", "presence_failed", message)
   });
 
   const settingsUnsubscribe = settings.subscribe((next) => {
@@ -578,6 +586,7 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
       cameraInput.dispose();
       targeting.dispose();
       hud.dispose();
+      playerDirectory.dispose();
       renderer?.dispose();
       debugInfo.destroy();
       viewportSync.reset();

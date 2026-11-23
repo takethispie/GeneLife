@@ -108,7 +108,9 @@ public static class TraitsInheritance
             Aptitude = Inherit(parentA.Value.Aptitude, parentB?.Aptitude, nameof(Traits.Aptitude), worldSeed, childNetworkId, options.MutationRate, ref mutations),
             HeightPotential = Inherit(parentA.Value.HeightPotential, parentB?.HeightPotential, nameof(Traits.HeightPotential), worldSeed, childNetworkId, options.MutationRate, ref mutations),
             Sex = Inherit(parentA.Value.Sex, parentB?.Sex, nameof(Traits.Sex), worldSeed, childNetworkId, options.MutationRate, ref mutations),
-            Temperament = Inherit(parentA.Value.Temperament, parentB?.Temperament, nameof(Traits.Temperament), worldSeed, childNetworkId, options.MutationRate, ref mutations)
+            Temperament = Inherit(parentA.Value.Temperament, parentB?.Temperament, nameof(Traits.Temperament), worldSeed, childNetworkId, options.MutationRate, ref mutations),
+            SkinTone = Inherit(parentA.Value.SkinTone, parentB?.SkinTone, nameof(Traits.SkinTone), worldSeed, childNetworkId, options.MutationRate, ref mutations),
+            FaceShape = Inherit(parentA.Value.FaceShape, parentB?.FaceShape, nameof(Traits.FaceShape), worldSeed, childNetworkId, options.MutationRate, ref mutations)
         };
 
         return new TraitInheritanceResult(traits, mutations);

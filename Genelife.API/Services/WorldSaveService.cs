@@ -49,7 +49,7 @@ public class WorldSaveService
                     housingTier = unit.Tier.ToString();
             }
 
-            sims.Add(new SimDocument
+            SimDocument document = new()
             {
                 Id = DocumentIds.ForNetworkId(nid.Value),
                 NetworkId = (long)nid.Value,
@@ -69,7 +69,24 @@ public class WorldSaveService
                 HousingTier = housingTier,
                 CreatedAt = DateTimeOffset.UtcNow,
                 UpdatedAt = DateTimeOffset.UtcNow
-            });
+            };
+
+            if (Genelife.Api.Appearance.AppearanceMapper.TryDerive(world, entity, out var appearance))
+            {
+                var dto = Genelife.Api.Appearance.AppearanceMapper.ToDto(appearance);
+                document.SkinTone = dto.SkinTone;
+                document.FaceShape = dto.FaceShape;
+                document.HairColor = dto.HairColor;
+                document.HairStyle = dto.HairStyle;
+                document.EyeColor = dto.EyeColor;
+                document.BodyFrame = dto.BodyFrame;
+                document.HeightScale = dto.HeightScale;
+                document.AgeBand = dto.AgeBand;
+                document.Expression = dto.Expression;
+                document.AppearanceVersion = dto.AppearanceVersion;
+            }
+
+            sims.Add(document);
         });
 
         var companies = new List<CompanyDocument>();

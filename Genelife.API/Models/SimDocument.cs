@@ -20,6 +20,16 @@ public class SimDocument
     public float Health { get; set; } = 100f;
     public float SkillTotal { get; set; }
     public string Seniority { get; set; } = string.Empty;
+    public byte? SkinTone { get; set; }
+    public byte? FaceShape { get; set; }
+    public byte? HairColor { get; set; }
+    public byte? HairStyle { get; set; }
+    public byte? EyeColor { get; set; }
+    public byte? BodyFrame { get; set; }
+    public byte? HeightScale { get; set; }
+    public byte? AgeBand { get; set; }
+    public byte? Expression { get; set; }
+    public byte? AppearanceVersion { get; set; }
     public long HouseholdNetworkId { get; set; }
     public long HousingUnitNetworkId { get; set; }
     public string Tenure { get; set; } = string.Empty;
@@ -49,7 +59,20 @@ public class SimDocument
             Stage = Stage,
             Health = (decimal)MathF.Round(Health, 1),
             TopSkill = string.Empty,
-            Seniority = Seniority
+            Seniority = Seniority,
+            Appearance = SkinTone is null ? null : new AppearanceDto
+            {
+                SkinTone = SkinTone.Value,
+                FaceShape = FaceShape ?? 0,
+                HairColor = HairColor ?? 0,
+                HairStyle = HairStyle ?? 0,
+                EyeColor = EyeColor ?? 0,
+                BodyFrame = BodyFrame ?? 0,
+                HeightScale = HeightScale ?? 0,
+                AgeBand = AgeBand ?? 0,
+                Expression = Expression ?? 0,
+                AppearanceVersion = AppearanceVersion ?? 1
+            }
         };
     }
 }

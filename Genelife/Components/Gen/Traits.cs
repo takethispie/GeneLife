@@ -26,4 +26,6 @@ public record struct Traits
     public HeightPotential HeightPotential;
     public Sex Sex;
     public Temperament Temperament;
+    public SkinTone SkinTone;
+    public FaceShape FaceShape;
 }

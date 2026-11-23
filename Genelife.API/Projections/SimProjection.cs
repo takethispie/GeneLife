@@ -117,6 +117,26 @@ public partial class SimProjection : EventProjection
         });
     }
 
+    public async Task Project(AppearanceMigrated e, IDocumentOperations ops)
+    {
+        await UpdateByNetworkId(ops, e.SimNetworkId, doc =>
+        {
+            doc.SkinTone = (byte)e.SkinTone;
+            doc.FaceShape = (byte)e.FaceShape;
+            doc.AppearanceVersion = e.AppearanceVersion;
+            doc.UpdatedAt = DateTimeOffset.UtcNow;
+        });
+    }
+
+    public async Task Project(AppearanceVersionChanged e, IDocumentOperations ops)
+    {
+        await UpdateByNetworkId(ops, e.SimNetworkId, doc =>
+        {
+            doc.AppearanceVersion = e.ToVersion;
+            doc.UpdatedAt = DateTimeOffset.UtcNow;
+        });
+    }
+
     public async Task Project(SimDeleted e, IDocumentOperations ops)
     {
         var doc = await FindByNetworkId(ops, e.NetworkId);

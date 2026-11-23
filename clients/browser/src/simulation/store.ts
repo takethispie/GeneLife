@@ -300,7 +300,14 @@ export class SimulationStore {
   private copyPositions(): Map<number, SimPosition> {
     const positions = new Map<number, SimPosition>();
     for (const sim of this.simsById.values()) {
-      positions.set(sim.networkId, { x: sim.x, y: sim.y, tileX: sim.tileX, tileY: sim.tileY });
+      positions.set(sim.networkId, {
+        x: sim.x,
+        y: sim.y,
+        tileX: sim.tileX,
+        tileY: sim.tileY,
+        appearance: sim.appearance,
+        isPlayerControlled: sim.isPlayerControlled
+      });
     }
     return positions;
   }

@@ -2,7 +2,7 @@ namespace Genelife.Api.Persistence;
 
 public sealed class PersistedWorldState
 {
-    public const int CurrentSchemaVersion = 11;
+    public const int CurrentSchemaVersion = 14;
 
     public int SchemaVersion { get; set; }
     public long Tick { get; set; }
@@ -45,6 +45,15 @@ public sealed class PersistedWorldState
     public List<PersistedPopulationSnapshot> LifecycleMetricHistory { get; set; } = [];
     public List<PersistedMortalityRecord> MortalityLog { get; set; } = [];
     public List<PersistedEstateRequest> EstateQueue { get; set; } = [];
+    public List<PersistedPlayerProfile> PlayerProfiles { get; set; } = [];
+    public List<PersistedPlayerLife> PlayerLives { get; set; } = [];
+    public List<PersistedFamilyInvitation> FamilyInvitations { get; set; } = [];
+    public List<PersistedUtilityNetwork> UtilityNetworks { get; set; } = [];
+    public List<PersistedServiceLink> ServiceLinks { get; set; } = [];
+    public List<PersistedHouseholdMeter> HouseholdMeters { get; set; } = [];
+    public List<PersistedStoreInventory> StoreInventories { get; set; } = [];
+    public List<PersistedNutrition> Nutrition { get; set; } = [];
+    public int GroceryCatalogVersion { get; set; } = 1;
     public PersistedImmigration Immigration { get; set; } = new();
     public PersistedFiscal Fiscal { get; set; } = new();
 }
@@ -86,6 +95,10 @@ public sealed class PersistedSim
     public int HeightPotential { get; set; }
     public int Sex { get; set; }
     public int Temperament { get; set; }
+    public int SkinTone { get; set; }
+    public int FaceShape { get; set; }
+    public int AppearanceVersion { get; set; }
+    public bool AppearanceMigrated { get; set; }
     public bool TraitsMigrated { get; set; }
     public ulong BirthPregnancyNetworkId { get; set; }
     public long BirthTick { get; set; }
@@ -637,4 +650,116 @@ public sealed class PersistedPregnancy
     public int CareMonths { get; set; }
     public int MissedCareMonths { get; set; }
     public long ResolvedTick { get; set; }
+}
+
+
+public sealed class PersistedPlayerProfile
+{
+    public string PlayerId { get; set; } = string.Empty;
+    public ulong SimNetworkId { get; set; }
+    public string ContinuationPolicy { get; set; } = "Heir";
+    public bool AwaitingContinuation { get; set; }
+    public bool Observer { get; set; }
+    public long CreatedTick { get; set; }
+    public long LastActionTick { get; set; }
+    public long LastSequence { get; set; }
+}
+
+public sealed class PersistedPlayerLife
+{
+    public ulong SimNetworkId { get; set; }
+    public ulong HouseholdNetworkId { get; set; }
+    public ulong UnitNetworkId { get; set; }
+    public long LeaseStartTick { get; set; }
+    public long DepositCents { get; set; }
+    public bool LeaseActive { get; set; }
+    public bool HasEmployment { get; set; }
+    public ulong EmploymentOfficeNetworkId { get; set; }
+    public long HiredTick { get; set; }
+    public long LastAttendedTick { get; set; }
+    public int ConsecutiveMissedShifts { get; set; }
+    public string EmploymentSource { get; set; } = "PlayerApplied";
+    public bool AttendedThisMonth { get; set; }
+    public int FoodUnits { get; set; }
+    public int HouseholdGoods { get; set; }
+    public long LastPurchaseTick { get; set; }
+    public Guid JobOfferId { get; set; }
+    public ulong JobOfferPostingNetworkId { get; set; }
+    public ulong JobOfferOfficeNetworkId { get; set; }
+    public string JobOfferPosition { get; set; } = string.Empty;
+    public long JobOfferSalaryCents { get; set; }
+    public long JobOfferCreatedTick { get; set; }
+    public long JobOfferExpiresTick { get; set; }
+    public Guid LeaseOfferId { get; set; }
+    public ulong LeaseOfferUnitNetworkId { get; set; }
+    public ulong LeaseOfferPropertyNetworkId { get; set; }
+    public long LeaseOfferRentCents { get; set; }
+    public long LeaseOfferCreatedTick { get; set; }
+    public long LeaseOfferExpiresTick { get; set; }
+}
+
+public sealed class PersistedFamilyInvitation
+{
+    public ulong NetworkId { get; set; }
+    public Guid Id { get; set; }
+    public ulong FromSimNetworkId { get; set; }
+    public ulong ToSimNetworkId { get; set; }
+    public string Kind { get; set; } = "Partnership";
+    public string Status { get; set; } = "Pending";
+    public long CreatedTick { get; set; }
+    public long ExpiresTick { get; set; }
+}
+
+
+public sealed class PersistedUtilityNetwork
+{
+    public ulong NetworkId { get; set; }
+    public string Service { get; set; } = "Water";
+    public int Production { get; set; }
+    public int Capacity { get; set; }
+    public int Load { get; set; }
+    public int Reserve { get; set; }
+    public string State { get; set; } = "Normal";
+}
+
+public sealed class PersistedServiceLink
+{
+    public ulong NetworkId { get; set; }
+    public ulong BuildingNetworkId { get; set; }
+    public ulong UtilityNetworkId { get; set; }
+    public string Service { get; set; } = "Water";
+    public int Demand { get; set; }
+    public bool Connected { get; set; }
+    public int Priority { get; set; }
+}
+
+public sealed class PersistedHouseholdMeter
+{
+    public ulong HouseholdNetworkId { get; set; }
+    public int WaterUsage { get; set; }
+    public int ElectricityUsage { get; set; }
+    public string WaterLevel { get; set; } = "Full";
+    public string ElectricityLevel { get; set; } = "Full";
+    public long ArrearsCents { get; set; }
+    public long LastReadingTick { get; set; }
+    public int ConsecutivePoorMonths { get; set; }
+    public long LastCutOffTick { get; set; }
+}
+
+public sealed class PersistedStoreInventory
+{
+    public ulong NetworkId { get; set; }
+    public ulong StoreNetworkId { get; set; }
+    public int ItemIndex { get; set; }
+    public int Stock { get; set; }
+    public long CurrentPriceCents { get; set; }
+    public long LastRestockTick { get; set; }
+}
+
+public sealed class PersistedNutrition
+{
+    public ulong SimNetworkId { get; set; }
+    public int Balance { get; set; }
+    public int ConsecutivePoorDays { get; set; }
+    public long LastMealTick { get; set; }
 }

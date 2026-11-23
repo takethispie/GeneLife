@@ -32,4 +32,5 @@ public class SimStatus
     public string TopSkill { get; set; } = string.Empty;
     public string Seniority { get; set; } = string.Empty;
     public bool IsDead { get; set; }
+    public AppearanceDto? Appearance { get; set; }
 }
