@@ -22,7 +22,7 @@ Server prerequisites completed alongside the client:
 
 ## Prerequisites
 
-- Node.js 22+ and npm.
+- Node.js 26+ and npm.
 - The API on `http://localhost:5288` (Dev profile) and PostgreSQL, or fixture
   mode with no server.
 
