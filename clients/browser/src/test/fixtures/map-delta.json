@@ -1,0 +1,39 @@
+{
+  "mapId": "world",
+  "fromVersion": 3,
+  "toVersion": 4,
+  "tick": 102,
+  "added": [
+    {
+      "networkId": 7004,
+      "kind": "shop",
+      "name": "Corner Shop",
+      "district": "commercial",
+      "x": -3,
+      "y": 5,
+      "width": 2,
+      "height": 2,
+      "entryX": -3,
+      "entryY": 7,
+      "ownerNetworkId": 9
+    }
+  ],
+  "updated": [
+    {
+      "networkId": 7002,
+      "kind": "office",
+      "name": "Foundry Office (rebuilt)",
+      "district": "commercial",
+      "x": 2,
+      "y": 3,
+      "width": 4,
+      "height": 3,
+      "entryX": 3,
+      "entryY": 6,
+      "ownerNetworkId": 9
+    }
+  ],
+  "removed": [
+    7003
+  ]
+}

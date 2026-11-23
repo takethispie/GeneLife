@@ -54,6 +54,7 @@ private readonly NetworkIdRegistry networkIds = new();
     private readonly Action<SystemRunResult> recordSystemRun;
     private readonly ConcurrentQueue<EnqueuedCommand> queuedCommands = new();
     private readonly ConcurrentQueue<AdminCommand> adminCommands = new();
+    private readonly ConcurrentQueue<IntentRejection> intentRejections = new();
     private readonly ConcurrentDictionary<Guid, CommandResult> commandResults = new();
     private readonly ConcurrentDictionary<Guid, byte> seenAdminCommands = new();
     private readonly Channel<object> outboundEvents = Channel.CreateBounded<object>(
@@ -124,6 +125,24 @@ private readonly NetworkIdRegistry networkIds = new();
     }
 
     public long DroppedEventCount => Interlocked.Read(ref droppedEventCount);
+
+    /// <summary>
+    /// Feedback for intents that were admitted by the hub but rejected while the
+    /// simulation applied them. The transport drains this queue and sends
+    /// <c>IntentRejected</c> to the player's active connections.
+    /// </summary>
+    public bool TryDequeueIntentRejection(out IntentRejection rejection) =>
+        intentRejections.TryDequeue(out rejection!);
+
+    public int PendingIntentRejectionCount => intentRejections.Count;
+
+    private void RejectIntent(string playerId, long sequence, string code, string message)
+    {
+        if (string.IsNullOrWhiteSpace(playerId))
+            return;
+
+        intentRejections.Enqueue(new IntentRejection(playerId, sequence, code, message));
+    }
 
     public void Initialize()
     {
@@ -516,29 +535,50 @@ if (SnapshotsEnabled)
     private void ApplyMoveIntent(MoveIntent intent)
     {
         if (world is null || mapContext is null || movementIndex is null)
+        {
+            RejectIntent(intent.PlayerId, intent.Sequence, "world_not_ready", "The world is not ready yet");
             return;
+        }
         if (string.IsNullOrWhiteSpace(intent.PlayerId))
             return;
 
         if (lastIntentSequence.TryGetValue(intent.PlayerId, out var last) && intent.Sequence > 0 && intent.Sequence <= last)
+        {
+            RejectIntent(intent.PlayerId, intent.Sequence, "stale_sequence", "Intent sequence is stale");
             return;
+        }
         if (intent.Sequence > 0)
             lastIntentSequence[intent.PlayerId] = intent.Sequence;
 
         var sim = ResolvePlayerSim(intent.PlayerId, intent.SimNetworkId);
         if (sim == Entity.Null || !world.IsAlive(sim) || world.Has<Dead>(sim))
+        {
+            RejectIntent(intent.PlayerId, intent.Sequence, "sim_not_found", "Your sim is not available");
             return;
+        }
 
         var owner = world.Has<PlayerControlled>(sim) ? world.Get<PlayerControlled>(sim).PlayerId : null;
         if (!string.Equals(owner, intent.PlayerId, StringComparison.Ordinal))
+        {
+            RejectIntent(intent.PlayerId, intent.Sequence, "not_owner", "You do not control that sim");
             return;
+        }
 
         var target = intent.TargetTileX.HasValue && intent.TargetTileY.HasValue
             ? new TileCoord(intent.TargetTileX.Value, intent.TargetTileY.Value)
             : mapContext.Options.ToTile(intent.X, intent.Y);
 
-        if (!mapContext.Options.Bounds.Contains(target) || !mapContext.Map.IsWalkable(target))
+        if (!mapContext.Options.Bounds.Contains(target))
+        {
+            RejectIntent(intent.PlayerId, intent.Sequence, "out_of_bounds", "That tile is outside the map");
             return;
+        }
+
+        if (!mapContext.Map.IsWalkable(target))
+        {
+            RejectIntent(intent.PlayerId, intent.Sequence, "blocked", "That tile is blocked");
+            return;
+        }
 
         var current = world.Has<TilePosition>(sim)
             ? world.Get<TilePosition>(sim).Tile
@@ -579,25 +619,52 @@ if (SnapshotsEnabled)
     private void ApplyUseBuildingIntent(UseBuildingIntent intent)
     {
         if (world is null || mapContext is null)
+        {
+            RejectIntent(intent.PlayerId, intent.Sequence, "world_not_ready", "The world is not ready yet");
             return;
+        }
         if (string.IsNullOrWhiteSpace(intent.PlayerId))
             return;
+
+        if (lastIntentSequence.TryGetValue(intent.PlayerId, out var last) && intent.Sequence > 0 && intent.Sequence <= last)
+        {
+            RejectIntent(intent.PlayerId, intent.Sequence, "stale_sequence", "Intent sequence is stale");
+            return;
+        }
+        if (intent.Sequence > 0)
+            lastIntentSequence[intent.PlayerId] = intent.Sequence;
+
         if (!networkIds.TryGetEntity(new NetworkId(intent.BuildingNetworkId), out var building) ||
             !world.IsAlive(building))
+        {
+            RejectIntent(intent.PlayerId, intent.Sequence, "building_not_found", "That building no longer exists");
             return;
+        }
         if (!world.Has<Placement>(building))
+        {
+            RejectIntent(intent.PlayerId, intent.Sequence, "building_not_found", "That building has no placement");
             return;
+        }
 
         var sim = ResolvePlayerSim(intent.PlayerId, intent.SimNetworkId);
         if (sim == Entity.Null || !world.IsAlive(sim) || world.Has<Dead>(sim))
+        {
+            RejectIntent(intent.PlayerId, intent.Sequence, "sim_not_found", "Your sim is not available");
             return;
+        }
         var owner = world.Has<PlayerControlled>(sim) ? world.Get<PlayerControlled>(sim).PlayerId : null;
         if (!string.Equals(owner, intent.PlayerId, StringComparison.Ordinal))
+        {
+            RejectIntent(intent.PlayerId, intent.Sequence, "not_owner", "You do not control that sim");
             return;
+        }
 
         var placement = world.Get<Placement>(building);
         if (world.Get<TilePosition>(sim).Tile.ChebyshevDistanceTo(placement.Entry) > 1)
+        {
+            RejectIntent(intent.PlayerId, intent.Sequence, "out_of_range", "Walk to the entrance first");
             return;
+        }
 
         ActionType? action = null;
         if (world.Has<Property>(building))
@@ -607,7 +674,10 @@ if (SnapshotsEnabled)
         else if (world.Has<Office>(building))
         {
             if (!world.Has<Employee>(sim) || world.Get<Employee>(sim).Office != building)
+            {
+                RejectIntent(intent.PlayerId, intent.Sequence, "role_not_allowed", "You cannot use this building");
                 return;
+            }
             action = ActionType.Working;
         }
         else if (world.Has<School>(building))
@@ -616,7 +686,10 @@ if (SnapshotsEnabled)
         }
 
         if (action is null)
+        {
+            RejectIntent(intent.PlayerId, intent.Sequence, "role_not_allowed", "You cannot use this building");
             return;
+        }
 
         var current = world.Has<CurrentAction>(sim)
             ? world.Get<CurrentAction>(sim)
@@ -645,7 +718,9 @@ if (SnapshotsEnabled)
         var query = new QueryDescription().WithAll<PlayerControlled, NetworkId>();
         world.Query(in query, (Entity candidate, ref PlayerControlled controlled, ref NetworkId _) =>
         {
-            if (found == Entity.Null && string.Equals(controlled.PlayerId, playerId, StringComparison.Ordinal))
+            if (found == Entity.Null
+                && string.Equals(controlled.PlayerId, playerId, StringComparison.Ordinal)
+                && !world.Has<Dead>(candidate))
                 found = candidate;
         });
         return found;
@@ -688,8 +763,33 @@ if (SnapshotsEnabled)
         }
     }
 
+    /// <summary>
+    /// Creates a player-controlled sim for a new browser player when the world is
+    /// running and the player does not already own a living sim. Returns the
+    /// player's sim network id, or 0 when no sim could be created.
+    /// </summary>
+    public ulong EnsurePlayerSim(string playerId)
+    {
+        lock (@lock)
+        {
+            if (!isRunning || world is null || string.IsNullOrWhiteSpace(playerId))
+                return 0;
+
+            var existing = ResolvePlayerSim(playerId, 0);
+            if (existing != Entity.Null && world.IsAlive(existing) && !world.Has<Dead>(existing))
+                return world.Has<NetworkId>(existing) ? world.Get<NetworkId>(existing).Value : 0;
+
+            var repository = new SimRepository(world, networkIds, economy, mapContext);
+            var name = playerId.Length > 20 ? $"Player-{playerId[..20]}" : $"Player-{playerId}";
+            var networkId = repository.Add(name, 25, playerId);
+            Emit(new SimCreated(networkId.Value, name, 25));
+            return networkId.Value;
+        }
+    }
+
     public void EnsurePlayerSpawn(string playerId)
-    {        lock (@lock)
+    {
+        lock (@lock)
         {
             if (world is null || economy is null || mapContext is null)
                 return;

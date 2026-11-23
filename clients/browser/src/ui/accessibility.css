@@ -1,0 +1,59 @@
+/* Accessibility-specific rules: focus, contrast, motion and zoom. */
+
+#hud button,
+#hud input,
+#hud select {
+  min-height: 24px;
+}
+
+#hud button:focus-visible,
+#hud input:focus-visible,
+#app canvas:focus-visible {
+  outline: 3px solid #a5f3fc;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 1px #0b1014;
+}
+
+#hud .hud-panel {
+  border-color: rgba(203, 213, 225, 0.55);
+}
+
+#hud .hud-key,
+#hud .selection-meta,
+#hud .selection-owner,
+#hud .selection-hint {
+  color: #cbd5e1;
+}
+
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --hud-bg: rgba(0, 0, 0, 0.94);
+    --hud-border: #ffffff;
+    --hud-muted: #e2e8f0;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .hud-panel {
+    backdrop-filter: none;
+    background: #0b1014;
+  }
+}

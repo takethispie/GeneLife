@@ -30,6 +30,8 @@ public sealed class WorldHub : Hub
     private readonly int defaultViewportRadius;
     private readonly int minViewportRadius;
     private readonly int maxViewportRadius;
+    private readonly int tickIntervalMs;
+    private readonly bool autoCreatePlayerSim;
 
     private static readonly ConcurrentDictionary<string, RateLimitWindow> RateLimits = new();
     private static readonly ConcurrentDictionary<string, RateLimitWindow> SnapshotRateLimits = new();
@@ -58,6 +60,8 @@ public sealed class WorldHub : Hub
         defaultViewportRadius = Math.Max(1, configuration.GetValue("SignalR:Viewport:DefaultRadius", 32));
         minViewportRadius = Math.Max(1, configuration.GetValue("SignalR:Viewport:MinRadius", 4));
         maxViewportRadius = Math.Max(minViewportRadius, configuration.GetValue("SignalR:Viewport:MaxRadius", 256));
+        tickIntervalMs = Math.Max(1, configuration.GetValue("SignalR:TickIntervalMs", 40));
+        autoCreatePlayerSim = configuration.GetValue("SignalR:AutoCreatePlayerSim", true);
     }
 
     public override async Task OnConnectedAsync()
@@ -72,6 +76,8 @@ public sealed class WorldHub : Hub
 
         registry.Register(Context.ConnectionId, playerId);
         replicationTracker.RestoreForConnection(Context.ConnectionId, playerId);
+        if (autoCreatePlayerSim)
+            engine.EnsurePlayerSim(playerId);
         engine.EnsurePlayerSpawn(playerId);
 
         if (viewports.TryGetForPlayer(playerId, out var savedViewport))
@@ -89,6 +95,20 @@ public sealed class WorldHub : Hub
 
         var snapshot = engine.GetLatestSnapshot();
         var map = engine.BuildMapSnapshot();
+        var simNetworkId = engine.GetPlayerSimNetworkId(playerId);
+
+        await Clients.Caller.SendAsync("Welcome", new WelcomeMessage
+        {
+            PlayerId = playerId,
+            SimNetworkId = simNetworkId,
+            MapId = map.MapId,
+            MapVersion = map.Version,
+            Tick = snapshot?.Tick ?? engine.CurrentTick,
+            TickIntervalMs = tickIntervalMs,
+            SnapshotVersion = snapshot?.Version ?? WorldSnapshot.CurrentVersion,
+            ProtocolVersion = WelcomeMessage.CurrentProtocolVersion
+        });
+
         await Clients.Caller.SendAsync("SendMapSnapshot", map);
         if (snapshot is not null)
         {
@@ -97,7 +117,7 @@ public sealed class WorldHub : Hub
                 snapshot = AoiFilter.FilterSnapshotByViewport(
                     snapshot,
                     initialViewport,
-                    engine.GetPlayerSimNetworkId(playerId));
+                    simNetworkId);
             }
 
             replicationMetrics.Record(Context.ConnectionId, full: true, EstimateBytes(snapshot));

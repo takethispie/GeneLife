@@ -1,0 +1,57 @@
+import type {
+  Intent,
+  IntentRejected,
+  IntentResult,
+  MapDelta,
+  MapSnapshot,
+  SetViewportRequest,
+  SnapshotRejected,
+  ViewportResult,
+  WelcomeMessage,
+  WorldSnapshot,
+  WorldSnapshotDelta
+} from "../contracts/hub";
+
+export const HUB_EVENTS = {
+  welcome: "Welcome",
+  mapSnapshot: "SendMapSnapshot",
+  mapDelta: "SendMapDelta",
+  snapshot: "SendSnapshot",
+  snapshotDelta: "SendSnapshotDelta",
+  snapshotRejected: "SnapshotRejected",
+  intentRejected: "IntentRejected"
+} as const;
+
+export const HUB_METHODS = {
+  requestSnapshot: "RequestSnapshot",
+  acknowledgeSnapshot: "AcknowledgeSnapshot",
+  requestMapSnapshot: "RequestMapSnapshot",
+  setViewport: "SetViewport",
+  clearViewport: "ClearViewport",
+  submitIntent: "SubmitIntent"
+} as const;
+
+export type ConnectionState =
+  | "idle"
+  | "connecting"
+  | "connected"
+  | "reconnecting"
+  | "failed"
+  | "closed";
+
+export interface HubHandlers {
+  onWelcome(message: WelcomeMessage): void;
+  onMapSnapshot(snapshot: MapSnapshot): void;
+  onMapDelta(delta: MapDelta): void;
+  onSnapshot(snapshot: WorldSnapshot): void;
+  onSnapshotDelta(delta: WorldSnapshotDelta): void;
+  onSnapshotRejected(rejection: SnapshotRejected): void;
+  onIntentRejected(rejection: IntentRejected): void;
+  onStateChange(state: ConnectionState): void;
+  onReconnected?(): void;
+}
+
+export type HubInvocation = {
+  setViewport(request: SetViewportRequest): Promise<ViewportResult>;
+  submitIntent(intent: Intent): Promise<IntentResult>;
+};

@@ -1,0 +1,10 @@
+{
+  "playerId": "player-1",
+  "simNetworkId": 1,
+  "mapId": "world",
+  "mapVersion": 3,
+  "tick": 100,
+  "tickIntervalMs": 40,
+  "snapshotVersion": 2,
+  "protocolVersion": 1
+}

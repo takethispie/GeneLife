@@ -6,6 +6,19 @@ NPC population simulation
 - Economy, housing and life-stage systems are implemented.
 - See [docs/plans/roadmap-v1/STATUS.md](docs/plans/roadmap-v1/STATUS.md) for verification and known limitations.
 
+## V3 Browser Client
+- Playable browser client at [`clients/browser`](clients/browser/README.md): PixiJS rendering, SignalR replication, interpolation, viewport filtering, input, HUD and reconnect recovery.
+- See [docs/plans/roadmap-v3/STATUS.md](docs/plans/roadmap-v3/STATUS.md) for verification and known limitations.
+
+Run the whole stack (PostgreSQL, API, web and the Vite client) with Aspire:
+
+```bash
+dotnet run --project GeneLife.AppHost
+```
+
+The AppHost launches the browser client on `http://localhost:5173` and injects
+`VITE_API_BASE_URL` from the API's external endpoint, so no local `.env` is needed.
+
 ## Implemented Feature
 - Very basic human eat-shower-sleep cycle
 - work simulation with companies, job posting and application, revenue and hiring
@@ -37,3 +50,13 @@ dotnet run --project Genelife.UnitTests/Genelife.UnitTests.csproj --no-build --n
 ```
 
 Tests use isolated Marten schemas and snapshot files, so repeated local runs do not share read-model state.
+
+Browser client checks:
+
+```bash
+cd clients/browser
+npm ci
+npm run typecheck && npm run lint && npm run test && npm run build
+```
+
+See the [client README](clients/browser/README.md) for fixture mode, live E2E and the soak script.

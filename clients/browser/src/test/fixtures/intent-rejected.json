@@ -1,0 +1,6 @@
+{
+  "playerId": "player-1",
+  "sequence": 42,
+  "code": "blocked",
+  "message": "That tile is blocked"
+}

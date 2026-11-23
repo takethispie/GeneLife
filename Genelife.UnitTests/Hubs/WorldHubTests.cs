@@ -127,6 +127,76 @@ public sealed class WorldHubTests : IClassFixture<TestApplicationFactory>, IAsyn
     }
 
     [Fact]
+    public async Task Connect_receives_welcome_with_the_players_own_sim_id()
+    {
+        await StartSimulation();
+
+        var token = PlayerToken("player-welcome");
+        var connection = CreateConnection(token, "player-welcome");
+        var welcomeTcs = new TaskCompletionSource<WelcomeMessage>();
+        var snapshotTcs = new TaskCompletionSource<WorldSnapshot>();
+
+        connection.On<WelcomeMessage>("Welcome", welcome => welcomeTcs.TrySetResult(welcome));
+        connection.On<WorldSnapshot>("SendSnapshot", snapshot => snapshotTcs.TrySetResult(snapshot));
+
+        await connection.StartAsync(CancellationToken);
+
+        var welcome = await welcomeTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken);
+        await snapshotTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken);
+
+        Assert.Equal("player-welcome", welcome.PlayerId);
+        Assert.True(welcome.SimNetworkId > 0);
+        Assert.Equal("world", welcome.MapId);
+        Assert.True(welcome.MapVersion >= 1);
+        Assert.Equal(40, welcome.TickIntervalMs);
+        Assert.Equal(WelcomeMessage.CurrentProtocolVersion, welcome.ProtocolVersion);
+
+        await connection.StopAsync(CancellationToken);
+    }
+
+    [Fact]
+    public async Task Post_admission_move_rejection_is_sent_to_the_player()
+    {
+        await StartSimulation();
+
+        var token = PlayerToken("player-rejected");
+        var connection = CreateConnection(token, "player-rejected");
+        var welcomeTcs = new TaskCompletionSource<WelcomeMessage>();
+        var snapshotTcs = new TaskCompletionSource<WorldSnapshot>();
+        var rejectedTcs = new TaskCompletionSource<IntentRejected>();
+
+        connection.On<WelcomeMessage>("Welcome", welcome => welcomeTcs.TrySetResult(welcome));
+        connection.On<WorldSnapshot>("SendSnapshot", snapshot => snapshotTcs.TrySetResult(snapshot));
+        connection.On<IntentRejected>("IntentRejected", rejected => rejectedTcs.TrySetResult(rejected));
+
+        await connection.StartAsync(CancellationToken);
+        var welcome = await welcomeTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken);
+        await snapshotTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken);
+
+        var payload = new
+        {
+            type = "move",
+            playerId = "player-rejected",
+            sequence = 1L,
+            simNetworkId = welcome.SimNetworkId,
+            targetTileX = 99_999,
+            targetTileY = 99_999
+        };
+
+        var result = await connection.InvokeAsync<JsonElement>(
+            "SubmitIntent", payload, CancellationToken);
+        Assert.True(result.GetProperty("success").GetBoolean());
+
+        var rejected = await rejectedTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken);
+        Assert.Equal("player-rejected", rejected.PlayerId);
+        Assert.Equal(1, rejected.Sequence);
+        Assert.Equal("out_of_bounds", rejected.Code);
+        Assert.False(string.IsNullOrWhiteSpace(rejected.Message));
+
+        await connection.StopAsync(CancellationToken);
+    }
+
+    [Fact]
     public async Task SetViewport_clamps_the_radius_and_returns_the_effective_viewport()
     {
         await StartSimulation();

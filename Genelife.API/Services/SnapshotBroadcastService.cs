@@ -68,6 +68,8 @@ public sealed class SnapshotBroadcastService : BackgroundService
                     await BroadcastWorld(snapshot, cancellationToken);
                     await BroadcastMap(cancellationToken);
                 }
+
+                await BroadcastIntentRejections(cancellationToken);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -76,6 +78,37 @@ public sealed class SnapshotBroadcastService : BackgroundService
             catch (Exception ex)
             {
                 logger?.LogWarning(ex, "Snapshot broadcast failed");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Drains post-admission intent feedback from the simulation and delivers it
+    /// to every active connection for the player. Rejections for disconnected
+    /// players are discarded; there is nobody left to notify.
+    /// </summary>
+    private async Task BroadcastIntentRejections(CancellationToken cancellationToken)
+    {
+        var processed = 0;
+        while (processed < 128 && engine.TryDequeueIntentRejection(out var rejection))
+        {
+            processed++;
+            var connections = registry.GetConnections(rejection.PlayerId);
+            if (connections.Count == 0)
+                continue;
+
+            var message = new IntentRejected
+            {
+                PlayerId = rejection.PlayerId,
+                Sequence = rejection.Sequence,
+                Code = rejection.Code,
+                Message = rejection.Message
+            };
+
+            foreach (var connectionId in connections)
+            {
+                await hubContext.Clients.Client(connectionId)
+                    .SendAsync("IntentRejected", message, cancellationToken);
             }
         }
     }

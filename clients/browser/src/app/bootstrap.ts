@@ -1,0 +1,626 @@
+import { ASSET_MANIFEST, preloadAssets } from "../assets/manifest";
+import { SessionController } from "../auth/session";
+import { buildInfo } from "../config/build-info";
+import { GAME_CONSTANTS } from "../config/constants";
+import type { ClientConfig } from "../config/env";
+import type { WelcomeMessage } from "../contracts/hub";
+import {
+  validateMapSnapshot,
+  validateWorldSnapshot,
+  validateWelcome
+} from "../contracts/validate";
+import { BuildingSelectionController } from "../input/building-selection";
+import { CameraInput } from "../input/camera-input";
+import { TargetingController } from "../input/targeting";
+import { WorldHubClient, type HubLogger } from "../net/hub-connection";
+import type { HubHandlers } from "../net/events";
+import { IntentClient } from "../net/intent-client";
+import { recoverSession } from "../net/recovery";
+import { TrafficMeter } from "../net/traffic";
+import {
+  visibleRectToViewport,
+  ViewportSynchronizer,
+  type TileRect
+} from "../net/viewport-client";
+import { Camera } from "../render/camera";
+import { DebugOverlay } from "../render/debug-overlay";
+import { PixiScene } from "../render/pixi-app";
+import { SceneRenderer, type SceneStats } from "../render/render-loop";
+import { SimulationStore } from "../simulation/store";
+import { Hud } from "../ui/hud";
+import { NotificationCenter, type NotificationKind } from "../ui/notifications";
+import { SettingsStore } from "../ui/settings";
+import { UiStore } from "../ui/ui-store";
+import { LoadingScreen } from "./loading";
+
+export interface ClientRuntime {
+  connect(playerId: string): Promise<void>;
+  signOut(): Promise<void>;
+  retry(): Promise<void>;
+  dispose(): void;
+}
+
+export interface StartClientOptions {
+  root: HTMLElement;
+  loading: LoadingScreen;
+  config: ClientConfig;
+  fetchImpl?: typeof fetch;
+}
+
+export async function startClient(options: StartClientOptions): Promise<ClientRuntime> {
+  const { root, loading, config } = options;
+  const fetchImpl = options.fetchImpl ?? fetch;
+  const info = buildInfo();
+  const useFixtures = config.useFixtures || isFixtureRequested();
+
+  loading.setStep("config", "done");
+
+  const playerId = resolvePlayerId(config);
+
+  loading.setStep("assets", "active");
+  const assets = await preloadAssets(ASSET_MANIFEST, fetchImpl);
+  loading.setStep(
+    "assets",
+    "done",
+    assets.missing.length === 0 ? undefined : "procedural fallback for missing art"
+  );
+
+  loading.setStep("scene", "active");
+  const pixi = new PixiScene();
+  await pixi.init(root);
+
+  const hudRoot = document.createElement("div");
+  hudRoot.id = "hud";
+  root.appendChild(hudRoot);
+
+  const store = new SimulationStore();
+  const ui = new UiStore();
+  const notifications = new NotificationCenter({ dedupeWindowMs: GAME_CONSTANTS.notificationDedupeMs });
+  const settings = new SettingsStore();
+  const debugInfo = new DebugOverlay(root);
+  settings.load();
+  settings.applyToDocument();
+
+  const camera = new Camera({ reducedMotion: settings.prefersReducedMotion() });
+  const session = new SessionController({ apiBaseUrl: config.apiBaseUrl });
+  const traffic = new TrafficMeter();
+
+  ui.patch({
+    playerId,
+    buildStamp: info.stamp,
+    protocolVersion: info.protocolVersion
+  });
+
+  let hub: WorldHubClient | null = null;
+  let renderer: SceneRenderer | null = null;
+  let lastAppliedAt = 0;
+  let centeredOnPlayer = false;
+  let sceneReady = false;
+
+  const viewportSync = new ViewportSynchronizer({
+    setViewport: async (request) => {
+      if (hub === null || hub.currentState !== "connected") {
+        return { success: true, ...request };
+      }
+      return hub.setViewport(request);
+    },
+    onResult: (result) => {
+      ui.patch({ viewportRadius: result.radius });
+    },
+    onError: (message) => {
+      notify("warning", "viewport_rejected", message);
+    },
+    debounceMs: GAME_CONSTANTS.viewportDebounceMs,
+    changeThreshold: GAME_CONSTANTS.viewportChangeThreshold
+  });
+
+  const intent = new IntentClient({
+    invoke: (payload) => {
+      if (hub === null || useFixtures) {
+        return Promise.reject(new Error("Fixture mode has no intent endpoint"));
+      }
+      return hub.submitIntent(payload);
+    },
+    playerId: () => {
+      const state = session.store.state;
+      if (state.status === "authenticated") return state.playerId;
+      return useFixtures ? playerId : null;
+    },
+    ownSimNetworkId: () => store.ownSimId,
+    onResult: (sent, result) => {
+      if (!result.success) {
+        notify("error", "intent_admission", result.error ?? "Action not accepted");
+      } else if (sent.type === "useBuilding") {
+        notify("info", "intent_admitted", "Request sent");
+      }
+    },
+    onRejected: (code, message) => {
+      notify("error", `intent_${code}`, rejectionMessage(code, message));
+    },
+    minIntervalMs: GAME_CONSTANTS.localIntentIntervalMs
+  });
+
+  const selection = new BuildingSelectionController({
+    getMap: () => store.map,
+    getOwnSimTile: () => {
+      const sim = store.sims.get(store.ownSimId);
+      return sim === undefined ? null : { x: sim.tileX, y: sim.tileY };
+    },
+    intent,
+    onChanged: (building) => {
+      renderer?.setSelectedBuilding(building);
+      ui.patch({ selection: building === null ? null : { kind: "building", building } });
+    },
+    notify
+  });
+
+  const targeting = new TargetingController({
+    canvas: pixi.app.canvas,
+    camera,
+    getMap: () => store.map,
+    intent,
+    onHover: (tile, walkable) => renderer?.setHover(tile, walkable),
+    onTarget: (tile) => renderer?.setTarget(tile),
+    onSelectBuilding: (building) => selection.select(building),
+    notify
+  });
+
+  const cameraInput = new CameraInput(
+    {
+      canvas: pixi.app.canvas,
+      camera,
+      getSettings: () => settings.settings,
+      onCancel: () => targeting.clearAll(),
+      onToggleDebug: () => settings.update({ debugOverlay: !settings.settings.debugOverlay })
+    },
+    (callback) => pixi.addFrameCallback(callback)
+  );
+
+  renderer = new SceneRenderer({
+    pixi,
+    store,
+    camera,
+    getSettings: () => settings.settings,
+    onStats: (stats) => onSceneStats(stats),
+    onViewportRect: (rect) => onViewportRect(rect),
+    onMapChanged: () => {
+      viewportSync.reset();
+      selection.reconcile();
+      ui.patch({
+        mapId: store.map?.mapId ?? "",
+        mapVersion: store.map?.version ?? 0
+      });
+    }
+  });
+  renderer.init();
+  renderer.setTickInterval(40);
+  renderer.setInterpolationDelay(
+    settings.settings.reduceMotion ? 0 : GAME_CONSTANTS.defaultInterpolationDelayMs
+  );
+
+  const hud = new Hud({
+    root: hudRoot,
+    ui,
+    notifications,
+    settings,
+    actions: {
+      onInteract: () => void selection.interact(),
+      onSignOut: () => void runtime.signOut(),
+      onRetry: () => void runtime.retry(),
+      onSelectBuilding: (building) => selection.select(building),
+      focusCanvas: () => pixi.app.canvas.focus()
+    }
+  });
+
+  const settingsUnsubscribe = settings.subscribe((next) => {
+    settings.applyToDocument();
+    camera.setReducedMotion(settings.prefersReducedMotion());
+    renderer?.setInterpolationDelay(
+      settings.prefersReducedMotion() ? 0 : GAME_CONSTANTS.defaultInterpolationDelayMs
+    );
+    debugInfo.setVisible(next.debugOverlay);
+    if (next.debugOverlay) debugInfo.update(debugMetrics());
+  });
+  debugInfo.setVisible(settings.settings.debugOverlay);
+
+  let disposed = false;
+
+  const logger: HubLogger = {
+    debug: (message) => {
+      if (config.logLevel === "debug") console.debug(`[hub] ${message}`);
+    },
+    warn: (message) => console.warn(`[hub] ${message}`),
+    error: (message) => console.error(`[hub] ${message}`)
+  };
+
+  const handlers: HubHandlers = {
+    onWelcome: (welcome) => {
+      traffic.addPayload(welcome);
+      onWelcome(welcome);
+    },
+    onMapSnapshot: (snapshot) => {
+      traffic.addPayload(snapshot);
+      try {
+        store.applyMapSnapshot(snapshot);
+      } catch (error) {
+        notify("error", "map_invalid", error instanceof Error ? error.message : "Map rejected");
+        return;
+      }
+      const decoded = store.map;
+      if (decoded !== null) camera.setMap(decoded);
+      ui.patch({ mapId: snapshot.mapId, mapVersion: snapshot.version });
+      selection.reconcile();
+      sceneReady = true;
+      loading.setStep("scene", "done");
+      loading.hide();
+    },
+    onMapDelta: (delta) => {
+      traffic.addPayload(delta);
+      const outcome = store.applyMapDelta(delta);
+      if (outcome.status === "applied") {
+        ui.patch({ mapVersion: outcome.map.version });
+        selection.reconcile();
+      } else {
+        notify("warning", "map_gap", "Map changed; refreshing layout");
+        void hub?.requestMapSnapshot();
+      }
+    },
+    onSnapshot: (snapshot) => {
+      traffic.addPayload(snapshot);
+      const result = store.applySnapshot(snapshot, performance.now());
+      if (result.status === "applied") targeting.clearTarget();
+      handleApply(result.status, result.tick, result.requestMapSnapshot === true);
+    },
+    onSnapshotDelta: (delta) => {
+      traffic.addPayload(delta);
+      const result = store.applyDelta(delta, performance.now());
+      handleApply(result.status, result.tick, result.requestMapSnapshot === true);
+      if (result.requestFullSnapshot) {
+        notify("warning", "snapshot_gap", "Recovering the world state");
+        void hub?.requestSnapshot(null);
+      }
+    },
+    onSnapshotRejected: (rejection) => {
+      notify(
+        "warning",
+        "snapshot_rejected",
+        rejection.message ?? rejection.error ?? "Snapshot request was rejected"
+      );
+    },
+    onIntentRejected: (rejection) => {
+      traffic.addPayload(rejection);
+      intent.handleRejected(rejection.sequence, rejection.code, rejection.message);
+    },
+    onStateChange: (state) => {
+      ui.patch({ connection: state, reconnectCount: hub?.reconnects ?? 0 });
+      if (state === "failed" && sceneReady) {
+        notify("error", "connection_failed", "Connection lost. Use Retry to reconnect.");
+      }
+    },
+    onReconnected: () => {
+      void recover();
+    }
+  };
+
+  function notify(kind: NotificationKind, code: string, message: string): void {
+    notifications.push(kind, code, message);
+    if (kind === "error") ui.patch({ lastError: message });
+  }
+
+  function rejectionMessage(code: string, message: string): string {
+    const messages: Record<string, string> = {
+      blocked: "That tile is blocked",
+      out_of_bounds: "That tile is outside the map",
+      out_of_range: "Walk to the entrance first",
+      role_not_allowed: "You cannot use this building",
+      building_not_found: "That building no longer exists",
+      sim_not_found: "Your sim is not available",
+      not_owner: "You do not control that sim",
+      stale_sequence: "That action was already handled"
+    };
+    return message !== "" ? message : (messages[code] ?? "Action not accepted");
+  }
+
+  function handleApply(
+    status: "applied" | "stale" | "gap" | "map-stale",
+    tick: number,
+    requestMap: boolean
+  ): void {
+    if (status === "applied") {
+      lastAppliedAt = Date.now();
+      void hub?.acknowledgeSnapshot(tick);
+      selection.reconcile();
+      centerOnPlayerOnce();
+      ui.patch({
+        tick,
+        totalSims: store.sims.size,
+        mapId: store.map?.mapId ?? "",
+        mapVersion: store.map?.version ?? 0
+      });
+      if (!sceneReady) {
+        sceneReady = true;
+        loading.setStep("scene", "done");
+        loading.hide();
+      }
+      return;
+    }
+    if (status === "map-stale" || requestMap) {
+      void hub?.requestMapSnapshot();
+    }
+  }
+
+  function centerOnPlayerOnce(): void {
+    if (centeredOnPlayer || store.ownSimId <= 0) return;
+    const sim = store.sims.get(store.ownSimId);
+    if (sim === undefined) return;
+    camera.centerOnTile(sim.tileX, sim.tileY);
+    camera.setZoom(GAME_CONSTANTS.pixelsPerTile);
+    centeredOnPlayer = true;
+  }
+
+  function onWelcome(welcome: WelcomeMessage): void {
+    try {
+      validateWelcome(welcome);
+    } catch (error) {
+      notify("error", "welcome_invalid", error instanceof Error ? error.message : "Welcome rejected");
+      return;
+    }
+    if (welcome.protocolVersion !== info.protocolVersion) {
+      notify(
+        "error",
+        "protocol_mismatch",
+        `Server protocol ${welcome.protocolVersion} is not supported by this client`
+      );
+      void hub?.stop();
+      loading.fail(`Server protocol ${welcome.protocolVersion} is not supported by this client`);
+      return;
+    }
+    store.setOwnSim(welcome.simNetworkId);
+    renderer?.setTickInterval(welcome.tickIntervalMs);
+    ui.patch({
+      ownSimNetworkId: welcome.simNetworkId,
+      mapId: welcome.mapId,
+      mapVersion: welcome.mapVersion,
+      tick: welcome.tick
+    });
+  }
+
+  function onViewportRect(rect: TileRect): void {
+    if (disposed) return;
+    if (!useFixtures && (hub === null || hub.currentState !== "connected")) return;
+    viewportSync.update(visibleRectToViewport(rect));
+  }
+
+  function onSceneStats(stats: SceneStats): void {
+    ui.patch({
+      fps: stats.fps,
+      frameTimeMs: stats.frameTimeMs,
+      visibleSims: stats.visibleSims,
+      totalSims: stats.totalSims,
+      tick: stats.tick,
+      bufferFrames: stats.bufferFrames,
+      interpolationDelayMs: stats.interpolationDelayMs,
+      cameraCenterX: stats.cameraX,
+      cameraCenterY: stats.cameraY,
+      cameraZoom: stats.zoom,
+      renderer: stats.renderer,
+      mapId: stats.mapId,
+      mapVersion: stats.mapVersion,
+      bytesPerSecond: traffic.bytesPerSecond(),
+      reconnectCount: hub?.reconnects ?? 0,
+      localPlayerVisible: stats.localPlayerVisible
+    });
+    if (settings.settings.debugOverlay) debugInfo.update(debugMetrics(stats));
+  }
+
+  function debugMetrics(stats?: SceneStats) {
+    const state = ui.getState();
+    return {
+      fps: stats?.fps ?? state.fps,
+      frameTimeMs: stats?.frameTimeMs ?? state.frameTimeMs,
+      mapId: state.mapId,
+      mapVersion: state.mapVersion,
+      cameraX: state.cameraCenterX,
+      cameraY: state.cameraCenterY,
+      zoom: state.cameraZoom,
+      visibleTiles: stats?.visibleTiles ?? 0,
+      visibleBuildings: stats?.visibleBuildings ?? 0,
+      visibleSims: state.visibleSims,
+      totalSims: state.totalSims,
+      tick: state.tick,
+      bufferFrames: state.bufferFrames,
+      interpolationDelayMs: state.interpolationDelayMs,
+      bytesPerSecond: state.bytesPerSecond,
+      reconnectCount: state.reconnectCount,
+      renderer: state.renderer,
+      buildStamp: state.buildStamp
+    };
+  }
+
+  async function recover(): Promise<void> {
+    const outcome = await recoverSession(
+      {
+        ensureAuth: async () => (await session.ensureValidToken()) !== null,
+        // A reconnect cannot observe map versions that changed while offline.
+        hasFreshMap: () => false,
+        lastAppliedTick: () => store.tick,
+        lastTickAgeMs: () => (lastAppliedAt === 0 ? Number.POSITIVE_INFINITY : Date.now() - lastAppliedAt),
+        requestMapSnapshot: async () => {
+          await hub?.requestMapSnapshot();
+        },
+        requestSnapshot: async (sinceTick) => {
+          await hub?.requestSnapshot(sinceTick);
+        }
+      },
+      {
+        onError: (message) => notify("error", "recovery_failed", message)
+      }
+    );
+
+    if (outcome === "recovered") {
+      notify("info", "reconnected", "World state restored");
+      viewportSync.reset();
+      await viewportSync.resync();
+    } else if (outcome === "auth-failed") {
+      notify("error", "auth_expired", "Your session expired. Sign in again.");
+    }
+  }
+
+  async function ensureAuthenticated(player: string): Promise<boolean> {
+    loading.setStep("auth", "active");
+    const restored = session.restore();
+    if (restored.status === "authenticated" && restored.playerId === player) {
+      loading.setStep("auth", "done");
+      return true;
+    }
+
+    const state = await session.signIn(player);
+    if (state.status === "authenticated") {
+      loading.setStep("auth", "done");
+      ui.patch({ playerId: state.playerId });
+      return true;
+    }
+
+    loading.setStep("auth", "failed");
+    const reason = state.status === "rejected" ? state.reason : "Authentication failed";
+    ui.patch({ lastError: reason });
+    loading.fail(reason);
+    return false;
+  }
+
+  async function establish(player: string): Promise<void> {
+    if (!(await ensureAuthenticated(player))) return;
+    const token = session.store.token;
+    if (token === null) return;
+
+    if (hub !== null) {
+      await hub.stop();
+      hub = null;
+    }
+
+    const client = new WorldHubClient(config.hubUrl, handlers, { logger });
+    hub = client;
+    try {
+      await client.connect(token);
+      ui.patch({ connection: client.currentState, playerId: player });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not connect to the world";
+      ui.patch({ lastError: message });
+      notify("error", "connection_failed", message);
+      loading.fail(message);
+    }
+  }
+
+  async function startFixtures(player: string): Promise<void> {
+    loading.setStep("auth", "done", "fixture mode");
+    try {
+      const base = import.meta.env.BASE_URL || "/";
+      const [mapResponse, snapshotResponse] = await Promise.all([
+        fetchImpl(`${base}src/test/fixtures/map-snapshot.json`),
+        fetchImpl(`${base}src/test/fixtures/world-snapshot.json`)
+      ]);
+      if (!mapResponse.ok || !snapshotResponse.ok) {
+        throw new Error("Fixture files were not found");
+      }
+      const map = validateMapSnapshot(await mapResponse.json());
+      const snapshot = validateWorldSnapshot(await snapshotResponse.json());
+      const own = snapshot.sims.find((sim) => sim.isPlayerControlled);
+      store.setOwnSim(own?.networkId ?? 0);
+      const decoded = store.applyMapSnapshot(map);
+      camera.setMap(decoded);
+      store.applySnapshot(snapshot, performance.now());
+      ui.patch({
+        connection: "connected",
+        playerId: player,
+        ownSimNetworkId: own?.networkId ?? 0,
+        mapId: map.mapId,
+        mapVersion: map.version,
+        tick: snapshot.tick,
+        totalSims: snapshot.sims.length
+      });
+      centeredOnPlayer = false;
+      centerOnPlayerOnce();
+      sceneReady = true;
+      loading.setStep("scene", "done");
+      loading.hide();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Fixture mode failed";
+      loading.setStep("scene", "failed");
+      loading.fail(message);
+      notify("error", "fixture_failed", message);
+    }
+  }
+
+  const runtime: ClientRuntime = {
+    connect: (player) => establish(player),
+    signOut: async () => {
+      if (hub !== null) {
+        await hub.stop();
+        hub = null;
+      }
+      session.signOut();
+      store.reset();
+      selection.select(null);
+      targeting.clearAll();
+      ui.reset();
+      ui.patch({ connection: "closed", buildStamp: info.stamp, protocolVersion: info.protocolVersion });
+      notify("info", "signed_out", "Signed out");
+    },
+    retry: async () => {
+      notifications.clear();
+      ui.patch({ lastError: "" });
+      await establish(playerId);
+    },
+    dispose: () => {
+      if (disposed) return;
+      disposed = true;
+      settingsUnsubscribe();
+      cameraInput.dispose();
+      targeting.dispose();
+      hud.dispose();
+      renderer?.dispose();
+      debugInfo.destroy();
+      viewportSync.reset();
+      void hub?.stop();
+      pixi.destroy();
+      hudRoot.remove();
+      loading.destroy();
+    }
+  };
+
+  loading.setRetry(() => void runtime.retry());
+
+  if (useFixtures) {
+    void startFixtures(playerId);
+  } else {
+    void establish(playerId);
+  }
+
+  return runtime;
+}
+
+function isFixtureRequested(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return new URL(window.location.href).searchParams.get("fixtures") === "1";
+  } catch {
+    return false;
+  }
+}
+
+function resolvePlayerId(config: ClientConfig): string {
+  if (typeof window !== "undefined") {
+    try {
+      const requested = new URL(window.location.href).searchParams.get("playerId");
+      if (requested !== null && requested.trim() !== "") return requested.trim();
+      const stored = window.sessionStorage.getItem("genelife.playerId");
+      if (stored !== null && stored.trim() !== "") return stored.trim();
+      const generated = `${config.devPlayerId}-${Math.random().toString(36).slice(2, 8)}`;
+      window.sessionStorage.setItem("genelife.playerId", generated);
+      return generated;
+    } catch {
+      // Fall through to a generated id.
+    }
+  }
+  return `${config.devPlayerId}-${Math.random().toString(36).slice(2, 8)}`;
+}
