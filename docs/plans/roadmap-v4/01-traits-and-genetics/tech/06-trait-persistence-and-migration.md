@@ -39,7 +39,7 @@ public bool TraitsMigrated { get; set; }
 
 ```csharp
 public Genelife.Family.GeneticsOptions? GeneticsOptions { get; set; }
-public string AttractionModelVersion { get; set; } = "v4-attraction-1";
+public string AttractionModelVersion { get; set; } = "v4-attraction-2";
 ```
 
 ### Capture

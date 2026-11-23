@@ -63,7 +63,7 @@ Feature 05 verification (2026-11-23): family read model, paged/filtered admin ro
 - `DeathProcessingSystem` inherits through current household membership, not relationships.
 - Births and `PopulationInflowSystem` both add population; the target is a floor and immigration pauses with `TargetReached` when the gap closes.
 - Death ends active partnerships, selects a guardian, transfers owned homes and settles relationship-based heirs; minor shares enter trusts released at adulthood.
-- `AttractivenessService` is an orphaned ML.NET prototype outside `GeneLife.sln`; runtime attraction uses integer coefficients and never loads the model.
+- The ML.NET prototype now lives in `tools/attractiveness` as an offline calibration CLI (`--generate` writes the pinned fixture); runtime attraction uses integer coefficients and never loads the model.
 - The 2026-11 balance scenario passes conservation and money growth after the trait integration; wealth Gini, vacancy and company failures remain open but are not V4 blockers.
 
 ## Decisions to confirm before implementation

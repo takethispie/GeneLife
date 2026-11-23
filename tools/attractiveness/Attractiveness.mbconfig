@@ -1,9 +1,9 @@
-﻿{
+{
   "Scenario": "Classification",
   "DataSource": {
     "Type": "TabularFile",
     "Version": 1,
-    "FilePath": "D:\\Dev\\GeneLife\\GeneLife\\Data\\MLDataset\\RelationDataSet.csv",
+    "FilePath": "Attractiveness.csv",
     "Delimiter": ",",
     "DecimalMarker": ".",
     "HasHeader": true,
@@ -297,7 +297,7 @@
             "NumberOfTrees": 4,
             "MaximumBinCountPerFeature": 255,
             "FeatureFraction": 1.0,
-            "LearningRate": 0.099999999999999978,
+            "LearningRate": 0.09999999999999998,
             "LabelColumnName": "Result",
             "FeatureColumnName": "Features"
           },
@@ -309,7 +309,7 @@
             "SubsampleFraction": 1.0,
             "MaximumBinCountPerFeature": 255,
             "FeatureFraction": 1.0,
-            "L1Regularization": 2E-10,
+            "L1Regularization": 2e-10,
             "L2Regularization": 1.0,
             "LabelColumnName": "Result",
             "FeatureColumnName": "Features"
@@ -424,7 +424,7 @@
             "NumberOfTrees": 4,
             "MaximumBinCountPerFeature": 254,
             "FeatureFraction": 1.0,
-            "LearningRate": 0.099999999999999978,
+            "LearningRate": 0.09999999999999998,
             "LabelColumnName": "Result",
             "FeatureColumnName": "Features"
           },
@@ -479,7 +479,7 @@
             "SubsampleFraction": 1.0,
             "MaximumBinCountPerFeature": 255,
             "FeatureFraction": 1.0,
-            "L1Regularization": 2E-10,
+            "L1Regularization": 2e-10,
             "L2Regularization": 1.0,
             "LabelColumnName": "Result",
             "FeatureColumnName": "Features"
@@ -542,7 +542,7 @@
     },
     "Schema": "e0 * e1 * e2 * e3 * e4 * e5 * e6 * e7 * e8 * e9 * e10 * e11 * e12 * e13 * e14 * e15 * e16 * e17 * e18 * (e19 + e20 + e21 + e22 + e23 + e24 + e25) * e26",
     "MetricName": "MacroAccuracy",
-    "ModelFilePath": "D:\\Dev\\GeneLife\\GeneLife\\Attractiveness.mlnet"
+    "ModelFilePath": "Attractiveness.mlnet"
   },
   "Type": "TrainingConfig",
   "Version": 4,

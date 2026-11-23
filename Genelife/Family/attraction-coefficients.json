@@ -1,0 +1,28 @@
+{
+  "version": "v4-attraction-2",
+  "scoreScale": 10000,
+  "components": {
+    "traitCompatibility": 4200,
+    "agePreference": 1800,
+    "proximity": 1200,
+    "stability": 1500,
+    "health": 800,
+    "availability": 500
+  },
+  "traitWeights": {
+    "eyeColor": 100,
+    "hair": 250,
+    "handedness": 100,
+    "morphotype": 200,
+    "aptitude": 200,
+    "heightPotential": 150,
+    "temperament": 250
+  },
+  "fit": {
+    "samplePairs": 2000,
+    "meanAbsoluteError": 0.14361643199205407,
+    "meanSquaredError": 0.032288359507497436,
+    "agreement": 0.8825,
+    "seed": 20241123
+  }
+}

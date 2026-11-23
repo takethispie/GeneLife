@@ -7,7 +7,7 @@ namespace Genelife.Family;
 /// </summary>
 public sealed class AttractionCoefficients
 {
-    public const string CurrentVersion = "v4-attraction-1";
+    public const string CurrentVersion = "v4-attraction-2";
 
     public string Version { get; init; } = CurrentVersion;
     public int ScoreScale { get; init; } = 10_000;
@@ -20,10 +20,10 @@ public sealed class AttractionCoefficients
     public int Availability { get; init; } = 500;
 
     public int EyeColorWeight { get; init; } = 100;
-    public int HairColorWeight { get; init; } = 100;
-    public int HandednessWeight { get; init; } = 50;
+    public int HairColorWeight { get; init; } = 250;
+    public int HandednessWeight { get; init; } = 100;
     public int MorphotypeWeight { get; init; } = 200;
-    public int AptitudeWeight { get; init; } = 300;
+    public int AptitudeWeight { get; init; } = 200;
     public int HeightPotentialWeight { get; init; } = 150;
     public int TemperamentWeight { get; init; } = 250;
 

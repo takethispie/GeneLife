@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Genelife.Components.Gen;
 using Genelife.Family;
 
@@ -11,9 +12,39 @@ public class AttractionCalibrationTests
         var coefficients = AttractionCoefficients.Default;
         coefficients.Validate();
 
-        Assert.Equal("v4-attraction-1", coefficients.Version);
+        Assert.Equal("v4-attraction-2", coefficients.Version);
         Assert.Equal(10_000, coefficients.ScoreScale);
         Assert.Equal(10_000, AttractionScorer.ScoreScale);
+    }
+
+    [Fact]
+    public void GeneratedFixtureMatchesRuntimeCoefficients()
+    {
+        var root = FindRepositoryRoot();
+        var fixturePath = Path.Combine(root, "Genelife/Family/attraction-coefficients.json");
+        using var document = JsonDocument.Parse(File.ReadAllText(fixturePath));
+        var fixture = document.RootElement;
+        var coefficients = AttractionCoefficients.Default;
+
+        Assert.Equal(coefficients.Version, fixture.GetProperty("version").GetString());
+        Assert.Equal(coefficients.ScoreScale, fixture.GetProperty("scoreScale").GetInt32());
+
+        var components = fixture.GetProperty("components");
+        Assert.Equal(coefficients.TraitCompatibility, components.GetProperty("traitCompatibility").GetInt32());
+        Assert.Equal(coefficients.AgePreference, components.GetProperty("agePreference").GetInt32());
+        Assert.Equal(coefficients.Proximity, components.GetProperty("proximity").GetInt32());
+        Assert.Equal(coefficients.Stability, components.GetProperty("stability").GetInt32());
+        Assert.Equal(coefficients.Health, components.GetProperty("health").GetInt32());
+        Assert.Equal(coefficients.Availability, components.GetProperty("availability").GetInt32());
+
+        var weights = fixture.GetProperty("traitWeights");
+        Assert.Equal(coefficients.EyeColorWeight, weights.GetProperty("eyeColor").GetInt32());
+        Assert.Equal(coefficients.HairColorWeight, weights.GetProperty("hair").GetInt32());
+        Assert.Equal(coefficients.HandednessWeight, weights.GetProperty("handedness").GetInt32());
+        Assert.Equal(coefficients.MorphotypeWeight, weights.GetProperty("morphotype").GetInt32());
+        Assert.Equal(coefficients.AptitudeWeight, weights.GetProperty("aptitude").GetInt32());
+        Assert.Equal(coefficients.HeightPotentialWeight, weights.GetProperty("heightPotential").GetInt32());
+        Assert.Equal(coefficients.TemperamentWeight, weights.GetProperty("temperament").GetInt32());
     }
 
     [Fact]

@@ -35,7 +35,7 @@ public Genelife.Family.GeneticsOptions? GeneticsOptions { get; set; }
 public Genelife.Family.RelationshipOptions? RelationshipOptions { get; set; }
 public Genelife.Family.ReproductionOptions? ReproductionOptions { get; set; }
 public Genelife.Family.InheritanceOptions? InheritanceOptions { get; set; }
-public string AttractionModelVersion { get; set; } = "v4-attraction-1";
+public string AttractionModelVersion { get; set; } = "v4-attraction-2";
 ```
 
 `PersistedRelationship`:

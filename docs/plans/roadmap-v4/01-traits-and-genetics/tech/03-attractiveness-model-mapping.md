@@ -3,7 +3,7 @@
 **Phase:** 3 — Calibration
 **Depends:** T01
 **Estimate:** 1–2 sessions
-**Status:** Partial — runtime mapping/coefficients and scorer exist; prototype stays outside the solution
+**Status:** Done — offline calibration CLI in `tools/attractiveness`; runtime uses pinned integer coefficients
 
 ## Goal
 
@@ -24,10 +24,14 @@ Move or add the prototype as a development tool outside the runtime dependency g
 ```text
 tools/attractiveness/
   Attractiveness.mlnet
-  Attractiveness.csv
+  Attractiveness.mbconfig
   AttractivenessCalibration.csproj
+  AttractivenessCalibrationAdapter.cs
   Program.cs
 ```
+
+The original training CSV is not checked in; the pre-trained `.mlnet` model is
+the oracle. Retraining requires the CSV and updates the checked-in model.
 
 It may remain outside `GeneLife.sln`. It must not be referenced by `Genelife`, `Genelife.API` or `Genelife.Contracts`.
 
@@ -50,7 +54,7 @@ Produce a versioned fixture:
 
 ```json
 {
-  "version": "v4-attraction-1",
+  "version": "v4-attraction-2",
   "scoreScale": 10000,
   "components": {
     "traitCompatibility": 4200,
@@ -62,10 +66,10 @@ Produce a versioned fixture:
   },
   "traitWeights": {
     "eyeColor": 100,
-    "hairColor": 100,
-    "handedness": 50,
+    "hair": 250,
+    "handedness": 100,
     "morphotype": 200,
-    "aptitude": 300,
+    "aptitude": 200,
     "heightPotential": 150,
     "temperament": 250
   }
@@ -91,13 +95,22 @@ The runtime reads a generated C# default or a JSON fixture copied into `Genelife
 
 ## Tasks
 
-- [ ] Move the prototype to `tools/attractiveness` or document why it stays in place.
-- [ ] Add the canonical mapping adapter.
-- [ ] Replace the hard-coded `D:\Dev\...` path with a repo-relative tool path.
-- [ ] Add a CLI mode that writes the coefficient fixture.
-- [ ] Add the runtime coefficient type with a pinned default version.
-- [ ] Add a drift test that fails if the fixture version and runtime version disagree.
-- [ ] Document that the model is an oracle, not a tick-loop dependency.
+- [x] Move the prototype to `tools/attractiveness` or document why it stays in place.
+- [x] Add the canonical mapping adapter.
+- [x] Replace the hard-coded `D:\Dev\...` path with a repo-relative tool path.
+- [x] Add a CLI mode that writes the coefficient fixture.
+- [x] Add the runtime coefficient type with a pinned default version.
+- [x] Add a drift test that fails if the fixture version and runtime version disagree.
+- [x] Document that the model is an oracle, not a tick-loop dependency.
+
+## Oracle boundary
+
+The ML.NET model is an offline oracle only. The simulation never loads
+`Attractiveness.mlnet`, never calls `PredictAllLabels`, and never takes a
+`Microsoft.ML` dependency at runtime. `AttractionScorer` consumes the pinned
+integer coefficients produced by the tool; the fixture is the contract between
+the two. Regenerating the model therefore requires an explicit version bump and
+a new checked-in fixture, not a change to the tick loop.
 
 ## Files
 
