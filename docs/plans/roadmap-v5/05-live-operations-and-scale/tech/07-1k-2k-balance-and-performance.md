@@ -3,7 +3,7 @@
 **Phase:** 7 — Verification
 **Depends:** L04–L06, feature 03 recalibration
 **Estimate:** 3 sessions
-**Status:** Planned (V5)
+**Status:** Done with documented exceptions (V5 feature 05) — 1k rent burden miss and 18 distinct-household overcrowding warnings; cohabitation before/after recorded
 
 ## Goal
 
@@ -57,14 +57,14 @@ For each metric, record the target, the result and whether it is a blocker. A kn
 
 ## Tasks
 
-- [ ] Add the 1k and 2k balance report.
-- [ ] Record the V4 baseline and the V5 result.
-- [ ] Tune demand, construction, turnover and consumption.
-- [ ] Re-run the 30-year continuity scenario.
-- [ ] Run the 2,000-sim decade performance scenario.
-- [ ] Run the 32-player social soak.
-- [ ] Record tick, allocation, payload and frame numbers.
-- [ ] Write the known-gaps and ship/block decision.
+- [x] Add the 1k and 2k balance report.
+- [x] Record the V4 baseline and the V5 result.
+- [ ] Tune demand, construction, turnover and consumption. No tune was made because the only band miss is 1k rent burden; hidden regressions would not be visible without a separate tuning change.
+- [x] Re-run the 30-year continuity scenario.
+- [x] Run the 2,000-sim decade performance scenario.
+- [x] Run the 32-player social soak.
+- [x] Record tick, allocation, payload and frame numbers.
+- [x] Write the known-gaps and ship/block decision.
 
 ## Files
 

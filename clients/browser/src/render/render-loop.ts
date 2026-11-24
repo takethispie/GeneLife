@@ -180,6 +180,8 @@ export class SceneRenderer {
         tick: renderState?.tick ?? store.tick,
         bufferFrames: renderState?.frameCount ?? 0,
         interpolationDelayMs: renderState?.interpolationDelayMs ?? 0,
+        inputAckP50Ms: 0,
+        inputAckP95Ms: 0,
         bytesPerSecond: 0,
         reconnectCount: 0,
         renderer: pixi.rendererName,

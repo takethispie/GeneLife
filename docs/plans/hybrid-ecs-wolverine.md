@@ -140,6 +140,6 @@ Replay recorded command sequences through the Wolverine test harness (`IHostBuil
 | Risk | Mitigation |
 |------|-----------|
 | Marten projection latency could lag behind tick | Use inline projections for critical data, async for non-critical |
-| Two code paths during migration causes confusion | Keep feature flags: `UseWolverineEndpoints`, `UseMartenReads` — disable by default until Phase 2 |
+| Two code paths during migration causes confusion | Flags were used through Phase 2 and removed in V5 feature 05; either the old path or the new path exists, never both |
 | Wolverine learning curve for team | Wolverine is convention-over-configuration. Start with one command handler to build familiarity |
 | Postgres round-trip for every projection update is slower than in-memory snapshot | Batch projection updates. One Marten session per tick, one `SaveChangesAsync` at the end |

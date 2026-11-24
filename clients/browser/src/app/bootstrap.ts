@@ -10,11 +10,13 @@ import {
   validateWelcome
 } from "../contracts/validate";
 import { BuildingSelectionController } from "../input/building-selection";
+import { TouchInput } from "../input/touch";
 import { CameraInput } from "../input/camera-input";
 import { TargetingController } from "../input/targeting";
 import { WorldHubClient, type HubLogger } from "../net/hub-connection";
 import type { HubHandlers } from "../net/events";
 import { IntentClient } from "../net/intent-client";
+import { LatencyRecorder } from "../net/latency";
 import { recoverSession } from "../net/recovery";
 import { TrafficMeter } from "../net/traffic";
 import {
@@ -27,6 +29,7 @@ import { DebugOverlay } from "../render/debug-overlay";
 import { PixiScene } from "../render/pixi-app";
 import { SceneRenderer, type SceneStats } from "../render/render-loop";
 import { SimulationStore } from "../simulation/store";
+import { AudioCuePlayer, type AudioCue } from "../ui/audio/audio";
 import { Hud } from "../ui/hud";
 import { NotificationCenter, type NotificationKind } from "../ui/notifications";
 import { SettingsStore } from "../ui/settings";
@@ -85,6 +88,21 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
   settings.load();
   settings.applyToDocument();
 
+  const audio = new AudioCuePlayer({ getSettings: () => settings.settings });
+  const unlockAudio = (): void => {
+    audio.unlock();
+  };
+  window.addEventListener("pointerdown", unlockAudio, { once: true, capture: true });
+  window.addEventListener("keydown", unlockAudio, { once: true, capture: true });
+  let lastCueNotificationId = 0;
+  const unsubscribeAudioNotifications = notifications.subscribe((items) => {
+    for (const item of items) {
+      if (item.id <= lastCueNotificationId) continue;
+      lastCueNotificationId = item.id;
+      audio.play(notificationCue(item.kind, item.code));
+    }
+  });
+
   const camera = new Camera({ reducedMotion: settings.prefersReducedMotion() });
   const session = new SessionController({ apiBaseUrl: config.apiBaseUrl });
   const traffic = new TrafficMeter();
@@ -118,6 +136,7 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
     changeThreshold: GAME_CONSTANTS.viewportChangeThreshold
   });
 
+  const latency = new LatencyRecorder();
   const intent = new IntentClient({
     invoke: (payload) => {
       if (hub === null || useFixtures) {
@@ -140,6 +159,11 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
     },
     onRejected: (code, message) => {
       notify("error", `intent_${code}`, rejectionMessage(code, message));
+    },
+    onLatency: (_sent, sentAt, ackAt) => {
+      latency.record(sentAt, ackAt);
+      const stats = latency.stats();
+      ui.patch({ inputAckP50Ms: stats.p50Ms, inputAckP95Ms: stats.p95Ms });
     },
     minIntervalMs: GAME_CONSTANTS.localIntentIntervalMs
   });
@@ -167,6 +191,12 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
     onTarget: (tile) => renderer?.setTarget(tile),
     onSelectBuilding: (building) => selection.select(building),
     notify
+  });
+
+  const touchInput = new TouchInput({
+    canvas: pixi.app.canvas,
+    camera,
+    getEnabled: () => settings.settings.touchControls
   });
 
   const cameraInput = new CameraInput(
@@ -284,6 +314,7 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
 
   const settingsUnsubscribe = settings.subscribe((next) => {
     settings.applyToDocument();
+    audio.applySettings();
     camera.setReducedMotion(settings.prefersReducedMotion());
     renderer?.setInterpolationDelay(
       settings.prefersReducedMotion() ? 0 : GAME_CONSTANTS.defaultInterpolationDelayMs
@@ -373,8 +404,14 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
       void relationshipsPanel.refresh();
       void venuePanel.refresh();
     },
-    onChatMessage: (message) => chatPanel.addMessage(message),
-    onEmote: (emote) => chatPanel.showEmote(emote)
+    onChatMessage: (message) => {
+      audio.play("chat");
+      chatPanel.addMessage(message);
+    },
+    onEmote: (emote) => {
+      audio.play("chat");
+      chatPanel.showEmote(emote);
+    }
   };
 
   function notify(kind: NotificationKind, code: string, message: string): void {
@@ -505,6 +542,8 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
       tick: state.tick,
       bufferFrames: state.bufferFrames,
       interpolationDelayMs: state.interpolationDelayMs,
+      inputAckP50Ms: state.inputAckP50Ms,
+      inputAckP95Ms: state.inputAckP95Ms,
       bytesPerSecond: state.bytesPerSecond,
       reconnectCount: state.reconnectCount,
       renderer: state.renderer,
@@ -653,6 +692,11 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
       if (disposed) return;
       disposed = true;
       settingsUnsubscribe();
+      unsubscribeAudioNotifications();
+      window.removeEventListener("pointerdown", unlockAudio, true);
+      window.removeEventListener("keydown", unlockAudio, true);
+      audio.dispose();
+      touchInput.dispose();
       cameraInput.dispose();
       targeting.dispose();
       hud.dispose();
@@ -679,6 +723,25 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
   }
 
   return runtime;
+}
+
+function notificationCue(kind: NotificationKind, code: string): AudioCue {
+  const normalized = code.toLowerCase();
+  if (normalized.includes("outage")) return "utilityOutage";
+  if (normalized.includes("birth") || normalized.includes("pregnan")) return "birth";
+  if (normalized.includes("death") || normalized.includes("died") || normalized.includes("estate")) {
+    return "death";
+  }
+  if (kind === "error") return "uiCancel";
+  if (
+    normalized === "intent_admitted" ||
+    normalized === "building_requested" ||
+    normalized === "reconnected" ||
+    normalized === "signed_out"
+  ) {
+    return "uiConfirm";
+  }
+  return "notification";
 }
 
 function isFixtureRequested(): boolean {

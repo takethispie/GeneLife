@@ -20,6 +20,8 @@ export interface HudState {
   localPlayerVisible: boolean;
   viewportRadius: number;
   interpolationDelayMs: number;
+  inputAckP50Ms: number;
+  inputAckP95Ms: number;
   bufferFrames: number;
   reconnectCount: number;
   lastError: string;
@@ -47,6 +49,8 @@ export const INITIAL_HUD_STATE: HudState = {
   localPlayerVisible: false,
   viewportRadius: 0,
   interpolationDelayMs: 0,
+  inputAckP50Ms: 0,
+  inputAckP95Ms: 0,
   bufferFrames: 0,
   reconnectCount: 0,
   lastError: "",

@@ -1,6 +1,6 @@
 # Hybrid Wolverine Migration Checklist
 
-**Status:** Phases 1–3 done; Phase 4 partially done (H16); Phase 5 partially done (H19/H20 cleanup outstanding).
+**Status:** All phases done. Feature flags and legacy endpoint files are removed; Wolverine HTTP, Marten and the command queue are unconditional.
 
 ## Prerequisites
 
@@ -39,62 +39,42 @@
 | H13 | `UseOutbox` | Outbox pattern with Marten + Wolverine | Done |
 | H14 | — | All persistence tests pass | Done |
 
-### Phase 4 — Commands and Sagas (H15/H17 done; H16 partial)
+### Phase 4 — Commands and Sagas (done)
 
 | Step | Flag | What to verify | Status |
 |------|------|----------------|--------|
 | H15 | `UseCommandQueue` | `EnqueuedCommand` drained during tick | Done |
-| H16 | `UseSagas` | Hiring saga processes job posting lifecycle | Partial |
+| H16 | — | Hiring keeps the tested collect→decide→apply pipeline; partial saga scaffolding and unused hiring events were removed | Done |
 | H17 | `UseWolverineEndpoints` | Ownership middleware rejects cross-player mutations | Done |
 
-### Phase 5 — Realtime and Cleanup (partial — H19/H20 cleanup outstanding)
+### Phase 5 — Realtime and Cleanup (done)
 
 | Step | Flag | What to verify | Status |
 |------|------|----------------|--------|
 | H18 | `UseSignalR` | SignalR broadcasts via Wolverine side effects | Done |
-| H19 | — | All HTTP goes through Wolverine endpoints | Partial |
-| H20 | — | Feature flags toggle architecture behavior | Partial |
+| H19 | — | All HTTP goes through Wolverine endpoints; legacy files and `Map*Endpoints()` calls removed | Done |
+| H20 | — | Flags removed; `appsettings.json` has no `FeatureFlags` section; `EndpointParityTests` guards routes/status/auth | Done |
 
 ## Verification Commands
 
 ```bash
-# All flags OFF (pre-Wolverine behavior)
-# Set all flags to false in appsettings.json, then:
-dotnet test Genelife.UnitTests --filter "FullyQualifiedName~AuthorizationTests"
+# Build the single path
+dotnet build GeneLife.sln
 
-# Wolverine endpoints ON
-# Set UseWolverineEndpoints=true, others false:
-dotnet test Genelife.UnitTests --filter "FullyQualifiedName~WolverineEndpointsTests"
+# Endpoint, command and persistence parity (requires Postgres)
+docker compose up -d postgres
+dotnet run --project Genelife.Api.IntegrationTests/Genelife.Api.IntegrationTests.csproj --no-launch-profile
 
-# Marten reads ON
-# Set UseWolverineEndpoints=true, UseMartenReads=true:
-# Requires Postgres
-dotnet test Genelife.UnitTests --filter "FullyQualifiedName~DocumentStoreTests"
-
-# Full architecture (all flags ON)
-# Requires Postgres
-dotnet test Genelife.UnitTests
+# Full server suite
+dotnet run --project Genelife.Domain.Tests/Genelife.Domain.Tests.csproj --no-launch-profile
 ```
 
 ## Rollback
 
-If any flag causes issues, disable it in `appsettings.json` and redeploy:
+There is no flag rollback. The previous build remains deployable and the pre-V5
+snapshot is kept for data rollback; see the V5 release runbook.
 
-```json
-{
-  "FeatureFlags": {
-    "UseWolverineEndpoints": false,
-    "UseMartenReads": false,
-    "UseCommandQueue": false,
-    "UseSagas": false,
-    "UseSignalR": true,
-    "UseOutbox": false
-  }
-}
-```
+## Cleanup (done)
 
-## Cleanup (after verification)
-
-Remove feature flag conditionals from `Program.cs`.
-Delete `Genelife.API/Endpoints/SimulationEndpoints.cs` and `CompanyEndpoints.cs`.
-Remove old `AuthEndpoints.cs`.
+Feature flag conditionals are removed from `Program.cs`.
+`Genelife.API/Endpoints/SimulationEndpoints.cs`, `CompanyEndpoints.cs`, `AuthEndpoints.cs`, `WorldDataEndpoints.cs` and the hiring saga scaffolding are deleted.

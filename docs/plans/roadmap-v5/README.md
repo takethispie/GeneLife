@@ -6,7 +6,7 @@
 
 **Builds on:** V1 economy/housing/life stages, V2 spatial world and indices, V3 browser client and replication, V4 traits/relationships/reproduction/inheritance, the 2026-11 balance pass, `SimulationRandom`, `PlayerControlled`, `Wallet`, `HousingRegistry`, `RelationshipIndex`, `FamilyHouseholdSystem`, `EstateSettlementSystem`, and `PersistedWorldState` schema 11.
 
-> Implementation status: features 01–02 are complete, feature 03 is core-complete, and feature 04 presence/directory has landed. Feature 03 nutrition/trips and cohabitation evidence, the rest of feature 04, and feature 05 remain. See [STATUS.md](STATUS.md).
+> Implementation status: features 01, 02, 04 and 05 are implemented; feature 03 is core-complete with nutrition/trip and cohabitation evidence still in progress. Production V5 sign-off is pending the 30-minute live soak and migration/rollback rehearsal. See [STATUS.md](STATUS.md).
 
 ---
 
@@ -43,7 +43,7 @@ Every feature folder contains:
 | Persistence | `PersistedWorldState.CurrentSchemaVersion` is 14 with traits, appearance, relationships, pregnancies, trusts, state care, player state, utility networks/links/meters, grocery inventory, catalog version and nutrition. |
 | Admin | Data, Economy, Housing, Lifecycle, Family, Map, Players, Appearance and Consumption pages. |
 | Tests | 577 server tests / 0 failed / 2 skipped and 154 browser tests green; 2,000-sim ten-year run at p95 ~3.1 ms; 30-year continuity run; 60- and 200-sim ten-year balance bands green. |
-| Architecture | Hybrid ECS + Wolverine/Marten is in place; H16, H19 and H20 are partial. MP05 is marked partial in docs even though player intents now drain. |
+| Architecture | Hybrid ECS + Wolverine/Marten is the single path: H16 keeps collect→decide→apply, H19 migrated the remaining endpoints, H20 removed the flags, and MP05 is documented as complete. |
 
 V4 ends with a rich NPC society and a player who can walk through it. V5 closes that gap without giving the browser authority over the world.
 

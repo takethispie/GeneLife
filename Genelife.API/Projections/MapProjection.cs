@@ -64,6 +64,23 @@ public partial class MapProjection : EventProjection
         ops.Store(doc);
     }
 
+    public async Task Project(BuildingRelocated e, IDocumentOperations ops)
+    {
+        var existing = await FindByNetworkId(ops, e.NetworkId);
+        if (existing is null)
+            return;
+
+        existing.X = e.X;
+        existing.Y = e.Y;
+        existing.Width = e.Width;
+        existing.Height = e.Height;
+        existing.EntryX = e.EntryX;
+        existing.EntryY = e.EntryY;
+        existing.MapVersion = e.MapVersion;
+        existing.UpdatedAt = DateTimeOffset.UtcNow;
+        ops.Store(existing);
+    }
+
     public async Task Project(BuildingRemoved e, IDocumentOperations ops)
     {
         var existing = await FindByNetworkId(ops, e.NetworkId);

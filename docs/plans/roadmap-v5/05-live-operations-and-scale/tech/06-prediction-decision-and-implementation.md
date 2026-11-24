@@ -3,7 +3,7 @@
 **Phase:** 6 — Client
 **Depends:** L04, V3 interpolation, player action latency data
 **Estimate:** 2–3 sessions
-**Status:** Planned (V5)
+**Status:** Done (V5 feature 05) — no-prediction decision recorded
 
 ## Goal
 
@@ -53,14 +53,25 @@ Otherwise, document the measurement and keep interpolation.
 
 ## Tasks
 
-- [ ] Add input-to-ack and perceived-latency instrumentation.
-- [ ] Run the measurement on the preview and reference hardware.
-- [ ] Write the go/no-go decision with evidence.
+- [x] Add input-to-ack and perceived-latency instrumentation.
+- [x] Run the measurement on the preview and reference hardware.
+- [x] Write the go/no-go decision with evidence.
 - [ ] If go, implement local movement prediction and reconciliation.
-- [ ] If no-go, document the baseline and keep interpolation.
+- [x] If no-go, document the baseline and keep interpolation.
 - [ ] Add a feature flag and rollback path.
 - [ ] Add tests for snap, reconnect and viewport change.
-- [ ] Record the decision in `STATUS.md` and release evidence.
+- [x] Record the decision in `STATUS.md` and release evidence.
+
+## Resolution
+
+Decision: **no prediction**. Pointer input-to-ack p95 was 51 ms. Touch outliers
+(109–603 ms in emulation) coincided with a `Pathfinding` max of 1.15–1.47 s and
+tick p99 of 50–335 ms, so they are a server tick-stall symptom. Prediction would
+not fix a stalled tick and would add reconciliation complexity without evidence
+that corrections are frequent. The interpolation settings stay tunable, the
+no-prediction path is the existing tested path, and touch is a profiling trigger
+for the P12 scaling work. A subjective perceived-delay playtest was not run; it is
+listed as an exception in the release evidence.
 
 ## Files
 

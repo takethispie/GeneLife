@@ -58,6 +58,7 @@ export interface IntentClientOptions {
   sequenceStore?: SequenceStore;
   onResult?: (intent: Intent, result: IntentResult) => void;
   onRejected?: (code: string, message: string, intent: Intent | undefined) => void;
+  onLatency?: (intent: Intent, sentAt: number, ackAt: number) => void;
   minIntervalMs?: number;
   now?: () => number;
 }
@@ -80,6 +81,9 @@ export class IntentClient {
   private readonly onRejected:
     | ((code: string, message: string, intent: Intent | undefined) => void)
     | undefined;
+  private readonly onLatency:
+    | ((intent: Intent, sentAt: number, ackAt: number) => void)
+    | undefined;
   private readonly minIntervalMs: number;
   private readonly now: () => number;
   private readonly pending = new Map<number, PendingIntent>();
@@ -93,6 +97,7 @@ export class IntentClient {
     this.sequenceStore = options.sequenceStore ?? new SessionSequenceStore();
     this.onResult = options.onResult;
     this.onRejected = options.onRejected;
+    this.onLatency = options.onLatency;
     this.minIntervalMs = options.minIntervalMs ?? 90;
     this.now = options.now ?? (() => Date.now());
     this.sequence = Math.max(0, this.sequenceStore.load());
@@ -153,6 +158,9 @@ export class IntentClient {
   handleRejected(sequence: number, code: string, message: string): void {
     const pending = this.pending.get(sequence);
     this.pending.delete(sequence);
+    if (pending !== undefined) {
+      this.onLatency?.(pending.intent, pending.sentAt, this.now());
+    }
     this.onRejected?.(code, message, pending?.intent);
   }
 
@@ -167,6 +175,7 @@ export class IntentClient {
 
     try {
       const result = await this.invoke(intent);
+      this.onLatency?.(intent, now, this.now());
       this.onResult?.(intent, result);
       if (result.success) return { status: "sent", result };
       this.pending.delete(intent.sequence);

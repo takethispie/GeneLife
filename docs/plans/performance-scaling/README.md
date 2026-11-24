@@ -23,6 +23,11 @@ flowchart TD
 
 Legend: ✅ done · ⏸ trigger-gated (not activated)
 
+V5 feature 05 re-measured the trigger inputs: 2k-sim decade p95 35.6 ms, 32-player
+social soak p95 0.88 ms, and the restore-then-1,000-ticks release check passed. No step 12 item was
+activated. The touch preview also exposed a 1.15–1.47 s `Pathfinding` max; that is
+logged for the next trigger review rather than starting speculative work.
+
 ## Rules
 
 - No optimization without a Phase-0 baseline.

@@ -3,7 +3,7 @@
 **Phase:** 2 — Architecture
 **Depends:** L01
 **Estimate:** 1–2 sessions
-**Status:** Planned (V5)
+**Status:** Done (V5 feature 05)
 
 ## Goal
 

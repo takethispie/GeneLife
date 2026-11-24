@@ -1,6 +1,6 @@
 # Roadmap V3 — Status
 
-**Status:** Implemented (V3 vertical slice)
+**Status:** Implemented (V3 vertical slice). V5 feature 05 completed the deferred touch/audio, live smoke and prediction decision; the 30-minute preview soak remains.
 **Builds on:** V2 map, placement, movement and replication
 **Scope:** browser 2D client, PixiJS rendering, SignalR presence, viewport, input, HUD and release
 **Client:** `clients/browser`
@@ -131,9 +131,9 @@ client-blocking gaps listed in the original plan are now resolved server-side.
 
 ## Known gaps and deferred work
 
-- Own-player prediction/rollback is out of scope; movement is interpolation only.
-- No touch controls, chat, social, matchmaking or accounts UI.
-- Audio design is limited to a settings placeholder.
+- Own-player prediction is not implemented. V5 measured input-to-ack p95 at 51 ms locally and recorded a no-go decision; movement remains interpolation only.
+- Touch controls, chat, social and player accounts UI exist; matchmaking is still out of scope.
+- Audio is a synthesized cue set with mute/per-category/volume settings; there are no audio assets.
 - The world itself is not screen-reader described; the HUD describes state,
   selection and errors.
 - Silent network loss is detected by the server ping timeout, so automatic
@@ -145,8 +145,9 @@ client-blocking gaps listed in the original plan are now resolved server-side.
 
 ## Next
 
-1. Run the live acceptance suite against a seeded preview deployment.
-2. Capture representative hardware render numbers and tune sprite batching if
+1. Run the 30-minute live preview soak and record HUD input-ack p95 and the
+   API metrics snapshot.
+2. Capture representative hardware GPU frame numbers and tune sprite batching if
    needed.
-3. Add audio cues and a mobile/touch control scheme as separate features.
-4. Decide whether own-player prediction is required for perceived latency.
+3. Revisit prediction only if preview p95 reaches 100 ms or corrections exceed
+   5% (see the V5 prediction decision).

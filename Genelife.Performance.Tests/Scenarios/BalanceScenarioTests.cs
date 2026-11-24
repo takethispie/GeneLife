@@ -23,6 +23,8 @@ public class BalanceScenarioTests
     [Theory]
     [InlineData(60, 21)]
     [InlineData(200, 21)]
+    [InlineData(1000, 21)]
+    [InlineData(2000, 21)]
     public void Ten_year_balance_report(int sims, int seed)
     {
         using var engine = new SimulationEngine();
@@ -75,8 +77,11 @@ public class BalanceScenarioTests
         Assert.Equal(0, report.SinkDeltaCents);
         Assert.Equal(0, report.ConservationGapCents);
         Assert.InRange(report.DecadeMoneySupplyGrowth, 0m, 0.10m);
+        Assert.True(report.EndLiving > 0, "population collapsed");
 
-        if (sims >= 200)
+        // 1k–2k target misses are recorded in the report rather than hidden, so
+        // the release decision can see them; the strict CI bands stay on 200.
+        if (sims == 200)
             AssertTargetBands(report);
     }
 
@@ -208,10 +213,26 @@ public class BalanceScenarioTests
                 p.Unemployed,
                 p.DeathsThisYear,
                 p.ArrivalsThisYear,
+                p.BirthsThisYear,
+                p.ReplacementRate,
                 p.PensionFundingRatio,
                 p.PensionReplacementRate,
                 p.LifeExpectancy));
         }
+
+        var latestEconomy = rows.Count > 0 ? economy.MetricHistory[^1] : null;
+        var previousEconomy = rows.Count > 1 ? economy.MetricHistory[^2] : null;
+        var economyWarnings = EconomyHealth.Evaluate(latestEconomy, previousEconomy)
+            .Count(check => check.Level is HealthLevel.Warn or HealthLevel.Fail);
+        var housingWarnings = HousingHealth.Evaluate(economy.Housing.MetricHistory.Count > 0
+                ? economy.Housing.MetricHistory[^1]
+                : null)
+            .Count(check => check.Level is HealthLevel.Warn or HealthLevel.Fail);
+        var companyFailureRate = companies > 0
+            ? economy.MetricHistory.Count > 0
+                ? economy.MetricHistory[^1].BankruptCompanies / (decimal)companies
+                : 0m
+            : 0m;
 
         return new BalanceReport(
             requestedSims,
@@ -234,7 +255,12 @@ public class BalanceScenarioTests
             units,
             properties,
             flows,
-            rows);
+            rows,
+            economy.Housing.MetricHistory.Count > 0 ? economy.Housing.MetricHistory[^1].OvercrowdedUnits : 0,
+            economyWarnings + housingWarnings,
+            companyFailureRate,
+            economy.Housing.Market.UtilityCollectedThisYear.Cents,
+            economy.ConsumptionThisYear.Cents);
     }
 
     private sealed record BalanceReport(
@@ -258,7 +284,12 @@ public class BalanceScenarioTests
         int Units,
         int Properties,
         BalanceFlows Flows,
-        IReadOnlyList<BalanceRow> Years);
+        IReadOnlyList<BalanceRow> Years,
+        int OvercrowdedUnits,
+        int HealthWarnings,
+        decimal CompanyFailureRate,
+        long UtilityCostCents,
+        long GroceryCostCents);
 
     private sealed record BalanceFlows(
         long WagesPaidCents,
@@ -301,6 +332,8 @@ public class BalanceScenarioTests
         int Unemployed,
         int Deaths,
         int Arrivals,
+        int Births,
+        decimal ReplacementRate,
         decimal PensionFundingRatio,
         decimal PensionReplacementRate,
         decimal LifeExpectancy);

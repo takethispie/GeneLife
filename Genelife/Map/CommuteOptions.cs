@@ -9,6 +9,6 @@ public enum CommuteMode
 public sealed record CommuteOptions
 {
     public static readonly CommuteOptions Default = new();
-    public CommuteMode Mode { get; init; } = CommuteMode.Abstract;
+    public CommuteMode Mode { get; init; } = CommuteMode.Animate;
     public float SpeedTilesPerSecond { get; init; } = 3f;
 }

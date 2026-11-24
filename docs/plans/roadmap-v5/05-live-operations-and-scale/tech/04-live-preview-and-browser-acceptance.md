@@ -3,7 +3,7 @@
 **Phase:** 4 — Release
 **Depends:** L01–L03, features 01–04
 **Estimate:** 2–3 sessions
-**Status:** Planned (V5)
+**Status:** Done locally (V5 feature 05); 30-minute soak and hardware GPU numbers remain
 
 ## Goal
 
@@ -53,14 +53,23 @@ A local unit test cannot catch CORS, token expiry, proxy, asset path or database
 
 ## Tasks
 
-- [ ] Add the seeded preview configuration and reset script.
-- [ ] Deploy API, database, admin and browser client.
-- [ ] Add the live Playwright suite for player, appearance, consumption and social.
-- [ ] Add the admin page smoke suite.
-- [ ] Capture performance and render numbers.
-- [ ] Add monitoring and alert thresholds.
+- [x] Add the seeded preview configuration and reset script.
+- [x] Deploy API, database, admin and browser client.
+- [x] Add the live Playwright suite for player, appearance, consumption and social.
+- [x] Add the admin page smoke suite.
+- [x] Capture performance and render numbers.
+- [x] Add monitoring and alert thresholds.
 - [ ] Rehearse migration and rollback.
-- [ ] Record the evidence bundle.
+- [x] Record the evidence bundle.
+
+## Resolution
+
+The preview ran locally with PostgreSQL, the API, the Blazor admin and the Vite
+client. `tools/preview/reset.sh` seeds from a fixed map/population seed and prints
+the world population from `/api/data`. Player and admin live smokes passed;
+reconnect recovered; the HUD and `/api/simulation/metrics` supplied the numbers.
+GPU frame time, the 30-minute soak and the migration/rollback rehearsal remain
+exceptions in the release evidence.
 
 ## Files
 

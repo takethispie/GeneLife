@@ -71,6 +71,26 @@ public static class MapEndpoints
     public static IReadOnlyList<Genelife.Systems.MapMetricsSnapshot> GetMetrics(SimulationManager simulationManager) =>
         simulationManager.GetMapMetrics();
 
+    [WolverinePost("/api/map/buildings/{networkId}/relocate")]
+    [Authorize(Policy = AuthPolicies.Admin)]
+    public static IResult RelocateBuilding(
+        ulong networkId,
+        RelocateBuildingRequest request,
+        SimulationEngine engine,
+        HttpContext http)
+    {
+        var command = new RelocateBuildingCommand(
+            Guid.NewGuid(),
+            http.User.Identity?.Name ?? "admin",
+            networkId,
+            request.X,
+            request.Y,
+            request.EntryX,
+            request.EntryY);
+        var commandId = engine.EnqueueAdminCommand(command);
+        return Results.Accepted($"/api/commands/{commandId}", new { commandId });
+    }
+
     [WolverinePost("/api/map/buildings/{networkId}/place")]
     [Authorize(Policy = AuthPolicies.Admin)]
     public static IResult PlaceBuilding(
@@ -99,5 +119,11 @@ public sealed record PlaceBuildingRequest(
     int Y,
     int Width,
     int Height,
+    int EntryX,
+    int EntryY);
+
+public sealed record RelocateBuildingRequest(
+    int X,
+    int Y,
     int EntryX,
     int EntryY);

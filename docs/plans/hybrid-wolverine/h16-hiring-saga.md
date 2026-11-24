@@ -4,7 +4,17 @@
 **Depends:** H15
 **Estimate:** 3 sessions
 
-**Status:** Partial — event types and a saga handler exist; the live hiring lifecycle and timeout are still owned by HiringSystem.
+**Status:** Done — decision: keep collect→decide→apply. The tested `HiringSystem` owns the lifecycle; partial saga scaffolding and unused hiring events were removed.
+
+## Decision (V5 feature 05)
+
+`HiringSystem` keeps collect → decide → apply. Hiring runs on a 25-tick cadence,
+is already covered by domain and scenario tests, and the simulation tick must stay
+the only writer of ECS state. A saga would add a second asynchronous authority
+without changing any player-visible behaviour, so the partial `HiringSagaHandler`,
+`HiringState` and the five unused hiring event records were deleted. There is no
+duplicate hiring handler. Revisit only if hiring grows external side effects that
+must survive a process restart.
 
 ## Goal
 
@@ -12,7 +22,7 @@ Replace the `HiringSystem`'s collect → decide → apply pipeline with a Wolver
 
 ## Context
 
-Current `HiringSystem.Update()` runs every 25 ticks, scanning all postings, seekers, and applications. With events, each step triggers the next: a job posting fires `JobPostingCreated` → saga creates seats → seeker fires `ApplicationSubmitted` → saga evaluates → `OfferAccepted` or `OfferRejected`.
+Alternative design (not chosen): `HiringSystem.Update()` would run every 25 ticks, scanning all postings, seekers, and applications. With events, each step triggers the next: a job posting fires `JobPostingCreated` → saga creates seats → seeker fires `ApplicationSubmitted` → saga evaluates → `OfferAccepted` or `OfferRejected`.
 
 ## Tasks
 
@@ -43,7 +53,7 @@ Current `HiringSystem.Update()` runs every 25 ticks, scanning all postings, seek
 - `Genelife/Systems/HiringSystem.cs` — simplified to event emission + apply only
 - `Genelife.Messages/Events/JobPostngCreated.cs`
 - `Genelife.Messages/Events/ApplicationSubmittd.cs`
-- `Genelife.Messages/Events/SeatFilled.cs`
+- `Genelife.Messages/Events/SeatFilled.cs` (removed with the scaffolding)
 
 ## Acceptance
 

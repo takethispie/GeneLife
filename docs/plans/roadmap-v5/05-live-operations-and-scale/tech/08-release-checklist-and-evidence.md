@@ -3,7 +3,7 @@
 **Phase:** 8 — Release
 **Depends:** L01–L07
 **Estimate:** 1–2 sessions
-**Status:** Planned (V5)
+**Status:** Implementation evidence recorded (V5 feature 05); sign-off pending
 
 ## Goal
 

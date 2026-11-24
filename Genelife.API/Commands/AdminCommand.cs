@@ -155,6 +155,15 @@ public sealed record PlaceBuildingCommand(
     int EntryX,
     int EntryY) : AdminCommand(CommandId, IssuedBy);
 
+public sealed record RelocateBuildingCommand(
+    Guid CommandId,
+    string IssuedBy,
+    ulong BuildingId,
+    int X,
+    int Y,
+    int EntryX,
+    int EntryY) : AdminCommand(CommandId, IssuedBy);
+
 public sealed record CancelConstructionCommand(
     Guid CommandId,
     string IssuedBy,

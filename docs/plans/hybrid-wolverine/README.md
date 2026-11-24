@@ -1,6 +1,6 @@
 # Hybrid ECS + Wolverine — Subtask Plan
 
-**Status:** H01–H15, H17, and H18 done; H16, H19, and H20 are partial.
+**Status:** All steps done. One command path, one read path and one auth path are active.
 
 20 implementation steps across 5 phases. See `docs/plans/hybrid-ecs-wolverine.md` for the architecture overview.
 
@@ -38,7 +38,7 @@
 | # | Task | Depends | Estimate | Status |
 |---|------|---------|----------|--------|
 | H15 | Command enqueue pattern for all mutations | H04, H05 | 2 sessions | Done |
-| H16 | HiringSaga: replace collect→decide→apply | H15 | 3 sessions | Partial |
+| H16 | HiringSaga: replace collect→decide→apply | H15 | 3 sessions | Done (collect→decide→apply retained; saga scaffolding removed) |
 | H17 | Authorization middleware for Wolverine | H05, H15 | 2 sessions | Done |
 
 ## Phase 5 — Realtime and Cleanup
@@ -46,7 +46,7 @@
 | # | Task | Depends | Estimate | Status |
 |---|------|---------|----------|--------|
 | H18 | SignalR integration via Wolverine side effects | H07, H17 | 2 sessions | Done |
-| H19 | Migrate remaining ASP.NET endpoints to Wolverine | H05, H08, H09, H15 | 1 session | Partial |
-| H20 | Feature flags, migration checklist, parity verification | H19 | 1 session | Partial |
+| H19 | Migrate remaining ASP.NET endpoints to Wolverine | H05, H08, H09, H15 | 1 session | Done |
+| H20 | Feature flags, migration checklist, parity verification | H19 | 1 session | Done (flags removed; parity suite added) |
 
 ## Total estimate: 26 sessions (~2–3 weeks with 2 sessions/day)

@@ -683,3 +683,69 @@ body,
   min-height: 1.35em;
   color: #fca5a5;
 }
+
+/* Audio and touch settings */
+.audio-category-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px 8px;
+}
+
+.audio-category-list li {
+  margin: 0;
+}
+
+/* Article: touch mode enlarges hit targets without changing the HUD data flow. */
+.touch-mode #hud button,
+.touch-mode #hud input[type="range"],
+.touch-mode #hud select {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+@media (pointer: coarse), (max-width: 720px) {
+  #hud .hud-panel {
+    max-width: min(92vw, 420px);
+  }
+
+  #hud .hud-settings {
+    max-height: 76vh;
+    overflow-y: auto;
+  }
+
+  #hud .hud-bottom-right button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  #hud .hud-scale,
+  #hud .hud-top-left,
+  #hud .hud-top-right {
+    font-size: 0.82rem;
+  }
+}
+
+.left-handed #hud .hud-top-left,
+.left-handed #hud .hud-bottom-left {
+  left: auto;
+  right: 8px;
+}
+
+.left-handed #hud .hud-top-right,
+.left-handed #hud .hud-bottom-right {
+  right: auto;
+  left: 8px;
+}
+
+.left-handed #hud .settings-toggle {
+  right: auto;
+  left: 8px;
+}
+
+/* The touch adapter owns canvas gestures; the browser must not add a click delay. */
+#app canvas {
+  touch-action: none;
+}

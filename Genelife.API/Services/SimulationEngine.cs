@@ -393,7 +393,8 @@ private readonly NetworkIdRegistry networkIds = new();
                 relationshipIndex: relationshipIndex,
                 guardianship: guardianshipService,
                 inheritanceOptions: this.inheritanceOptions,
-                trusts: trustService));
+                trusts: trustService,
+                pregnancies: pregnancyService));
             systems.Register(new EstateSettlementSystem(
                 world,
                 economy,
@@ -1410,6 +1411,54 @@ if (SnapshotsEnabled)
                         entryX = result.Placement.Entry.X,
                         entryY = result.Placement.Entry.Y
                     }
+                };
+            }
+
+            case RelocateBuildingCommand relocate:
+            {
+                if (mapContext is null)
+                    throw new InvalidOperationException("Map is not initialized.");
+                if (!networkIds.TryGetEntity(new NetworkId(relocate.BuildingId), out var building) ||
+                    !world.IsAlive(building))
+                    throw new InvalidOperationException("Building not found.");
+
+                var service = new BuildingRelocationService(world, mapContext, movementIndex);
+                var result = service.TryRelocate(
+                    relocate.BuildingId, relocate.X, relocate.Y, relocate.EntryX, relocate.EntryY);
+                if (!result.Success || result.Plan is null)
+                    throw new InvalidOperationException($"{result.Error}: {result.Message}");
+
+                var plan = result.Plan;
+                economy?.Emit(new BuildingRelocated(
+                    mapContext.Options.MapId,
+                    mapContext.Version,
+                    relocate.BuildingId,
+                    plan.Previous.Anchor.X,
+                    plan.Previous.Anchor.Y,
+                    plan.Proposed.Anchor.X,
+                    plan.Proposed.Anchor.Y,
+                    plan.Proposed.Footprint.Width,
+                    plan.Proposed.Footprint.Height,
+                    plan.Proposed.Entry.X,
+                    plan.Proposed.Entry.Y,
+                    tick));
+
+                return new
+                {
+                    buildingId = relocate.BuildingId,
+                    relocated = true,
+                    placement = new
+                    {
+                        x = plan.Proposed.Anchor.X,
+                        y = plan.Proposed.Anchor.Y,
+                        width = plan.Proposed.Footprint.Width,
+                        height = plan.Proposed.Footprint.Height,
+                        entryX = plan.Proposed.Entry.X,
+                        entryY = plan.Proposed.Entry.Y
+                    },
+                    residents = plan.Residents.Count,
+                    employees = plan.Employees.Count,
+                    students = plan.Students.Count
                 };
             }
 
@@ -8623,7 +8672,8 @@ if (SnapshotsEnabled)
                     relationshipIndex: relationshipIndex,
                     guardianship: guardianshipService,
                     inheritanceOptions: inheritanceOptions,
-                    trusts: trustService).Update(state.Tick);
+                    trusts: trustService,
+                    pregnancies: pregnancyService).Update(state.Tick);
 
             economy.Life.EstateQueue.AddRange(estateRequests);
             if (economy.Life.EstateQueue.Count > 0)

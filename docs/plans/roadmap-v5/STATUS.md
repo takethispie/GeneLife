@@ -1,6 +1,6 @@
 # Roadmap V5 — Status
 
-**Status:** Features 01–03 complete; feature 04 implemented and covered by social acceptance/soak tests; feature 05 planned
+**Status:** Features 01–04 implemented; feature 05 implementation complete. Release sign-off is conditional on the 30-minute live soak, a pre-V5 backup rehearsal and the outstanding feature 02/03 acceptance items.
 **Builds on:** V1 economy/housing/life stages, V2 spatial world, V3 browser client, V4 traits/relationships/reproduction/inheritance
 **Scope:** player life and household, appearance and visual identity, consumption and utilities, social and multiplayer, live operations and scale
 **Primary risk:** player-facing systems touch the economy, housing, family graph, persistence and client at the same time; a small convenience shortcut can break server authority or money conservation
@@ -40,14 +40,14 @@
 | Moderation and abuse | Done (feature 04) | Report queue, audited actions/reversals, mute/block/chat suspension, rate limits, evidence retention |
 | Social persistence and admin | Done (feature 04) | Schema 15, social/privacy persistence, Marten audit documents, `/social` admin page and smoke test |
 | Social acceptance | In progress (feature 04) | Social suite, schema-14 fixture, privacy assertions, admin smoke and 32-player soak are green; full 2k decade/live soak remains on release evidence |
-| Hybrid Wolverine cleanup | Planned (feature 05) | H16/H19/H20 closed, feature flags removed, parity verified |
-| Command/event/status reconciliation | Planned (feature 05) | MP05 and roadmap docs match code; command audit complete |
-| Building relocation and commute animation | Planned (feature 05) | Occupied-building relocation, path cache refresh, `CommuteMode.Animate` default |
-| Live preview and browser acceptance | Planned (feature 05) | Seeded preview deployment, live Playwright suite, hardware render numbers |
-| Audio and touch controls | Planned (feature 05) | Minimal audio cues, mobile/touch scheme, settings |
-| Prediction decision and implementation | Planned (feature 05) | Measured latency report, go/no-go, optional implementation |
-| 1k–2k balance and performance | Planned (feature 05) | Wage share, vacancy, failures, Gini report; 2k decade and 32-player soak |
-| Release checklist and evidence | Planned (feature 05) | Full release checklist, migration runbook, rollback and sign-off |
+| Hybrid Wolverine cleanup | Done (feature 05) | H16 decided and scaffolding removed; H19 legacy endpoints migrated; H20 flags removed; `EndpointParityTests` green |
+| Command/event/status reconciliation | Done (feature 05) | MP05/hybrid/V2–V5 docs reconciled; `CommandCoverageTests` and `DocsConsistencyTests` green |
+| Building relocation and commute animation | Done (feature 05) | `RelocateBuildingCommand`, admin map relocation UI, retargeted paths, `CommuteMode.Animate` default with 2k budget test |
+| Live preview and browser acceptance | Done locally (feature 05) | Seeded `tools/preview/reset.sh`, live player/admin Playwright smoke, reconnect recovery; 30-minute soak pending |
+| Audio and touch controls | Done (feature 05) | Synth cue set with mute/category settings, lazy unlock, pinch/pan/tap touch adapter, mobile Playwright gate |
+| Prediction decision and implementation | Done (feature 05) | Input-to-ack instrumentation; measured p95 51 ms locally; no-prediction decision recorded |
+| 1k–2k balance and performance | Done with one documented miss (feature 05) | 1k/2k decade reports; 2k p95 35.6 ms; 32-player p95 0.88 ms; 1k rent burden 0.4284 miss reported |
+| Release checklist and evidence | Implementation evidence recorded (feature 05) | `release-evidence.md` populated; production sign-off and rollback rehearsal pending |
 
 ## Verification plan
 
@@ -78,10 +78,12 @@
 - V4 family systems are complete for NPCs: traits, relationship edges, eligibility, attraction, pairing, pregnancy, birth, childhood, guardianship, inheritance and the admin family page.
 - The browser client renders map, buildings and sims. Sims now compose layered shared-part bodies, heads, eyes, hair and outfit palettes with local/other-player markers; the admin `/appearance` page renders the same layer contract as SVG and compares a family.
 - The world supports up to 32 concurrent players with server-authoritative presence, snapshots, deltas, viewport filtering and reconnect. Feature 04 adds privacy-scoped presence, chat/emotes, friendships/blocks/mutes, reports, player partnerships, venues/activities and audited moderation.
-- Utilities are a single abstract bill from `HousingCostPolicy`; there are no water/electricity networks, meters or outages. Grocery is minimal with no stock, pricing, spoilage or nutrition.
-- The hybrid ECS + Wolverine/Marten architecture is in place. H16, H19 and H20 are partial; MP05 is marked partial in docs even though `SimulationEngine.DrainPlayerIntents()` applies player intents.
-- The server suite is 538 domain tests / 0 failed plus the performance/release suites; the browser suite is 154 tests green with typecheck, lint and build passing. Feature 03 tests cover utility network states/priority shedding, consumption conservation, tariff validation, grocery pricing/stock-out/restock/spoilage, player purchase conservation, nutrition health modifiers, and schema-14 capture/restore/double restore. The 60- and 200-sim ten-year balance bands are green with utility and grocery systems enabled.
-- V1's 1k–2k balance gaps remain open: vacancy, company failures, wealth Gini and wage share are reported but not fully closed.
+- Utilities have water/electricity networks, meters, tariff billing, arrears and outages. Grocery has a catalog, stock, deterministic pricing, restock, spoilage and nutrition. Default tariffs are municipality-subsidised (100%); setting `SubsidyBasisPoints = 0` exercises household payment and cut-off.
+- The hybrid ECS + Wolverine/Marten architecture is in place. H16 keeps collect→decide→apply and its partial saga scaffolding is removed; H19 migrated the remaining endpoints to Wolverine HTTP; H20 removed all feature flags. MP05 is documented as complete and `DrainPlayerIntents()` is the single intent path.
+- The server suite is 560 domain tests / 0 failed, 69 API integration tests / 0 failed, and 33 performance/release tests / 0 failed (2 skipped manual 10k load tests) plus the 30-year cohabitation comparison; the browser suite is 178 tests green plus fixture, mobile, live and admin Playwright gates. Feature 03 tests cover utility network states/priority shedding, consumption conservation, tariff validation, grocery pricing/stock-out/restock/spoilage, player purchase conservation, nutrition health modifiers, and schema-14 capture/restore/double restore. The 60- and 200-sim ten-year balance bands are green with utility and grocery systems enabled.
+- V1's 1k–2k balance gaps are reported: at 1,000 sims median rent burden is 0.4284 against a 0.40 ceiling; at 2,000 it is 0.3464. Company failures, wage share, vacancy and Gini are inside their reported bands.
+- `CohabitOnPairing` remains opt-in. The 30-year 200-sim comparison is recorded: population 199 → 219 and births 75 → 83, but housing vacancy 17.7% → 26.6% and overcrowded units 3 → 9.
+- The 2k decade has zero health failures but 18 `housing.overcrowded` warnings in the family release run (one per distinct household; down from 45 child-level warnings; 19 overcrowded units in the balance run); this is documented, not treated as a high-severity pass.
 
 ## Decisions to confirm before implementation
 
@@ -111,6 +113,7 @@
 1. Confirm remaining decisions, especially same-sex policy, the continuation default and chat retention.
 2. Add the recorded-intent replay test and 32-player player-life soak for feature 01 acceptance.
 3. Add Playwright appearance visual smoke and a reference-hardware frame-budget report, then finish feature 02 acceptance.
-4. Finish feature 03 NPC shopping trips, meals and health modifiers, then run the cohabitation before/after 30-year evidence before flipping `CohabitOnPairing`.
-5. Keep feature 04 behind a flag until moderation and retention are ready.
-6. Treat feature 05 as the release gate: no live preview, balance or migration evidence means no V5 release.
+4. Finish feature 03 NPC shopping trips, meals and housing/consumption tuning before reconsidering `CohabitOnPairing`; the 30-year before/after comparison is recorded and currently argues against flipping.
+5. Run the 30-minute live preview soak and record the HUD input-ack p95 and `/api/simulation/metrics`.
+6. Rehearse schema 11 → 15 migration and rollback against a pre-V5 backup, then obtain reviewer sign-off in `release-evidence.md`.
+7. Finish the feature 02 hardware frame-budget report and feature 03 NPC shopping/meal acceptance and cohabitation comparison before production release.

@@ -177,6 +177,116 @@ public sealed class WorldMap
         return placement;
     }
 
+    /// <summary>
+    /// Validates a move for an already placed building. Tiles already occupied by
+    /// the building are ignored so a building can move within or over its own
+    /// footprint without a transient double-reservation.
+    /// </summary>
+    public PlacementError CanRelocate(
+        NetworkId id,
+        TileCoord anchor,
+        TileCoord entry,
+        out MapLot? lot,
+        out string? message)
+    {
+        lot = null;
+        message = null;
+
+        if (!placements.TryGetValue(id, out var current))
+        {
+            message = $"Building {id.Value} has no placement.";
+            return PlacementError.DuplicateNetworkId;
+        }
+
+        var footprint = current.Footprint;
+        var kind = current.Kind;
+        var bounds = MapBounds.FromAnchor(anchor, footprint);
+        if (!Options.Bounds.Contains(bounds))
+        {
+            message = $"Footprint {bounds} is outside {Options.Bounds}.";
+            return PlacementError.OutOfBounds;
+        }
+
+        var preferredZone = ZoneFor(kind);
+        lot = FindLot(bounds, preferredZone);
+        if (lot is null)
+        {
+            message = $"No {preferredZone} lot can fit {footprint} at {anchor}.";
+            return PlacementError.NoAvailableLot;
+        }
+
+        var reservedBySelf = lot.IsReserved && lot.ReservedBy == id.Value;
+        if (lot.IsReserved && lot.ReservedBy != default && !reservedBySelf)
+        {
+            message = $"Lot {lot.Id} is reserved by building {lot.ReservedBy}.";
+            return PlacementError.LotReserved;
+        }
+
+        var blockedFlags = reservedBySelf ? TileFlags.Water : TileFlags.Water | TileFlags.Reserved;
+        foreach (var tile in footprint.Tiles(anchor))
+        {
+            if (occupiedBy.TryGetValue(tile, out var owner) && owner != id)
+            {
+                message = $"Tile {tile} is occupied by building {owner.Value}.";
+                return PlacementError.Occupied;
+            }
+
+            var flags = FlagsAt(tile);
+            if ((flags & blockedFlags) != 0)
+            {
+                message = $"Tile {tile} is blocked.";
+                return PlacementError.Occupied;
+            }
+        }
+
+        if (!HasRoadAccess(footprint, anchor))
+        {
+            message = "Building has no adjacent road access.";
+            return PlacementError.NoRoadAccess;
+        }
+
+        if (footprint.Tiles(anchor).Contains(entry))
+        {
+            message = "Entry must be outside the destination footprint.";
+            return PlacementError.EntryBlocked;
+        }
+
+        var entryIsOwnTile = occupiedBy.TryGetValue(entry, out var entryOwner) && entryOwner == id;
+        var entryBlockedByTerrain = (FlagsAt(entry) & (TileFlags.Water | TileFlags.Reserved)) != 0;
+        if (entryBlockedByTerrain || (!entryIsOwnTile && !IsWalkable(entry)))
+        {
+            message = $"Entry {entry} is not walkable.";
+            return PlacementError.EntryBlocked;
+        }
+
+        return PlacementError.None;
+    }
+
+    /// <summary>
+    /// Applies a relocation that already passed <see cref="CanRelocate"/>.
+    /// Occupancy moves atomically and the map version advances.
+    /// </summary>
+    public Placement Relocate(NetworkId id, TileCoord anchor, TileCoord entry)
+    {
+        if (!placements.TryGetValue(id, out var current))
+            throw new InvalidOperationException($"Building {id.Value} has no placement.");
+
+        RemoveInternal(id);
+        var placement = new Placement(anchor, current.Footprint, entry, current.Kind, current.Rotation);
+        AddPlacement(id, placement);
+        ReleaseLotReservedBy(id, current.Bounds, current.Kind);
+        ReleaseLotReservedBy(id, placement.Bounds, placement.Kind);
+        Version++;
+        return placement;
+    }
+
+    private void ReleaseLotReservedBy(NetworkId id, MapBounds bounds, BuildingKind kind)
+    {
+        var lot = FindLot(bounds, ZoneFor(kind));
+        if (lot is { IsReserved: true } && lot.ReservedBy == id.Value)
+            ReleaseLot(lot.Id);
+    }
+
     public void RestorePlacement(NetworkId id, Placement placement)
     {
         AddPlacement(id, placement);

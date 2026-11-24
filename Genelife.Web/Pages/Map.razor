@@ -139,6 +139,65 @@
                             <dd class="col-7">@selected.OwnerNetworkId</dd>
                         }
                     </dl>
+
+                    @if (selected.Kind is "Residential" or "Office" or "School" or "Civic")
+                    {
+                        <hr />
+                        <div class="fw-semibold small">Relocate building</div>
+                        <div class="text-muted small mb-2">Residents, employees, students, meters and venue presence move with the building.</div>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="form-label small">X</label>
+                                <input class="form-control form-control-sm" type="number" @bind="relocateX" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small">Y</label>
+                                <input class="form-control form-control-sm" type="number" @bind="relocateY" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small">Entry X</label>
+                                <input class="form-control form-control-sm" type="number" @bind="relocateEntryX" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small">Entry Y</label>
+                                <input class="form-control form-control-sm" type="number" @bind="relocateEntryY" />
+                            </div>
+                        </div>
+                        @if (!confirmingRelocate)
+                        {
+                            <button class="btn btn-sm btn-warning mt-2" type="button"
+                                    @onclick="RequestRelocation" disabled="@relocating">
+                                Relocate building
+                            </button>
+                        }
+                        else
+                        {
+                            <div class="alert alert-warning mt-2 mb-0 py-2 small">
+                                Move building @selected.NetworkId to (@relocateX, @relocateY)?
+                                Residents, employees, students, meters and venue presence stay attached.
+                            </div>
+                            <div class="d-flex gap-2 mt-2">
+                                <button class="btn btn-sm btn-danger" type="button" @onclick="RelocateAsync"
+                                        disabled="@relocating">
+                                    @if (relocating)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                    }
+                                    Confirm move
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary" type="button"
+                                        @onclick="CancelRelocation" disabled="@relocating">
+                                    Cancel
+                                </button>
+                            </div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(relocateMessage))
+                        {
+                            <div class="alert @(relocateError ? "alert-danger" : "alert-success") mt-2 mb-0 py-2 small">
+                                @relocateMessage
+                            </div>
+                        }
+                    }
                 }
             </div>
         </div>
@@ -233,6 +292,14 @@
     private bool placing;
     private bool placeError;
     private string? placeMessage;
+    private int relocateX;
+    private int relocateY;
+    private int relocateEntryX;
+    private int relocateEntryY;
+    private bool relocating;
+    private bool confirmingRelocate;
+    private bool relocateError;
+    private string? relocateMessage;
     private string kindFilter = string.Empty;
     private bool isLoading;
     private bool hasLoaded;
@@ -310,7 +377,73 @@
         }
     }
 
-    private void Select(MapBuildingStatus building) => selected = building;
+    private void Select(MapBuildingStatus building)
+    {
+        selected = building;
+        relocateMessage = null;
+        relocateError = false;
+        confirmingRelocate = false;
+        if (building is null)
+            return;
+
+        relocateX = building.X;
+        relocateY = building.Y;
+        relocateEntryX = building.EntryX;
+        relocateEntryY = building.EntryY;
+    }
+
+    private void RequestRelocation()
+    {
+        if (selected is null)
+            return;
+        confirmingRelocate = true;
+        relocateMessage = null;
+        relocateError = false;
+    }
+
+    private void CancelRelocation()
+    {
+        confirmingRelocate = false;
+        relocateMessage = null;
+    }
+
+    private async Task RelocateAsync()
+    {
+        if (selected is null || relocating)
+            return;
+
+        confirmingRelocate = false;
+        relocating = true;
+        relocateMessage = null;
+        relocateError = false;
+        try
+        {
+            await GameData.RelocateBuildingAsync(selected.NetworkId, new RelocateBuildingRequest(
+                relocateX, relocateY, relocateEntryX, relocateEntryY), cts.Token);
+            relocateMessage = "Relocation accepted. Waiting for the next tick...";
+            await Task.Delay(300, cts.Token);
+            await RefreshAsync();
+            if (selected is not null && selected.X == relocateX && selected.Y == relocateY)
+                relocateMessage = "Building relocated.";
+            else
+            {
+                relocateError = true;
+                relocateMessage = "Relocation was not applied. Check the destination, roads and occupancy.";
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            relocateError = true;
+            relocateMessage = ex.Message;
+        }
+        finally
+        {
+            relocating = false;
+        }
+    }
 
     private void OnUnplacedChanged()
     {

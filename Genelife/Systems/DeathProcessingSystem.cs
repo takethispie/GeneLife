@@ -1,6 +1,7 @@
 using Arch.Core;
 using Arch.Core.Extensions;
 using Genelife.Components.Employment;
+using Genelife.Components.Family;
 using Genelife.Components.Finance;
 using Genelife.Components.Gen;
 using Genelife.Components.Housing;
@@ -27,6 +28,7 @@ public class DeathProcessingSystem : ISimulationSystem
     private readonly RelationshipIndex? relationshipIndex;
     private readonly GuardianshipService? guardianship;
     private readonly TrustService? trusts;
+    private readonly PregnancyService? pregnancies;
     private readonly InheritanceOptions inheritanceOptions;
     private readonly int interval;
 
@@ -38,7 +40,8 @@ public class DeathProcessingSystem : ISimulationSystem
         RelationshipIndex? relationshipIndex = null,
         GuardianshipService? guardianship = null,
         InheritanceOptions? inheritanceOptions = null,
-        TrustService? trusts = null)
+        TrustService? trusts = null,
+        PregnancyService? pregnancies = null)
     {
         this.world = world;
         this.economy = economy;
@@ -47,6 +50,7 @@ public class DeathProcessingSystem : ISimulationSystem
         this.guardianship = guardianship;
         this.inheritanceOptions = inheritanceOptions ?? InheritanceOptions.Default;
         this.trusts = trusts;
+        this.pregnancies = pregnancies;
         this.interval = interval ?? 1;
     }
 
@@ -99,6 +103,38 @@ public class DeathProcessingSystem : ISimulationSystem
         return applications;
     }
 
+    /// <summary>
+    /// A pregnancy cannot outlive either parent. Cancel in the death pass so the
+    /// reproduction invariant never observes a pregnancy with a destroyed parent
+    /// between a death and the next monthly pregnancy update.
+    /// </summary>
+    private void CancelOrphanedPregnancies(Entity deceased, long tick)
+    {
+        if (pregnancies is null)
+            return;
+
+        var orphaned = new List<Entity>();
+        world.Query(in new QueryDescription().WithAll<Pregnancy>(),
+            (Entity pregnancy, ref Pregnancy data) =>
+            {
+                if (data.Status is not (PregnancyStatus.Active or PregnancyStatus.ReadyToBirth))
+                    return;
+                if (data.CarryingParent == deceased || data.OtherParent == deceased)
+                    orphaned.Add(pregnancy);
+            });
+
+        foreach (var pregnancy in orphaned)
+        {
+            if (!world.IsAlive(pregnancy) || !pregnancies.TryRead(pregnancy, out var data))
+                continue;
+            if (pregnancies.Cancel(pregnancy, tick))
+                economy.Emit(new PregnancyLost(
+                    LifeSystemHelpers.NetworkIdOf(world, pregnancy),
+                    "parents-unavailable",
+                    tick));
+        }
+    }
+
     private void Process(Entity entity, long tick, Dictionary<Entity, List<Entity>> applicationsByApplicant)
     {
         if (relationships is not null && relationshipIndex is not null)
@@ -114,6 +150,8 @@ public class DeathProcessingSystem : ISimulationSystem
 
         if (!world.Has<Dead>(entity))
             world.Add(entity, new Dead(tick, cause));
+
+        CancelOrphanedPregnancies(entity, tick);
 
         var networkId = LifeSystemHelpers.NetworkIdOf(world, entity);
         var name = world.Has<GenName>(entity) ? world.Get<GenName>(entity).Name : string.Empty;

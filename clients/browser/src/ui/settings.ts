@@ -10,11 +10,18 @@ export type KeyBindingAction =
 
 export type KeyBindings = Record<KeyBindingAction, string[]>;
 
+export type AudioCategory = "ui" | "notification" | "chat" | "life" | "ambient";
+export type Handedness = "right" | "left";
+
 export interface ClientSettings {
   reduceMotion: boolean;
   hudScale: number;
   debugOverlay: boolean;
   soundVolume: number;
+  audioMuted: boolean;
+  audioCategories: Record<AudioCategory, boolean>;
+  touchControls: boolean;
+  handedness: Handedness;
   bindings: KeyBindings;
 }
 
@@ -29,11 +36,23 @@ export const DEFAULT_BINDINGS: KeyBindings = {
   toggleDebug: ["f3"]
 };
 
+export const DEFAULT_AUDIO_CATEGORIES: Record<AudioCategory, boolean> = {
+  ui: true,
+  notification: true,
+  chat: true,
+  life: true,
+  ambient: true
+};
+
 export const DEFAULT_SETTINGS: ClientSettings = {
   reduceMotion: false,
   hudScale: 1,
   debugOverlay: false,
   soundVolume: 0,
+  audioMuted: false,
+  audioCategories: DEFAULT_AUDIO_CATEGORIES,
+  touchControls: true,
+  handedness: "right",
   bindings: DEFAULT_BINDINGS
 };
 
@@ -73,6 +92,12 @@ export class SettingsStore {
     this.emit();
   }
 
+  setAudioCategory(category: AudioCategory, enabled: boolean): void {
+    this.update({
+      audioCategories: { ...this.current.audioCategories, [category]: enabled }
+    });
+  }
+
   setBinding(action: KeyBindingAction, keys: string[]): void {
     this.update({
       bindings: { ...this.current.bindings, [action]: keys.map((key) => key.toLowerCase()) }
@@ -96,6 +121,8 @@ export class SettingsStore {
     document.documentElement.style.setProperty("--hud-scale", String(this.current.hudScale));
     document.documentElement.classList.toggle("reduce-motion", this.current.reduceMotion);
     document.documentElement.classList.toggle("show-debug", this.current.debugOverlay);
+    document.documentElement.classList.toggle("touch-mode", this.current.touchControls);
+    document.documentElement.classList.toggle("left-handed", this.current.handedness === "left");
   }
 
   prefersReducedMotion(): boolean {
@@ -128,6 +155,10 @@ export function mergeSettings(partial?: Partial<ClientSettings>): ClientSettings
     bindings: {
       ...DEFAULT_BINDINGS,
       ...(partial?.bindings ?? {})
+    },
+    audioCategories: {
+      ...DEFAULT_AUDIO_CATEGORIES,
+      ...(partial?.audioCategories ?? {})
     }
   };
 }

@@ -86,6 +86,35 @@ public class PregnancyProgressionTests
         Assert.Equal(PregnancyStatus.Cancelled, context.World.Get<Pregnancy>(pregnancy).Status);
     }
 
+    [Fact]
+    public void DeadOtherParentCancelsPregnancy()
+    {
+        var context = new Context(wallet: Money.FromUnits(1_000m));
+        var pregnancy = context.Start(dueTick: 1_000, tick: 100);
+
+        context.World.Add(context.Other, new Dead(150, DeathCause.Illness));
+        context.Run(tick: 200);
+
+        Assert.Equal(PregnancyStatus.Cancelled, context.World.Get<Pregnancy>(pregnancy).Status);
+        Assert.DoesNotContain(
+            ReproductionInvariants.Verify(context.World, new RelationshipIndex(), context.Economy),
+            issue => issue.Name == "pregnancy.parents" && issue.Level == "Fail");
+    }
+
+    [Fact]
+    public void ReadyToBirthPregnancyIsCancelledWhenOtherParentDies()
+    {
+        var context = new Context(wallet: Money.FromUnits(1_000m));
+        var pregnancy = context.Start(dueTick: 300, tick: 100);
+        context.Run(tick: 300);
+        Assert.Equal(PregnancyStatus.ReadyToBirth, context.World.Get<Pregnancy>(pregnancy).Status);
+
+        context.World.Add(context.Other, new Dead(301, DeathCause.Illness));
+        context.Run(tick: 400);
+
+        Assert.Equal(PregnancyStatus.Cancelled, context.World.Get<Pregnancy>(pregnancy).Status);
+    }
+
     private sealed class Context
     {
         public Context(Money wallet)

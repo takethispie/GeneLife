@@ -97,6 +97,8 @@ public class FamilyReleaseScenarioTests
             healthWarnings = status.Health.Count(check => check.Level == "Warn"),
             healthFailureNames = status.Health.Where(check => check.Level == "Fail")
                 .Select(check => check.Name).Distinct().ToList(),
+            healthWarningNames = status.Health.Where(check => check.Level == "Warn")
+                .Select(check => check.Name).Distinct().ToList(),
             capturedPopulation,
             restoredPopulation,
             restoreSucceeded = restoreError is null,

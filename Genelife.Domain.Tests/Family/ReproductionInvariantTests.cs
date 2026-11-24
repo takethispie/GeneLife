@@ -116,4 +116,28 @@ public class ReproductionInvariantTests
 
         Assert.Contains(issues, issue => issue.Name == "housing.overcrowded" && issue.Level == "Warn");
     }
+
+    [Fact]
+    public void OvercrowdedHouseholdIsReportedOncePerHousehold()
+    {
+        var world = World.Create();
+        var economy = new EconomyContext(world);
+        var parent = world.Create(new Alive(35), new Wallet(Money.Zero));
+        var firstChild = world.Create(new Alive(8), new Wallet(Money.Zero));
+        var secondChild = world.Create(new Alive(6), new Wallet(Money.Zero));
+        var household = world.Create(new Household { Head = parent, Tenure = Tenure.Renter, MemberCount = 3 });
+        world.Add(parent, new HouseholdMember(household, HouseholdRole.Head));
+        world.Add(firstChild, new HouseholdMember(household, HouseholdRole.Child));
+        world.Add(secondChild, new HouseholdMember(household, HouseholdRole.Child));
+        economy.Housing.AddMember(parent, household);
+        economy.Housing.AddMember(firstChild, household);
+        economy.Housing.AddMember(secondChild, household);
+        var property = world.Create(new Property("Central", "Central", Entity.Null, 1));
+        var unit = world.Create(new HousingUnit(property, "1", HousingTier.Basic, 1, Money.FromUnits(100m)));
+        economy.Housing.MoveIn(unit, household);
+
+        var issues = ReproductionInvariants.Verify(world, new RelationshipIndex(), economy);
+
+        Assert.Single(issues, issue => issue.Name == "housing.overcrowded" && issue.Level == "Warn");
+    }
 }

@@ -3,7 +3,7 @@
 **Depends:** 04
 **Goal:** Ensure the world is mutated only by the tick thread through validated intents.
 
-**Status:** Partial — bounded queue, enqueue endpoints, and overflow policy are in place; full intent set, tick-time draining, coalescing, and range/cooldown validation are outstanding.
+**Status:** Done — the bounded queue, enqueue endpoints, overflow policy, tick-time `DrainPlayerIntents()`, coalescing and range/cooldown validation are in place and covered by tests.
 
 ## Context
 

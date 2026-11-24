@@ -1,6 +1,6 @@
 # Roadmap V4 — Status
 
-**Status:** V4 release-ready — features 01–05 implemented and hardened; `CohabitOnPairing` remains an optional follow-up
+**Status:** V4 release-ready — features 01–05 implemented and hardened; `CohabitOnPairing` remains opt-in after the V5 30-year comparison (vacancy 17.7% → 26.6%, overcrowded 3 → 9)
 **Builds on:** V1 economy/housing/life stages, V2 spatial world, V3 read-model conventions
 **Scope:** traits and genetics, relationships and attraction, reproduction and family, continuity and inheritance, admin/hardening
 **Primary risk:** family state touches households, housing capacity, estates, population continuity and the money ledger at the same time
@@ -57,7 +57,7 @@ Feature 05 verification (2026-11-23): family read model, paged/filtered admin ro
 - The admin family page is admin-only and exposes traits, relationships, attraction, pregnancies, children, guardianship, household composition, health, projection staleness and tick/candidate budgets. Auto-refresh reloads only the active tab every ten seconds.
 - Every production creation path (seed, immigrant, player, admin) writes a `Traits` component; inheritance and mutation helpers exist for feature 03 births.
 - Seeded worlds create opposite-sex partner edges and parent edges. Partnered adults can conceive, carry pregnancies through prenatal care and give birth to complete newborns with inherited traits and parent edges.
-- `CohabitOnPairing` still defaults to false: enabling it breaks the strict balance bands (wage share 0.9078 → 1.0527, vacancy 0.0854 → 0.2152) and worsens the 30-year run (overcrowded 1 → 12, vacancy 20.12% → 31.65%, health warnings 4 → 27). It stays opt-in until economy/consumption is recalibrated and seeded-pair cohabitation is added; this needs more than a housing tweak.
+- `CohabitOnPairing` still defaults to false. The V5 30-year comparison (200 sims, seed 21) records population 199 → 219 and births 75 → 83, but housing vacancy 17.7% → 26.6% and overcrowded units 3 → 9, with money supply and rent burden otherwise close. It stays opt-in until feature 03 housing/consumption tuning makes the comparison green.
 - `HouseholdRole.Child` is tied to parent edges for seeded and born children; a `DependentChild` marker identifies dependants. `Tenure.Dependent` remains unused for adult-headed households.
 - `HousingUnit.Capacity` and `OccupantCount` already exist; the generator still creates one household per adult and releases adult children monthly under policy.
 - `DeathProcessingSystem` inherits through current household membership, not relationships.

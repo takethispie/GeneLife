@@ -1,9 +1,9 @@
 # Live Operations and Scale — Summary
 
 **Folder:** `05-live-operations-and-scale/`
-**Status:** Planned (V5 feature 05)
+**Status:** Implemented (V5 feature 05); production sign-off pending the 30-minute soak and migration/rollback rehearsal
 
-**Release artifacts:** [release checklist](release-checklist.md) · [release evidence](release-evidence.md)
+**Release artifacts:** [release checklist](release-checklist.md) · [release evidence](release-evidence.md) · [preview runbook](preview-runbook.md) · [prediction decision](prediction-decision.md)
 
 **Depends on:** features 01–04, V1–V4 release state, V3 client, hybrid ECS/Wolverine architecture
 **Feeds:** release, operations, live preview, post-V5 planning
@@ -16,8 +16,8 @@ This feature is the release gate. If the live preview, migration, balance or per
 
 ## Baseline before V5
 
-- Hybrid ECS + Wolverine/Marten is in place; H16 (hiring saga), H19 (remaining endpoints) and H20 (feature flags/parity) are partial.
-- MP05 is marked partial in docs even though `SimulationEngine.DrainPlayerIntents()` applies player intents.
+- Hybrid ECS + Wolverine/Marten is the single path; H16, H19 and H20 are closed by this feature.
+- MP05 is documented as complete: `SimulationEngine.DrainPlayerIntents()` is the only intent path.
 - Occupied-building relocation is deferred from V2.
 - `CommuteMode.Animate` is opt-in and needs a pathfinding-budget measurement.
 - V3's live preview acceptance, hardware render numbers, audio, touch controls and prediction decision remain open.

@@ -50,6 +50,7 @@ public static class ReproductionInvariants
                     $"Sim {parent.Id} has {count} active pregnancies"));
 
         var policy = economy.Life.Policy;
+        var reportedOvercrowdedHouseholds = new HashSet<Entity>();
         world.Query(in new QueryDescription().WithAll<Alive>().WithNone<Dead>(),
             (Entity entity, ref Alive alive) =>
             {
@@ -96,7 +97,8 @@ public static class ReproductionInvariants
 
                 var unit = economy.Housing.UnitOf(household);
                 if (unit != Entity.Null && world.Has<HousingUnit>(unit) &&
-                    world.Get<HousingUnit>(unit).IsOvercrowded)
+                    world.Get<HousingUnit>(unit).IsOvercrowded &&
+                    reportedOvercrowdedHouseholds.Add(household))
                     issues.Add(new Issue("housing.overcrowded", "Warn",
                         $"Household {household.Id} is overcrowded"));
 

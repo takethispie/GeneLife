@@ -61,19 +61,20 @@ public sealed class PregnancySystem : ISimulationSystem
             if (!world.IsAlive(entity) || !service.TryRead(entity, out var data))
                 continue;
 
+            if (!world.IsAlive(data.CarryingParent) || world.Has<Dead>(data.CarryingParent) ||
+                !world.IsAlive(data.OtherParent) || world.Has<Dead>(data.OtherParent))
+            {
+                service.Cancel(entity, tick);
+                economy.Emit(new PregnancyLost(NetworkIdOf(entity), "parents-unavailable", tick));
+                continue;
+            }
+
             if (data.Status == PregnancyStatus.ReadyToBirth)
                 continue;
 
             if (tick >= data.DueTick)
             {
                 service.SetReady(entity, tick);
-                continue;
-            }
-
-            if (!world.IsAlive(data.CarryingParent) || world.Has<Dead>(data.CarryingParent))
-            {
-                service.Cancel(entity, tick);
-                economy.Emit(new PregnancyLost(NetworkIdOf(entity), "parents-unavailable", tick));
                 continue;
             }
 

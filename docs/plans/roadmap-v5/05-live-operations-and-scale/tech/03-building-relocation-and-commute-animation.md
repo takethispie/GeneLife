@@ -3,7 +3,7 @@
 **Phase:** 3 — World
 **Depends:** L01, V2 placement, V1 housing/employment, feature 03 service links
 **Estimate:** 2–3 sessions
-**Status:** Planned (V5)
+**Status:** Done (V5 feature 05)
 
 ## Goal
 
@@ -51,23 +51,46 @@ V5 adds player homes, utilities and social venues, so relocation must also prese
 
 ## Tasks
 
-- [ ] Add `RelocateBuildingCommand` and the placement validation.
-- [ ] Implement the move plan and apply phase.
-- [ ] Update residents, employees, students, housing, service links and venues.
-- [ ] Invalidate path caches and bump the map version.
-- [ ] Add `BuildingRelocated` and map delta events.
-- [ ] Add the admin relocation form and confirmation.
-- [ ] Measure the commute-animation budget.
-- [ ] Enable `CommuteMode.Animate` by default or record why not.
+- [x] Add `RelocateBuildingCommand` and the placement validation.
+- [x] Implement the move plan and apply phase.
+- [x] Update residents, employees, students, housing, service links and venues.
+- [x] Invalidate path caches and bump the map version.
+- [x] Add `BuildingRelocated` and map delta events.
+- [x] Add the admin relocation form and confirmation.
+- [x] Measure the commute-animation budget.
+- [x] Enable `CommuteMode.Animate` by default or record why not.
+
+## Resolution
+
+Occupant state is entity-referenced, so homes, workplaces, schools, meters and
+venue presence move with the building rather than being recreated. Pending
+`MoveTarget` destinations at the old entry are retargeted, `MovementIndex` is
+rebuilt on the new map version, and the command is admin-only. The animated
+commute budget measured 6.28 ms p95 against 6.42 ms for abstract on the 2,000-sim
+year, so `CommuteMode.Animate` is default-on.
+
+Relocation releases a lot reservation held by the moving building, both for its
+old and new bounds, so a building moving within its own reserved lot does not
+leak the reservation. `CanRelocate` treats the building's own reserved tiles as
+available and rejects only reservations held by another building.
+
+### Tests
+
+- `BuildingRelocationTests.Relocating_within_a_reserved_lot_releases_the_reservation`
+  covers the in-lot move and asserts `ReservedTileCount` returns to zero.
+- The remaining relocation tests cover residents, employees, students, housing
+  paths, service links, map version and path-cache invalidation.
 
 ## Files
 
 - new `Genelife/Map/BuildingRelocationService.cs`
-- `Genelife.API/Endpoints/MapEndpoints.cs`
-- `Genelife/Web/Pages/Map.razor`
+- `Genelife/Map/WorldMap.cs` (`CanRelocate`, `Relocate`, lot release)
+- `Genelife.API/Endpoints/Wolverine/MapEndpoints.cs`
+- `Genelife.API/Commands/AdminCommand.cs`
+- `Genelife.Web/Pages/Map.razor`
 - `Genelife/Systems/MovementSystem.cs`
 - `Genelife/Systems/PathfindingSystem.cs`
-- `Genelife.UnitTests/Map/BuildingRelocationTests.cs`
+- `Genelife.Domain.Tests/Map/BuildingRelocationTests.cs`
 
 ## Acceptance
 

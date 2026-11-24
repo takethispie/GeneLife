@@ -3,7 +3,7 @@
 **Phase:** 5 — Client
 **Depends:** L04, V3 HUD and settings
 **Estimate:** 2–3 sessions
-**Status:** Planned (V5)
+**Status:** Done (V5 feature 05)
 
 ## Goal
 
@@ -44,14 +44,24 @@ Audio and touch must not become a second input authority. Every action still goe
 
 ## Tasks
 
-- [ ] Add the audio cue manifest and lazy loader.
-- [ ] Add volume/mute/category settings.
-- [ ] Wire cues to UI, chat, birth, death and outage events.
-- [ ] Add the touch input adapter and virtual controls.
-- [ ] Add the responsive HUD layout and action buttons.
-- [ ] Add the handedness and gesture settings.
-- [ ] Add accessibility equivalents for cues and gestures.
-- [ ] Add tests for input mapping and settings persistence.
+- [x] Add the audio cue manifest and lazy loader.
+- [x] Add volume/mute/category settings.
+- [x] Wire cues to UI, chat, birth, death and outage events.
+- [x] Add the touch input adapter and virtual controls.
+- [x] Add the responsive HUD layout and action buttons.
+- [x] Add the handedness and gesture settings.
+- [x] Add accessibility equivalents for cues and gestures.
+- [x] Add tests for input mapping and settings persistence.
+
+## Resolution
+
+Cues are synthesized with WebAudio, so there are no audio assets to preload; the
+context and ambient loop start only after the first pointer/key interaction.
+Touch is tap-to-select/move, one-finger drag-to-pan and two-finger pinch-to-zoom.
+A second virtual joystick was deliberately not added: it would duplicate the same
+camera path and would not submit a different intent. Context actions use the
+existing HUD buttons, with 44 px touch targets and left/right handed positioning.
+The touch soak with reconnect remains part of the 30-minute live preview soak.
 
 ## Files
 

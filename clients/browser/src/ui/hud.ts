@@ -48,6 +48,7 @@ interface Elements {
   viewport: HTMLElement;
   buffer: HTMLElement;
   interp: HTMLElement;
+  inputAck: HTMLElement;
   build: HTMLElement;
   renderer: HTMLElement;
   bytes: HTMLElement;
@@ -68,6 +69,11 @@ interface Elements {
   reduceMotion: HTMLInputElement;
   debugOverlay: HTMLInputElement;
   hudScale: HTMLInputElement;
+  soundVolume: HTMLInputElement;
+  audioMuted: HTMLInputElement;
+  audioCategoryList: HTMLElement;
+  touchControls: HTMLInputElement;
+  handedness: HTMLSelectElement;
   bindingList: HTMLElement;
   connectionCard: HTMLElement;
   bottomRight: HTMLElement;
@@ -142,6 +148,7 @@ export class Hud {
     setText(e.viewport, String(state.viewportRadius));
     setText(e.buffer, String(state.bufferFrames));
     setText(e.interp, `${state.interpolationDelayMs} ms`);
+    setText(e.inputAck, `p50 ${state.inputAckP50Ms.toFixed(0)} / p95 ${state.inputAckP95Ms.toFixed(0)} ms`);
     setText(e.build, state.buildStamp);
     setText(e.renderer, state.renderer || "—");
     setText(e.bytes, `${(state.bytesPerSecond / 1024).toFixed(1)} KiB/s`);
@@ -204,6 +211,21 @@ export class Hud {
       e.reduceMotion.checked = settings.reduceMotion;
       e.debugOverlay.checked = settings.debugOverlay;
       e.hudScale.value = String(settings.hudScale);
+      e.soundVolume.value = String(settings.soundVolume);
+      e.audioMuted.checked = settings.audioMuted;
+      e.touchControls.checked = settings.touchControls;
+      e.handedness.value = settings.handedness;
+    }
+    e.audioCategoryList.replaceChildren();
+    for (const category of ["ui", "notification", "chat", "life", "ambient"] as const) {
+      const wrapper = checkbox(category);
+      wrapper.input.checked = settings.audioCategories[category];
+      wrapper.input.addEventListener("change", () =>
+        this.options.settings.setAudioCategory(category, wrapper.input.checked)
+      );
+      const row = document.createElement("li");
+      row.appendChild(wrapper.wrapper);
+      e.audioCategoryList.appendChild(row);
     }
     e.bindingList.replaceChildren();
     for (const action of Object.keys(settings.bindings) as KeyBindingAction[]) {
@@ -263,6 +285,7 @@ function buildDom(options: HudOptions): Elements {
   const viewport = div("value");
   const buffer = div("value");
   const interp = div("value");
+  const inputAck = div("value");
   const build = div("value");
   const renderer = div("value");
   const bytes = div("value");
@@ -277,6 +300,7 @@ function buildDom(options: HudOptions): Elements {
     row("Viewport r", viewport),
     row("Buffer", buffer),
     row("Interp", interp),
+    row("Input ack", inputAck),
     row("Renderer", renderer),
     row("Rate", bytes),
     row("Build", build),
@@ -335,6 +359,36 @@ function buildDom(options: HudOptions): Elements {
   hudScale.addEventListener("input", () =>
     options.settings.update({ hudScale: Number(hudScale.value) })
   );
+  const soundVolume = document.createElement("input");
+  soundVolume.type = "range";
+  soundVolume.min = "0";
+  soundVolume.max = "1";
+  soundVolume.step = "0.05";
+  soundVolume.setAttribute("aria-label", "Sound volume");
+  soundVolume.addEventListener("input", () =>
+    options.settings.update({ soundVolume: Number(soundVolume.value) })
+  );
+  const audioMuted = checkbox("Mute audio");
+  audioMuted.input.addEventListener("change", () =>
+    options.settings.update({ audioMuted: audioMuted.input.checked })
+  );
+  const audioCategoryList = document.createElement("ul");
+  audioCategoryList.className = "audio-category-list";
+  const touchControls = checkbox("Touch controls");
+  touchControls.input.addEventListener("change", () =>
+    options.settings.update({ touchControls: touchControls.input.checked })
+  );
+  const handedness = document.createElement("select");
+  handedness.setAttribute("aria-label", "Touch handedness");
+  for (const value of ["right", "left"] as const) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = value === "right" ? "Right-handed" : "Left-handed";
+    handedness.appendChild(option);
+  }
+  handedness.addEventListener("change", () =>
+    options.settings.update({ handedness: handedness.value === "left" ? "left" : "right" })
+  );
   const bindingList = document.createElement("ul");
   bindingList.className = "binding-list";
   const resetSettings = button("Reset settings");
@@ -344,6 +398,11 @@ function buildDom(options: HudOptions): Elements {
     reduce.wrapper,
     debug.wrapper,
     labelled("HUD scale", hudScale),
+    labelled("Sound volume", soundVolume),
+    audioMuted.wrapper,
+    labelled("Audio categories", audioCategoryList),
+    touchControls.wrapper,
+    labelled("Handedness", handedness),
     labelled("Key bindings", bindingList),
     resetSettings
   );
@@ -367,6 +426,7 @@ function buildDom(options: HudOptions): Elements {
     viewport,
     buffer,
     interp,
+    inputAck,
     build,
     renderer,
     bytes,
@@ -387,6 +447,11 @@ function buildDom(options: HudOptions): Elements {
     reduceMotion: reduce.input,
     debugOverlay: debug.input,
     hudScale,
+    soundVolume,
+    audioMuted: audioMuted.input,
+    audioCategoryList,
+    touchControls: touchControls.input,
+    handedness,
     bindingList,
     connectionCard,
     bottomRight

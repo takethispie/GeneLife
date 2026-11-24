@@ -59,6 +59,34 @@ describe("settings", () => {
     expect(restored.settings).toEqual(DEFAULT_SETTINGS);
   });
 
+  it("persists audio, touch and handedness settings", () => {
+    const storage = new MemoryStorage();
+    const store = new SettingsStore(storage);
+    store.update({
+      soundVolume: 0.4,
+      audioMuted: true,
+      touchControls: false,
+      handedness: "left"
+    });
+    store.setAudioCategory("chat", false);
+
+    const restored = new SettingsStore(storage);
+    restored.load();
+    expect(restored.settings.soundVolume).toBe(0.4);
+    expect(restored.settings.audioMuted).toBe(true);
+    expect(restored.settings.audioCategories.chat).toBe(false);
+    expect(restored.settings.audioCategories.life).toBe(true);
+    expect(restored.settings.touchControls).toBe(false);
+    expect(restored.settings.handedness).toBe("left");
+  });
+
+  it("fills new audio defaults for legacy stored settings", () => {
+    const merged = mergeSettings({ soundVolume: 0.5 });
+    expect(merged.audioCategories).toEqual(DEFAULT_SETTINGS.audioCategories);
+    expect(merged.touchControls).toBe(true);
+    expect(merged.handedness).toBe("right");
+  });
+
   it("falls back to defaults on corrupt storage", () => {
     const storage = new MemoryStorage();
     storage.setItem("genelife.settings", "{not json");

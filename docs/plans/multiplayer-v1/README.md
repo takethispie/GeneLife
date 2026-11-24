@@ -1,6 +1,6 @@
 # Multiplayer V1 — Step Index
 
-**Status:** Steps 01–04 and 06–14 done; step 05 is partial (command intents not drained).
+**Status:** All steps done. Step 05 is complete: `SimulationEngine.DrainPlayerIntents()` drains `MoveIntent`, `UseBuildingIntent` and typed `PlayerActionIntent` commands exactly once at tick start.
 
 One world, server-authoritative, up to 32 concurrent players. No instances or lobbies.
 
@@ -11,7 +11,7 @@ flowchart TD
     S01[01 structural safety ✅] --> S02[02 employment truth ✅]
     S01 --> S04[04 tick loop ✅]
     S03[03 network ids ✅] --> S06[06 snapshots ✅]
-    S04 --> S05[05 command queue 🟡]
+    S04 --> S05[05 command queue ✅]
     S05 --> S06
     S07[07 identity ✅] --> S08[08 player vs npc ✅]
     S08 --> S09[09 authorization ✅]
@@ -26,7 +26,7 @@ flowchart TD
     S13 --> S14
 ```
 
-Legend: ✅ done · 🟡 partial
+Legend: ✅ done
 
 ## Rules
 

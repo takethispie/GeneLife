@@ -18,7 +18,7 @@
 | Map admin console | Implemented | `Genelife.Web/Pages/Map.razor`, inspect and placement form |
 | Player spawn and intent drain | Implemented | `PlayerSpawnService`, `DrainPlayerIntents`, hub connect spawn |
 | Movement and pathfinding | Implemented | `MovementSystem`, `PathfindingSystem`, `TilePathfinder` |
-| NPC commute presence | Implemented | `WorkScheduleSystem` moves to office/home entries; `CommuteMode.Animate` opt-in |
+| NPC commute presence | Implemented | `WorkScheduleSystem` moves to office/home entries; `CommuteMode.Animate` is default-on with a 2,000-sim budget test |
 | Building interactions | Implemented | `UseBuildingIntent`; residential, office and school actions |
 | Map change events and projections | Implemented | `MapGenerated`/`BuildingPlaced`/`BuildingRemoved`, `MapProjection`, Marten documents |
 | Map replication | Implemented | `SendMapSnapshot` on connect, map deltas, `/api/map` |
@@ -34,6 +34,6 @@
 
 ## Deferred follow-ups
 
-- The admin map can inspect and place buildings, but does not yet support relocation of an occupied building. That remains a separate feature because it must update residents, employees, students and path caches.
-- `CommuteMode.Animate` is opt-in and validates the contract; enabling it by default should follow a dedicated pathfinding-budget measurement.
+- Occupied buildings can be relocated from the admin map through `RelocateBuildingCommand`; residents, employees, students, service links and venue presence stay attached and paths are rebuilt.
+- `CommuteMode.Animate` is default-on. `CommuteAnimationBudgetTests` measures the 2,000-sim year with abstract and animated commutes and fails if animated p95 leaves the 15 ms budget or regresses more than 2 ms.
 - Map history retention is intentionally small; a client far behind receives a full map snapshot rather than an unbounded event replay.

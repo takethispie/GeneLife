@@ -29,3 +29,17 @@ public record BuildingRemoved(
     int MapVersion,
     ulong NetworkId,
     long Tick);
+
+public record BuildingRelocated(
+    string MapId,
+    int MapVersion,
+    ulong NetworkId,
+    int FromX,
+    int FromY,
+    int X,
+    int Y,
+    int Width,
+    int Height,
+    int EntryX,
+    int EntryY,
+    long Tick);

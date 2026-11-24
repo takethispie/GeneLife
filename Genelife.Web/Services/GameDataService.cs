@@ -70,6 +70,22 @@ public sealed class GameDataService
             $"Placement failed ({(int)response.StatusCode}): {body}");
     }
 
+    public async Task RelocateBuildingAsync(
+        ulong networkId,
+        RelocateBuildingRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        using var response = await SendWithAuthRetryAsync(
+            () => http.PostAsJsonAsync($"api/map/buildings/{networkId}/relocate", request, cancellationToken),
+            cancellationToken);
+        if (response.IsSuccessStatusCode)
+            return;
+
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        throw new InvalidOperationException(
+            $"Relocation failed ({(int)response.StatusCode}): {body}");
+    }
+
     public async Task<SimulationStatus> GetSimulationStatusAsync(CancellationToken cancellationToken = default)    {
         using var response = await SendWithAuthRetryAsync(
             () => http.GetAsync("api/simulation/status", cancellationToken), cancellationToken);
@@ -843,5 +859,11 @@ public sealed record PlaceBuildingRequest(
     int Y,
     int Width,
     int Height,
+    int EntryX,
+    int EntryY);
+
+public sealed record RelocateBuildingRequest(
+    int X,
+    int Y,
     int EntryX,
     int EntryY);

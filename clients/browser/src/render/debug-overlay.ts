@@ -13,6 +13,8 @@ export interface DebugMetrics {
   tick: number;
   bufferFrames: number;
   interpolationDelayMs: number;
+  inputAckP50Ms: number;
+  inputAckP95Ms: number;
   bytesPerSecond: number;
   reconnectCount: number;
   renderer: string;
@@ -34,6 +36,8 @@ const EMPTY: DebugMetrics = {
   tick: 0,
   bufferFrames: 0,
   interpolationDelayMs: 0,
+  inputAckP50Ms: 0,
+  inputAckP95Ms: 0,
   bytesPerSecond: 0,
   reconnectCount: 0,
   renderer: "",
@@ -63,6 +67,7 @@ export class DebugOverlay {
       `camera ${metrics.cameraX.toFixed(1)},${metrics.cameraY.toFixed(1)} zoom ${metrics.zoom.toFixed(2)}`,
       `visible tiles ${metrics.visibleTiles}  buildings ${metrics.visibleBuildings}  sims ${metrics.visibleSims}/${metrics.totalSims}`,
       `tick ${metrics.tick}  buffer ${metrics.bufferFrames}  interp ${metrics.interpolationDelayMs}ms`,
+      `input ack p50 ${metrics.inputAckP50Ms.toFixed(0)}ms  p95 ${metrics.inputAckP95Ms.toFixed(0)}ms`,
       `rx ${(metrics.bytesPerSecond / 1024).toFixed(1)} KiB/s  reconnects ${metrics.reconnectCount}`,
       `build ${metrics.buildStamp}`
     ].join("\n");
