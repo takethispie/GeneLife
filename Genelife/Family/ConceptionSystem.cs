@@ -21,13 +21,16 @@ public sealed class ConceptionSystem : ISimulationSystem
     private readonly PregnancyService service;
     private readonly ReproductionOptions options;
 
+    private readonly int cadenceOffset;
+
     public ConceptionSystem(
         World world,
         EconomyContext economy,
         RelationshipIndex relationships,
         PregnancyIndex pregnancies,
         PregnancyService service,
-        ReproductionOptions options)
+        ReproductionOptions options,
+        int cadenceOffset = 0)
     {
         this.world = world;
         this.economy = economy;
@@ -35,11 +38,12 @@ public sealed class ConceptionSystem : ISimulationSystem
         this.pregnancies = pregnancies;
         this.service = service;
         this.options = options;
+        this.cadenceOffset = cadenceOffset;
     }
 
     public string Name => "Conception";
     public int Order => 370;
-    public Cadence Cadence => new(Math.Max(1, economy.Clock.TicksPerMonth));
+    public Cadence Cadence => new(Math.Max(1, economy.Clock.TicksPerMonth), cadenceOffset);
 
     void ISimulationSystem.Update(in SimulationContext context) => Update(context.Tick);
 

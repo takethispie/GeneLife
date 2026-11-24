@@ -4,6 +4,14 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- V6 runtime tuning: the 20 Hz simulation loop allocates heavily per tick,
+         so server GC keeps gen2 pauses off the tick thread and PGO improves
+         steady-state throughput. See docs/plans/roadmap-v6. -->
+    <ServerGarbageCollection>true</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+    <TieredPGO>true</TieredPGO>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <PublishReadyToRun>true</PublishReadyToRun>
   </PropertyGroup>
 
   <ItemGroup>

@@ -19,6 +19,7 @@ public class SimulationLoop : BackgroundService
     private long overrunCount;
     private long droppedTicks;
     private long lastDropLogTimestamp;
+    private long lastOverrunLogTimestamp;
     private double lastTickMilliseconds;
     private readonly PeriodicTimer timer = new(FixedStep);
 
@@ -26,6 +27,10 @@ public class SimulationLoop : BackgroundService
     {
         this.engine = engine;
         this.logger = logger;
+
+        // The hosted loop is the production path: run snapshot construction on
+        // its own consumer thread so it does not count against the tick budget.
+        engine.AsyncSnapshots = true;
     }
 
     public long TickCount => Volatile.Read(ref tickCount);
@@ -40,7 +45,18 @@ public class SimulationLoop : BackgroundService
         return elapsed > 0 ? Volatile.Read(ref tickCount) / elapsed : 0;
     }
 
-    protected override async Task ExecuteAsync(CancellationToken cancellationToken)
+    protected override Task ExecuteAsync(CancellationToken cancellationToken)
+    {
+        // A dedicated long-running thread keeps the fixed-step loop off the
+        // shared thread pool, so request load cannot delay a tick.
+        return Task.Factory.StartNew(
+            () => RunLoop(cancellationToken),
+            cancellationToken,
+            TaskCreationOptions.LongRunning,
+            TaskScheduler.Default);
+    }
+
+    private void RunLoop(CancellationToken cancellationToken)
     {
         var sw = Stopwatch.StartNew();
         var lastTime = sw.Elapsed;
@@ -49,7 +65,7 @@ public class SimulationLoop : BackgroundService
         {
             try
             {
-                await timer.WaitForNextTickAsync(cancellationToken);
+                timer.WaitForNextTickAsync(cancellationToken).AsTask().GetAwaiter().GetResult();
             }
             catch (OperationCanceledException)
             {
@@ -74,7 +90,7 @@ public class SimulationLoop : BackgroundService
                 {
                     Interlocked.Increment(ref overrunCount);
                     if (logger is not null)
-                        LogOverrun(tickMilliseconds);
+                        TryLogOverrun(tickMilliseconds);
                 }
             }
 
@@ -97,6 +113,23 @@ public class SimulationLoop : BackgroundService
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Logs an overrun at most once per <see cref="DropLogInterval"/>. Building the
+    /// metrics snapshot takes the metrics lock and sorts every system, which is
+    /// exactly the work that makes a sustained overrun worse, so the expensive
+    /// part is throttled while <see cref="OverrunCount"/> keeps counting.
+    /// </summary>
+    private void TryLogOverrun(double tickMilliseconds)
+    {
+        var now = Stopwatch.GetTimestamp();
+        var lastLog = Interlocked.Read(ref lastOverrunLogTimestamp);
+        if (lastLog != 0 && Stopwatch.GetElapsedTime(lastLog, now) < DropLogInterval)
+            return;
+
+        Interlocked.Exchange(ref lastOverrunLogTimestamp, now);
+        LogOverrun(tickMilliseconds);
     }
 
     private void LogOverrun(double tickMilliseconds)

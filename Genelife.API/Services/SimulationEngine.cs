@@ -76,9 +76,51 @@ public class SimulationEngine : IDisposable
     private bool isRunning;
     private long tick;
     private WorldSnapshot? _latest;
-    private readonly object @lock = new();
+    // Appearance is a pure function of traits, age band and version. Snapshot
+    // construction is the only writer, and it runs under the world lock (tick)
+    // or the snapshot consumer's read lock, so no extra synchronisation is
+    // needed. Cleared on Initialize/Shutdown.
+    private readonly Dictionary<Entity, AppearanceCacheEntry> appearanceCache = new();
+    // Reader/writer lock: the tick holds the write lock while it mutates the
+    // world, and read-only accessors take the read lock so HTTP and broadcast
+    // readers do not serialize against each other or against snapshot builds.
+    private readonly ReaderWriterLockSlim @lock = new(LockRecursionPolicy.SupportsRecursion);
+
+    private WriteLockScope WriteLock() => new(@lock);
+
+    private ReadLockScope ReadLock() => new(@lock);
+
+    private readonly struct WriteLockScope : IDisposable
+    {
+        private readonly ReaderWriterLockSlim gate;
+
+        public WriteLockScope(ReaderWriterLockSlim gate)
+        {
+            this.gate = gate;
+            gate.EnterWriteLock();
+        }
+
+        public void Dispose() => gate.ExitWriteLock();
+    }
+
+    private readonly struct ReadLockScope : IDisposable
+    {
+        private readonly ReaderWriterLockSlim gate;
+
+        public ReadLockScope(ReaderWriterLockSlim gate)
+        {
+            this.gate = gate;
+            gate.EnterReadLock();
+        }
+
+        public void Dispose() => gate.ExitReadLock();
+    }
 private readonly NetworkIdRegistry networkIds = new();
     private readonly SnapshotHistory history = new();
+    private Thread? snapshotThread;
+    private CancellationTokenSource? snapshotCancellation;
+    private AutoResetEvent? snapshotSignal;
+    private int snapshotPending;
     private readonly Action<SystemRunResult> recordSystemRun;
     private readonly ConcurrentQueue<EnqueuedCommand> queuedCommands = new();
     private readonly ConcurrentQueue<AdminCommand> adminCommands = new();
@@ -86,6 +128,7 @@ private readonly NetworkIdRegistry networkIds = new();
     private readonly ConcurrentQueue<PlayerLifecycleNotice> playerLifecycleNotices = new();
     private readonly ConcurrentDictionary<Guid, CommandResult> commandResults = new();
     private readonly ConcurrentDictionary<Guid, byte> seenAdminCommands = new();
+    private readonly ConcurrentDictionary<Guid, TaskCompletionSource<CommandResult>> adminWaiters = new();
     private readonly Channel<object> outboundEvents = Channel.CreateBounded<object>(
         new BoundedChannelOptions(50_000)
         {
@@ -94,6 +137,7 @@ private readonly NetworkIdRegistry networkIds = new();
             SingleWriter = true
         });
     private long droppedEventCount;
+    private readonly List<object> tickEvents = new(4096);
     private readonly HashSet<Guid> processedMessageIds = new(1024);
     private readonly PlayerRegistry playerRegistry = new();
     private PlayerActionService? playerActions;
@@ -133,44 +177,66 @@ private readonly NetworkIdRegistry networkIds = new();
             metrics.RecordSystem(result.Name, result.Milliseconds, result.AllocatedBytes);
     }
 
-    public bool IsRunning { get { lock (@lock) { return isRunning; } } }
-    public World? World { get { lock (@lock) { return world; } } }
-    public EconomyContext? Economy { get { lock (@lock) { return economy; } } }
+    public bool IsRunning { get { using (ReadLock()) { return isRunning; } } }
+    public World? World { get { using (ReadLock()) { return world; } } }
+    public EconomyContext? Economy { get { using (ReadLock()) { return economy; } } }
     public SimulationClock Clock => clock;
     public SimulationClockOptions ClockOptions { get; set; } = new();
     public Genelife.Map.MapOptions MapOptions { get; set; } = Genelife.Map.MapOptions.Default;
     public Genelife.Map.MapGenerationOptions MapGenerationOptions { get; set; } = Genelife.Map.MapGenerationOptions.Default;
     public Genelife.Map.MovementOptions MovementOptions { get; set; } = Genelife.Map.MovementOptions.Default;
     public Genelife.Map.CommuteOptions CommuteOptions { get; set; } = Genelife.Map.CommuteOptions.Default;
-    public MapContext? MapContext { get { lock (@lock) { return mapContext; } } }
-    public MovementIndex? MovementIndex { get { lock (@lock) { return movementIndex; } } }
+    public MapContext? MapContext { get { using (ReadLock()) { return mapContext; } } }
+    public MovementIndex? MovementIndex { get { using (ReadLock()) { return movementIndex; } } }
     public IReadOnlyList<MapMetricsSnapshot> MapMetricsHistory => mapMetrics?.History ?? Array.Empty<MapMetricsSnapshot>();
-    public int MapVersion { get { lock (@lock) { return mapContext?.Version ?? 0; } } }
+    public int MapVersion { get { using (ReadLock()) { return mapContext?.Version ?? 0; } } }
     public int RandomSeed { get; set; } = 1;
-    public EmploymentIndex? EmploymentIndex { get { lock (@lock) { return employmentIndex; } } }
-    public RelationshipIndex Relationships { get { lock (@lock) { return relationshipIndex; } } }
-    public RelationshipService? RelationshipService { get { lock (@lock) { return relationshipService; } } }
+    public EmploymentIndex? EmploymentIndex { get { using (ReadLock()) { return employmentIndex; } } }
+    public RelationshipIndex Relationships { get { using (ReadLock()) { return relationshipIndex; } } }
+    public RelationshipService? RelationshipService { get { using (ReadLock()) { return relationshipService; } } }
     public Genelife.Social.SocialGraphService SocialGraph => socialGraph;
-    public Genelife.Family.PlayerRelationshipService? PlayerRelationships { get { lock (@lock) { return playerRelationships; } } }
-    public Genelife.Social.VenueService? Venues { get { lock (@lock) { return venueService; } } }
-    public Genelife.Social.VenueActivityService? VenueActivities { get { lock (@lock) { return venueActivities; } } }
-    public RelationshipOptions RelationshipOptions { get { lock (@lock) { return relationshipOptions; } } }
-    public RelationshipCache RelationshipCache { get { lock (@lock) { return relationshipCache; } } }
-    public ReproductionOptions ReproductionOptions { get { lock (@lock) { return reproductionOptions; } } }
-    public FamilyHousingPolicy FamilyHousingPolicy { get { lock (@lock) { return familyHousingPolicy; } } }
-    public PregnancyIndex Pregnancies { get { lock (@lock) { return pregnancyIndex; } } }
-    public PregnancyService? PregnancyService { get { lock (@lock) { return pregnancyService; } } }
-    public InheritanceOptions InheritanceOptions { get { lock (@lock) { return inheritanceOptions; } } }
-    public GuardianshipOptions GuardianshipOptions { get { lock (@lock) { return guardianshipOptions; } } }
-    public TrustService? Trusts { get { lock (@lock) { return trustService; } } }
-    public GuardianshipService? Guardianship { get { lock (@lock) { return guardianshipService; } } }
+    public Genelife.Family.PlayerRelationshipService? PlayerRelationships { get { using (ReadLock()) { return playerRelationships; } } }
+    public Genelife.Social.VenueService? Venues { get { using (ReadLock()) { return venueService; } } }
+    public Genelife.Social.VenueActivityService? VenueActivities { get { using (ReadLock()) { return venueActivities; } } }
+    public RelationshipOptions RelationshipOptions { get { using (ReadLock()) { return relationshipOptions; } } }
+    public RelationshipCache RelationshipCache { get { using (ReadLock()) { return relationshipCache; } } }
+    public ReproductionOptions ReproductionOptions { get { using (ReadLock()) { return reproductionOptions; } } }
+    public FamilyHousingPolicy FamilyHousingPolicy { get { using (ReadLock()) { return familyHousingPolicy; } } }
+    public PregnancyIndex Pregnancies { get { using (ReadLock()) { return pregnancyIndex; } } }
+    public PregnancyService? PregnancyService { get { using (ReadLock()) { return pregnancyService; } } }
+    public InheritanceOptions InheritanceOptions { get { using (ReadLock()) { return inheritanceOptions; } } }
+    public GuardianshipOptions GuardianshipOptions { get { using (ReadLock()) { return guardianshipOptions; } } }
+    public TrustService? Trusts { get { using (ReadLock()) { return trustService; } } }
+    public GuardianshipService? Guardianship { get { using (ReadLock()) { return guardianshipService; } } }
     public NetworkIdRegistry NetworkIds => networkIds;
     public PlayerRegistry Players => playerRegistry;
     public SnapshotHistory SnapshotHistory => history;
     public long LastSnapshotBuildTimeMs { get; private set; }
     public double LastTickMilliseconds { get; private set; }
-    public long CurrentTick { get { lock (@lock) { return tick; } } }
+    public long CurrentTick { get { using (ReadLock()) { return tick; } } }
     public bool SnapshotsEnabled { get; set; } = true;
+    /// <summary>
+    /// Spreads monthly and pay-cycle systems across a small phase window. Must be
+    /// set before <see cref="Initialize"/>. Off by default: staggering changes the
+    /// order in which coupled family and payroll passes see the world, which
+    /// moves the decade balance bands even though per-interval run counts and
+    /// same-seed determinism are unchanged. Enable it for measurement runs.
+    /// </summary>
+    public bool StaggerCadence { get; set; }
+    /// <summary>
+    /// Runs the per-entity needs/decision/action passes across Arch chunks. Must
+    /// be set before <see cref="Initialize"/>. Off by default: on the 1k/5k load
+    /// harness the chunk scheduling cost exceeds the win for these cheap passes,
+    /// so it is kept as a measured opt-in for larger worlds and release builds.
+    /// </summary>
+    public bool ParallelSystems { get; set; }
+    /// <summary>
+    /// When true the tick signals a dedicated consumer instead of building the
+    /// snapshot inline. The hosted simulation loop enables this so snapshot
+    /// construction stays off the tick budget. Tests that call Tick directly
+    /// leave it false and get a synchronous snapshot.
+    /// </summary>
+    public bool AsyncSnapshots { get; set; }
     public IMessageBus? MessageBus { get; set; }
 
     public void EnqueueCommand(EnqueuedCommand command)
@@ -229,9 +295,18 @@ private readonly NetworkIdRegistry networkIds = new();
         InheritanceOptions? inheritanceOptions = null,
         GuardianshipOptions? guardianshipOptions = null)
     {
-        lock (@lock)
+        // Do not tear down a running engine's snapshot consumer just because a
+        // second Initialize call arrives; the guarded block below returns early.
+        if (IsRunning)
+            return;
+
+        if (!@lock.IsWriteLockHeld)
+            StopSnapshotConsumer();
+
+        using (WriteLock())
         {
             if (isRunning) return;
+            var stagger = StaggerCadence ? 1 : 0;
             world = World.Create();
             mapContext = MapContext.Generate(world, MapOptions, MapGenerationOptions);
             movementIndex = new MovementIndex();
@@ -241,6 +316,7 @@ private readonly NetworkIdRegistry networkIds = new();
             EmitMapGenerated(0);
             lastIntentSequence.Clear();
             metrics = new Metrics();
+            appearanceCache.Clear();
             employmentIndex = new EmploymentIndex();
             clock = new SimulationClock(ClockOptions);
             economy = new EconomyContext(
@@ -362,31 +438,31 @@ private readonly NetworkIdRegistry networkIds = new();
                 venueService,
                 venueActivities);
 
-            systems = new SystemRegistry();
-            systems.Register(new NeedsDecaySystem(world));
-            systems.Register(new PathfindingSystem(world, mapContext.Map, movementIndex, MovementOptions.PathRequestBudgetPerTick));
+            systems = new SystemRegistry(samplingInterval: 5);
+            systems.Register(new NeedsDecaySystem(world, ParallelSystems));
+            systems.Register(new PathfindingSystem(world, mapContext.Map, movementIndex, MovementOptions.PathRequestBudgetPerTick, MovementOptions.MaxPathIterationsPerTick));
             systems.Register(new MovementSystem(world, mapContext.Map, movementIndex, MovementOptions.PlayerSpeedTilesPerSecond));
             systems.Register(new VenuePresenceSystem(venueService));
             systems.Register(mapMetrics);
             systems.Register(new HousingModifierSystem(world, economy.Housing));
             systems.Register(new AgingSystem(world, economy));
             systems.Register(new HealthSystem(world, economy));
-            systems.Register(new DecisionSystem(world));
-            systems.Register(new ActionSystem(world));
+            systems.Register(new DecisionSystem(world, ParallelSystems));
+            systems.Register(new ActionSystem(world, ParallelSystems));
             systems.Register(new EducationSystem(world, economy));
             systems.Register(new EnrollmentSystem(world, economy));
             systems.Register(new WorkScheduleSystem(world, economy, mapContext, movementIndex, CommuteOptions));
             systems.Register(new AttendanceSystem(world, economy));
             systems.Register(new CareerSystem(world, economy));
-            systems.Register(new ConceptionSystem(world, economy, relationshipIndex, pregnancyIndex, pregnancyService, this.reproductionOptions));
-            systems.Register(new PregnancySystem(world, economy, pregnancyIndex, pregnancyService, this.reproductionOptions));
-            systems.Register(new BirthSystem(world, economy, pregnancyIndex, pregnancyService, newbornFactory, entity => networkIds.Allocate(entity), this.reproductionOptions));
-            systems.Register(new FamilyHouseholdSystem(world, economy, relationshipIndex, this.relationshipOptions, this.familyHousingPolicy));
-            systems.Register(new TrustSystem(economy, trustService));
-            systems.Register(new StateCareSystem(world, economy));
-            systems.Register(new RelationshipExposureSystem(world, economy, relationshipIndex, this.relationshipOptions, relationshipCache));
-            systems.Register(new AttractionSystem(world, economy, relationshipIndex, this.relationshipOptions, relationshipCache));
-            systems.Register(new PairingSystem(world, economy, relationshipService!, relationshipIndex, this.relationshipOptions, relationshipCache));
+            systems.Register(new ConceptionSystem(world, economy, relationshipIndex, pregnancyIndex, pregnancyService, this.reproductionOptions, cadenceOffset: 2 * stagger));
+            systems.Register(new PregnancySystem(world, economy, pregnancyIndex, pregnancyService, this.reproductionOptions, cadenceOffset: 4 * stagger));
+            systems.Register(new BirthSystem(world, economy, pregnancyIndex, pregnancyService, newbornFactory, entity => networkIds.Allocate(entity), this.reproductionOptions, cadenceOffset: 6 * stagger));
+            systems.Register(new FamilyHouseholdSystem(world, economy, relationshipIndex, this.relationshipOptions, this.familyHousingPolicy, cadenceOffset: 8 * stagger));
+            systems.Register(new TrustSystem(economy, trustService, cadenceOffset: 12 * stagger));
+            systems.Register(new StateCareSystem(world, economy, cadenceOffset: 10 * stagger));
+            systems.Register(new RelationshipExposureSystem(world, economy, relationshipIndex, this.relationshipOptions, relationshipCache, cadenceOffset: 0));
+            systems.Register(new AttractionSystem(world, economy, relationshipIndex, this.relationshipOptions, relationshipCache, cadenceOffset: 3 * stagger));
+            systems.Register(new PairingSystem(world, economy, relationshipService!, relationshipIndex, this.relationshipOptions, relationshipCache, cadenceOffset: 6 * stagger));
             systems.Register(new StageProgressionSystem(world, economy));
             systems.Register(new HiringSystem(world, employmentIndex, 25, economy));
             systems.Register(new PensionSystem(world, economy));
@@ -414,7 +490,7 @@ private readonly NetworkIdRegistry networkIds = new();
             systems.Register(new PopulationMetricsSystem(world, economy, relationships: relationshipIndex));
             systems.Register(new CompanyRevenueSystem(world, economy));
             systems.Register(new ConsumerSpendingSystem(world, economy));
-            systems.Register(new PayrollSystem(world, economy));
+            systems.Register(new PayrollSystem(world, economy, cadenceOffset: 9 * stagger));
             systems.Register(new CompanyCostsSystem(world, economy));
             systems.Register(new RentSystem(world, economy));
             systems.Register(new HousingMoveSystem(world, economy));
@@ -463,9 +539,12 @@ private readonly NetworkIdRegistry networkIds = new();
 
     public void Shutdown()
     {
+        if (!@lock.IsWriteLockHeld)
+            StopSnapshotConsumer();
+
         WorldSaveBatch? batchToSave = null;
 
-        lock (@lock)
+        using (WriteLock())
         {
             if (!isRunning)
                 return;
@@ -499,6 +578,7 @@ private readonly NetworkIdRegistry networkIds = new();
             history.Clear();
             networkIds.Clear();
             _latest = null;
+            appearanceCache.Clear();
             isRunning = false;
         }
 
@@ -514,7 +594,7 @@ private readonly NetworkIdRegistry networkIds = new();
     /// </summary>
     public WorldSaveBatch? PrepareSave()
     {
-        lock (@lock)
+        using (ReadLock())
         {
             if (!isRunning || world == null || employmentIndex == null || worldSaveService == null)
                 return null;
@@ -525,22 +605,27 @@ private readonly NetworkIdRegistry networkIds = new();
 
     public void Tick(float deltaTime)
     {
-        List<object> events = new();
+        var events = tickEvents;
+        events.Clear();
 
         DrainCommands();
         DrainAdminCommands();
         DrainPlayerIntents();
 
-        lock (@lock)
+        var tickStart = Stopwatch.GetTimestamp();
+        var allocatedStart = GC.GetAllocatedBytesForCurrentThread();
+        var hasEventConsumer = documentStore != null || MessageBus != null;
+
+        // Phase 1: mutate the world under the write lock only.
+        World currentWorld;
+        using (WriteLock())
         {
             if (!isRunning || world == null)
                 return;
 
             tick++;
+            currentWorld = world;
 
-            var currentWorld = world;
-            var tickStart = Stopwatch.GetTimestamp();
-            var allocatedStart = GC.GetAllocatedBytesForCurrentThread();
             var context = new SimulationContext(tick, deltaTime, clock);
             economy.Tick = tick;
 
@@ -555,32 +640,42 @@ private readonly NetworkIdRegistry networkIds = new();
                     ObservePlayerLifecycleEvent(currentWorld, e, events);
                 }
             }
-
-            CollectSimEvents(currentWorld, events);
-            CollectMapEvents(events);
-
-if (SnapshotsEnabled)
-            {
-                var snapshotStart = Stopwatch.GetTimestamp();
-                var sims = BuildSimSnapshots(currentWorld);
-                var companies = BuildCompanySnapshots(currentWorld, employmentIndex!);
-                var next = new WorldSnapshot(tick, WorldSnapshot.CurrentVersion, sims, companies);
-                LastSnapshotBuildTimeMs = (long)ElapsedMilliseconds(snapshotStart);
-
-                Interlocked.Exchange(ref _latest, next);
-                history.Record(next);
-
-                metrics.RecordSystem("SnapshotBuild", LastSnapshotBuildTimeMs, 0);
-            }
-
-            var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedStart;
-            LastTickMilliseconds = ElapsedMilliseconds(tickStart);
-            metrics.RecordTick(LastTickMilliseconds, allocatedBytes, currentWorld.Size);
-
-            events.Add(new TickCompleted(tick, currentWorld.Size, ElapsedMilliseconds(tickStart)));
         }
 
-        if (documentStore != null || MessageBus != null)
+        // Phase 2: read the world under the read lock. Snapshot construction and
+        // event collection no longer block request readers behind the write lock.
+        using (ReadLock())
+        {
+            // Collecting sim/map events is a full-world pass that only the
+            // persistence writer consumes. Skip it entirely when nobody reads
+            // the outbound channel.
+            if (hasEventConsumer)
+            {
+                CollectSimEvents(currentWorld, events);
+                CollectMapEvents(events);
+            }
+
+            if (SnapshotsEnabled)
+            {
+                if (AsyncSnapshots)
+                {
+                    SignalSnapshotConsumer();
+                }
+                else
+                {
+                    PublishSnapshot(currentWorld);
+                }
+            }
+        }
+
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedStart;
+        LastTickMilliseconds = ElapsedMilliseconds(tickStart);
+        metrics.RecordTick(LastTickMilliseconds, allocatedBytes, currentWorld.Size);
+
+        if (hasEventConsumer)
+            events.Add(new TickCompleted(tick, currentWorld.Size, ElapsedMilliseconds(tickStart)));
+
+        if (hasEventConsumer)
         {
             foreach (var e in events)
             {
@@ -588,6 +683,120 @@ if (SnapshotsEnabled)
                     Interlocked.Increment(ref droppedEventCount);
             }
         }
+    }
+
+    /// <summary>
+    /// Builds and publishes a world snapshot. The caller must hold at least the
+    /// read lock so the world cannot change underneath the enumeration.
+    /// </summary>
+    private void PublishSnapshot(World currentWorld)
+    {
+        var snapshotStart = Stopwatch.GetTimestamp();
+        var sims = BuildSimSnapshots(currentWorld);
+        var companies = BuildCompanySnapshots(currentWorld, employmentIndex!);
+        var next = new WorldSnapshot(tick, WorldSnapshot.CurrentVersion, sims, companies);
+        LastSnapshotBuildTimeMs = (long)ElapsedMilliseconds(snapshotStart);
+
+        Interlocked.Exchange(ref _latest, next);
+        history.Record(next);
+
+        metrics.RecordSystem("SnapshotBuild", LastSnapshotBuildTimeMs, 0);
+    }
+
+    private void SignalSnapshotConsumer()
+    {
+        EnsureSnapshotConsumer();
+        var signal = snapshotSignal;
+        if (signal is not null && Interlocked.Exchange(ref snapshotPending, 1) == 0)
+            signal.Set();
+    }
+
+    private void EnsureSnapshotConsumer()
+    {
+        if (snapshotThread is not null)
+            return;
+
+        snapshotCancellation = new CancellationTokenSource();
+        var signal = new AutoResetEvent(false);
+        snapshotSignal = signal;
+        snapshotThread = new Thread(() => SnapshotConsumerLoop(signal, snapshotCancellation.Token))
+        {
+            IsBackground = true,
+            Name = "genelife-snapshot-consumer"
+        };
+        snapshotThread.Start();
+    }
+
+    /// <summary>
+    /// Builds the world snapshot off the tick thread. Signals are coalesced: if
+    /// the tick publishes several times while a build is in flight, the consumer
+    /// builds the latest world once and moves on.
+    /// </summary>
+    private void SnapshotConsumerLoop(AutoResetEvent signal, CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                signal.WaitOne(100);
+            }
+            catch (ObjectDisposedException)
+            {
+                return;
+            }
+
+            if (cancellationToken.IsCancellationRequested)
+                return;
+
+            if (Interlocked.Exchange(ref snapshotPending, 0) == 0)
+                continue;
+
+            try
+            {
+                using (ReadLock())
+                {
+                    if (!isRunning || world is null || !SnapshotsEnabled)
+                        continue;
+
+                    PublishSnapshot(world);
+                }
+            }
+            catch (Exception)
+            {
+                // Snapshot construction must never take down the consumer; the
+                // next tick will publish again.
+            }
+        }
+    }
+
+    private void StopSnapshotConsumer()
+    {
+        var cancellation = snapshotCancellation;
+        var signal = snapshotSignal;
+        var thread = snapshotThread;
+
+        snapshotCancellation = null;
+        snapshotSignal = null;
+        snapshotThread = null;
+
+        if (cancellation is null || thread is null)
+            return;
+
+        cancellation.Cancel();
+        try
+        {
+            signal?.Set();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+
+        if (thread != Thread.CurrentThread)
+            thread.Join(TimeSpan.FromSeconds(5));
+
+        signal?.Dispose();
+        cancellation.Dispose();
+        Interlocked.Exchange(ref snapshotPending, 0);
     }
 
     private void ObservePlayerLifecycleEvent(World currentWorld, object @event, List<object> events)
@@ -832,7 +1041,7 @@ if (SnapshotsEnabled)
             if (!processedMessageIds.Add(command.MessageId))
                 continue;
 
-            lock (@lock)
+            using (WriteLock())
             {
                 if (!isRunning || world == null)
                     continue;
@@ -914,6 +1123,39 @@ if (SnapshotsEnabled)
         return commandResults.TryGetValue(commandId, out var result) ? result : null;
     }
 
+    /// <summary>
+    /// Enqueues an admin mutation and blocks until the simulation tick applies
+    /// it. Legacy admin endpoints need the created network id synchronously;
+    /// routing through the queue keeps the request thread out of the world.
+    /// </summary>
+    public CommandResult ExecuteAdminCommandSync(AdminCommand command, TimeSpan? timeout = null)
+    {
+        if (!isRunning)
+            throw new InvalidOperationException("Simulation is not running");
+
+        var waiter = new TaskCompletionSource<CommandResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        adminWaiters[command.CommandId] = waiter;
+        EnqueueAdminCommand(command);
+
+        // A duplicate command id may already have a result; complete immediately
+        // instead of waiting for a drain that will not happen.
+        if (commandResults.TryGetValue(command.CommandId, out var completed))
+        {
+            adminWaiters.TryRemove(command.CommandId, out _);
+            return completed;
+        }
+
+        var wait = timeout ?? TimeSpan.FromSeconds(2);
+        if (!waiter.Task.Wait(wait))
+        {
+            adminWaiters.TryRemove(command.CommandId, out _);
+            throw new TimeoutException(
+                $"Admin command {command.CommandId} was not applied within {wait.TotalMilliseconds:F0} ms.");
+        }
+
+        return waiter.Task.Result;
+    }
+
     public bool TryReservePlayerCommand(string playerId)
     {
         if (string.IsNullOrWhiteSpace(playerId))
@@ -983,7 +1225,7 @@ if (SnapshotsEnabled)
 
         commandQueue.Drain(intent =>
         {
-            lock (@lock)
+            using (WriteLock())
             {
                 if (!isRunning || world is null)
                     return;
@@ -1323,7 +1565,7 @@ if (SnapshotsEnabled)
 
     public ulong GetPlayerSimNetworkId(string playerId)
     {
-        lock (@lock)
+        using (ReadLock())
         {
             if (world is null || string.IsNullOrWhiteSpace(playerId))
                 return 0;
@@ -1336,7 +1578,7 @@ if (SnapshotsEnabled)
 
     public TileCoord? GetPlayerTile(string playerId)
     {
-        lock (@lock)
+        using (ReadLock())
         {
             if (world is null || mapContext is null || string.IsNullOrWhiteSpace(playerId))
                 return null;
@@ -1365,7 +1607,7 @@ if (SnapshotsEnabled)
     /// </summary>
     public ulong EnsurePlayerSim(string playerId)
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (!isRunning || world is null || string.IsNullOrWhiteSpace(playerId))
                 return 0;
@@ -1417,7 +1659,7 @@ if (SnapshotsEnabled)
     /// </summary>
     public PlayerRespawnStatus RespawnPlayerAsChild(string playerId)
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (!isRunning || world is null || economy is null || newbornFactory is null)
                 return RespawnFailed("world_not_ready", "The world is not ready yet.");
@@ -1573,7 +1815,7 @@ if (SnapshotsEnabled)
 
     public void EnsurePlayerSpawn(string playerId)
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (world is null || economy is null || mapContext is null)
                 return;
@@ -1605,11 +1847,15 @@ if (SnapshotsEnabled)
     {
         while (adminCommands.TryDequeue(out var command))
         {
-            if (commandResults.ContainsKey(command.CommandId))
+            if (commandResults.TryGetValue(command.CommandId, out var existingResult))
+            {
+                if (adminWaiters.TryRemove(command.CommandId, out var existingWaiter))
+                    existingWaiter.TrySetResult(existingResult);
                 continue;
+            }
 
             CommandResult result;
-            lock (@lock)
+            using (WriteLock())
             {
                 if (!isRunning || world == null || economy == null)
                 {
@@ -1645,6 +1891,9 @@ if (SnapshotsEnabled)
             }
 
             commandResults[command.CommandId] = result;
+            if (adminWaiters.TryRemove(command.CommandId, out var waiter))
+                waiter.TrySetResult(result);
+
             if (commandResults.Count > 1000)
                 commandResults.Clear();
         }
@@ -1655,6 +1904,36 @@ if (SnapshotsEnabled)
         var tick = this.tick;
         switch (command)
         {
+            case CreateSimCommand createSim:
+            {
+                var repository = new SimRepository(world, networkIds, economy, mapContext);
+                var networkId = repository.Add(createSim.Name, createSim.Age).Value;
+                Emit(new SimCreated(networkId, createSim.Name, createSim.Age));
+                return networkId;
+            }
+            case CreateCompanyCommand createCompany:
+            {
+                var repository = new CompanyRepository(
+                    world,
+                    employmentIndex!,
+                    networkIds,
+                    economy,
+                    map: mapContext);
+                var networkId = repository.Add(createCompany.Name).Value;
+                Emit(new CompanyCreated(networkId, createCompany.Name));
+                return networkId;
+            }
+            case DeleteSimCommand deleteSim:
+            {
+                var repository = new SimRepository(world, networkIds, economy, mapContext);
+                return repository.Delete(deleteSim.SimNetworkId);
+            }
+            case SetSimActionCommand setAction:
+            {
+                var repository = new SimRepository(world, networkIds, economy, mapContext);
+                repository.SetAction(setAction.SimNetworkId, setAction.ActionType);
+                return true;
+            }
             case PlaceBuildingCommand place:
             {
                 if (mapContext is null)
@@ -2676,7 +2955,7 @@ if (SnapshotsEnabled)
 
     public MapStatus BuildMapStatus()
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (mapContext is null)
                 return new MapStatus();
@@ -2720,7 +2999,7 @@ if (SnapshotsEnabled)
         List<MapBuildingStatus> buildings;
         int version;
 
-        lock (@lock)
+        using (WriteLock())
         {
             if (mapContext is null)
                 return new MapSnapshot();
@@ -2761,7 +3040,7 @@ if (SnapshotsEnabled)
             Buildings = buildings
         };
 
-        lock (@lock)
+        using (WriteLock())
         {
             cachedMapSnapshot = snapshot;
             cachedMapSnapshotKey = key;
@@ -2873,7 +3152,7 @@ if (SnapshotsEnabled)
 
     public MapHealthStatus BuildMapHealth()
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (mapContext is null || world is null)
                 return new MapHealthStatus();
@@ -2896,7 +3175,7 @@ if (SnapshotsEnabled)
 
     public MapViewportStatus? BuildMapViewport(int minX, int minY, int maxX, int maxY)
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (mapContext is null)
                 return null;
@@ -2940,7 +3219,7 @@ if (SnapshotsEnabled)
 
     public MapBuildingStatus? BuildMapBuilding(ulong networkId)
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (mapContext is null || !mapContext.Map.TryGetPlacement(new NetworkId(networkId), out var placement))
                 return null;
@@ -3040,7 +3319,7 @@ if (SnapshotsEnabled)
         long currentTick;
         bool running;
 
-        lock (@lock)
+        using (WriteLock())
         {
             running = isRunning;
             currentTick = tick;
@@ -3302,7 +3581,7 @@ if (SnapshotsEnabled)
 
     public EconomyStatus BuildEconomyStatus()
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (economy is null)
                 return new EconomyStatus();
@@ -3424,7 +3703,7 @@ if (SnapshotsEnabled)
 
     public HousingStatus BuildHousingStatus()
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (economy is null || world is null)
                 return new HousingStatus();
@@ -3532,7 +3811,7 @@ if (SnapshotsEnabled)
 
     public LifecycleStatus BuildLifecycleStatus()
     {
-        lock (@lock)
+        using (WriteLock())
         {
             var status = new LifecycleStatus();
             if (world is null || economy is null)
@@ -3664,7 +3943,7 @@ if (SnapshotsEnabled)
     /// </summary>
     public LifecycleStatus BuildLifecycleSummary()
     {
-        lock (@lock)
+        using (WriteLock())
         {
             var status = new LifecycleStatus();
             if (world is null || economy is null)
@@ -3803,7 +4082,7 @@ if (SnapshotsEnabled)
 
     public ConsumptionOverviewStatus BuildConsumptionOverview()
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (world is null || economy is null)
                 return new ConsumptionOverviewStatus(
@@ -3870,7 +4149,7 @@ if (SnapshotsEnabled)
 
     public IReadOnlyList<UtilityNetworkStatus> BuildConsumptionNetworks()
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (world is null)
                 return Array.Empty<UtilityNetworkStatus>();
@@ -3887,7 +4166,7 @@ if (SnapshotsEnabled)
         int skip = 0,
         string? level = null)
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (world is null || economy is null)
                 return new ConsumptionHouseholdPage(Array.Empty<ConsumptionHouseholdStatus>(), 0);
@@ -3925,7 +4204,7 @@ if (SnapshotsEnabled)
 
     public ConsumptionStorePage BuildConsumptionStores(int take = 100, int skip = 0)
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (world is null)
                 return new ConsumptionStorePage(Array.Empty<ConsumptionStoreStatus>(), 0);
@@ -3964,7 +4243,7 @@ if (SnapshotsEnabled)
 
     public PlayerPresenceDto? BuildPlayerPresence(string playerId)
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (world is null || string.IsNullOrWhiteSpace(playerId) ||
                 !playerRegistry.TryGet(playerId, out var profile) ||
@@ -4019,7 +4298,7 @@ if (SnapshotsEnabled)
 
     public AppearancePage BuildAppearancePage(int take = 100, int skip = 0, string? search = null)
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (world is null)
                 return new AppearancePage(Array.Empty<AppearanceSimStatus>(), 0);
@@ -4052,7 +4331,7 @@ if (SnapshotsEnabled)
 
     public AppearanceSimStatus? BuildAppearance(ulong simNetworkId)
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (world is null || !networkIds.TryGetEntity(new NetworkId(simNetworkId), out var entity))
                 return null;
@@ -4064,7 +4343,7 @@ if (SnapshotsEnabled)
 
     public AppearanceFamilyStatus? BuildAppearanceFamily(ulong simNetworkId)
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (world is null || !networkIds.TryGetEntity(new NetworkId(simNetworkId), out var focal))
                 return null;
@@ -4120,7 +4399,7 @@ if (SnapshotsEnabled)
 
     public AppearanceSimStatus? BuildOwnAppearance(string playerId)
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (world is null || string.IsNullOrWhiteSpace(playerId) ||
                 !playerRegistry.TryGet(playerId, out var profile) ||
@@ -4134,7 +4413,7 @@ if (SnapshotsEnabled)
 
     public PlayerOverviewStatus BuildPlayerOverview()
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (world is null || economy is null)
                 return new PlayerOverviewStatus(0, 0, 0, 0, 0, 0, 0, 0, 0);
@@ -4182,7 +4461,7 @@ if (SnapshotsEnabled)
         string? search = null,
         string? state = null)
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (world is null || economy is null)
                 return new PlayerLifePage(Array.Empty<PlayerLifeStatus>(), 0);
@@ -4205,7 +4484,7 @@ if (SnapshotsEnabled)
 
     public PlayerLifeStatus? BuildPlayerLife(string playerId)
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (world is null || economy is null || string.IsNullOrWhiteSpace(playerId))
                 return null;
@@ -4217,7 +4496,7 @@ if (SnapshotsEnabled)
 
     public IReadOnlyList<PlayerInvitationStatus> BuildPlayerInvitations(string playerId)
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (world is null || string.IsNullOrWhiteSpace(playerId) ||
                 !playerRegistry.TryGet(playerId, out var profile) ||
@@ -4469,7 +4748,7 @@ if (SnapshotsEnabled)
 
     public FamilyStatus BuildFamilyStatus()
     {
-        lock (@lock)
+        using (WriteLock())
         {
             var status = new FamilyStatus
             {
@@ -4654,7 +4933,7 @@ if (SnapshotsEnabled)
 
     public FamilyPerformanceStatus BuildFamilyPerformanceStatus()
     {
-        lock (@lock)
+        using (WriteLock())
         {
             var snapshot = metrics.Snapshot();
             var counts = relationshipCache.Candidates.Values
@@ -4692,7 +4971,7 @@ if (SnapshotsEnabled)
 
     public TraitDistributionStatus BuildTraitDistribution()
     {
-        lock (@lock)
+        using (WriteLock())
         {
             var result = new TraitDistributionStatus();
             if (world is null)
@@ -4730,7 +5009,7 @@ if (SnapshotsEnabled)
 
     public List<HouseholdCompositionStatus> BuildHouseholdCompositions()
     {
-        lock (@lock)
+        using (WriteLock())
         {
             var result = new List<HouseholdCompositionStatus>();
             if (world is null || economy is null)
@@ -4801,7 +5080,7 @@ if (SnapshotsEnabled)
 
     public PregnancyPageStatus BuildPregnancyPage(bool activeOnly = false, int take = 500, int skip = 0)
     {
-        lock (@lock)
+        using (WriteLock())
         {
             var page = new PregnancyPageStatus
             {
@@ -4832,7 +5111,7 @@ if (SnapshotsEnabled)
 
     public PregnancyStatusDto? BuildPregnancy(ulong pregnancyId)
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (world is null || economy is null ||
                 !networkIds.TryGetEntity(new NetworkId(pregnancyId), out var entity) ||
@@ -4845,7 +5124,7 @@ if (SnapshotsEnabled)
 
     public List<PregnancyStatusDto> BuildPregnanciesForSim(ulong simId)
     {
-        lock (@lock)
+        using (WriteLock())
         {
             var result = new List<PregnancyStatusDto>();
             if (world is null || economy is null ||
@@ -4901,7 +5180,7 @@ if (SnapshotsEnabled)
         int take = 500,
         int skip = 0)
     {
-        lock (@lock)
+        using (WriteLock())
         {
             var page = new ChildPageStatus
             {
@@ -4938,7 +5217,7 @@ if (SnapshotsEnabled)
 
     public ChildStatusDto? BuildChild(ulong childId)
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (world is null || economy is null ||
                 !networkIds.TryGetEntity(new NetworkId(childId), out var entity) ||
@@ -4953,7 +5232,7 @@ if (SnapshotsEnabled)
 
     public List<ChildStatusDto> BuildChildrenForSim(ulong simId)
     {
-        lock (@lock)
+        using (WriteLock())
         {
             var result = new List<ChildStatusDto>();
             if (world is null || economy is null ||
@@ -5033,7 +5312,7 @@ if (SnapshotsEnabled)
 
     public List<GuardianshipStatusDto> BuildGuardianships()
     {
-        lock (@lock)
+        using (WriteLock())
         {
             var result = new List<GuardianshipStatusDto>();
             if (world is null)
@@ -5085,7 +5364,7 @@ if (SnapshotsEnabled)
         ulong? householdId = null,
         string? name = null)
     {
-        lock (@lock)
+        using (WriteLock())
         {
             var page = new FamilySimPage
             {
@@ -5141,7 +5420,7 @@ if (SnapshotsEnabled)
 
     public FamilySimDetailStatus? BuildFamilySim(ulong simId)
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (world is null || economy is null ||
                 !networkIds.TryGetEntity(new NetworkId(simId), out var entity) ||
@@ -5261,7 +5540,7 @@ if (SnapshotsEnabled)
         int take = 100,
         int skip = 0)
     {
-        lock (@lock)
+        using (WriteLock())
         {
             var page = new FamilyRelationshipPage
             {
@@ -5323,7 +5602,7 @@ if (SnapshotsEnabled)
 
     public AttractionExplanationStatus BuildAttractionExplanation(ulong simId, ulong candidateId)
     {
-        lock (@lock)
+        using (WriteLock())
         {
             var result = new AttractionExplanationStatus
             {
@@ -5375,7 +5654,7 @@ if (SnapshotsEnabled)
 
     public List<SimLifecycleStatus> BuildLifecycleSims(int take = 500, int skip = 0, string? stageFilter = null)
     {
-        lock (@lock)
+        using (WriteLock())
         {
             var result = new List<SimLifecycleStatus>();
             if (world is null || economy is null)
@@ -5496,7 +5775,7 @@ if (SnapshotsEnabled)
 
     public List<SchoolStatus> BuildSchools()
     {
-        lock (@lock)
+        using (WriteLock())
         {
             var result = new List<SchoolStatus>();
             if (world is null)
@@ -5545,7 +5824,7 @@ if (SnapshotsEnabled)
 
     public PensionStatus BuildPensions(bool includeMembers = true)
     {
-        lock (@lock)
+        using (WriteLock())
         {
             var status = new PensionStatus();
             if (world is null || economy is null)
@@ -5611,7 +5890,7 @@ if (SnapshotsEnabled)
 
     public List<MortalityRecordStatus> BuildMortality(int take = 100)
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (economy is null)
                 return new List<MortalityRecordStatus>();
@@ -5635,7 +5914,7 @@ if (SnapshotsEnabled)
 
     public List<PopulationSnapshotStatus> BuildPopulationHistory(int years = 20)
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (economy is null)
                 return new List<PopulationSnapshotStatus>();
@@ -5715,7 +5994,7 @@ if (SnapshotsEnabled)
 
     public List<HousingPropertyStatus> BuildHousingProperties()
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (economy is null || world is null)
                 return new List<HousingPropertyStatus>();
@@ -5792,7 +6071,7 @@ if (SnapshotsEnabled)
 
     public List<HouseholdStatus> BuildHouseholds()
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (economy is null || world is null)
                 return new List<HouseholdStatus>();
@@ -5857,7 +6136,7 @@ if (SnapshotsEnabled)
 
     public List<HousingRentRollStatus> BuildHousingRentRoll()
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (economy is null || world is null)
                 return new List<HousingRentRollStatus>();
@@ -5902,7 +6181,7 @@ if (SnapshotsEnabled)
 
     public List<HousingConstructionStatus> BuildHousingConstructionProjects()
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (economy is null || world is null)
                 return new List<HousingConstructionStatus>();
@@ -6023,7 +6302,7 @@ if (SnapshotsEnabled)
 
     public MetricsSnapshot GetMetricsSnapshot()
     {
-        lock (@lock)
+        using (ReadLock())
         {
             return metrics.Snapshot();
         }
@@ -6031,7 +6310,7 @@ if (SnapshotsEnabled)
 
     public T ExecuteWithWorld<T>(Func<World, T> operation)
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (world == null)
                 throw new InvalidOperationException("Simulation is not running");
@@ -6041,7 +6320,7 @@ if (SnapshotsEnabled)
 
     public bool TryGetEntity(NetworkId networkId, out Entity entity)
     {
-        lock (@lock)
+        using (ReadLock())
         {
             if (world == null)
             {
@@ -6074,7 +6353,7 @@ if (SnapshotsEnabled)
 
     public bool IsAlive(Entity entity)
     {
-        lock (@lock)
+        using (ReadLock())
         {
             return world != null && world.IsAlive(entity);
         }
@@ -6082,7 +6361,7 @@ if (SnapshotsEnabled)
 
     public string? GetOwnerPlayerId(Entity entity)
     {
-        lock (@lock)
+        using (ReadLock())
         {
             if (world == null || !world.IsAlive(entity))
                 return null;
@@ -6099,7 +6378,7 @@ if (SnapshotsEnabled)
 
     public bool SetOwner(Entity entity, string playerId)
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (world == null || !world.IsAlive(entity))
                 return false;
@@ -6120,7 +6399,7 @@ if (SnapshotsEnabled)
 
     public bool RemoveOwner(Entity entity)
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (world == null || !world.IsAlive(entity) || !world.Has<PlayerControlled>(entity))
                 return false;
@@ -6130,7 +6409,7 @@ if (SnapshotsEnabled)
         }
     }
 
-    private static List<SimStatus> BuildSimSnapshots(World world)
+    private List<SimStatus> BuildSimSnapshots(World world)
     {
         var sims = new List<SimStatus>();
         var query = new QueryDescription().WithAll<GenName, Needs, CurrentAction>();
@@ -6152,8 +6431,7 @@ if (SnapshotsEnabled)
                 TimeRemaining = MathF.Round(action.TimeRemaining, 2)
             };
 
-            if (Genelife.Api.Appearance.AppearanceMapper.TryDerive(world, entity, out var appearanceDescriptor))
-                status.Appearance = Genelife.Api.Appearance.AppearanceMapper.ToDto(appearanceDescriptor);
+            status.Appearance = GetCachedAppearance(world, entity);
 
             if (world.Has<Location>(entity))
             {
@@ -6190,20 +6468,66 @@ if (SnapshotsEnabled)
         return sims;
     }
 
+    /// <summary>
+    /// Derives a sim's appearance only when its inputs changed. The derivation
+    /// depends on traits, age band, appearance version and the stable key
+    /// (network id), so all four are part of the cache stamp.
+    /// </summary>
+    private AppearanceDto? GetCachedAppearance(World world, Entity entity)
+    {
+        if (!world.Has<Traits>(entity) || !world.Has<Alive>(entity))
+            return null;
+
+        var traits = world.Get<Traits>(entity);
+        var age = world.Get<Alive>(entity).Age;
+        var band = AgingAppearancePolicy.BandFor(age);
+        var version = AppearanceDescriptor.CurrentVersion;
+        var stableKey = AppearanceMapper.StableKey(world, entity);
+
+        if (appearanceCache.TryGetValue(entity, out var cached) &&
+            cached.Version == version &&
+            cached.Band == band &&
+            cached.StableKey == stableKey &&
+            cached.Traits.Equals(traits))
+        {
+            return cached.Dto;
+        }
+
+        if (!AppearanceMapper.TryDerive(world, entity, out var descriptor, version))
+            return null;
+
+        var dto = AppearanceMapper.ToDto(descriptor);
+        appearanceCache[entity] = new AppearanceCacheEntry(traits, band, version, stableKey, dto);
+        return dto;
+    }
+
+    private readonly record struct AppearanceCacheEntry(
+        Traits Traits,
+        AgeBand Band,
+        byte Version,
+        ulong StableKey,
+        AppearanceDto Dto);
+
     private static List<CompanyStatus> BuildCompanySnapshots(World world, EmploymentIndex index)
     {
         var companies = new List<CompanyStatus>();
         var query = new QueryDescription().WithAll<CompanyName>();
 
+        // One office pass per snapshot keeps this O(companies + offices) instead
+        // of running an Office query inside the company loop.
+        var officesByCompany = new Dictionary<Entity, int>();
+        world.Query(in new QueryDescription().WithAll<Office>(), (Entity officeEntity, ref Office office) =>
+        {
+            if (office.IsClosed)
+                return;
+
+            officesByCompany.TryGetValue(office.Company, out var count);
+            officesByCompany[office.Company] = count + 1;
+        });
+
         world.Query(in query, (Entity entity, ref CompanyName companyName) =>
         {
-            var officeCount = 0;
-            var officeQuery = new QueryDescription().WithAll<Office>();
-            world.Query(in officeQuery, (ref Office office) =>
-            {
-                if (office.Company == entity && !office.IsClosed)
-                    officeCount++;
-            });
+            officesByCompany.TryGetValue(entity, out var officeCount);
 
             var status = new CompanyStatus
             {
@@ -6297,7 +6621,7 @@ if (SnapshotsEnabled)
 
     public PersistedWorldState CaptureState(NetworkIdRegistry networkIds)
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (world == null || economy == null)
                 throw new InvalidOperationException("Simulation is not running");
@@ -7605,7 +7929,7 @@ if (SnapshotsEnabled)
 
     public void Restore(PersistedWorldState state, NetworkIdRegistry networkIds)
     {
-        lock (@lock)
+        using (WriteLock())
         {
             if (isRunning)
                 throw new InvalidOperationException("Simulation is already running. Stop it before restoring.");

@@ -63,6 +63,32 @@ public class SystemRegistryTests
         Assert.Equal(6, system.LastTick);
     }
 
+    [Fact]
+    public void CadenceOffset_ShiftsPhaseAfterOneFullInterval()
+    {
+        var cadence = new Cadence(100, 2);
+
+        Assert.False(cadence.ShouldRun(2));
+        Assert.False(cadence.ShouldRun(99));
+        Assert.False(cadence.ShouldRun(100));
+        Assert.True(cadence.ShouldRun(102));
+        Assert.True(cadence.ShouldRun(202));
+    }
+
+    [Fact]
+    public void Update_StaggeredCadence_PassesLogicalBoundaryTick()
+    {
+        var registry = new SystemRegistry();
+        var system = new FakeSystem("Staggered", order: 100, cadence: new Cadence(10, 2));
+        registry.Register(system);
+
+        for (var tick = 1; tick <= 12; tick++)
+            registry.Update(new SimulationContext(tick, 1f / 20f));
+
+        Assert.Equal(1, system.Runs);
+        Assert.Equal(10, system.LastTick);
+    }
+
     private sealed class FakeSystem : ISimulationSystem
     {
         public FakeSystem(string name, int order, Cadence? cadence = null)

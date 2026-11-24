@@ -12,13 +12,15 @@ public sealed class PathfindingSystem : ISimulationSystem
     private readonly WorldMap map;
     private readonly MovementIndex index;
     private readonly int budget;
+    private readonly int maxIterationsPerTick;
 
-    public PathfindingSystem(World world, WorldMap map, MovementIndex index, int budget = 32)
+    public PathfindingSystem(World world, WorldMap map, MovementIndex index, int budget = 32, int maxIterationsPerTick = 16_384)
     {
         this.world = world;
         this.map = map;
         this.index = index;
         this.budget = Math.Max(1, budget);
+        this.maxIterationsPerTick = Math.Max(this.budget, maxIterationsPerTick);
     }
 
     public string Name => "Pathfinding";
@@ -29,12 +31,19 @@ public sealed class PathfindingSystem : ISimulationSystem
 
     public void Update()
     {
+        var remainingIterations = maxIterationsPerTick;
+
         foreach (var request in index.TakePending(budget))
         {
+            if (remainingIterations <= 0)
+                break;
+
             if (!world.IsAlive(request.Entity))
                 continue;
 
-            var path = TilePathfinder.FindPath(map, request.Start, request.Target, budget * 256);
+            var limit = Math.Min(budget * 256, remainingIterations);
+            var path = TilePathfinder.FindPath(map, request.Start, request.Target, limit, out var usedIterations);
+            remainingIterations -= usedIterations;
             if (path is null)
             {
                 if (world.Has<MoveTarget>(request.Entity))

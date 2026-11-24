@@ -1,7 +1,7 @@
 # Lock and Cadence Structure — Summary
 
 **Folder:** `02-lock-and-cadence-structure/`
-**Status:** Planned
+**Status:** Implemented — see [`../IMPLEMENTATION.md`](../IMPLEMENTATION.md) for measurements and opt-in decisions.
 **Tier:** 2 — structural
 
 **Depends on:** feature 01, `SimulationEngine.Tick`, `SystemRegistry`, `ISimulationSystem.Cadence`, `Metrics`, `PathfindingSystem`

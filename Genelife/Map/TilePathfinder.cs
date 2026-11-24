@@ -14,8 +14,23 @@ public static class TilePathfinder
         WorldMap map,
         TileCoord start,
         TileCoord target,
-        int maxLength = 4096)
+        int maxLength = 4096) =>
+        FindPath(map, start, target, maxLength, out _);
+
+    /// <summary>
+    /// Finds a path and reports how many nodes were expanded, so callers can
+    /// enforce a per-tick work budget based on actual cost rather than the
+    /// worst-case limit.
+    /// </summary>
+    public static List<TileCoord>? FindPath(
+        WorldMap map,
+        TileCoord start,
+        TileCoord target,
+        int maxLength,
+        out int iterations)
     {
+        iterations = 0;
+
         if (!map.IsWalkable(start) || !map.IsWalkable(target))
             return null;
         if (start == target)
@@ -28,6 +43,7 @@ public static class TilePathfinder
 
         while (open.TryDequeue(out var current, out _))
         {
+            iterations++;
             if (current == target)
                 return Reconstruct(cameFrom, start, target);
 

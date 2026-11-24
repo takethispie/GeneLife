@@ -18,15 +18,18 @@ public sealed class StateCareSystem : ISimulationSystem
     private readonly World world;
     private readonly EconomyContext economy;
 
-    public StateCareSystem(World world, EconomyContext economy)
+    private readonly int cadenceOffset;
+
+    public StateCareSystem(World world, EconomyContext economy, int cadenceOffset = 0)
     {
         this.world = world;
         this.economy = economy;
+        this.cadenceOffset = cadenceOffset;
     }
 
     public string Name => "StateCare";
     public int Order => 387;
-    public Cadence Cadence => new(Math.Max(1, economy.Clock.TicksPerMonth));
+    public Cadence Cadence => new(Math.Max(1, economy.Clock.TicksPerMonth), cadenceOffset);
 
     void ISimulationSystem.Update(in SimulationContext context) => Update(context.Tick);
 

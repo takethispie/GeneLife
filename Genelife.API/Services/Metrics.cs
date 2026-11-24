@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 
@@ -18,7 +19,7 @@ public sealed class Metrics
     private readonly Action<string> logSink;
     private readonly Func<long> timestampProvider;
     private readonly double[] tickDurationsMs;
-    private readonly Dictionary<string, SystemStats> systems = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, SystemStats> systems = new(StringComparer.Ordinal);
 
     private int tickDurationCount;
     private int tickDurationNext;
@@ -59,23 +60,29 @@ public sealed class Metrics
         tickDurationsMs = new double[histogramCapacity];
     }
 
-    /// <summary>Records the elapsed time and managed allocation of a single system update.</summary>
+    /// <summary>
+    /// Records the elapsed time and managed allocation of a single system update.
+    /// Lock-free: the tick thread is the only writer, but readers snapshot the
+    /// counters concurrently. Microseconds keep the totals exact enough for the
+    /// overrun log without a shared lock per system per tick.
+    /// </summary>
     public void RecordSystem(string name, double elapsedMilliseconds, long allocatedBytes = 0)
     {
-        lock (sync)
-        {
-            if (!systems.TryGetValue(name, out var stats))
-            {
-                stats = new SystemStats(name);
-                systems[name] = stats;
-            }
+        var stats = systems.GetOrAdd(name, static key => new SystemStats(key));
 
-            stats.Calls++;
-            stats.TotalMilliseconds += elapsedMilliseconds;
-            stats.TotalAllocatedBytes += Math.Max(0, allocatedBytes);
-            if (elapsedMilliseconds > stats.MaxMilliseconds)
-                stats.MaxMilliseconds = elapsedMilliseconds;
+        var microseconds = (long)Math.Round(Math.Max(0, elapsedMilliseconds) * 1000.0);
+        Interlocked.Add(ref stats.TotalMicroseconds, microseconds);
+        Interlocked.Add(ref stats.TotalAllocatedBytes, Math.Max(0, allocatedBytes));
+
+        long observed;
+        while (microseconds > (observed = Interlocked.Read(ref stats.MaxMicroseconds)) &&
+               Interlocked.CompareExchange(ref stats.MaxMicroseconds, microseconds, observed) != observed)
+        {
         }
+
+        // Increment the call count last so a concurrent snapshot never sees more
+        // calls than recorded totals.
+        Interlocked.Increment(ref stats.Calls);
     }
 
     /// <summary>
@@ -277,19 +284,25 @@ public sealed class Metrics
         }
 
         public string Name { get; }
-        public long Calls { get; set; }
-        public double TotalMilliseconds { get; set; }
-        public double MaxMilliseconds { get; set; }
-        public long TotalAllocatedBytes { get; set; }
+        public long Calls;
+        public long TotalMicroseconds;
+        public long MaxMicroseconds;
+        public long TotalAllocatedBytes;
 
-        public SystemMetric ToMetric() => new(
-            Name,
-            Calls,
-            TotalMilliseconds,
-            Calls > 0 ? TotalMilliseconds / Calls : 0,
-            MaxMilliseconds,
-            TotalAllocatedBytes,
-            Calls > 0 ? TotalAllocatedBytes / (double)Calls : 0);
+        public SystemMetric ToMetric()
+        {
+            var calls = Interlocked.Read(ref Calls);
+            var totalMilliseconds = Interlocked.Read(ref TotalMicroseconds) / 1000.0;
+            var allocated = Interlocked.Read(ref TotalAllocatedBytes);
+            return new SystemMetric(
+                Name,
+                calls,
+                totalMilliseconds,
+                calls > 0 ? totalMilliseconds / calls : 0,
+                Interlocked.Read(ref MaxMicroseconds) / 1000.0,
+                allocated,
+                calls > 0 ? allocated / (double)calls : 0);
+        }
     }
 }
 

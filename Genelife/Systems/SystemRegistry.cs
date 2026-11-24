@@ -10,6 +10,14 @@ namespace Genelife.Systems;
 public sealed class SystemRegistry
 {
     private readonly List<ISimulationSystem> systems = new();
+    private readonly int samplingInterval;
+
+    public SystemRegistry(int samplingInterval = 1)
+    {
+        if (samplingInterval <= 0)
+            throw new ArgumentOutOfRangeException(nameof(samplingInterval));
+        this.samplingInterval = samplingInterval;
+    }
 
     public IReadOnlyList<ISimulationSystem> Systems => systems;
 
@@ -43,14 +51,36 @@ public sealed class SystemRegistry
     public int Update(in SimulationContext context, Action<SystemRunResult>? onSystemRun = null)
     {
         var ran = 0;
+        var sampleTick = samplingInterval <= 1 || context.Tick % samplingInterval == 0;
+
         foreach (var system in systems)
         {
-            if (!system.Cadence.ShouldRun(context.Tick))
+            var cadence = system.Cadence;
+            if (!cadence.ShouldRun(context.Tick))
                 continue;
+
+            // Periodic systems run rarely, so always time them; sampling only
+            // trims the instrumentation cost of the every-tick passes.
+            var measure = onSystemRun is not null && (sampleTick || cadence.Interval > 1);
+
+            // A staggered system runs later than its base boundary, but it sees
+            // the logical boundary tick. That keeps tick-derived work (RNG
+            // streams, due dates, event timestamps) identical to the
+            // unstaggered schedule while spreading the actual work.
+            var systemContext = cadence.Offset == 0
+                ? context
+                : new SimulationContext(context.Tick - cadence.Offset, context.DeltaTime, context.Clock);
+
+            if (!measure)
+            {
+                system.Update(in systemContext);
+                ran++;
+                continue;
+            }
 
             var allocatedStart = GC.GetAllocatedBytesForCurrentThread();
             var start = Stopwatch.GetTimestamp();
-            system.Update(in context);
+            system.Update(in systemContext);
             ran++;
 
             if (onSystemRun is not null)

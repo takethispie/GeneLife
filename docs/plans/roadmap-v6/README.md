@@ -31,6 +31,12 @@ Every feature folder contains:
 - `business/` — the feature explained in product-facing terms.
 - `tech/` — ordered implementation steps with context, design, tasks, files, contracts and acceptance.
 
+## Implementation record
+
+See [`IMPLEMENTATION.md`](IMPLEMENTATION.md) for what landed, the before/after `LoadHarness`
+numbers, verification commands, and the two changes that are implemented but opt-in
+(cadence staggering and parallel per-entity passes).
+
 ## Delivery order
 
 ```mermaid

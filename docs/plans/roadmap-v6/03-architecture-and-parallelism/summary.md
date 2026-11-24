@@ -1,7 +1,7 @@
 # Architecture and Parallelism — Summary
 
 **Folder:** `03-architecture-and-parallelism/`
-**Status:** Planned
+**Status:** Implemented — see [`../IMPLEMENTATION.md`](../IMPLEMENTATION.md) for measurements and opt-in decisions.
 **Tier:** 3 — architectural
 
 **Depends on:** features 01 and 02, `SimulationLoop` as a `BackgroundService`, `SystemRegistry`, `SnapshotBroadcastService`, `LoadHarness`

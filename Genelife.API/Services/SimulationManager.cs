@@ -131,12 +131,12 @@ public class SimulationManager : IHostedService, IDisposable
 
     public ulong AddSim(string name, int age)
     {
-        var networkId = engine.ExecuteWithWorld(world =>
-        {
-            var repository = new SimRepository(world, networkIds, engine.Economy, engine.MapContext);
-            return repository.Add(name, age).Value;
-        });
-        engine.Emit(new SimCreated(networkId, name, age));
+        var result = ExecuteAdminSync(
+            new Genelife.Api.Commands.CreateSimCommand(Guid.NewGuid(), "system", name, age));
+
+        if (!result.Accepted || result.Payload is not ulong networkId)
+            throw new InvalidOperationException(result.Error ?? "Failed to add sim.");
+
         return networkId;
     }
 
@@ -174,12 +174,12 @@ public class SimulationManager : IHostedService, IDisposable
 
     public ulong AddCompany(string name)
     {
-        var networkId = engine.ExecuteWithWorld(world =>
-        {
-            var repository = new CompanyRepository(world, GetIndex(), networkIds, engine.Economy, map: engine.MapContext);
-            return repository.Add(name).Value;
-        });
-        engine.Emit(new CompanyCreated(networkId, name));
+        var result = ExecuteAdminSync(
+            new Genelife.Api.Commands.CreateCompanyCommand(Guid.NewGuid(), "system", name));
+
+        if (!result.Accepted || result.Payload is not ulong networkId)
+            throw new InvalidOperationException(result.Error ?? "Failed to add company.");
+
         return networkId;
     }
 
@@ -278,21 +278,36 @@ public class SimulationManager : IHostedService, IDisposable
 
     public bool DeleteSim(ulong networkId)
     {
-        return engine.ExecuteWithWorld(world =>
-        {
-            var repository = new SimRepository(world, networkIds, engine.Economy, engine.MapContext);
-            return repository.Delete(networkId);
-        });
+        var result = ExecuteAdminSync(
+            new Genelife.Api.Commands.DeleteSimCommand(Guid.NewGuid(), "system", networkId));
+
+        if (!result.Accepted)
+            throw new InvalidOperationException(result.Error ?? "Failed to delete sim.");
+
+        return result.Payload is bool deleted && deleted;
     }
 
     public void SetSimAction(ulong networkId, string actionType)
     {
-        engine.ExecuteWithWorld(world =>
+        var result = ExecuteAdminSync(
+            new Genelife.Api.Commands.SetSimActionCommand(Guid.NewGuid(), "system", networkId, actionType));
+
+        if (!result.Accepted)
+            throw new InvalidOperationException(result.Error ?? "Failed to set sim action.");
+    }
+
+    private Genelife.Api.Commands.CommandResult ExecuteAdminSync(Genelife.Api.Commands.AdminCommand command)
+    {
+        try
         {
-            var repository = new SimRepository(world, networkIds, engine.Economy, engine.MapContext);
-            repository.SetAction(networkId, actionType);
-            return true;
-        });
+            return engine.ExecuteAdminCommandSync(command);
+        }
+        catch (TimeoutException ex)
+        {
+            throw new InvalidOperationException(
+                "The simulation loop did not apply the admin command in time.",
+                ex);
+        }
     }
 
     private Genelife.Components.Employment.EmploymentIndex GetIndex()

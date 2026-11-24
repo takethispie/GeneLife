@@ -26,6 +26,8 @@ public sealed class BirthSystem : ISimulationSystem
     private readonly Func<Entity, NetworkId> allocateNetworkId;
     private readonly ReproductionOptions options;
 
+    private readonly int cadenceOffset;
+
     public BirthSystem(
         World world,
         EconomyContext economy,
@@ -33,7 +35,8 @@ public sealed class BirthSystem : ISimulationSystem
         PregnancyService pregnancyService,
         NewbornFactory factory,
         Func<Entity, NetworkId> allocateNetworkId,
-        ReproductionOptions options)
+        ReproductionOptions options,
+        int cadenceOffset = 0)
     {
         this.world = world;
         this.economy = economy;
@@ -42,11 +45,12 @@ public sealed class BirthSystem : ISimulationSystem
         this.factory = factory;
         this.allocateNetworkId = allocateNetworkId;
         this.options = options;
+        this.cadenceOffset = cadenceOffset;
     }
 
     public string Name => "Birth";
     public int Order => 380;
-    public Cadence Cadence => new(Math.Max(1, economy.Clock.TicksPerMonth));
+    public Cadence Cadence => new(Math.Max(1, economy.Clock.TicksPerMonth), cadenceOffset);
 
     void ISimulationSystem.Update(in SimulationContext context) => Update(context.Tick);
 

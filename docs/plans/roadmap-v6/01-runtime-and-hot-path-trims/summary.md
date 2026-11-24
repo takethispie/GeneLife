@@ -1,7 +1,7 @@
 # Runtime and Hot-Path Trims — Summary
 
 **Folder:** `01-runtime-and-hot-path-trims/`
-**Status:** Planned
+**Status:** Implemented — see [`../IMPLEMENTATION.md`](../IMPLEMENTATION.md) for measurements and opt-in decisions.
 **Tier:** 1 — cheap, high leverage
 
 **Depends on:** V5 release state, `Genelife.API.csproj`, `SimulationLoop`, `SimulationEngine`, `PerformanceThresholds`

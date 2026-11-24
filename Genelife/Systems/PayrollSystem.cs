@@ -23,19 +23,21 @@ public class PayrollSystem : ISimulationSystem
     private readonly QueryDescription employeeQuery;
     private readonly QueryDescription claimQuery;
     private readonly int payrollInterval;
+    private readonly int cadenceOffset;
 
-    public PayrollSystem(World world, EconomyContext economy, int? payrollInterval = null)
+    public PayrollSystem(World world, EconomyContext economy, int? payrollInterval = null, int cadenceOffset = 0)
     {
         this.world = world;
         this.economy = economy;
         this.payrollInterval = payrollInterval ?? economy.Clock.TicksPerPayCycle;
+        this.cadenceOffset = cadenceOffset;
         employeeQuery = new QueryDescription().WithAll<Employee>().WithNone<Components.Gen.Dead>();
         claimQuery = new QueryDescription().WithAll<WageClaim>();
     }
 
     public string Name => "Payroll";
     public int Order => 500;
-    public Cadence Cadence => new(payrollInterval <= 0 ? 1 : payrollInterval);
+    public Cadence Cadence => new(payrollInterval <= 0 ? 1 : payrollInterval, cadenceOffset);
 
     void ISimulationSystem.Update(in SimulationContext context) => Update(context);
 

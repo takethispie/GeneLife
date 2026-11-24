@@ -20,25 +20,28 @@ public sealed class RelationshipExposureSystem : ISimulationSystem
     private readonly RelationshipOptions options;
     private readonly RelationshipCache cache;
     private readonly CandidateGenerator generator;
+    private readonly int cadenceOffset;
 
     public RelationshipExposureSystem(
         World world,
         EconomyContext economy,
         RelationshipIndex relationships,
         RelationshipOptions options,
-        RelationshipCache cache)
+        RelationshipCache cache,
+        int cadenceOffset = 0)
     {
         this.world = world;
         this.economy = economy;
         this.relationships = relationships;
         this.options = options;
         this.cache = cache;
+        this.cadenceOffset = cadenceOffset;
         generator = new CandidateGenerator(world, economy, relationships, options);
     }
 
     public string Name => "RelationshipExposure";
     public int Order => 355;
-    public Cadence Cadence => new(Math.Max(1, economy.Clock.TicksPerMonth));
+    public Cadence Cadence => new(Math.Max(1, economy.Clock.TicksPerMonth), cadenceOffset);
 
     void ISimulationSystem.Update(in SimulationContext context) => Update(context.Tick);
 

@@ -23,12 +23,15 @@ public sealed class FamilyHouseholdSystem : ISimulationSystem
     private readonly FamilyHousingPolicy policy;
     private readonly HouseholdMergeService merger;
 
+    private readonly int cadenceOffset;
+
     public FamilyHouseholdSystem(
         World world,
         EconomyContext economy,
         RelationshipIndex relationships,
         RelationshipOptions relationshipOptions,
-        FamilyHousingPolicy? policy = null)
+        FamilyHousingPolicy? policy = null,
+        int cadenceOffset = 0)
     {
         this.world = world;
         this.economy = economy;
@@ -36,11 +39,12 @@ public sealed class FamilyHouseholdSystem : ISimulationSystem
         this.relationshipOptions = relationshipOptions;
         this.policy = policy ?? FamilyHousingPolicy.Default;
         merger = new HouseholdMergeService(world, economy);
+        this.cadenceOffset = cadenceOffset;
     }
 
     public string Name => "FamilyHousehold";
     public int Order => 385;
-    public Cadence Cadence => new(Math.Max(1, economy.Clock.TicksPerMonth));
+    public Cadence Cadence => new(Math.Max(1, economy.Clock.TicksPerMonth), cadenceOffset);
 
     void ISimulationSystem.Update(in SimulationContext context) => Update(context.Tick);
 

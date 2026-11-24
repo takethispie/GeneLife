@@ -17,23 +17,27 @@ public sealed class AttractionSystem : ISimulationSystem
     private readonly RelationshipOptions options;
     private readonly RelationshipCache cache;
 
+    private readonly int cadenceOffset;
+
     public AttractionSystem(
         World world,
         EconomyContext economy,
         RelationshipIndex relationships,
         RelationshipOptions options,
-        RelationshipCache cache)
+        RelationshipCache cache,
+        int cadenceOffset = 0)
     {
         this.world = world;
         this.economy = economy;
         this.relationships = relationships;
         this.options = options;
         this.cache = cache;
+        this.cadenceOffset = cadenceOffset;
     }
 
     public string Name => "Attraction";
     public int Order => 360;
-    public Cadence Cadence => new(Math.Max(1, economy.Clock.TicksPerPayCycle));
+    public Cadence Cadence => new(Math.Max(1, economy.Clock.TicksPerPayCycle), cadenceOffset);
 
     void ISimulationSystem.Update(in SimulationContext context) => Update(context.Tick);
 

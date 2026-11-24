@@ -9,6 +9,28 @@ namespace Genelife.Api.Commands;
 /// </summary>
 public abstract record AdminCommand(Guid CommandId, string IssuedBy);
 
+public sealed record CreateSimCommand(
+    Guid CommandId,
+    string IssuedBy,
+    string Name,
+    int Age) : AdminCommand(CommandId, IssuedBy);
+
+public sealed record CreateCompanyCommand(
+    Guid CommandId,
+    string IssuedBy,
+    string Name) : AdminCommand(CommandId, IssuedBy);
+
+public sealed record DeleteSimCommand(
+    Guid CommandId,
+    string IssuedBy,
+    ulong SimNetworkId) : AdminCommand(CommandId, IssuedBy);
+
+public sealed record SetSimActionCommand(
+    Guid CommandId,
+    string IssuedBy,
+    ulong SimNetworkId,
+    string ActionType) : AdminCommand(CommandId, IssuedBy);
+
 public sealed record CreateOfficeCommand(
     Guid CommandId,
     string IssuedBy,

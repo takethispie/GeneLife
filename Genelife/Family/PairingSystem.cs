@@ -22,13 +22,16 @@ public sealed class PairingSystem : ISimulationSystem
     private readonly HouseholdMergeService merger;
     private long rejectionCount;
 
+    private readonly int cadenceOffset;
+
     public PairingSystem(
         World world,
         EconomyContext economy,
         RelationshipService service,
         RelationshipIndex relationships,
         RelationshipOptions options,
-        RelationshipCache cache)
+        RelationshipCache cache,
+        int cadenceOffset = 0)
     {
         this.world = world;
         this.economy = economy;
@@ -37,11 +40,12 @@ public sealed class PairingSystem : ISimulationSystem
         this.options = options;
         this.cache = cache;
         merger = new HouseholdMergeService(world, economy);
+        this.cadenceOffset = cadenceOffset;
     }
 
     public string Name => "Pairing";
     public int Order => 365;
-    public Cadence Cadence => new(Math.Max(1, economy.Clock.TicksPerPayCycle));
+    public Cadence Cadence => new(Math.Max(1, economy.Clock.TicksPerPayCycle), cadenceOffset);
 
     void ISimulationSystem.Update(in SimulationContext context) => Update(context.Tick);
 
