@@ -70,6 +70,7 @@ public sealed class SnapshotBroadcastService : BackgroundService
                 }
 
                 await BroadcastIntentRejections(cancellationToken);
+                await BroadcastPlayerLifecycle(cancellationToken);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -109,6 +110,28 @@ public sealed class SnapshotBroadcastService : BackgroundService
             {
                 await hubContext.Clients.Client(connectionId)
                     .SendAsync("IntentRejected", message, cancellationToken);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Delivers player death/respawn notices to every connection for the player
+    /// so a respawn prompt can follow them across tabs and reconnects.
+    /// </summary>
+    private async Task BroadcastPlayerLifecycle(CancellationToken cancellationToken)
+    {
+        var processed = 0;
+        while (processed < 128 && engine.TryDequeuePlayerLifecycleNotice(out var notice))
+        {
+            processed++;
+            var connections = registry.GetConnections(notice.PlayerId);
+            if (connections.Count == 0)
+                continue;
+
+            foreach (var connectionId in connections)
+            {
+                await hubContext.Clients.Client(connectionId)
+                    .SendAsync("PlayerLifecycle", notice, cancellationToken);
             }
         }
     }

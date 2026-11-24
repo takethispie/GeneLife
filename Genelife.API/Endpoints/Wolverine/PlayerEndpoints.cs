@@ -53,6 +53,20 @@ public static class PlayerEndpoints
         return Results.Ok(result);
     }
 
+    [WolverinePost("/api/player/respawn")]
+    [Authorize(Policy = AuthPolicies.Player)]
+    public static IResult Respawn(SimulationEngine engine, HttpContext http)
+    {
+        var playerId = http.User.GetPlayerId();
+        if (string.IsNullOrWhiteSpace(playerId))
+            return Results.Unauthorized();
+
+        var result = engine.RespawnPlayerAsChild(playerId);
+        return result.Success
+            ? Results.Ok(result)
+            : Results.Json(new { code = result.Code, message = result.Message }, statusCode: 400);
+    }
+
     [WolverineGet("/api/player/me")]
     [Authorize(Policy = AuthPolicies.Player)]
     public static IResult Me(SimulationEngine engine, HttpContext http)

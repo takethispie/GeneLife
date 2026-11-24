@@ -5,6 +5,7 @@ using Genelife.Components.Gen;
 using Genelife.Components.Player;
 using Genelife.Economy;
 using Genelife.Enums;
+using Genelife.Messages.Events;
 using Genelife.Player;
 using Genelife.Systems;
 using Genelife.Values;
@@ -40,6 +41,50 @@ public class PlayerLifeSystemsTests
         Assert.Equal("p1", world.Get<PlayerControlled>(created).PlayerId);
         Assert.True(players.TryGetBySim(created, out var bySim));
         Assert.Same(profile, bySim);
+    }
+
+    [Fact]
+    public void RespawnPolicy_CapturesTheDeadSimAndWaitsForThePlayer()
+    {
+        var world = World.Create();
+        var economy = new EconomyContext(world);
+        var players = new PlayerRegistry();
+        var traits = new Traits { Sex = Sex.Female, Aptitude = Aptitude.Art };
+        var dead = world.Create(
+            new GenName("Dead"),
+            new Alive(70),
+            new Dead(),
+            traits);
+        var profile = players.GetOrCreate("p1", dead, 0);
+        var system = new PlayerLifecycleSystem(world, economy, players);
+
+        system.Update(100);
+        system.Update(200);
+
+        Assert.True(profile.AwaitingContinuation);
+        Assert.Equal(Entity.Null, profile.ControlledSim);
+        Assert.Equal("Dead", profile.LastSimName);
+        Assert.Equal(70, profile.LastSimAge);
+        Assert.Equal(traits, profile.LastSimTraits!.Value);
+        Assert.True(profile.LastSimDeathTick > 0);
+        Assert.False(players.TryGetBySim(dead, out _));
+    }
+
+    [Fact]
+    public void ObserverPolicy_DeathNoticeCannotRespawn()
+    {
+        var world = World.Create();
+        var economy = new EconomyContext(world);
+        var players = new PlayerRegistry();
+        var dead = world.Create(new GenName("Observer Dead"), new Alive(64), new Dead());
+        var profile = players.GetOrCreate("p1", dead, 0);
+        profile.ContinuationPolicy = PlayerContinuationPolicy.Observer;
+        var system = new PlayerLifecycleSystem(world, economy, players);
+
+        system.Update(100);
+
+        var notice = economy.DrainEvents().OfType<PlayerAwaitingContinuation>().Single();
+        Assert.False(notice.CanRespawn);
     }
 
     [Fact]

@@ -7,6 +7,7 @@ import type {
   MapDelta,
   MapSnapshot,
   MapTileRun,
+  PlayerLifecycleNotice,
   SimStatus,
   WelcomeMessage,
   WorldSnapshot,
@@ -338,7 +339,10 @@ export function validateWelcome(value: unknown, path = "welcome"): WelcomeMessag
     tick: requireInteger(record, "tick", path),
     tickIntervalMs: requireInteger(record, "tickIntervalMs", path),
     snapshotVersion: requireInteger(record, "snapshotVersion", path),
-    protocolVersion: requireInteger(record, "protocolVersion", path)
+    protocolVersion: requireInteger(record, "protocolVersion", path),
+    awaitingRespawn: optionalBoolean(record, "awaitingRespawn", path),
+    lastSimName: optionalString(record, "lastSimName", path) || null,
+    lastSimAge: optionalNumber(record, "lastSimAge", path)
   };
 
   if (welcome.protocolVersion < 1) {
@@ -349,6 +353,29 @@ export function validateWelcome(value: unknown, path = "welcome"): WelcomeMessag
   }
 
   return welcome;
+}
+
+export function validatePlayerLifecycleNotice(
+  value: unknown,
+  path = "playerLifecycle"
+): PlayerLifecycleNotice {
+  const record = asRecord(value, path);
+  const kind = requireString(record, "kind", path);
+  if (kind !== "died" && kind !== "respawned") {
+    throw new ContractError(`unknown lifecycle kind "${kind}"`, path);
+  }
+
+  return {
+    playerId: requireString(record, "playerId", path),
+    kind,
+    simNetworkId: requireInteger(record, "simNetworkId", path),
+    previousSimNetworkId: optionalNumber(record, "previousSimNetworkId", path),
+    name: optionalString(record, "name", path) || null,
+    age: optionalNumber(record, "age", path),
+    cause: optionalString(record, "cause", path) || null,
+    tick: requireInteger(record, "tick", path),
+    canRespawn: optionalBoolean(record, "canRespawn", path)
+  };
 }
 
 export function validateIntentRejected(value: unknown, path = "intentRejected"): IntentRejected {

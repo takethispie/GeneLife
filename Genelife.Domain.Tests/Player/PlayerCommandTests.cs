@@ -84,7 +84,7 @@ public class PlayerCommandTests
         Assert.Equal(PlayerCommandStatus.Rejected, result!.Status);
         Assert.Equal("disconnected", result.Code);
         Assert.True(engine.Players.TryGet("p1", out var profile));
-        Assert.Equal(Genelife.Player.PlayerContinuationPolicy.Heir, profile.ContinuationPolicy);
+        Assert.Equal(Genelife.Player.PlayerContinuationPolicy.Respawn, profile.ContinuationPolicy);
     }
 
     [Fact]

@@ -10,15 +10,11 @@
 
 | Folder | Feature | Tech steps |
 |---|---|---|
-| [`01-economy/`](01-economy/summary.md) | Economy built on offices, job postings, payroll and hiring | 22 |
-| [`02-housing/`](02-housing/summary.md) | Housing, households, rent, homelessness and housing supply | 15 |
-| [`03-life-stages/`](03-life-stages/summary.md) | Education → Work → Retirement → Elderly, plus death and estate | 22 |
+| `01-economy/` | Economy built on offices, job postings, payroll and hiring | 22 |
+| `02-housing/` | Housing, households, rent, homelessness and housing supply | 15 |
+| `03-life-stages/` | Education → Work → Retirement → Elderly, plus death and estate | 22 |
 
-Every feature folder contains:
-
-- `summary.md` — objective, starting point, deliverables, definition of done.
-- `business/` — the feature explained in abstract, product-facing terms.
-- `tech/` — ordered implementation steps with tasks, files, contracts and acceptance.
+Feature-level detail was removed after V1 shipped; recover it from git history if needed. See [STATUS.md](STATUS.md) for the delivered state.
 
 ---
 

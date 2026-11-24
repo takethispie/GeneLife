@@ -713,12 +713,18 @@ public sealed class PersistedPlayerProfile
 {
     public string PlayerId { get; set; } = string.Empty;
     public ulong SimNetworkId { get; set; }
-    public string ContinuationPolicy { get; set; } = "Heir";
+    public string ContinuationPolicy { get; set; } = "Respawn";
     public bool AwaitingContinuation { get; set; }
     public bool Observer { get; set; }
     public long CreatedTick { get; set; }
     public long LastActionTick { get; set; }
     public long LastSequence { get; set; }
+    public string? LastSimName { get; set; }
+    public int LastSimAge { get; set; }
+    public Genelife.Components.Gen.Traits? LastSimTraits { get; set; }
+    public ulong LastSimHouseholdNetworkId { get; set; }
+    public long LastSimDeathTick { get; set; }
+    public ulong PendingRespawnSimNetworkId { get; set; }
 }
 
 public sealed class PersistedPlayerLife

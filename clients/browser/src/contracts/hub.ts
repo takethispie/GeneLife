@@ -142,6 +142,23 @@ export interface WelcomeMessage {
   tickIntervalMs: number;
   snapshotVersion: number;
   protocolVersion: number;
+  awaitingRespawn?: boolean;
+  lastSimName?: string | null;
+  lastSimAge?: number;
+}
+
+export type PlayerLifecycleKind = "died" | "respawned";
+
+export interface PlayerLifecycleNotice {
+  playerId: string;
+  kind: PlayerLifecycleKind;
+  simNetworkId: number;
+  previousSimNetworkId: number;
+  name: string | null;
+  age: number;
+  cause: string | null;
+  tick: number;
+  canRespawn: boolean;
 }
 
 export interface IntentRejected {

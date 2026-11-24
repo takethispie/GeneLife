@@ -18,6 +18,7 @@ import {
   validateIntentRejected,
   validateMapDelta,
   validateMapSnapshot,
+  validatePlayerLifecycleNotice,
   validateWelcome,
   validateWorldSnapshot,
   validateWorldSnapshotDelta
@@ -213,6 +214,11 @@ export class WorldHubClient {
     });
     connection.on(HUB_EVENTS.intentRejected, (raw: unknown) => {
       this.handlers.onIntentRejected(validateIntentRejected(raw));
+    });
+    connection.on(HUB_EVENTS.playerLifecycle, (raw: unknown) => {
+      this.guard("PlayerLifecycle", () =>
+        this.handlers.onPlayerLifecycle?.(validatePlayerLifecycleNotice(raw))
+      );
     });
     connection.on(HUB_EVENTS.receiveChat, (raw: unknown) => {
       this.guard("ReceiveChat", () => this.handlers.onChatMessage?.(raw as ChatMessage));

@@ -83,6 +83,7 @@ private readonly NetworkIdRegistry networkIds = new();
     private readonly ConcurrentQueue<EnqueuedCommand> queuedCommands = new();
     private readonly ConcurrentQueue<AdminCommand> adminCommands = new();
     private readonly ConcurrentQueue<IntentRejection> intentRejections = new();
+    private readonly ConcurrentQueue<PlayerLifecycleNotice> playerLifecycleNotices = new();
     private readonly ConcurrentDictionary<Guid, CommandResult> commandResults = new();
     private readonly ConcurrentDictionary<Guid, byte> seenAdminCommands = new();
     private readonly Channel<object> outboundEvents = Channel.CreateBounded<object>(
@@ -202,6 +203,13 @@ private readonly NetworkIdRegistry networkIds = new();
         intentRejections.TryDequeue(out rejection!);
 
     public int PendingIntentRejectionCount => intentRejections.Count;
+
+    /// <summary>
+    /// Real-time player death/respawn notices for the hub transport. Unlike the
+    /// persisted event stream these are best-effort and scoped to one deployment.
+    /// </summary>
+    public bool TryDequeuePlayerLifecycleNotice(out PlayerLifecycleNotice notice) =>
+        playerLifecycleNotices.TryDequeue(out notice!);
 
     private void RejectIntent(string playerId, long sequence, string code, string message)
     {
@@ -542,7 +550,10 @@ private readonly NetworkIdRegistry networkIds = new();
             if (economy is not null)
             {
                 foreach (var e in economy.DrainEvents())
+                {
                     events.Add(e);
+                    ObservePlayerLifecycleEvent(currentWorld, e, events);
+                }
             }
 
             CollectSimEvents(currentWorld, events);
@@ -577,6 +588,146 @@ if (SnapshotsEnabled)
                     Interlocked.Increment(ref droppedEventCount);
             }
         }
+    }
+
+    private void ObservePlayerLifecycleEvent(World currentWorld, object @event, List<object> events)
+    {
+        if (@event is SimDied died &&
+            networkIds.TryGetEntity(new NetworkId(died.SimNetworkId), out var dead) &&
+            currentWorld.IsAlive(dead))
+        {
+            PlayerProfile? profile = null;
+            if (playerRegistry.TryGetBySim(dead, out var bySim))
+                profile = bySim;
+            else if (playerRegistry.TryGetByLastSimNetworkId(died.SimNetworkId, out var byLast))
+                profile = byLast;
+
+            if (profile is not null)
+            {
+                profile.LastSimName ??= died.Name;
+                profile.LastSimAge = profile.LastSimAge == 0 ? died.Age : profile.LastSimAge;
+                if (profile.LastSimTraits is null && currentWorld.Has<Traits>(dead))
+                    profile.LastSimTraits = currentWorld.Get<Traits>(dead);
+                if (profile.LastSimHouseholdNetworkId == 0)
+                    profile.LastSimHouseholdNetworkId = died.HouseholdNetworkId;
+                if (profile.LastSimDeathTick == 0)
+                    profile.LastSimDeathTick = died.Tick;
+            }
+
+            return;
+        }
+
+        if (@event is PlayerAwaitingContinuation awaiting)
+        {
+            if (awaiting.CanRespawn &&
+                playerRegistry.TryGet(awaiting.PlayerId, out var profile))
+            {
+                profile.LastSimName ??= awaiting.Name;
+                profile.LastSimAge = profile.LastSimAge == 0 ? awaiting.Age : profile.LastSimAge;
+
+                // The monthly estate pass removes the dead sim's relationship
+                // edges. Create the respawn child after that pass but while the
+                // dead entity still exists so the parent edge survives.
+                if (profile.ContinuationPolicy == PlayerContinuationPolicy.Respawn &&
+                    profile.PendingRespawnSimNetworkId == 0 &&
+                    networkIds.TryGetEntity(new NetworkId(awaiting.SimNetworkId), out var deadEntity) &&
+                    currentWorld.IsAlive(deadEntity) &&
+                    currentWorld.Has<Dead>(deadEntity))
+                {
+                    TryCreatePendingRespawnChild(
+                        currentWorld,
+                        profile,
+                        deadEntity,
+                        awaiting.SimNetworkId,
+                        profile.LastSimHouseholdNetworkId,
+                        awaiting.Tick,
+                        events);
+                }
+            }
+
+            playerLifecycleNotices.Enqueue(new PlayerLifecycleNotice(
+                awaiting.PlayerId,
+                "died",
+                awaiting.SimNetworkId,
+                0,
+                awaiting.Name,
+                awaiting.Age,
+                awaiting.Cause,
+                awaiting.Tick,
+                awaiting.CanRespawn));
+            return;
+        }
+
+        if (@event is PlayerContinuationApplied applied)
+        {
+            playerLifecycleNotices.Enqueue(new PlayerLifecycleNotice(
+                applied.PlayerId,
+                "respawned",
+                applied.NewSimNetworkId,
+                applied.PreviousSimNetworkId,
+                applied.Name,
+                0,
+                null,
+                applied.Tick,
+                false));
+        }
+    }
+
+    /// <summary>
+    /// For a Respawn-policy player, create the child immediately at death. The
+    /// dead entity is still alive here, which is the only reliable window for
+    /// linking the parent edge; the player later takes control of this sim.
+    /// </summary>
+    private void TryCreatePendingRespawnChild(
+        World currentWorld,
+        PlayerProfile profile,
+        Entity dead,
+        ulong simNetworkId,
+        ulong householdNetworkId,
+        long tick,
+        List<object> events)
+    {
+        if (profile.ContinuationPolicy != PlayerContinuationPolicy.Respawn ||
+            profile.Observer ||
+            profile.PendingRespawnSimNetworkId != 0 ||
+            newbornFactory is null ||
+            economy is null)
+        {
+            return;
+        }
+
+        var household = Entity.Null;
+        if (householdNetworkId != 0 &&
+            networkIds.TryGetEntity(new NetworkId(householdNetworkId), out var householdEntity) &&
+            currentWorld.IsAlive(householdEntity) &&
+            economy.Housing.MemberCount(householdEntity) > 0)
+        {
+            household = householdEntity;
+        }
+
+        var parentTraits = profile.LastSimTraits;
+        if (parentTraits is null && currentWorld.Has<Traits>(dead))
+            parentTraits = currentWorld.Get<Traits>(dead);
+
+        var age = economy.Life.Policy.WorkStartAge;
+        var child = newbornFactory.CreateChild(dead, parentTraits, household, age, tick);
+        var childNetworkId = currentWorld.Has<NetworkId>(child.Entity)
+            ? currentWorld.Get<NetworkId>(child.Entity).Value
+            : 0;
+
+        if (mapContext is not null)
+            PlayerSpawnService.PlaceAt(currentWorld, child.Entity, economy.Housing, mapContext, childNetworkId);
+        if (!currentWorld.Has<MovementState>(child.Entity))
+            currentWorld.Add(child.Entity, new MovementState(MovementOptions.PlayerSpeedTilesPerSecond));
+
+        profile.PendingRespawnSimNetworkId = childNetworkId;
+        events.Add(new ChildBorn(
+            childNetworkId,
+            simNetworkId,
+            0,
+            householdNetworkId,
+            tick));
+        events.Add(new BirthRecorded(childNetworkId, 0, child.Name, tick));
     }
 
     private void CollectMapEvents(List<object> events)
@@ -1219,9 +1370,30 @@ if (SnapshotsEnabled)
             if (!isRunning || world is null || string.IsNullOrWhiteSpace(playerId))
                 return 0;
 
-            if (playerRegistry.TryGet(playerId, out var known) &&
-                (known.AwaitingContinuation || known.Observer))
-                return 0;
+            if (playerRegistry.TryGet(playerId, out var known))
+            {
+                if (known.AwaitingContinuation || known.Observer)
+                    return 0;
+
+                // A reconnect can arrive after death but before the lifecycle
+                // system's next cadence. Never mint a replacement sim here.
+                if (known.ControlledSim != Entity.Null &&
+                    world.IsAlive(known.ControlledSim) &&
+                    world.Has<Dead>(known.ControlledSim))
+                {
+                    known.AwaitingContinuation = true;
+                    known.LastSimNetworkId = world.Has<NetworkId>(known.ControlledSim)
+                        ? world.Get<NetworkId>(known.ControlledSim).Value
+                        : 0;
+                    if (world.Has<GenName>(known.ControlledSim))
+                        known.LastSimName = world.Get<GenName>(known.ControlledSim).Name;
+                    if (world.Has<Alive>(known.ControlledSim))
+                        known.LastSimAge = world.Get<Alive>(known.ControlledSim).Age;
+                    if (known.LastSimTraits is null && world.Has<Traits>(known.ControlledSim))
+                        known.LastSimTraits = world.Get<Traits>(known.ControlledSim);
+                    return 0;
+                }
+            }
 
             var existing = ResolvePlayerSim(playerId, 0);
             if (existing != Entity.Null && world.IsAlive(existing) && !world.Has<Dead>(existing))
@@ -1237,6 +1409,135 @@ if (SnapshotsEnabled)
             return world.Has<NetworkId>(entity.Value) ? world.Get<NetworkId>(entity.Value).Value : 0;
         }
     }
+
+    /// <summary>
+    /// Creates a grown child of the player's last sim, transfers control to it,
+    /// and returns the new identity. Only valid while the profile is awaiting a
+    /// continuation decision.
+    /// </summary>
+    public PlayerRespawnStatus RespawnPlayerAsChild(string playerId)
+    {
+        lock (@lock)
+        {
+            if (!isRunning || world is null || economy is null || newbornFactory is null)
+                return RespawnFailed("world_not_ready", "The world is not ready yet.");
+            if (string.IsNullOrWhiteSpace(playerId) || !playerRegistry.TryGet(playerId, out var profile))
+                return RespawnFailed("player_not_found", "Player not found.");
+            if (profile.Observer || profile.ContinuationPolicy == PlayerContinuationPolicy.Observer)
+                return RespawnFailed("observer", "Observers cannot respawn.");
+            if (!profile.AwaitingContinuation)
+                return RespawnFailed("not_awaiting", "Your sim is still alive.");
+
+            var parent = Entity.Null;
+            if (profile.LastSimNetworkId != 0 &&
+                networkIds.TryGetEntity(new NetworkId(profile.LastSimNetworkId), out var parentEntity) &&
+                world.IsAlive(parentEntity))
+            {
+                parent = parentEntity;
+            }
+
+            if (parent != Entity.Null && !world.Has<Dead>(parent))
+                return RespawnFailed("not_dead", "The previous sim is still alive.");
+
+            // The normal path: a child was created at death while the parent
+            // entity was still alive, so the family edge already exists.
+            if (profile.PendingRespawnSimNetworkId != 0 &&
+                networkIds.TryGetEntity(new NetworkId(profile.PendingRespawnSimNetworkId), out var pending) &&
+                world.IsAlive(pending) &&
+                !world.Has<Dead>(pending))
+            {
+                return AttachRespawnChild(playerId, profile, pending);
+            }
+
+            profile.PendingRespawnSimNetworkId = 0;
+
+            if (profile.LastSimName is null && profile.LastSimTraits is null && parent == Entity.Null)
+                return RespawnFailed("no_parent", "No previous sim is available to continue.");
+
+            if (profile.LastSimName is null && parent != Entity.Null && world.Has<GenName>(parent))
+                profile.LastSimName = world.Get<GenName>(parent).Name;
+            if (profile.LastSimAge == 0 && parent != Entity.Null && world.Has<Alive>(parent))
+                profile.LastSimAge = world.Get<Alive>(parent).Age;
+
+            var household = Entity.Null;
+            if (profile.LastSimHouseholdNetworkId != 0 &&
+                networkIds.TryGetEntity(new NetworkId(profile.LastSimHouseholdNetworkId), out var householdEntity) &&
+                world.IsAlive(householdEntity) &&
+                economy.Housing.MemberCount(householdEntity) > 0)
+            {
+                household = householdEntity;
+            }
+
+            var parentTraits = profile.LastSimTraits;
+            if (parentTraits is null && parent != Entity.Null && world.Has<Traits>(parent))
+                parentTraits = world.Get<Traits>(parent);
+
+            var age = economy.Life.Policy.WorkStartAge;
+            var child = newbornFactory.CreateChild(parent, parentTraits, household, age, tick);
+            var childNetworkId = world.Has<NetworkId>(child.Entity)
+                ? world.Get<NetworkId>(child.Entity).Value
+                : 0;
+
+            economy.Emit(new ChildBorn(
+                childNetworkId,
+                profile.LastSimNetworkId,
+                0,
+                household != Entity.Null ? GetNetworkId(world, household) : 0,
+                tick));
+            economy.Emit(new BirthRecorded(childNetworkId, 0, child.Name, tick));
+
+            return AttachRespawnChild(playerId, profile, child.Entity);
+        }
+    }
+
+    private PlayerRespawnStatus AttachRespawnChild(
+        string playerId,
+        PlayerProfile profile,
+        Entity child)
+    {
+        var childNetworkId = world!.Has<NetworkId>(child)
+            ? world.Get<NetworkId>(child).Value
+            : 0;
+        var childName = world.Has<GenName>(child) ? world.Get<GenName>(child).Name : null;
+        var age = world.Has<Alive>(child) ? world.Get<Alive>(child).Age : 0;
+
+        if (mapContext is not null)
+            PlayerSpawnService.PlaceAt(world, child, economy!.Housing, mapContext, childNetworkId);
+        if (!world.Has<MovementState>(child))
+            world.Add(child, new MovementState(MovementOptions.PlayerSpeedTilesPerSecond));
+
+        if (world.Has<PlayerControlled>(child))
+            world.Get<PlayerControlled>(child) = new PlayerControlled(playerId);
+        else
+            world.Add(child, new PlayerControlled(playerId));
+
+        var previousSimId = profile.LastSimNetworkId;
+        profile.Observer = false;
+        playerRegistry.AttachSim(profile, child);
+        profile.LastSimNetworkId = childNetworkId;
+        profile.PendingRespawnSimNetworkId = 0;
+        profile.LastSimName = null;
+        profile.LastSimAge = 0;
+        profile.LastSimTraits = null;
+        profile.LastSimHouseholdNetworkId = 0;
+        profile.LastSimDeathTick = 0;
+        playerRegistry.RecordContinuation();
+
+        economy!.Emit(new PlayerContinuationApplied(
+            playerId,
+            previousSimId,
+            childNetworkId,
+            "child",
+            null,
+            tick,
+            childName));
+
+        return new PlayerRespawnStatus(
+            true, null, null, childNetworkId, previousSimId, childName, age);
+    }
+
+    private static PlayerRespawnStatus RespawnFailed(string code, string message) =>
+        new(false, code, message, 0, 0, null, 0);
 
     private Entity? CreateContinuationSim(string playerId)
     {
@@ -6883,7 +7184,13 @@ if (SnapshotsEnabled)
                     Observer = profile.Observer,
                     CreatedTick = profile.CreatedTick,
                     LastActionTick = profile.LastActionTick,
-                    LastSequence = profile.LastSequence
+                    LastSequence = profile.LastSequence,
+                    LastSimName = profile.LastSimName,
+                    LastSimAge = profile.LastSimAge,
+                    LastSimTraits = profile.LastSimTraits,
+                    LastSimHouseholdNetworkId = profile.LastSimHouseholdNetworkId,
+                    LastSimDeathTick = profile.LastSimDeathTick,
+                    PendingRespawnSimNetworkId = profile.PendingRespawnSimNetworkId
                 });
 
                 var sim = profile.ControlledSim;
@@ -8062,13 +8369,19 @@ if (SnapshotsEnabled)
                 profile.ContinuationPolicy = Enum.TryParse<PlayerContinuationPolicy>(
                     persisted.ContinuationPolicy, ignoreCase: true, out var policy)
                     ? policy
-                    : PlayerContinuationPolicy.Heir;
+                    : PlayerContinuationPolicy.Respawn;
                 profile.AwaitingContinuation = persisted.AwaitingContinuation || sim == Entity.Null;
                 profile.Observer = persisted.Observer;
                 profile.CreatedTick = persisted.CreatedTick;
                 profile.LastActionTick = persisted.LastActionTick;
                 profile.LastSequence = persisted.LastSequence;
                 profile.LastSimNetworkId = persisted.SimNetworkId;
+                profile.LastSimName = persisted.LastSimName;
+                profile.LastSimAge = persisted.LastSimAge;
+                profile.LastSimTraits = persisted.LastSimTraits;
+                profile.LastSimHouseholdNetworkId = persisted.LastSimHouseholdNetworkId;
+                profile.LastSimDeathTick = persisted.LastSimDeathTick;
+                profile.PendingRespawnSimNetworkId = persisted.PendingRespawnSimNetworkId;
 
                 if (sim != Entity.Null && world!.IsAlive(sim) && !world.Has<Dead>(sim) &&
                     !persisted.AwaitingContinuation && !world.Has<PlayerControlled>(sim))

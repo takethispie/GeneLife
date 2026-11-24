@@ -14,17 +14,13 @@
 
 | Folder | Feature | Tech steps |
 |---|---|---|
-| [`01-player-life-and-household/`](01-player-life-and-household/summary.md) | Player agency, employment, housing, consumption, family actions, aging and heir continuation | 8 |
-| [`02-appearance-and-visual-identity/`](02-appearance-and-visual-identity/summary.md) | Trait-driven appearance, portraits, sprites, aging and family resemblance | 7 |
-| [`03-consumption-and-utilities/`](03-consumption-and-utilities/summary.md) | Water/electricity networks, outages, grocery stock, nutrition and cohabitation recalibration | 8 |
-| [`04-social-and-multiplayer/`](04-social-and-multiplayer/summary.md) | Presence, chat, friendships, consensual player relationships, moderation and shared venues | 8 |
-| [`05-live-operations-and-scale/`](05-live-operations-and-scale/summary.md) | Hybrid cleanup, relocation, live preview, audio/touch, prediction decision, balance and release | 8 |
+| `01-player-life-and-household/` | Player agency, employment, housing, consumption, family actions, aging and heir continuation | 8 |
+| `02-appearance-and-visual-identity/` | Trait-driven appearance, portraits, sprites, aging and family resemblance | 7 |
+| `03-consumption-and-utilities/` | Water/electricity networks, outages, grocery stock, nutrition and cohabitation recalibration | 8 |
+| `04-social-and-multiplayer/` | Presence, chat, friendships, consensual player relationships, moderation and shared venues | 8 |
+| `05-live-operations-and-scale/` | Hybrid cleanup, relocation, live preview, audio/touch, prediction decision, balance and release | 8 |
 
-Every feature folder contains:
-
-- `summary.md` — objective, baseline, deliverables, architecture, steps and definition of done.
-- `business/` — the feature explained in product-facing terms.
-- `tech/` — ordered implementation steps with context, design, tasks, files, contracts and acceptance.
+Feature-level detail was removed after V5 shipped; recover it from git history if needed. See [STATUS.md](STATUS.md) for the delivered state.
 
 ---
 

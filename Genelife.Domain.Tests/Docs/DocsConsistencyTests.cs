@@ -76,28 +76,6 @@ public class DocsConsistencyTests
     }
 
     [Fact]
-    public void Mp05_status_matches_the_intent_drain()
-    {
-        var readme = Read("docs/plans/multiplayer-v1/README.md");
-
-        Assert.DoesNotContain("command intents not drained", readme);
-        Assert.Contains("DrainPlayerIntents", readme);
-        Assert.Contains("command queue ✅", readme);
-    }
-
-    [Fact]
-    public void Hybrid_status_pages_report_the_cleanup_as_done()
-    {
-        var readme = Read("docs/plans/hybrid-wolverine/README.md");
-        var checklist = Read("docs/plans/hybrid-wolverine/migration-checklist.md");
-
-        Assert.DoesNotContain("H16, H19, and H20 are partial", readme);
-        Assert.DoesNotContain("H19/H20 cleanup outstanding", checklist);
-        Assert.Contains("H16", readme);
-        Assert.Contains("Done", readme);
-    }
-
-    [Fact]
     public void V2_status_documents_relocation_and_default_animation()
     {
         var status = Read("docs/plans/roadmap-v2/STATUS.md");
@@ -109,15 +87,8 @@ public class DocsConsistencyTests
     }
 
     [Fact]
-    public void V5_tech_step_documents_exist_and_status_links_resolve()
+    public void Completed_roadmap_status_documents_exist()
     {
-        var folder = Path.Combine(RepositoryRoot(), "docs/plans/roadmap-v5/05-live-operations-and-scale");
-        for (var i = 1; i <= 8; i++)
-        {
-            var matches = Directory.GetFiles(Path.Combine(folder, "tech"), $"{i:00}-*.md");
-            Assert.Single(matches);
-        }
-
         foreach (var doc in new[] { "docs/plans/roadmap-v2/STATUS.md", "docs/plans/roadmap-v3/STATUS.md", "docs/plans/roadmap-v4/STATUS.md" })
             Assert.True(File.Exists(Path.Combine(RepositoryRoot(), doc)), doc);
     }

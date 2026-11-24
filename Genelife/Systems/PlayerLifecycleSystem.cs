@@ -62,14 +62,18 @@ public sealed class PlayerLifecycleSystem : ISimulationSystem
                 if (world.Has<PlayerControlled>(sim))
                     world.Remove<PlayerControlled>(sim);
 
+                CaptureDeath(profile, sim, tick);
                 profile.LastSimNetworkId = NetworkIdOf(sim);
-                profile.ControlledSim = Entity.Null;
-                profile.AwaitingContinuation = true;
+                players.DetachSim(profile);
                 players.RecordDeath();
                 economy.Emit(new PlayerAwaitingContinuation(
                     profile.LastSimNetworkId,
                     profile.PlayerId,
-                    tick));
+                    tick,
+                    profile.LastSimName,
+                    profile.LastSimAge,
+                    world.Has<Dead>(sim) ? world.Get<Dead>(sim).Cause.ToString() : null,
+                    CanRespawn: profile.ContinuationPolicy != PlayerContinuationPolicy.Observer));
                 continue;
             }
 
@@ -81,6 +85,11 @@ public sealed class PlayerLifecycleSystem : ISimulationSystem
                 profile.Observer = true;
                 continue;
             }
+
+            // Respawn keeps the profile awaiting a player decision. The client
+            // shows a prompt and calls the respawn endpoint to create a child.
+            if (profile.ContinuationPolicy == PlayerContinuationPolicy.Respawn)
+                continue;
 
             var previousSimId = profile.LastSimNetworkId;
 
@@ -104,6 +113,19 @@ public sealed class PlayerLifecycleSystem : ISimulationSystem
             // No heir and the world could not create a new sim: keep the
             // profile awaiting rather than handing the player a dead sim.
         }
+    }
+
+    private void CaptureDeath(PlayerProfile profile, Entity sim, long tick)
+    {
+        if (profile.LastSimDeathTick != 0)
+            return;
+
+        profile.LastSimName = world.Has<GenName>(sim) ? world.Get<GenName>(sim).Name : null;
+        profile.LastSimAge = world.Has<Alive>(sim) ? world.Get<Alive>(sim).Age : 0;
+        profile.LastSimTraits = world.Has<Traits>(sim) ? world.Get<Traits>(sim) : null;
+        var household = LifeSystemHelpers.HouseholdOf(world, economy, sim);
+        profile.LastSimHouseholdNetworkId = household != Entity.Null ? NetworkIdOf(household) : 0;
+        profile.LastSimDeathTick = tick;
     }
 
     private Entity ResolveHeir(PlayerProfile profile, Entity previousSim)
@@ -156,7 +178,8 @@ public sealed class PlayerLifecycleSystem : ISimulationSystem
             NetworkIdOf(sim),
             policy,
             null,
-            tick));
+            tick,
+            world.Has<GenName>(sim) ? world.Get<GenName>(sim).Name : null));
     }
 
     private ulong NetworkIdOf(Entity entity) =>

@@ -13,6 +13,7 @@ import {
   validateIntentRejected,
   validateMapDelta,
   validateMapSnapshot,
+  validatePlayerLifecycleNotice,
   validateWelcome,
   validateWorldSnapshot,
   validateWorldSnapshotDelta
@@ -58,6 +59,29 @@ describe("contract fixtures", () => {
       buildingNetworkId: 7002,
       sequence: 43
     });
+  });
+
+  it("validates player lifecycle notices", () => {
+    const notice = validatePlayerLifecycleNotice({
+      playerId: "p1",
+      kind: "died",
+      simNetworkId: 7,
+      previousSimNetworkId: 0,
+      name: "Ada",
+      age: 70,
+      cause: "Age",
+      tick: 100,
+      canRespawn: true
+    });
+    expect(notice).toMatchObject({ kind: "died", name: "Ada", canRespawn: true });
+    expect(() =>
+      validatePlayerLifecycleNotice({
+        playerId: "p1",
+        kind: "gone",
+        simNetworkId: 7,
+        tick: 1
+      })
+    ).toThrowError(/unknown lifecycle kind/);
   });
 
   it("validates asynchronous intent rejections", () => {

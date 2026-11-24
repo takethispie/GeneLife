@@ -6,6 +6,7 @@ import type {
   IntentResult,
   MapDelta,
   MapSnapshot,
+  PlayerLifecycleNotice,
   SetViewportRequest,
   SnapshotRejected,
   ViewportResult,
@@ -22,6 +23,7 @@ export const HUB_EVENTS = {
   snapshotDelta: "SendSnapshotDelta",
   snapshotRejected: "SnapshotRejected",
   intentRejected: "IntentRejected",
+  playerLifecycle: "PlayerLifecycle",
   receiveChat: "ReceiveChat",
   receiveEmote: "ReceiveEmote"
 } as const;
@@ -53,6 +55,7 @@ export interface HubHandlers {
   onSnapshotDelta(delta: WorldSnapshotDelta): void;
   onSnapshotRejected(rejection: SnapshotRejected): void;
   onIntentRejected(rejection: IntentRejected): void;
+  onPlayerLifecycle?(notice: PlayerLifecycleNotice): void;
   onStateChange(state: ConnectionState): void;
   onReconnected?(): void;
   onChatMessage?(message: ChatMessage): void;

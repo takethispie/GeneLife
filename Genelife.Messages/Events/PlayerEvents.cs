@@ -87,7 +87,11 @@ public sealed record PlayerChildNamed(
 public sealed record PlayerAwaitingContinuation(
     ulong SimNetworkId,
     string PlayerId,
-    long Tick);
+    long Tick,
+    string? Name = null,
+    int Age = 0,
+    string? Cause = null,
+    bool CanRespawn = false);
 
 public sealed record PlayerContinuationApplied(
     string PlayerId,
@@ -95,7 +99,8 @@ public sealed record PlayerContinuationApplied(
     ulong NewSimNetworkId,
     string Policy,
     string? Code,
-    long Tick);
+    long Tick,
+    string? Name = null);
 
 /// <summary>
 /// Audit fact for every admitted player action. Written off the tick thread and

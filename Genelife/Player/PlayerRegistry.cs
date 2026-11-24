@@ -1,4 +1,5 @@
 using Arch.Core;
+using Genelife.Components.Gen;
 
 namespace Genelife.Player;
 
@@ -6,7 +7,8 @@ public enum PlayerContinuationPolicy : byte
 {
     Heir = 1,
     NewSim = 2,
-    Observer = 3
+    Observer = 3,
+    Respawn = 4
 }
 
 /// <summary>
@@ -18,13 +20,30 @@ public sealed class PlayerProfile
 {
     public required string PlayerId { get; init; }
     public Entity ControlledSim { get; set; }
-    public PlayerContinuationPolicy ContinuationPolicy { get; set; } = PlayerContinuationPolicy.Heir;
+    public PlayerContinuationPolicy ContinuationPolicy { get; set; } = PlayerContinuationPolicy.Respawn;
     public bool AwaitingContinuation { get; set; }
     public long CreatedTick { get; set; }
     public long LastActionTick { get; set; }
     public long LastSequence { get; set; }
     public ulong LastSimNetworkId { get; set; }
     public bool Observer { get; set; }
+
+    /// <summary>
+    /// Snapshot of the last controlled sim captured at death so a child can be
+    /// created even after the dead entity has been destroyed.
+    /// </summary>
+    public string? LastSimName { get; set; }
+    public int LastSimAge { get; set; }
+    public Traits? LastSimTraits { get; set; }
+    public ulong LastSimHouseholdNetworkId { get; set; }
+    public long LastSimDeathTick { get; set; }
+
+    /// <summary>
+    /// Child created when a Respawn-policy player dies, before the player has
+    /// chosen to control it. Keeping it alive preserves the parent edge after
+    /// the dead entity is destroyed.
+    /// </summary>
+    public ulong PendingRespawnSimNetworkId { get; set; }
 }
 
 /// <summary>
@@ -79,6 +98,23 @@ public sealed class PlayerRegistry
 
     public bool TryGetBySim(Entity sim, out PlayerProfile profile) =>
         bySim.TryGetValue(sim, out profile!);
+
+    public bool TryGetByLastSimNetworkId(ulong networkId, out PlayerProfile profile)
+    {
+        if (networkId != 0)
+        {
+            foreach (var candidate in byPlayerId.Values)
+            {
+                if (candidate.LastSimNetworkId != networkId)
+                    continue;
+                profile = candidate;
+                return true;
+            }
+        }
+
+        profile = null!;
+        return false;
+    }
 
     public void AttachSim(PlayerProfile profile, Entity sim)
     {

@@ -20,4 +20,12 @@ public sealed class WelcomeMessage
     public int TickIntervalMs { get; set; } = 40;
     public int SnapshotVersion { get; set; }
     public int ProtocolVersion { get; set; } = CurrentProtocolVersion;
+
+    /// <summary>
+    /// True when the player has no controlled sim and can create a child of
+    /// their last sim. The client shows the respawn prompt while this is set.
+    /// </summary>
+    public bool AwaitingRespawn { get; set; }
+    public string? LastSimName { get; set; }
+    public int LastSimAge { get; set; }
 }

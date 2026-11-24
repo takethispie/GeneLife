@@ -33,6 +33,7 @@ import { AudioCuePlayer, type AudioCue } from "../ui/audio/audio";
 import { Hud } from "../ui/hud";
 import { HudDock } from "../ui/hud-dock";
 import { NotificationCenter, type NotificationKind } from "../ui/notifications";
+import { RespawnPopin, type RespawnPopinResult } from "../ui/respawn-popin";
 import { SettingsStore } from "../ui/settings";
 import { UiStore } from "../ui/ui-store";
 import { ChatPanel } from "../ui/social/chat";
@@ -249,6 +250,11 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
     }
   });
 
+  const respawnPopin = new RespawnPopin({
+    root: hudRoot,
+    onRespawn: () => requestRespawn()
+  });
+
   const playerDirectory = new PlayerDirectoryPanel({
     root,
     apiBaseUrl: config.apiBaseUrl,
@@ -399,6 +405,33 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
       traffic.addPayload(rejection);
       intent.handleRejected(rejection.sequence, rejection.code, rejection.message);
     },
+    onPlayerLifecycle: (notice) => {
+      if (notice.playerId !== ui.getState().playerId) return;
+
+      if (notice.kind === "died") {
+        store.setOwnSim(0);
+        centeredOnPlayer = false;
+        ui.patch({ ownSimNetworkId: 0 });
+        if (notice.canRespawn) {
+          respawnPopin.show({
+            name: notice.name ?? "Your sim",
+            age: notice.age,
+            cause: notice.cause
+          });
+        } else {
+          notify("warning", "awaiting_continuation", "Your sim is awaiting continuation.");
+        }
+        return;
+      }
+
+      store.setOwnSim(notice.simNetworkId);
+      centeredOnPlayer = false;
+      ui.patch({ ownSimNetworkId: notice.simNetworkId });
+      respawnPopin.hide();
+      if (notice.name !== null) {
+        notify("success", "respawned", `You are now ${notice.name}.`);
+      }
+    },
     onStateChange: (state) => {
       ui.patch({ connection: state, reconnectCount: hub?.reconnects ?? 0 });
       if (state === "failed" && sceneReady) {
@@ -424,6 +457,46 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
   function notify(kind: NotificationKind, code: string, message: string): void {
     notifications.push(kind, code, message);
     if (kind === "error") ui.patch({ lastError: message });
+  }
+
+  async function requestRespawn(): Promise<RespawnPopinResult> {
+    if (useFixtures) {
+      return { ok: false, message: "Respawn is not available in fixture mode." };
+    }
+
+    const token = session.store.token;
+    if (token === null) {
+      return { ok: false, message: "Sign in again to respawn." };
+    }
+
+    try {
+      const response = await fetchImpl(`${config.apiBaseUrl}/api/player/respawn`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: "{}"
+      });
+      const body = (await response.json().catch(() => null)) as
+        | { code?: string; message?: string; simNetworkId?: number; name?: string }
+        | null;
+
+      if (!response.ok || body === null || typeof body.simNetworkId !== "number") {
+        return { ok: false, message: body?.message ?? "Could not respawn." };
+      }
+
+      store.setOwnSim(body.simNetworkId);
+      centeredOnPlayer = false;
+      ui.patch({ ownSimNetworkId: body.simNetworkId });
+      notify("success", "respawned", `You are now ${body.name ?? "your child"}.`);
+      return { ok: true };
+    } catch (error) {
+      return {
+        ok: false,
+        message: error instanceof Error ? error.message : "Could not respawn."
+      };
+    }
   }
 
   function rejectionMessage(code: string, message: string): string {
@@ -502,6 +575,16 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
       mapVersion: welcome.mapVersion,
       tick: welcome.tick
     });
+
+    if (welcome.awaitingRespawn) {
+      centeredOnPlayer = false;
+      respawnPopin.show({
+        name: welcome.lastSimName ?? "Your sim",
+        age: welcome.lastSimAge ?? 0
+      });
+    } else {
+      respawnPopin.hide();
+    }
   }
 
   function onViewportRect(rect: TileRect): void {
@@ -684,6 +767,7 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
       }
       session.signOut();
       store.reset();
+      respawnPopin.hide();
       selection.select(null);
       targeting.clearAll();
       ui.reset();
@@ -706,6 +790,7 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
       touchInput.dispose();
       cameraInput.dispose();
       targeting.dispose();
+      respawnPopin.dispose();
       hud.dispose();
       playerDirectory.dispose();
       chatPanel.dispose();

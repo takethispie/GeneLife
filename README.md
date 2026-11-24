@@ -19,19 +19,23 @@ dotnet run --project GeneLife.AppHost
 The AppHost launches the browser client on `http://localhost:5173` and injects
 `VITE_API_BASE_URL` from the API's external endpoint, so no local `.env` is needed.
 
+## V4 & V5 Status
+- V4 traits, relationships, attraction, reproduction and inheritance, and V5 appearance, consumption/utilities, social and live-operations features are implemented.
+- See [Roadmap V4](docs/plans/roadmap-v4/README.md), [Roadmap V5](docs/plans/roadmap-v5/README.md) and their `STATUS.md` files for evidence and open follow-ups.
+
+## Active Roadmap
+- [V6 — Tick Performance](docs/plans/roadmap-v6/README.md): reduce dropped ticks at 2,000 sims under 32-player load.
+
 ## Implemented Feature
 - Very basic human eat-shower-sleep cycle
 - work simulation with companies, job posting and application, revenue and hiring
   based on productivity
-- Grocery store minimal implementation
+- Grocery store with catalog, stock, pricing and nutrition
 - houses, store, offices building
 - full NPC lifecycle: education, work, retirement, health, mortality, estates and population inflow
-
-## Planned Features
-- relationship between NPCs with an attraction algorithm — planned in [Roadmap V4](docs/plans/roadmap-v4/README.md)
-- genetic material with reproductive capabilities (NPC can have children), merging DNA in a semi-realistic way — planned in [Roadmap V4](docs/plans/roadmap-v4/README.md)
-- water, electricity consumption
-- advanced grocery system
+- player life: employment, housing, consumption, family actions, aging and death/respawn
+- NPC and player relationships, attraction, reproduction and inheritance
+- water and electricity networks, outages and household billing
 
 ## Testing
 

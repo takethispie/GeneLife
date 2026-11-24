@@ -125,6 +125,79 @@ public sealed class NewbornFactory
         return new NewbornResult(entity, inherited, world.Get<GenName>(entity).Name);
     }
 
+    /// <summary>
+    /// Creates an already-grown child of <paramref name="parent"/>. This backs
+    /// player respawns: the new sim carries the deceased parent's heritable
+    /// traits and, while the parent entity still exists, a parent edge.
+    /// </summary>
+    public NewbornResult CreateChild(
+        Entity parent,
+        Traits? parentTraits,
+        Entity guardianHousehold,
+        int age,
+        long tick)
+    {
+        var clampedAge = Math.Clamp(age, 0, economy.Life.Policy.MaxAge);
+        var entity = world.Create(
+            new GenName(string.Empty),
+            new Needs(),
+            new CurrentAction(ActionType.Idle, 0f),
+            new Alive(clampedAge),
+            new Location(0f, 0f),
+            LifecycleFactory.Create(clampedAge, tick, economy.Clock, economy.Life.Policy),
+            new Health(Genelife.Systems.HealthSystem.InitialForAge(clampedAge)),
+            new Wallet(Money.Zero),
+            new SkillProfile());
+
+        var networkId = allocateNetworkId(entity);
+        world.Add(entity, networkId);
+
+        var traits = parentTraits is { } inheritedFrom
+            ? TraitsInheritance.CreateWithOptionalParents(
+                inheritedFrom,
+                parent != Entity.Null && world.IsAlive(parent) ? NetworkIdOf(parent) : null,
+                null,
+                null,
+                economy.Random.Seed,
+                networkId.Value,
+                economy.Genetics).Traits
+            : TraitsGenerator.Create(
+                economy.Random.Seed,
+                networkId.Value,
+                TraitSource.Seed,
+                economy.Genetics);
+
+        var profile = world.Get<SkillProfile>(entity);
+        AptitudeSkills.ApplyStartingBonus(ref profile, traits.Aptitude);
+        world.Get<SkillProfile>(entity) = profile;
+
+        world.Add(entity, traits);
+        world.Get<GenName>(entity) = new GenName(ChildNameGenerator.For(networkId.Value));
+        world.Add(entity, new BirthRecord
+        {
+            PregnancyNetworkId = 0,
+            BornTick = tick - (long)clampedAge * economy.Clock.TicksPerYear
+        });
+
+        if (clampedAge < economy.Life.Policy.WorkStartAge)
+            world.Add(entity, new DependentChild());
+
+        if (guardianHousehold != Entity.Null && world.IsAlive(guardianHousehold))
+        {
+            world.Add(entity, new HouseholdMember(guardianHousehold, HouseholdRole.Child));
+            economy.Housing.AddMember(entity, guardianHousehold);
+        }
+
+        if (parent != Entity.Null && world.IsAlive(parent))
+        {
+            relationships.TryCreatePair(
+                parent, entity, RelationshipKind.Parent, RelationshipSource.Birth, tick,
+                out _, out _, out _);
+        }
+
+        return new NewbornResult(entity, traits, world.Get<GenName>(entity).Name);
+    }
+
     private Entity GuardianEntity(Entity household)
     {
         if (household == Entity.Null || !world.IsAlive(household) || !world.Has<Household>(household))

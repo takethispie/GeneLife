@@ -6,7 +6,7 @@
 
 **Builds on:** V1 economy/housing/life stages, V2 spatial world and indices, V3 read-model and client conventions, the 2026-11 balance pass, `SimulationRandom`, `EstateSettlementSystem`, `PopulationInflowSystem`, `HousingRegistry`, `HouseholdRole.Child`, `Tenure.Dependent`, `HousingUnit.Capacity`.
 
-> Implementation status: features 01 (traits), 02 (relationships/attraction), 03 (reproduction/family), 04 (continuity/inheritance) and 05 (admin/observability/hardening) are implemented and hardened; V4 is release-ready. The only open follow-up is enabling `CohabitOnPairing`, which needs economy/consumption recalibration. See [STATUS.md](STATUS.md), the [feature 05 release checklist](05-admin-observability-and-hardening/release-checklist.md) and [release evidence](05-admin-observability-and-hardening/release-evidence.md).
+> Implementation status: features 01 (traits), 02 (relationships/attraction), 03 (reproduction/family), 04 (continuity/inheritance) and 05 (admin/observability/hardening) are implemented and hardened; V4 is release-ready. The only open follow-up is enabling `CohabitOnPairing`, which needs economy/consumption recalibration. See [STATUS.md](STATUS.md) for release evidence.
 
 ---
 
@@ -14,17 +14,13 @@
 
 | Folder | Feature | Tech steps |
 |---|---|---|
-| [`01-traits-and-genetics/`](01-traits-and-genetics/summary.md) | Trait schema, seeded traits, inheritance, aptitude, persistence and calibration harness | 8 |
-| [`02-relationships-and-attraction/`](02-relationships-and-attraction/summary.md) | Relationship edges/index, eligibility, deterministic attraction, pairing and household merge | 11 |
-| [`03-reproduction-and-family/`](03-reproduction-and-family/summary.md) | Pregnancy, birth, newborn creation, childhood, household capacity and child costs | 11 |
-| [`04-continuity-and-inheritance/`](04-continuity-and-inheritance/summary.md) | Births vs immigration, widowhood, guardianship, inheritance and long-run balance | 7 |
-| [`05-admin-observability-and-hardening/`](05-admin-observability-and-hardening/summary.md) | Family read model, admin page, events/projections, determinism, scale, persistence and release | 8 |
+| `01-traits-and-genetics/` | Trait schema, seeded traits, inheritance, aptitude, persistence and calibration harness | 8 |
+| `02-relationships-and-attraction/` | Relationship edges/index, eligibility, deterministic attraction, pairing and household merge | 11 |
+| `03-reproduction-and-family/` | Pregnancy, birth, newborn creation, childhood, household capacity and child costs | 11 |
+| `04-continuity-and-inheritance/` | Births vs immigration, widowhood, guardianship, inheritance and long-run balance | 7 |
+| `05-admin-observability-and-hardening/` | Family read model, admin page, events/projections, determinism, scale, persistence and release | 8 |
 
-Every feature folder contains:
-
-- `summary.md` — objective, baseline, deliverables, architecture, steps and definition of done.
-- `business/` — the feature explained in product-facing terms.
-- `tech/` — ordered implementation steps with context, design, tasks, files, contracts and acceptance.
+Feature-level detail was removed after V4 shipped; recover it from git history if needed. See [STATUS.md](STATUS.md) for the delivered state.
 
 ---
 

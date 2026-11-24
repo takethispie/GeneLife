@@ -8,7 +8,7 @@ public sealed class PlayerDocument
 {
     public string Id { get; set; } = string.Empty;
     public ulong SimNetworkId { get; set; }
-    public string ContinuationPolicy { get; set; } = "Heir";
+    public string ContinuationPolicy { get; set; } = "Respawn";
     public bool AwaitingContinuation { get; set; }
     public bool Observer { get; set; }
     public bool Employed { get; set; }

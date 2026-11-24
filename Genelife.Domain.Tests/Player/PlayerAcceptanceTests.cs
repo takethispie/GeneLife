@@ -1,6 +1,9 @@
 using System.Text.Json;
+using Arch.Core;
 using Genelife.Api.Commands;
 using Genelife.Api.Services;
+using Genelife.Components.Gen;
+using Genelife.Enums;
 using Genelife.Player;
 
 namespace Genelife.UnitTests.Players;
@@ -84,6 +87,47 @@ public class PlayerAcceptanceTests
         Assert.Equal(32, engine.Players.Players.Count);
         Assert.Equal(32, engine.BuildPlayerOverview().Active);
         Assert.Equal(32, engine.BuildPlayerLives(100, 0, null, "active").Total);
+    }
+
+    [Fact]
+    public void RespawnPlayerAsChild_CreatesAControlledChildOfTheDeadSim()
+    {
+        using var engine = new SimulationEngine();
+        engine.Initialize();
+        var oldSimId = engine.EnsurePlayerSim("respawn-player");
+        Assert.NotEqual(0UL, oldSimId);
+
+        var world = engine.World!;
+        Assert.True(engine.NetworkIds.TryGetEntity(new NetworkId(oldSimId), out var oldSim));
+        world.Add(oldSim, new Dead(engine.CurrentTick, DeathCause.Age));
+        engine.Economy!.Life.DeathQueue.Add(oldSim);
+
+        for (var i = 0; i < 100; i++)
+            engine.Tick(1f / 20f);
+
+        Assert.True(engine.Players.TryGet("respawn-player", out var profile));
+        Assert.True(profile.AwaitingContinuation);
+        Assert.Equal(oldSimId, profile.LastSimNetworkId);
+        Assert.NotNull(profile.LastSimName);
+        Assert.True(engine.TryDequeuePlayerLifecycleNotice(out var died));
+        Assert.Equal("died", died.Kind);
+        Assert.NotEqual(0UL, profile.PendingRespawnSimNetworkId);
+
+        var result = engine.RespawnPlayerAsChild("respawn-player");
+
+        Assert.True(result.Success);
+        Assert.NotEqual(0UL, result.SimNetworkId);
+        Assert.NotEqual(oldSimId, result.SimNetworkId);
+        Assert.Equal(result.SimNetworkId, engine.GetPlayerSimNetworkId("respawn-player"));
+        Assert.False(profile.AwaitingContinuation);
+        Assert.NotEqual(Entity.Null, profile.ControlledSim);
+        Assert.True(world.Has<PlayerControlled>(profile.ControlledSim));
+        Assert.Equal(result.SimNetworkId, world.Get<NetworkId>(profile.ControlledSim).Value);
+
+        Assert.True(engine.NetworkIds.TryGetEntity(new NetworkId(result.SimNetworkId), out var child));
+        Assert.Equal(engine.Economy.Life.Policy.WorkStartAge, world.Get<Alive>(child).Age);
+        Assert.True(engine.NetworkIds.TryGetEntity(new NetworkId(oldSimId), out var parent));
+        Assert.Contains(child, engine.Relationships.ChildrenOf(parent));
     }
 
     private static PlayerActionIntent ChooseContinuation(

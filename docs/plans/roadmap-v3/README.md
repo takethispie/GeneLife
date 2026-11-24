@@ -14,17 +14,13 @@
 
 | Folder | Feature | Tech steps |
 |---|---|---|
-| [`01-client-foundation/`](01-client-foundation/summary.md) | Workspace, contracts, auth, config and asset bootstrap | 5 |
-| [`02-world-rendering/`](02-world-rendering/summary.md) | PixiJS scene, RLE map decoding, tiles, buildings and camera | 5 |
-| [`03-realtime-presence/`](03-realtime-presence/summary.md) | SignalR, replication store, interpolation, viewport and reconnect | 6 |
-| [`04-input-and-hud/`](04-input-and-hud/summary.md) | Input, intents, building interaction and DOM HUD | 6 |
-| [`05-hardening-and-release/`](05-hardening-and-release/summary.md) | Tests, performance, observability, deployment and release | 6 |
+| `01-client-foundation/` | Workspace, contracts, auth, config and asset bootstrap | 5 |
+| `02-world-rendering/` | PixiJS scene, RLE map decoding, tiles, buildings and camera | 5 |
+| `03-realtime-presence/` | SignalR, replication store, interpolation, viewport and reconnect | 6 |
+| `04-input-and-hud/` | Input, intents, building interaction and DOM HUD | 6 |
+| `05-hardening-and-release/` | Tests, performance, observability, deployment and release | 6 |
 
-Every feature folder contains:
-
-- `summary.md` — objective, baseline, deliverables, architecture, steps and definition of done.
-- `business/` — the feature explained in product-facing terms.
-- `tech/` — ordered implementation steps with context, design, tasks, files, contracts and acceptance.
+Feature-level detail was removed after V3 shipped; recover it from git history if needed. See [STATUS.md](STATUS.md) for the delivered state.
 
 ---
 

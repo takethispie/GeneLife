@@ -14,15 +14,11 @@
 
 | Folder | Feature | Tech steps |
 |---|---|---|
-| [`01-world-map/`](01-world-map/summary.md) | Shared tile map, deterministic generation, building placement and occupancy | 11 |
-| [`02-player-movement/`](02-player-movement/summary.md) | Player-controlled sims, intent drain, movement, collision and pathfinding | 11 |
-| [`03-map-replication/`](03-map-replication/summary.md) | Static map snapshot, map deltas, AOI, admin map console and observability | 10 |
+| `01-world-map/` | Shared tile map, deterministic generation, building placement and occupancy | 11 |
+| `02-player-movement/` | Player-controlled sims, intent drain, movement, collision and pathfinding | 11 |
+| `03-map-replication/` | Static map snapshot, map deltas, AOI, admin map console and observability | 10 |
 
-Every feature folder contains:
-
-- `summary.md` — objective, baseline, deliverables, architecture, steps and definition of done.
-- `business/` — the feature explained in product-facing terms.
-- `tech/` — ordered implementation steps with context, design, tasks, files, contracts and acceptance.
+Feature-level detail was removed after V2 shipped; recover it from git history if needed. See [STATUS.md](STATUS.md) for the delivered state.
 
 ---
 

@@ -59,6 +59,32 @@ public class BirthTests
     }
 
     [Fact]
+    public void CreateChild_CreatesAGrownChildLinkedToTheParent()
+    {
+        var context = new Context(capacity: 3);
+        context.World.Add(context.First, new Dead(0, DeathCause.Age));
+        var parentTraits = context.World.Get<Traits>(context.First);
+
+        var child = context.Factory.CreateChild(
+            context.First,
+            parentTraits,
+            context.Household,
+            age: 18,
+            tick: 100);
+
+        Assert.True(context.World.Has<Traits>(child.Entity));
+        Assert.True(context.World.Has<GenName>(child.Entity));
+        Assert.True(context.World.Has<Lifecycle>(child.Entity));
+        Assert.True(context.World.Has<BirthRecord>(child.Entity));
+        Assert.Equal(18, context.World.Get<Alive>(child.Entity).Age);
+        Assert.Equal(LifeStage.Work, context.World.Get<Lifecycle>(child.Entity).Stage);
+        Assert.Equal(HouseholdRole.Child,
+            context.World.Get<HouseholdMember>(child.Entity).Role);
+        Assert.Contains(child.Entity, context.Relationships.ChildrenOf(context.First));
+        Assert.Contains(context.First, context.Relationships.ParentsOf(child.Entity));
+    }
+
+    [Fact]
     public void BirthIsDeterministicForTheSameSeedAndNetworkSequence()
     {
         var first = new Context(capacity: 3);

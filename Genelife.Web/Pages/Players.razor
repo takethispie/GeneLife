@@ -240,6 +240,7 @@
                 <div class="col-12 col-md-3">
                     <label class="form-label small mb-1">Continuation policy</label>
                     <select class="form-select" @bind="policy">
+                        <option value="Respawn">Respawn as child</option>
                         <option value="Heir">Heir</option>
                         <option value="NewSim">New sim</option>
                         <option value="Observer">Observer</option>
@@ -266,7 +267,7 @@
     private PlayerLifeData? selected;
     private string search = string.Empty;
     private string state = string.Empty;
-    private string policy = "Heir";
+    private string policy = "Respawn";
     private string reason = string.Empty;
     private bool autoRefresh = true;
     private bool isLoading;

@@ -103,3 +103,12 @@ public sealed record PlayerMeStatus(
     PlayerLifeStatus Life,
     IReadOnlyList<PlayerInvitationStatus> PendingInvitations,
     IReadOnlyList<PlayerActionAuditStatus> RecentActions);
+
+public sealed record PlayerRespawnStatus(
+    bool Success,
+    string? Code,
+    string? Message,
+    ulong SimNetworkId,
+    ulong ParentSimNetworkId,
+    string? Name,
+    int Age);

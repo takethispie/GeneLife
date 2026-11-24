@@ -14,7 +14,7 @@
 | Player housing and household | Done (feature 01) | Rent, move, household membership, arrears, eviction, capacity rules |
 | Player consumption and needs | Done (feature 01) | Shopping, wallet debits, needs effects, UBI remains the only recurring mint |
 | Player relationships and family actions | Done (feature 01) | Invitations, consent, partnership, pregnancy/birth paths, NPC consent policy |
-| Player aging, death and heir continuation | Done (feature 01) | Age progression, death, estate, heir selection, continuation policy |
+| Player aging, death and heir continuation | Done (feature 01) | Age progression, death, estate, heir selection, automatic heir/new-sim continuation, observer mode and manual respawn |
 | Player persistence and admin page | Done (feature 01) | Schema 12, player profile/read model, `/player` admin page, action audit |
 | Player life acceptance | Done (feature 01) | Recorded-command replay from snapshot and a 32-player 100-tick soak are green alongside unit/persistence tests |
 | Appearance descriptor model | Done (feature 02) | `SkinTone`, `FaceShape`, deterministic descriptor from traits/age/sex |
@@ -47,7 +47,7 @@
 | Audio and touch controls | Done (feature 05) | Synth cue set with mute/category settings, lazy unlock, pinch/pan/tap touch adapter, mobile Playwright gate |
 | Prediction decision and implementation | Done (feature 05) | Input-to-ack instrumentation; measured p95 51 ms locally; no-prediction decision recorded |
 | 1k–2k balance and performance | Done with one documented miss (feature 05) | 1k/2k decade reports; 2k p95 35.6 ms; 32-player p95 0.88 ms; 1k rent burden 0.4284 miss reported |
-| Release checklist and evidence | Implementation evidence recorded (feature 05) | `release-evidence.md` populated; production sign-off and rollback rehearsal pending |
+| Release checklist and evidence | Implementation evidence recorded (feature 05) | Release evidence record populated; production sign-off and rollback rehearsal pending |
 
 ## Verification plan
 
@@ -74,7 +74,7 @@
 ## Current baseline
 
 - `PersistedWorldState.CurrentSchemaVersion` is 15. Feature 03 adds metric utility networks, links, household meters, service levels, tariff billing, grocery catalog/inventory/pricing/spoilage/nutrition, schema 13→14 migration with conservative bootstrapping, and the `/consumption` admin page. Default tariffs are municipality-subsidised (100%) so the strict rent-burden and unemployment bands stay green; setting `SubsidyBasisPoints = 0` exercises household payment, arrears and cut-off.
-- The player sim is created on connect and still uses `MoveIntent`/`UseBuildingIntent` for movement and building use. Typed `PlayerActionIntent` commands now cover job application/accept/quit, housing request/lease/move, arrears, shopping, consumption, partner invitations and consent, child naming, and heir/new-sim/observer continuation. Player sims remain excluded from autonomous decisions, job seeking and work scheduling.
+- The player sim is created on connect and still uses `MoveIntent`/`UseBuildingIntent` for movement and building use. Typed `PlayerActionIntent` commands now cover job application/accept/quit, housing request/lease/move, arrears, shopping, consumption, partner invitations and consent, child naming, and heir/new-sim/observer/respawn continuation. The continuation default is `Respawn`: after death the client shows a death prompt whose button calls `POST /api/player/respawn`, the server creates a grown child of the dead sim while the entity still exists, links the parent edge and transfers control. Player sims remain excluded from autonomous decisions, job seeking and work scheduling.
 - V4 family systems are complete for NPCs: traits, relationship edges, eligibility, attraction, pairing, pregnancy, birth, childhood, guardianship, inheritance and the admin family page.
 - The browser client renders map, buildings and sims. Sims now compose layered shared-part bodies, heads, eyes, hair and outfit palettes with local/other-player markers; the admin `/appearance` page renders the same layer contract as SVG and compares a family.
 - The world supports up to 32 concurrent players with server-authoritative presence, snapshots, deltas, viewport filtering and reconnect. Feature 04 adds privacy-scoped presence, chat/emotes, friendships/blocks/mutes, reports, player partnerships, venues/activities and audited moderation.
@@ -115,5 +115,5 @@
 3. Add Playwright appearance visual smoke and a reference-hardware frame-budget report, then finish feature 02 acceptance.
 4. Finish feature 03 NPC shopping trips, meals and housing/consumption tuning before reconsidering `CohabitOnPairing`; the 30-year before/after comparison is recorded and currently argues against flipping.
 5. Run the 30-minute live preview soak and record the HUD input-ack p95 and `/api/simulation/metrics`.
-6. Rehearse schema 11 → 15 migration and rollback against a pre-V5 backup, then obtain reviewer sign-off in `release-evidence.md`.
+6. Rehearse schema 11 → 15 migration and rollback against a pre-V5 backup, then obtain reviewer sign-off in the release evidence record.
 7. Finish the feature 02 hardware frame-budget report and feature 03 NPC shopping/meal acceptance and cohabitation comparison before production release.

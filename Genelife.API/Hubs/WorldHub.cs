@@ -5,6 +5,7 @@ using Genelife.Api.Commands;
 using Genelife.Api.DTOs;
 using Genelife.Api.Services;
 using Genelife.Api.Snapshots;
+using Genelife.Player;
 using Genelife.Social;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
@@ -104,6 +105,13 @@ public sealed class WorldHub : Hub
         var snapshot = engine.GetLatestSnapshot();
         var map = engine.BuildMapSnapshot();
         var simNetworkId = engine.GetPlayerSimNetworkId(playerId);
+        var profile = engine.Players.TryGet(playerId, out var known) ? known : null;
+        var awaitingRespawn = profile is
+        {
+            AwaitingContinuation: true,
+            Observer: false,
+            ContinuationPolicy: not PlayerContinuationPolicy.Observer
+        } && (profile.LastSimName is not null || profile.LastSimTraits is not null);
 
         await Clients.Caller.SendAsync("Welcome", new WelcomeMessage
         {
@@ -114,7 +122,10 @@ public sealed class WorldHub : Hub
             Tick = snapshot?.Tick ?? engine.CurrentTick,
             TickIntervalMs = tickIntervalMs,
             SnapshotVersion = snapshot?.Version ?? WorldSnapshot.CurrentVersion,
-            ProtocolVersion = WelcomeMessage.CurrentProtocolVersion
+            ProtocolVersion = WelcomeMessage.CurrentProtocolVersion,
+            AwaitingRespawn = awaitingRespawn,
+            LastSimName = profile?.LastSimName,
+            LastSimAge = profile?.LastSimAge ?? 0
         });
 
         await Clients.Caller.SendAsync("SendMapSnapshot", map);
