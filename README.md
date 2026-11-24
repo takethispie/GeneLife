@@ -35,17 +35,38 @@ The AppHost launches the browser client on `http://localhost:5173` and injects
 
 ## Testing
 
+The suite is split by execution tier:
+
+- `Genelife.Domain.Tests` — fast tests, no PostgreSQL or API host.
+- `Genelife.Api.IntegrationTests` — API host, Marten and PostgreSQL.
+- `Genelife.Performance.Tests` — load harness, performance guardrails and long-horizon scenarios.
+
 Start PostgreSQL for the integration suite:
 
 ```bash
 docker compose up -d postgres
 ```
 
-Run the full suite:
+Run the fast suite:
 
 ```bash
-dotnet build GeneLife.sln
-dotnet run --project Genelife.UnitTests/Genelife.UnitTests.csproj --no-build --no-launch-profile
+dotnet build Genelife.Domain.Tests/Genelife.Domain.Tests.csproj
+dotnet run --project Genelife.Domain.Tests/Genelife.Domain.Tests.csproj --no-build --no-launch-profile -- \
+  -trait- "Category=Scenario"
+```
+
+Run the API integration suite:
+
+```bash
+dotnet build Genelife.Api.IntegrationTests/Genelife.Api.IntegrationTests.csproj
+dotnet run --project Genelife.Api.IntegrationTests/Genelife.Api.IntegrationTests.csproj --no-build --no-launch-profile --
+```
+
+Run the performance and long-horizon suite:
+
+```bash
+dotnet build Genelife.Performance.Tests/Genelife.Performance.Tests.csproj
+dotnet run --project Genelife.Performance.Tests/Genelife.Performance.Tests.csproj --no-build --no-launch-profile --
 ```
 
 Tests use isolated Marten schemas and snapshot files, so repeated local runs do not share read-model state.

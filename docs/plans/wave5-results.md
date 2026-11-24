@@ -7,9 +7,11 @@
 ## How to run checks
 
 ```bash
-dotnet build Genelife.UnitTests/Genelife.UnitTests.csproj --nologo
-dotnet run --project Genelife.UnitTests/Genelife.UnitTests.csproj --no-build --no-launch-profile
+dotnet build Genelife.Domain.Tests/Genelife.Domain.Tests.csproj --nologo
+dotnet run --project Genelife.Domain.Tests/Genelife.Domain.Tests.csproj --no-build --no-launch-profile -- -trait- "Category=Scenario"
 ```
+
+The result below is the historical pre-split run; current project counts differ.
 
 Result on the implementation machine:
 

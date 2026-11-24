@@ -10,6 +10,22 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: genelife
+          POSTGRES_PASSWORD: genelife
+          POSTGRES_DB: genelife_dev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U genelife -d genelife_dev"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      ConnectionStrings__Postgres: Host=localhost;Port=5432;Database=genelife_dev;Username=genelife;Password=genelife
     steps:
       - uses: actions/checkout@v4
 
@@ -18,22 +34,29 @@ jobs:
           dotnet-version: "10.0.x"
 
       - name: Build
-        run: dotnet build Genelife.UnitTests/Genelife.UnitTests.csproj --nologo
+        run: dotnet build Genelife.Performance.Tests/Genelife.Performance.Tests.csproj --nologo
 
       - name: Run load harness and guardrails
         run: >
-          dotnet run --project Genelife.UnitTests/Genelife.UnitTests.csproj
+          dotnet run --project Genelife.Performance.Tests/Genelife.Performance.Tests.csproj
           --no-build --no-launch-profile --
           -class Genelife.UnitTests.Performance.LoadHarness
           -class Genelife.UnitTests.Performance.PerformanceGuardrailTests
+          -class Genelife.UnitTests.Performance.FamilyPerformanceTests
           -class Genelife.UnitTests.Performance.MultiplayerAcceptanceTests
+          -class Genelife.UnitTests.Economy.BalanceScenarioTests
+          -class Genelife.UnitTests.Family.ReplayTests
+          -class Genelife.UnitTests.Release.FamilyReleaseScenarioTests
 
       - name: Upload performance reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: performance-reports
-          path: "**/performance-reports/*.json"
+          path: |
+            **/performance-reports/*.json
+            **/release-reports/*.json
+            **/balance-reports/*.json
           if-no-files-found: warn
 
       - name: Publish report summary

@@ -4,9 +4,28 @@ on:
   push:
     branches: [master]
   pull_request:
+  merge_group:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  test:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - run: dotnet restore GeneLife.sln
+      - run: dotnet build Genelife.Domain.Tests/Genelife.Domain.Tests.csproj -c Release --no-restore
+      - run: >
+          dotnet run --project Genelife.Domain.Tests/Genelife.Domain.Tests.csproj
+          -c Release --no-build --no-launch-profile --
+          -trait- "Category=Scenario"
+
+  integration:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -30,8 +49,10 @@ jobs:
         with:
           dotnet-version: "10.0.x"
       - run: dotnet restore GeneLife.sln
-      - run: dotnet build GeneLife.sln -c Release --no-restore
-      - run: dotnet run --project Genelife.UnitTests/Genelife.UnitTests.csproj -c Release --no-build --no-launch-profile
+      - run: dotnet build Genelife.Api.IntegrationTests/Genelife.Api.IntegrationTests.csproj -c Release --no-restore
+      - run: >
+          dotnet run --project Genelife.Api.IntegrationTests/Genelife.Api.IntegrationTests.csproj
+          -c Release --no-build --no-launch-profile
 
   client:
     runs-on: ubuntu-latest

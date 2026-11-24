@@ -55,7 +55,8 @@
 |---|---|
 | `dotnet build GeneLife.sln` | every server tech step |
 | Relevant unit-test namespace | every server tech step |
-| `dotnet run --project Genelife.UnitTests/Genelife.UnitTests.csproj --no-launch-profile` | every feature completion |
+| `dotnet run --project Genelife.Domain.Tests/Genelife.Domain.Tests.csproj --no-launch-profile -- -trait- "Category=Scenario"` | every feature completion |
+| `dotnet run --project Genelife.Api.IntegrationTests/Genelife.Api.IntegrationTests.csproj --no-launch-profile` | every API or persistence change |
 | `BalanceScenarioTests` 10-year report | before and after V5 economy/consumption changes |
 | 30-year continuity scenario | after feature 03 and before flipping `CohabitOnPairing` |
 | 2,000-sim decade | after feature 01 and at release |

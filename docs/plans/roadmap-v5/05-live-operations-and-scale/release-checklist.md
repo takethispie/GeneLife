@@ -11,13 +11,14 @@ This checklist is the V5 release gate. Every item must be checked or carry a doc
 | Check | Command | Expected |
 |---|---|---|
 | Solution build | `dotnet build GeneLife.sln` | Pass |
-| Full PostgreSQL suite | `docker compose up -d postgres && dotnet run --project Genelife.UnitTests/Genelife.UnitTests.csproj --no-launch-profile` | 0 failed |
-| Player suite | `... -class "Genelife.UnitTests.Player.*"` | Pass |
-| Appearance suite | `... -class "Genelife.UnitTests.Appearance.*"` | Pass |
-| Consumption suite | `... -class "Genelife.UnitTests.Consumption.*"` | Pass |
-| Social suite | `... -class "Genelife.UnitTests.Social.*"` | Pass |
-| Persistence suite | `... -class "Genelife.UnitTests.Persistence.*"` | Pass |
-| Performance suite | `... -class "Genelife.UnitTests.Performance.*"` | Pass |
+| Fast domain suite | `dotnet run --project Genelife.Domain.Tests/Genelife.Domain.Tests.csproj --no-launch-profile -- -trait- "Category=Scenario"` | 0 failed |
+| API integration suite | `docker compose up -d postgres && dotnet run --project Genelife.Api.IntegrationTests/Genelife.Api.IntegrationTests.csproj --no-launch-profile` | 0 failed |
+| Player suite | `dotnet run --project Genelife.Domain.Tests/Genelife.Domain.Tests.csproj --no-launch-profile -- -class "Genelife.UnitTests.Player.*"` | Pass |
+| Appearance suite | `dotnet run --project Genelife.Domain.Tests/Genelife.Domain.Tests.csproj --no-launch-profile -- -class "Genelife.UnitTests.Appearance.*"` | Pass |
+| Consumption suite | `dotnet run --project Genelife.Domain.Tests/Genelife.Domain.Tests.csproj --no-launch-profile -- -class "Genelife.UnitTests.Consumption.*"` | Pass |
+| Social suite | `dotnet run --project Genelife.Domain.Tests/Genelife.Domain.Tests.csproj --no-launch-profile -- -class "Genelife.UnitTests.Social.*"` | Pass |
+| Persistence suite | `dotnet run --project Genelife.Domain.Tests/Genelife.Domain.Tests.csproj --no-launch-profile -- -class "Genelife.UnitTests.Persistence.*"` | Pass |
+| Performance and scenarios | `dotnet run --project Genelife.Performance.Tests/Genelife.Performance.Tests.csproj --no-launch-profile` | Pass |
 | Client | `cd clients/browser && npm run typecheck && npm run lint && npm run test && npm run build` | Pass |
 | Client E2E | `npm run test:e2e` and the live suite | Pass |
 

@@ -9,12 +9,16 @@
 ## How to run checks
 
 ```bash
-dotnet build Genelife.UnitTests/Genelife.UnitTests.csproj --nologo
-dotnet run --project Genelife.UnitTests/Genelife.UnitTests.csproj --no-build --no-launch-profile
+dotnet build Genelife.Domain.Tests/Genelife.Domain.Tests.csproj --nologo
+dotnet run --project Genelife.Domain.Tests/Genelife.Domain.Tests.csproj --no-build --no-launch-profile -- -trait- "Category=Scenario"
+
+docker compose up -d postgres
+dotnet run --project Genelife.Api.IntegrationTests/Genelife.Api.IntegrationTests.csproj --no-build --no-launch-profile
 ```
 
-`dotnet test` fails on this project: xunit.v3 uses Microsoft.Testing.Platform, which .NET 10 no longer
-runs through the VSTest target. Use the `dotnet run` command above.
+`dotnet test` fails on these projects: xunit.v3 uses Microsoft.Testing.Platform, which .NET 10 no longer
+runs through the VSTest target. Use the `dotnet run` commands above. The performance and long-horizon
+scenarios live in `Genelife.Performance.Tests`.
 
 ## Conventions
 
