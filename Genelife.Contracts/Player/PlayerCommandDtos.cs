@@ -24,7 +24,10 @@ public enum PlayerActionKind : byte
     RespondToInvitation = 11,
     TryForChild = 12,
     NameChild = 13,
-    ChooseContinuation = 14
+    ChooseContinuation = 14,
+    InviteCohabit = 15,
+    EndPartnership = 16,
+    PerformVenueActivity = 17
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
@@ -74,11 +77,14 @@ public static class PlayerActionPayloads
     public sealed record PayArrears(long AmountCents, bool RentOnly);
     public sealed record BuyItem(ulong StoreNetworkId, string CatalogItemId, int Quantity);
     public sealed record ConsumeItem(string CatalogItemId, int Quantity);
-    public sealed record InvitePartner(ulong TargetSimNetworkId);
+    public sealed record InvitePartner(ulong TargetSimNetworkId, string? TargetPlayerId = null);
     public sealed record RespondToInvitation(Guid InvitationId, bool Accept);
     public sealed record TryForChild(ulong PartnerSimNetworkId);
     public sealed record NameChild(ulong ChildNetworkId, string Name);
     public sealed record ChooseContinuation(string Policy);
+    public sealed record InviteCohabit(string TargetPlayerId);
+    public sealed record EndPartnership(string PartnerPlayerId, bool SplitHousehold = true);
+    public sealed record PerformVenueActivity(string Activity);
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {

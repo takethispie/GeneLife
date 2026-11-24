@@ -6,7 +6,8 @@ public enum FamilyInvitationKind : byte
 {
     Partnership = 1,
     Conception = 2,
-    Guardianship = 3
+    Guardianship = 3,
+    Cohabitation = 4
 }
 
 public enum FamilyInvitationStatus : byte

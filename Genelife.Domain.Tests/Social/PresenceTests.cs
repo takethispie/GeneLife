@@ -3,6 +3,7 @@ using Genelife.Api.Auth;
 using Genelife.Api.Services;
 using Genelife.Api.Social;
 using Genelife.Components.Gen;
+using Genelife.Components.Social;
 using Genelife.Components.Map;
 using Genelife.Map;
 using Genelife.Social;
@@ -25,23 +26,34 @@ public class PresenceTests
         Assert.NotEqual(0UL, p2);
         Assert.NotEqual(0UL, p3);
 
+        Entity venue = default;
         engine.ExecuteWithWorld(world =>
         {
             Place(world, engine, p1, new TileCoord(10, 10));
             Place(world, engine, p2, new TileCoord(12, 10));
             Place(world, engine, p3, new TileCoord(30, 30));
 
-            var venue = world.Create(
+            venue = world.Create(
                 new Placement(new TileCoord(8, 8), new Footprint(10, 10), new TileCoord(10, 10), BuildingKind.Store),
+                new SocialVenue
+                {
+                    Kind = SocialVenueKind.Cafe,
+                    Capacity = 4,
+                    OpenFromTick = 0,
+                    OpenToTick = 23,
+                    Activities = VenueActivityMask.Talk
+                },
                 new NetworkId(900));
             engine.NetworkIds.AllocateWithValue(venue, new NetworkId(900));
             return 0;
         });
+        Assert.True(engine.Venues!.TryEnter("alice", venue, tick: 8, out _, out _));
+        Assert.True(engine.Venues.TryEnter("bob", venue, tick: 8, out _, out _));
 
         connections.Register("c1", "alice");
         connections.Register("c2", "bob");
         connections.Register("c3", "carol");
-        var directory = new PlayerDirectoryService(engine, connections, privacy);
+        var directory = new PlayerDirectoryService(engine, connections, privacy, new SocialGraphService());
 
         var alicePresence = engine.BuildPlayerPresence("alice");
         Assert.NotNull(alicePresence);
@@ -87,17 +99,42 @@ public class PresenceTests
     }
 
     [Fact]
-    public void FriendScopeIsEmptyUntilFriendshipsExist()
+    public void FriendScopeAndBlocksFilterPresenceInBothDirections()
     {
         var connections = new ConnectionRegistry();
         using var engine = new SimulationEngine();
         engine.Initialize();
-        engine.EnsurePlayerSim("alice");
-        engine.EnsurePlayerSim("bob");
+        var aliceSim = engine.EnsurePlayerSim("alice");
+        var bobSim = engine.EnsurePlayerSim("bob");
+        engine.ExecuteWithWorld(world =>
+        {
+            Place(world, engine, aliceSim, new TileCoord(10, 10));
+            Place(world, engine, bobSim, new TileCoord(11, 10));
+            return 0;
+        });
+
         connections.Register("c1", "alice");
         connections.Register("c2", "bob");
-        var directory = new PlayerDirectoryService(engine, connections, new SocialPrivacyRegistry());
+        var graph = new SocialGraphService();
+        var directory = new PlayerDirectoryService(engine, connections, new SocialPrivacyRegistry(), graph);
+
         Assert.Empty(directory.Directory("alice", PresenceScope.Friend).Items);
+
+        Assert.True(graph.AddFriend("alice", "bob", tick: 1).Accepted);
+        Assert.Contains(
+            directory.Directory("alice", PresenceScope.Friend).Items,
+            item => item.PlayerId == "bob");
+        Assert.Contains(
+            directory.Directory("bob", PresenceScope.Friend).Items,
+            item => item.PlayerId == "alice");
+
+        Assert.True(graph.Block("alice", "bob", tick: 2, SocialEdgeSource.Player).Accepted);
+        Assert.DoesNotContain(
+            directory.Directory("alice", PresenceScope.Nearby, radius: 12).Items,
+            item => item.PlayerId == "bob");
+        Assert.DoesNotContain(
+            directory.Directory("bob", PresenceScope.Nearby, radius: 12).Items,
+            item => item.PlayerId == "alice");
     }
 
     private static void Place(World world, SimulationEngine engine, ulong simNetworkId, TileCoord tile)

@@ -58,7 +58,27 @@ builder.Services.AddHostedService<SimulationEventWriter>();
 
 builder.Services.AddSingleton<ICommandQueue, CommandQueue>();
 builder.Services.AddSingleton<Genelife.Social.SocialPrivacyRegistry>();
+builder.Services.Configure<Genelife.Social.SocialGraphOptions>(builder.Configuration.GetSection("SocialGraph"));
+builder.Services.Configure<Genelife.Social.VenueOptions>(builder.Configuration.GetSection("Venue"));
+builder.Services.AddSingleton(provider =>
+    provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<Genelife.Social.VenueOptions>>().Value);
+builder.Services.AddSingleton(provider =>
+    provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<Genelife.Social.SocialGraphOptions>>().Value);
+builder.Services.AddSingleton<Genelife.Social.SocialGraphService>();
+builder.Services.AddSingleton<Genelife.Social.IChatSocialPolicy>(provider =>
+    provider.GetRequiredService<Genelife.Social.SocialGraphService>());
 builder.Services.AddSingleton<Genelife.Api.Social.PlayerDirectoryService>();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.Configure<Genelife.Social.ChatOptions>(builder.Configuration.GetSection(Genelife.Social.ChatOptions.SectionName));
+builder.Services.AddSingleton(provider => provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<Genelife.Social.ChatOptions>>().Value);
+builder.Services.AddSingleton<Genelife.Social.IChatDirectory, Genelife.Api.Social.ChatDirectory>();
+builder.Services.AddSingleton<Genelife.Social.IChatStore>(provider =>
+    provider.GetService<Marten.IDocumentStore>() is { } documentStore
+        ? new Genelife.Api.Social.MartenChatStore(documentStore)
+        : new Genelife.Api.Social.InMemoryChatStore());
+builder.Services.AddSingleton<Genelife.Social.ChatService>();
+builder.Services.AddSingleton<Genelife.Social.EmoteService>();
+builder.Services.AddHostedService<Genelife.Api.Social.ChatRetentionService>();
 builder.Services.AddSingleton<PlayerCommandService>();
 builder.Services.AddSingleton<Genelife.Api.Snapshots.ReplicationTracker>();
 builder.Services.AddSingleton<Genelife.Api.Snapshots.ReplicationMetrics>();
@@ -112,6 +132,9 @@ if (useMartenReads)
         opts.Schema.For<Genelife.Api.Models.EstateDocument>().Index(x => x.DeceasedNetworkId);
         opts.Schema.For<Genelife.Api.Models.FamilyAdminActionDocument>().Identity(x => x.Id);
         opts.Schema.For<Genelife.Api.Models.FamilyAdminActionDocument>().Index(x => x.CommandId);
+        opts.Schema.For<Genelife.Api.Models.ChatMessageDocument>().Identity(x => x.Id);
+        opts.Schema.For<Genelife.Api.Models.ChatMessageDocument>().Index(x => x.PlayerId);
+        opts.Schema.For<Genelife.Api.Models.ChatMessageDocument>().Index(x => x.ExpiresAt);
         opts.Projections.Add<Genelife.Api.Projections.SimProjection>(JasperFx.Events.Projections.ProjectionLifecycle.Inline);
         opts.Projections.Add<Genelife.Api.Projections.CompanyProjection>(JasperFx.Events.Projections.ProjectionLifecycle.Inline);
         opts.Projections.Add<Genelife.Api.Projections.MapProjection>(JasperFx.Events.Projections.ProjectionLifecycle.Inline);

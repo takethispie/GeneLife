@@ -23,6 +23,7 @@ using Genelife.Components.Housing;
 using Genelife.Components.Life;
 using Genelife.Components.Map;
 using Genelife.Components.Player;
+using Genelife.Components.Social;
 using Genelife.Economy;
 using Genelife.Enums;
 using Genelife.Family;
@@ -58,6 +59,9 @@ public class SimulationEngine : IDisposable
     private RelationshipOptions relationshipOptions = RelationshipOptions.Default;
     private RelationshipIndex relationshipIndex = new();
     private RelationshipService? relationshipService;
+    private Genelife.Family.PlayerRelationshipService? playerRelationships;
+    private Genelife.Social.VenueService? venueService;
+    private Genelife.Social.VenueActivityService? venueActivities;
     private RelationshipCache relationshipCache = new();
     private ReproductionOptions reproductionOptions = ReproductionOptions.Default;
     private FamilyHousingPolicy familyHousingPolicy = FamilyHousingPolicy.Default;
@@ -101,16 +105,26 @@ private readonly NetworkIdRegistry networkIds = new();
     private const int MaxAuditRowsPerPlayer = 50;
     private readonly IDocumentStore? documentStore;
     private readonly WorldSaveService? worldSaveService;
+    private readonly Genelife.Social.SocialGraphService socialGraph;
+    private readonly Genelife.Social.VenueOptions venueOptions;
+    private readonly Genelife.Api.Auth.IConnectionRegistry? connections;
     private static readonly string[] ActionNames = Enum.GetNames<ActionType>();
 
     public SimulationEngine(
         WorldSaveService? worldSaveService = null,
         IDocumentStore? documentStore = null,
-        ICommandQueue? commandQueue = null)
+        ICommandQueue? commandQueue = null,
+        Genelife.Social.SocialGraphService? socialGraph = null,
+        Genelife.Social.VenueOptions? venueOptions = null,
+        Genelife.Api.Auth.IConnectionRegistry? connections = null)
     {
         this.worldSaveService = worldSaveService;
         this.documentStore = documentStore;
         this.commandQueue = commandQueue;
+        this.socialGraph = socialGraph ?? new Genelife.Social.SocialGraphService();
+        this.venueOptions = venueOptions ?? new Genelife.Social.VenueOptions();
+        this.venueOptions.Validate();
+        this.connections = connections;
         recordSystemRun = result =>
             metrics.RecordSystem(result.Name, result.Milliseconds, result.AllocatedBytes);
     }
@@ -132,6 +146,10 @@ private readonly NetworkIdRegistry networkIds = new();
     public EmploymentIndex? EmploymentIndex { get { lock (@lock) { return employmentIndex; } } }
     public RelationshipIndex Relationships { get { lock (@lock) { return relationshipIndex; } } }
     public RelationshipService? RelationshipService { get { lock (@lock) { return relationshipService; } } }
+    public Genelife.Social.SocialGraphService SocialGraph => socialGraph;
+    public Genelife.Family.PlayerRelationshipService? PlayerRelationships { get { lock (@lock) { return playerRelationships; } } }
+    public Genelife.Social.VenueService? Venues { get { lock (@lock) { return venueService; } } }
+    public Genelife.Social.VenueActivityService? VenueActivities { get { lock (@lock) { return venueActivities; } } }
     public RelationshipOptions RelationshipOptions { get { lock (@lock) { return relationshipOptions; } } }
     public RelationshipCache RelationshipCache { get { lock (@lock) { return relationshipCache; } } }
     public ReproductionOptions ReproductionOptions { get { lock (@lock) { return reproductionOptions; } } }
@@ -298,6 +316,26 @@ private readonly NetworkIdRegistry networkIds = new();
             playerCommandAudit.Clear();
             pendingPlayerCommands.Clear();
             disconnectedPlayers.Clear();
+            playerRelationships = new Genelife.Family.PlayerRelationshipService(
+                world,
+                economy,
+                playerRegistry,
+                relationshipIndex,
+                relationshipService!,
+                socialGraph,
+                this.relationshipOptions);
+            venueService = new Genelife.Social.VenueService(
+                world,
+                playerRegistry,
+                economy,
+                venueOptions,
+                connections is null ? null : playerId => connections.GetConnections(playerId).Count > 0);
+            venueActivities = new Genelife.Social.VenueActivityService(
+                world,
+                economy,
+                playerRegistry,
+                venueService,
+                socialGraph);
             playerActions = new PlayerActionService(
                 world,
                 economy,
@@ -308,12 +346,16 @@ private readonly NetworkIdRegistry networkIds = new();
                 pregnancyIndex,
                 pregnancyService!,
                 this.relationshipOptions,
-                this.reproductionOptions);
+                this.reproductionOptions,
+                playerRelationships,
+                venueService,
+                venueActivities);
 
             systems = new SystemRegistry();
             systems.Register(new NeedsDecaySystem(world));
             systems.Register(new PathfindingSystem(world, mapContext.Map, movementIndex, MovementOptions.PathRequestBudgetPerTick));
             systems.Register(new MovementSystem(world, mapContext.Map, movementIndex, MovementOptions.PlayerSpeedTilesPerSecond));
+            systems.Register(new VenuePresenceSystem(venueService));
             systems.Register(mapMetrics);
             systems.Register(new HousingModifierSystem(world, economy.Housing));
             systems.Register(new AgingSystem(world, economy));
@@ -1030,6 +1072,34 @@ if (SnapshotsEnabled)
         if (world.Get<TilePosition>(sim).Tile.ChebyshevDistanceTo(placement.Entry) > 1)
         {
             RejectIntent(intent.PlayerId, intent.Sequence, "out_of_range", "Walk to the entrance first");
+            return;
+        }
+
+        if (world.Has<SocialVenue>(building))
+        {
+            if (venueService is null)
+            {
+                RejectIntent(intent.PlayerId, intent.Sequence, "venue_unavailable", "The venue is not available");
+                return;
+            }
+
+            if (!venueService.TryEnter(intent.PlayerId, building, tick, out var venueCode, out var venueMessage))
+            {
+                RejectIntent(
+                    intent.PlayerId,
+                    intent.Sequence,
+                    venueCode.Length == 0 ? "venue_unavailable" : venueCode,
+                    venueMessage.Length == 0 ? "The venue is not available" : venueMessage);
+                return;
+            }
+
+            if (world.Has<MoveTarget>(sim))
+            {
+                var moveTarget = world.Get<MoveTarget>(sim);
+                moveTarget.HasTarget = false;
+                world.Get<MoveTarget>(sim) = moveTarget;
+            }
+            movementIndex?.Clear(sim);
             return;
         }
 
@@ -3556,13 +3626,15 @@ if (SnapshotsEnabled)
             world.Query(in new QueryDescription().WithAll<Placement>(),
                 (Entity entity, ref Placement placement) =>
                 {
-                    if (building == Entity.Null && placement.Covers(tile))
+                    if (building == Entity.Null
+                        && (placement.Covers(tile) || placement.Entry == tile))
                         building = entity;
                 });
 
             var buildingId = building != Entity.Null ? GetNetworkId(world, building) : (ulong?)null;
-            var inVenue = building != Entity.Null && world.Has<Placement>(building) &&
-                          world.Get<Placement>(building).Kind is BuildingKind.Store or BuildingKind.Civic;
+            var inVenue = building != Entity.Null
+                && world.Has<SocialVenue>(building)
+                && venueService?.IsOccupant(playerId, building) == true;
             var appearance = AppearanceMapper.TryDerive(world, sim, out var descriptor)
                 ? AppearanceMapper.ToDto(descriptor)
                 : null;

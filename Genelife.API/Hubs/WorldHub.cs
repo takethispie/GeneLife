@@ -5,6 +5,7 @@ using Genelife.Api.Commands;
 using Genelife.Api.DTOs;
 using Genelife.Api.Services;
 using Genelife.Api.Snapshots;
+using Genelife.Social;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
@@ -25,6 +26,8 @@ public sealed class WorldHub : Hub
     private readonly ReplicationTracker replicationTracker;
     private readonly ReplicationMetrics replicationMetrics;
     private readonly ViewportRegistry viewports;
+    private readonly ChatService chat;
+    private readonly EmoteService emotes;
     private readonly ILogger<WorldHub>? logger;
     private readonly int maxPayloadBytes;
     private readonly int defaultViewportRadius;
@@ -46,6 +49,8 @@ public sealed class WorldHub : Hub
         ReplicationTracker replicationTracker,
         ReplicationMetrics replicationMetrics,
         IConfiguration configuration,
+        ChatService chat,
+        EmoteService emotes,
         ViewportRegistry? viewports = null,
         ILogger<WorldHub>? logger = null)
     {
@@ -55,6 +60,8 @@ public sealed class WorldHub : Hub
         this.replicationTracker = replicationTracker;
         this.replicationMetrics = replicationMetrics;
         this.viewports = viewports ?? new ViewportRegistry();
+        this.chat = chat;
+        this.emotes = emotes;
         this.logger = logger;
         maxPayloadBytes = configuration.GetValue("SignalR:MaxIntentPayloadBytes", 4096);
         defaultViewportRadius = Math.Max(1, configuration.GetValue("SignalR:Viewport:DefaultRadius", 32));
@@ -373,6 +380,52 @@ public sealed class WorldHub : Hub
         }
 
         return new IntentResult(true, null);
+    }
+
+    /// <summary>
+    /// Admits a chat line and pushes it to the resolved recipients. Chat is
+    /// transport-only: it never enters a snapshot, a delta or a tick system.
+    /// </summary>
+    public async Task<ChatSendResult> SendChat(ChatSendRequest request)
+    {
+        if (!registry.TryGetPlayerId(Context.ConnectionId, out var playerId) || playerId is null)
+            return ChatSendResult.Reject("not_registered", "Connection not registered");
+
+        var result = await chat.SendAsync(
+            playerId,
+            request,
+            engine.CurrentTick,
+            Context.ConnectionAborted);
+
+        if (result.Accepted && result.Message is not null)
+        {
+            foreach (var recipient in result.Recipients)
+            {
+                await Clients.Group($"player-{recipient}")
+                    .SendAsync("ReceiveChat", result.Message, Context.ConnectionAborted);
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>Admits a predefined emote and broadcasts it to the public audience.</summary>
+    public async Task<EmoteSendResult> SendEmote(EmoteSendRequest request)
+    {
+        if (!registry.TryGetPlayerId(Context.ConnectionId, out var playerId) || playerId is null)
+            return EmoteSendResult.Reject("not_registered", "Connection not registered");
+
+        var result = emotes.Send(playerId, request.Emote, engine.CurrentTick);
+        if (result.Accepted && result.Emote is not null)
+        {
+            foreach (var recipient in result.Recipients)
+            {
+                await Clients.Group($"player-{recipient}")
+                    .SendAsync("ReceiveEmote", result.Emote, Context.ConnectionAborted);
+            }
+        }
+
+        return result;
     }
 
     private static int EstimateBytes(object payload) => ReplicationMetrics.EstimateBytes(payload);

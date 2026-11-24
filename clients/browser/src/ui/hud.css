@@ -426,3 +426,260 @@ body,
 
 .social-directory-name { color: #67e8f9; }
 .social-directory-meta, .social-directory-empty { color: #94a3b8; }
+
+.social-chat {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width: 300px;
+  max-height: 46vh;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(8, 18, 28, 0.82);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  color: #e2e8f0;
+  font: 12px/1.35 system-ui, sans-serif;
+}
+
+.social-chat-header {
+  font-weight: 600;
+}
+
+.social-chat-log {
+  list-style: none;
+  margin: 0;
+  padding: 4px 6px;
+  overflow-y: auto;
+  max-height: 24vh;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: rgba(15, 23, 42, 0.55);
+  border-radius: 8px;
+}
+
+.social-chat-row {
+  display: flex;
+  gap: 6px;
+}
+
+.social-chat-author {
+  color: #67e8f9;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.social-chat-text {
+  overflow-wrap: anywhere;
+}
+
+.social-chat-row[data-channel="1"] .social-chat-author { color: #c4b5fd; }
+.social-chat-row[data-channel="3"] .social-chat-author { color: #fbbf24; }
+
+.social-chat-notice {
+  min-height: 1.35em;
+  color: #fca5a5;
+}
+
+.social-chat-form {
+  display: flex;
+  gap: 4px;
+}
+
+.social-chat-channel,
+.social-chat-target,
+.social-chat-input {
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 6px;
+  color: #e2e8f0;
+  font: inherit;
+  padding: 3px 5px;
+}
+
+.social-chat-input { flex: 1; min-width: 0; }
+.social-chat-target { width: 92px; }
+
+.social-chat-form button,
+.social-chat-emote {
+  background: rgba(30, 64, 175, 0.65);
+  border: 1px solid rgba(96, 165, 250, 0.45);
+  border-radius: 6px;
+  color: #e2e8f0;
+  font: inherit;
+  padding: 3px 7px;
+  cursor: pointer;
+}
+
+.social-chat-emotes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.social-chat-bubble {
+  align-self: flex-start;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(14, 116, 144, 0.85);
+  color: #ecfeff;
+  animation: social-chat-bubble-in 180ms ease-out;
+}
+
+@keyframes social-chat-bubble-in {
+  from { transform: translateY(4px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.social-relationships {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(8, 18, 28, 0.82);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  color: #e2e8f0;
+  font: 12px/1.35 system-ui, sans-serif;
+}
+
+.social-relationships-header {
+  font-weight: 600;
+}
+
+.social-relationships-partner {
+  color: #a7f3d0;
+}
+
+.social-relationships-invitations {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.social-relationships-invitation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.social-relationships-actions,
+.social-relationships-invite {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.social-relationships-invite input {
+  flex: 1;
+  min-width: 0;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 6px;
+  color: #e2e8f0;
+  font: inherit;
+  padding: 3px 5px;
+}
+
+.social-relationships button {
+  background: rgba(30, 64, 175, 0.65);
+  border: 1px solid rgba(96, 165, 250, 0.45);
+  border-radius: 6px;
+  color: #e2e8f0;
+  font: inherit;
+  padding: 3px 7px;
+  cursor: pointer;
+}
+
+.social-relationships button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.social-relationships-notice {
+  min-height: 1.35em;
+  color: #fca5a5;
+}
+
+.social-venue {
+  position: absolute;
+  left: 328px;
+  bottom: 12px;
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(8, 18, 28, 0.82);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  color: #e2e8f0;
+  font: 12px/1.35 system-ui, sans-serif;
+}
+
+.social-venue-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+}
+
+.social-venue-summary {
+  color: #bae6fd;
+}
+
+.social-venue-occupants,
+.social-venue-recent {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 14vh;
+  overflow-y: auto;
+}
+
+.social-venue-recent {
+  color: #c4b5fd;
+}
+
+.social-venue-activities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.social-venue button {
+  background: rgba(30, 64, 175, 0.65);
+  border: 1px solid rgba(96, 165, 250, 0.45);
+  border-radius: 6px;
+  color: #e2e8f0;
+  font: inherit;
+  padding: 3px 7px;
+  cursor: pointer;
+}
+
+.social-venue button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.social-venue-notice {
+  min-height: 1.35em;
+  color: #fca5a5;
+}

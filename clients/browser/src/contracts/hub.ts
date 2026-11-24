@@ -192,4 +192,62 @@ export interface UseBuildingIntent {
   buildingNetworkId: number;
 }
 
-export type Intent = MoveIntent | UseBuildingIntent;
+export interface PlayerActionIntent {
+  type: "playerAction";
+  playerId: string;
+  sequence: number;
+  simNetworkId: number;
+  kind: string;
+  payload: Record<string, unknown>;
+}
+
+export type Intent = MoveIntent | UseBuildingIntent | PlayerActionIntent;
+export type ChatChannel = "Say" | "Whisper" | "Venue" | "System";
+
+export interface ChatMessage {
+  id: string;
+  playerId: string;
+  displayName: string | null;
+  channel: ChatChannel | number;
+  text: string;
+  tick: number;
+  targetPlayerId: string | null;
+  venueNetworkId: number | null;
+}
+
+export interface ChatSendRequest {
+  text: string;
+  channel: ChatChannel;
+  targetPlayerId?: string | null;
+}
+
+export interface ChatSendResult {
+  accepted: boolean;
+  code: string | null;
+  notice: string | null;
+  message: ChatMessage | null;
+  recipients: string[];
+}
+
+export type EmoteKind = "Wave" | "Nod" | "ShakeHead" | "Sit" | "Stand" | "Cheer" | "Point";
+
+export interface ChatEmote {
+  id: string;
+  playerId: string;
+  displayName: string | null;
+  emote: EmoteKind | number;
+  tick: number;
+  venueNetworkId: number | null;
+}
+
+export interface EmoteSendRequest {
+  emote: number;
+}
+
+export interface EmoteSendResult {
+  accepted: boolean;
+  code: string | null;
+  notice: string | null;
+  emote: ChatEmote | null;
+  recipients: string[];
+}

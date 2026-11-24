@@ -10,11 +10,11 @@ describe("player directory", () => {
   it("renders only bounded public presence fields", async () => {
     const root = document.createElement("div");
     document.body.appendChild(root);
-    const fetchImpl = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+    const fetchImpl = vi.fn(() => Promise.resolve(new Response(JSON.stringify({
       scope: "Nearby",
       radius: 12,
       items: [{ playerId: "bob", displayName: "Bob", simNetworkId: 2, tileX: 3, tileY: 4, buildingNetworkId: null, state: "Online" }]
-    }), { status: 200 }));
+    }), { status: 200 })));
     const panel = new PlayerDirectoryPanel({
       root,
       apiBaseUrl: "http://localhost",
@@ -42,11 +42,11 @@ describe("player directory", () => {
       root,
       apiBaseUrl: "http://localhost",
       token: () => "token",
-      fetchImpl: vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      fetchImpl: vi.fn(() => Promise.resolve(new Response(JSON.stringify({
         scope: "Nearby",
         radius: 12,
         items: [{ playerId: "bob", displayName: "Resident", simNetworkId: 2, tileX: 3, tileY: 4, buildingNetworkId: null, state: "Online" }]
-      }), { status: 200 })),
+      }), { status: 200 }))),
       intervalMs: 60_000
     });
     await panel.refresh();

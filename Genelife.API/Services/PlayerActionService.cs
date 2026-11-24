@@ -21,6 +21,7 @@ using Genelife.Housing;
 using Genelife.Messages.Events;
 using Genelife.Map;
 using Genelife.Player;
+using Genelife.Social;
 using Genelife.Systems;
 using Genelife.Values;
 
@@ -65,6 +66,9 @@ public sealed class PlayerActionService
     private readonly HouseholdFinanceService finance;
     private readonly HiringSystem hiring;
     private readonly GroceryStoreService groceryStores;
+    private readonly PlayerRelationshipService playerRelationships;
+    private readonly VenueService venues;
+    private readonly VenueActivityService venueActivities;
 
     public PlayerActionService(
         World world,
@@ -76,7 +80,10 @@ public sealed class PlayerActionService
         PregnancyIndex pregnancies,
         PregnancyService pregnancyService,
         RelationshipOptions relationshipOptions,
-        ReproductionOptions reproductionOptions)
+        ReproductionOptions reproductionOptions,
+        PlayerRelationshipService? playerRelationships = null,
+        VenueService? venues = null,
+        VenueActivityService? venueActivities = null)
     {
         this.world = world;
         this.economy = economy;
@@ -93,6 +100,22 @@ public sealed class PlayerActionService
         finance = new HouseholdFinanceService(world, economy);
         hiring = new HiringSystem(world, economy.Employment, economy: economy);
         groceryStores = new GroceryStoreService(world, economy, entity => networkIds.AllocateInfrastructure(entity));
+        var fallbackGraph = new SocialGraphService();
+        this.playerRelationships = playerRelationships ?? new PlayerRelationshipService(
+            world,
+            economy,
+            players,
+            relationships,
+            relationshipService,
+            fallbackGraph,
+            relationshipOptions);
+        this.venues = venues ?? new VenueService(world, players, economy);
+        this.venueActivities = venueActivities ?? new VenueActivityService(
+            world,
+            economy,
+            players,
+            this.venues,
+            fallbackGraph);
     }
 
     public PlayerActionResult Apply(
@@ -124,7 +147,10 @@ public sealed class PlayerActionService
             PlayerActionKind.PayArrears => PayArrears(sim, payload, tick),
             PlayerActionKind.BuyItem => BuyItem(sim, payload, tick),
             PlayerActionKind.ConsumeItem => ConsumeItem(sim, payload, tick),
-            PlayerActionKind.InvitePartner => InvitePartner(sim, payload, tick),
+            PlayerActionKind.InvitePartner => InvitePartner(playerId, sim, payload, tick),
+            PlayerActionKind.InviteCohabit => InviteCohabit(playerId, sim, payload, tick),
+            PlayerActionKind.EndPartnership => EndPartnership(playerId, sim, payload, tick),
+            PlayerActionKind.PerformVenueActivity => PerformVenueActivity(playerId, sim, payload, tick),
             PlayerActionKind.RespondToInvitation => RespondToInvitation(playerId, sim, payload, tick),
             PlayerActionKind.TryForChild => TryForChild(playerId, sim, payload, tick),
             PlayerActionKind.NameChild => NameChild(sim, payload, tick),
@@ -703,16 +729,35 @@ public sealed class PlayerActionService
         return PlayerActionResult.Success("Item consumed.", new { item.Id, quantity });
     }
 
-    private PlayerActionResult InvitePartner(Entity sim, JsonElement payload, long tick)
+    private PlayerActionResult InvitePartner(string playerId, Entity sim, JsonElement payload, long tick)
     {
         if (!PlayerActionPayloads.TryParse<PlayerActionPayloads.InvitePartner>(payload, out var request, out var error))
             return Malformed(error);
-        if (!TryEntity(request!.TargetSimNetworkId, out var target))
+
+        Entity target;
+        if (!string.IsNullOrWhiteSpace(request!.TargetPlayerId))
+        {
+            if (!players.TryGet(request.TargetPlayerId, out var requestedProfile) ||
+                requestedProfile.ControlledSim == Entity.Null ||
+                !world.IsAlive(requestedProfile.ControlledSim))
+                return PlayerActionResult.Reject("target_not_found", "That player is not available.");
+            target = requestedProfile.ControlledSim;
+        }
+        else if (!TryEntity(request.TargetSimNetworkId, out target))
+        {
             return PlayerActionResult.Reject("target_not_found", "That sim is not available.");
+        }
         if (target == sim)
             return PlayerActionResult.Reject("invalid_state", "You cannot invite yourself.");
         if (world.Has<Dead>(target))
             return PlayerActionResult.Reject("not_available", "That sim is not available.");
+
+        if (players.TryGetBySim(target, out var targetProfile) &&
+            !string.Equals(targetProfile.PlayerId, playerId, StringComparison.Ordinal))
+        {
+            var playerInvite = playerRelationships.InvitePartner(playerId, targetProfile.PlayerId, tick);
+            return MapRelationshipResult(playerInvite);
+        }
 
         var eligibility = EligibilityPolicy.Evaluate(
             world,
@@ -737,11 +782,6 @@ public sealed class PlayerActionService
             world.Get<FamilyInvitation>(invitation).ExpiresTick,
             tick));
 
-        var isPlayerTarget = players.TryGetBySim(target, out var targetProfile) &&
-                             !string.Equals(targetProfile.PlayerId, world.Get<PlayerControlled>(sim).PlayerId, StringComparison.Ordinal);
-        if (isPlayerTarget)
-            return PlayerActionResult.Success("Invitation sent.", new { invitationId, pendingConsent = true });
-
         var consent = EvaluateNpcConsent(sim, target, tick);
         var data = world.Get<FamilyInvitation>(invitation);
         if (consent.Accepted)
@@ -764,12 +804,89 @@ public sealed class PlayerActionService
         return PlayerActionResult.Reject("declined", consent.Message);
     }
 
+    private PlayerActionResult InviteCohabit(string playerId, Entity sim, JsonElement payload, long tick)
+    {
+        if (!PlayerActionPayloads.TryParse<PlayerActionPayloads.InviteCohabit>(payload, out var request, out var error))
+            return Malformed(error);
+
+        var targetPlayerId = request!.TargetPlayerId?.Trim();
+        if (string.IsNullOrWhiteSpace(targetPlayerId))
+            return PlayerActionResult.Reject("target_required", "Choose a partner to cohabit with.");
+        if (string.Equals(targetPlayerId, playerId, StringComparison.Ordinal))
+            return PlayerActionResult.Reject("self_target", "You cannot invite yourself.");
+
+        return MapRelationshipResult(playerRelationships.InviteCohabit(playerId, targetPlayerId, tick));
+    }
+
+    private PlayerActionResult EndPartnership(string playerId, Entity sim, JsonElement payload, long tick)
+    {
+        if (!PlayerActionPayloads.TryParse<PlayerActionPayloads.EndPartnership>(payload, out var request, out var error))
+            return Malformed(error);
+
+        var partnerPlayerId = request!.PartnerPlayerId?.Trim();
+        if (string.IsNullOrWhiteSpace(partnerPlayerId))
+            return PlayerActionResult.Reject("target_required", "Choose the partner to end the partnership with.");
+
+        return MapRelationshipResult(playerRelationships.EndPartnership(
+            playerId,
+            partnerPlayerId,
+            tick,
+            request.SplitHousehold));
+    }
+
+    private PlayerActionResult PerformVenueActivity(string playerId, Entity sim, JsonElement payload, long tick)
+    {
+        if (!PlayerActionPayloads.TryParse<PlayerActionPayloads.PerformVenueActivity>(payload, out var request, out var error))
+            return Malformed(error);
+
+        if (!Enum.TryParse<Genelife.Components.Social.VenueActivity>(
+                request!.Activity, ignoreCase: true, out var activity))
+            return PlayerActionResult.Reject("invalid_activity", "Unknown venue activity.");
+
+        var venue = venues.VenueOf(playerId);
+        if (venue == Entity.Null)
+            return PlayerActionResult.Reject("not_in_venue", "Enter a social venue first.");
+
+        var result = venueActivities.TryPerform(playerId, venue, activity, tick);
+        if (!result.Applied)
+            return PlayerActionResult.Reject(result.Code ?? "invalid_state", result.Message ?? "Activity not allowed.");
+
+        return PlayerActionResult.Success(
+            "Activity performed.",
+            new
+            {
+                venueNetworkId = NetworkIdOf(venue),
+                activity = activity.ToString(),
+                recipients = result.Recipients
+            });
+    }
+
+    private static PlayerActionResult MapRelationshipResult(PlayerRelationshipResult result)
+    {
+        if (!result.Applied)
+            return PlayerActionResult.Reject(result.Code ?? "invalid_state", result.Message ?? "Not available.");
+
+        object? data = result.Data;
+        if (result.Invitation is not null)
+            data ??= new { invitationId = result.Invitation.Id, pendingConsent = true };
+        return PlayerActionResult.Success(result.Message, data);
+    }
+
     private PlayerActionResult RespondToInvitation(string playerId, Entity sim, JsonElement payload, long tick)
     {
         if (!PlayerActionPayloads.TryParse<PlayerActionPayloads.RespondToInvitation>(payload, out var request, out var error))
             return Malformed(error);
         if (!TryFindInvitation(request!.InvitationId, out var entity))
+        {
+            var playerInvitation = playerRelationships.Respond(
+                playerId,
+                request.InvitationId,
+                request.Accept,
+                tick);
+            if (playerInvitation.Applied || playerInvitation.Code != "offer_not_found")
+                return MapRelationshipResult(playerInvitation);
             return PlayerActionResult.Reject("offer_not_found", "That invitation no longer exists.");
+        }
 
         var invitation = world.Get<FamilyInvitation>(entity);
         if (invitation.To != sim)

@@ -4,6 +4,11 @@ import {
   type HubConnection
 } from "@microsoft/signalr";
 import type {
+  ChatEmote,
+  ChatMessage,
+  ChatSendRequest,
+  ChatSendResult,
+  EmoteSendResult,
   Intent,
   IntentResult,
   SetViewportRequest,
@@ -29,6 +34,13 @@ export interface HubLogger {
   warn(message: string): void;
   error(message: string): void;
 }
+
+const CHAT_CHANNEL_VALUES: Record<string, number> = {
+  Say: 0,
+  Whisper: 1,
+  Venue: 2,
+  System: 3
+};
 
 export class HubNotConnectedError extends Error {
   constructor() {
@@ -141,6 +153,18 @@ export class WorldHubClient {
     return this.requireConnection().invoke<IntentResult>(HUB_METHODS.submitIntent, intent);
   }
 
+  async sendChat(request: ChatSendRequest): Promise<ChatSendResult> {
+    return this.requireConnection().invoke<ChatSendResult>(HUB_METHODS.sendChat, {
+      text: request.text,
+      channel: CHAT_CHANNEL_VALUES[request.channel],
+      targetPlayerId: request.targetPlayerId ?? null
+    });
+  }
+
+  async sendEmote(emote: number): Promise<EmoteSendResult> {
+    return this.requireConnection().invoke<EmoteSendResult>(HUB_METHODS.sendEmote, { emote });
+  }
+
   private requireConnection(): HubConnection {
     if (this.connection === null || this.state !== "connected") {
       throw new HubNotConnectedError();
@@ -189,6 +213,12 @@ export class WorldHubClient {
     });
     connection.on(HUB_EVENTS.intentRejected, (raw: unknown) => {
       this.handlers.onIntentRejected(validateIntentRejected(raw));
+    });
+    connection.on(HUB_EVENTS.receiveChat, (raw: unknown) => {
+      this.guard("ReceiveChat", () => this.handlers.onChatMessage?.(raw as ChatMessage));
+    });
+    connection.on(HUB_EVENTS.receiveEmote, (raw: unknown) => {
+      this.guard("ReceiveEmote", () => this.handlers.onEmote?.(raw as ChatEmote));
     });
 
     connection.onreconnecting(() => {

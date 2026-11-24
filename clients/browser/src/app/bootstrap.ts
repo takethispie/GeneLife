@@ -31,7 +31,10 @@ import { Hud } from "../ui/hud";
 import { NotificationCenter, type NotificationKind } from "../ui/notifications";
 import { SettingsStore } from "../ui/settings";
 import { UiStore } from "../ui/ui-store";
+import { ChatPanel } from "../ui/social/chat";
 import { PlayerDirectoryPanel } from "../ui/social/directory";
+import { RelationshipsPanel } from "../ui/social/relationships";
+import { VenuePanel } from "../ui/social/venue";
 import { LoadingScreen } from "./loading";
 
 export interface ClientRuntime {
@@ -220,6 +223,65 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
     onError: (message) => notify("warning", "presence_failed", message)
   });
 
+  const chatPanel = new ChatPanel({
+    root,
+    apiBaseUrl: config.apiBaseUrl,
+    token: () => session.store.token,
+    sendChat: async (request) => {
+      if (hub === null) {
+        return {
+          accepted: false,
+          code: "not_connected",
+          notice: "Connect to the world before chatting.",
+          message: null,
+          recipients: []
+        };
+      }
+      return hub.sendChat(request);
+    },
+    sendEmote: async (emote) => {
+      if (hub === null) {
+        return {
+          accepted: false,
+          code: "not_connected",
+          notice: "Connect to the world before using emotes.",
+          emote: null,
+          recipients: []
+        };
+      }
+      return hub.sendEmote(emote);
+    },
+    onError: (message) => notify("warning", "chat_failed", message)
+  });
+
+  const relationshipsPanel = new RelationshipsPanel({
+    root,
+    apiBaseUrl: config.apiBaseUrl,
+    token: () => session.store.token,
+    sendAction: async (kind, payload) => {
+      const outcome = await intent.playerAction(kind, payload);
+      return {
+        status: outcome.status,
+        message: "message" in outcome ? outcome.message : undefined
+      };
+    },
+    onError: (message) => notify("warning", "relationships_failed", message)
+  });
+
+  const venuePanel = new VenuePanel({
+    root,
+    apiBaseUrl: config.apiBaseUrl,
+    token: () => session.store.token,
+    sendAction: async (kind, payload) => {
+      const outcome = await intent.playerAction(kind, payload);
+      return {
+        status: outcome.status,
+        message: "message" in outcome ? outcome.message : undefined
+      };
+    },
+    onError: (message) => notify("warning", "venue_failed", message)
+  });
+
   const settingsUnsubscribe = settings.subscribe((next) => {
     settings.applyToDocument();
     camera.setReducedMotion(settings.prefersReducedMotion());
@@ -307,7 +369,12 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
     },
     onReconnected: () => {
       void recover();
-    }
+      void chatPanel.refresh();
+      void relationshipsPanel.refresh();
+      void venuePanel.refresh();
+    },
+    onChatMessage: (message) => chatPanel.addMessage(message),
+    onEmote: (emote) => chatPanel.showEmote(emote)
   };
 
   function notify(kind: NotificationKind, code: string, message: string): void {
@@ -511,6 +578,9 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
     try {
       await client.connect(token);
       ui.patch({ connection: client.currentState, playerId: player });
+      void chatPanel.refresh();
+      void relationshipsPanel.refresh();
+      void venuePanel.refresh();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not connect to the world";
       ui.patch({ lastError: message });
@@ -587,6 +657,9 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
       targeting.dispose();
       hud.dispose();
       playerDirectory.dispose();
+      chatPanel.dispose();
+      relationshipsPanel.dispose();
+      venuePanel.dispose();
       renderer?.dispose();
       debugInfo.destroy();
       viewportSync.reset();

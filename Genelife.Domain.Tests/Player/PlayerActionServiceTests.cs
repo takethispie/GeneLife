@@ -14,6 +14,7 @@ using Genelife.Enums;
 using Genelife.Family;
 using Genelife.Housing;
 using Genelife.Player;
+using Genelife.Social;
 using Genelife.Values;
 
 namespace Genelife.UnitTests.Players;
@@ -29,6 +30,8 @@ public sealed class PlayerActionServiceTests : IDisposable
     private readonly PregnancyIndex pregnancies = new();
     private readonly PregnancyService pregnancyService;
     private readonly PlayerActionService actions;
+    private readonly SocialGraphService socialGraph = new();
+    private readonly PlayerRelationshipService playerRelationships;
 
     private readonly Entity sim;
     private readonly Entity company;
@@ -99,6 +102,14 @@ public sealed class PlayerActionServiceTests : IDisposable
         economy.Housing.AddUnit(unit, property);
 
         players.GetOrCreate("p1", sim, 0);
+        playerRelationships = new PlayerRelationshipService(
+            world,
+            economy,
+            players,
+            relationships,
+            relationshipService,
+            socialGraph,
+            RelationshipOptions.Default);
         actions = new PlayerActionService(
             world,
             economy,
@@ -109,7 +120,8 @@ public sealed class PlayerActionServiceTests : IDisposable
             pregnancies,
             pregnancyService,
             RelationshipOptions.Default,
-            ReproductionOptions.Default);
+            ReproductionOptions.Default,
+            playerRelationships);
     }
 
     private void Register(Entity entity, ulong id)
@@ -205,7 +217,7 @@ public sealed class PlayerActionServiceTests : IDisposable
             Payload(new { targetSimNetworkId = 700UL }), tick: 30);
 
         Assert.True(invited.Applied, invited.Code);
-        var invitation = Assert.Single(PendingInvitations(partner));
+        var invitation = Assert.Single(playerRelationships.PendingInvitations("p2", 30));
 
         var responded = actions.Apply("p2", partner, PlayerActionKind.RespondToInvitation,
             Payload(new { invitationId = invitation.Id, accept = true }), tick: 31);
@@ -213,6 +225,14 @@ public sealed class PlayerActionServiceTests : IDisposable
         Assert.True(responded.Applied, responded.Code);
         Assert.Contains(partner, relationships.PartnersOf(sim));
         Assert.Contains(sim, relationships.PartnersOf(partner));
+
+        var ended = actions.Apply("p1", sim, PlayerActionKind.EndPartnership,
+            Payload(new { partnerPlayerId = "p2", splitHousehold = false }), tick: 32);
+
+        Assert.True(ended.Applied, ended.Code);
+        Assert.Contains(partner, relationships.ExPartnersOf(sim));
+        Assert.Contains(sim, relationships.ExPartnersOf(partner));
+        Assert.Empty(relationships.PartnersOf(sim));
     }
 
     [Fact]

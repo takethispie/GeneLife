@@ -1,4 +1,10 @@
-import type { Intent, IntentResult, MoveIntent, UseBuildingIntent } from "../contracts/hub";
+import type {
+  Intent,
+  IntentResult,
+  MoveIntent,
+  PlayerActionIntent,
+  UseBuildingIntent
+} from "../contracts/hub";
 
 export interface SequenceStore {
   load(): number;
@@ -122,6 +128,22 @@ export class IntentClient {
       sequence: this.nextSequence(),
       simNetworkId: context.simNetworkId,
       buildingNetworkId: buildingNetworkId
+    };
+
+    return this.submit(intent);
+  }
+
+  async playerAction(kind: string, payload: Record<string, unknown>): Promise<SubmitOutcome> {
+    const context = this.context();
+    if (context === null) return contextError();
+
+    const intent: PlayerActionIntent = {
+      type: "playerAction",
+      playerId: context.playerId,
+      sequence: this.nextSequence(),
+      simNetworkId: context.simNetworkId,
+      kind,
+      payload
     };
 
     return this.submit(intent);

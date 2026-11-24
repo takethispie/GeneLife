@@ -1,4 +1,6 @@
 import type {
+  ChatEmote,
+  ChatMessage,
   Intent,
   IntentRejected,
   IntentResult,
@@ -19,7 +21,9 @@ export const HUB_EVENTS = {
   snapshot: "SendSnapshot",
   snapshotDelta: "SendSnapshotDelta",
   snapshotRejected: "SnapshotRejected",
-  intentRejected: "IntentRejected"
+  intentRejected: "IntentRejected",
+  receiveChat: "ReceiveChat",
+  receiveEmote: "ReceiveEmote"
 } as const;
 
 export const HUB_METHODS = {
@@ -28,7 +32,9 @@ export const HUB_METHODS = {
   requestMapSnapshot: "RequestMapSnapshot",
   setViewport: "SetViewport",
   clearViewport: "ClearViewport",
-  submitIntent: "SubmitIntent"
+  submitIntent: "SubmitIntent",
+  sendChat: "SendChat",
+  sendEmote: "SendEmote"
 } as const;
 
 export type ConnectionState =
@@ -49,6 +55,8 @@ export interface HubHandlers {
   onIntentRejected(rejection: IntentRejected): void;
   onStateChange(state: ConnectionState): void;
   onReconnected?(): void;
+  onChatMessage?(message: ChatMessage): void;
+  onEmote?(emote: ChatEmote): void;
 }
 
 export type HubInvocation = {

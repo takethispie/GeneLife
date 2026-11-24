@@ -14,15 +14,18 @@ public sealed class PlayerDirectoryService
     private readonly SimulationEngine engine;
     private readonly IConnectionRegistry connections;
     private readonly SocialPrivacyRegistry privacy;
+    private readonly SocialGraphService social;
 
     public PlayerDirectoryService(
         SimulationEngine engine,
         IConnectionRegistry connections,
-        SocialPrivacyRegistry privacy)
+        SocialPrivacyRegistry privacy,
+        SocialGraphService social)
     {
         this.engine = engine;
         this.connections = connections;
         this.privacy = privacy;
+        this.social = social;
     }
 
     public PlayerDirectoryDto Directory(string callerId, PresenceScope scope, int radius = 12)
@@ -72,12 +75,17 @@ public sealed class PlayerDirectoryService
         PresenceScope scope,
         int radius)
     {
+        if (social.IsBlocked(caller.PlayerId, other.PlayerId))
+            return false;
+
         if (scope == PresenceScope.Venue)
-            return caller.BuildingNetworkId is not null &&
-                   caller.BuildingNetworkId == other.BuildingNetworkId;
+            return caller.State == PresenceState.InVenue.ToString()
+                && other.State == PresenceState.InVenue.ToString()
+                && caller.BuildingNetworkId is not null
+                && caller.BuildingNetworkId == other.BuildingNetworkId;
 
         if (scope == PresenceScope.Friend)
-            return false; // friendship edges land in S03.
+            return social.AreFriends(caller.PlayerId, other.PlayerId);
 
         if (!privacy.For(other.PlayerId).AllowNearbyForNonFriends)
             return false;

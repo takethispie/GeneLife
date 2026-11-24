@@ -64,6 +64,23 @@ describe("IntentClient", () => {
     );
   });
 
+  it("sends player action intents on the tick-start command path", async () => {
+    const invoke = vi.fn(async () => ({ success: true }));
+    const client = new IntentClient({ ...base, invoke });
+
+    const outcome = await client.playerAction("InvitePartner", { targetPlayerId: "player-2" });
+
+    expect(outcome.status).toBe("sent");
+    expect(invoke).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "playerAction",
+        simNetworkId: 7,
+        kind: "InvitePartner",
+        payload: { targetPlayerId: "player-2" }
+      })
+    );
+  });
+
   it("rate limits locally without queueing", async () => {
     let now = 1_000;
     const invoke = vi.fn(async () => ({ success: true }));
