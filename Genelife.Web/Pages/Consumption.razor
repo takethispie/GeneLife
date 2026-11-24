@@ -200,13 +200,43 @@
     {
         try
         {
-            await GameData.RestockStoreAsync(storeNetworkId, reason);
-            message = $"Restock command queued for store {storeNetworkId}.";
+            error = null;
+            var commandId = await GameData.RestockStoreAsync(storeNetworkId, reason);
+            message = $"Restock queued for store {storeNetworkId}.";
+
+            var result = await WaitForCommandAsync(commandId);
+            if (result is null)
+            {
+                message = $"Restock queued for store {storeNetworkId}; it applies on the next simulation tick.";
+                return;
+            }
+            if (!result.Value.Accepted)
+            {
+                error = $"Restock failed for store {storeNetworkId}: {result.Value.Error}";
+                return;
+            }
+
+            await LoadAsync();
+            message = result.Value.Units > 0
+                ? $"Restocked {result.Value.Units} units at store {storeNetworkId}."
+                : $"Store {storeNetworkId} is already fully stocked.";
         }
         catch (Exception ex)
         {
             error = ex.Message;
         }
+    }
+
+    private async Task<(bool Accepted, string? Error, int Units)?> WaitForCommandAsync(Guid commandId)
+    {
+        for (var attempt = 0; attempt < 10; attempt++)
+        {
+            var result = await GameData.GetCommandResultAsync(commandId);
+            if (result is not null)
+                return result;
+            await Task.Delay(200);
+        }
+        return null;
     }
 
     private static string Money(long cents) => $"${cents / 100m:N2}";

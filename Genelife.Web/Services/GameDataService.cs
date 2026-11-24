@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Genelife.Api.DTOs;
 using Genelife.Web.Models;
 
@@ -400,15 +401,43 @@ public sealed class GameDataService
         CancellationToken cancellationToken = default) =>
         GetAdminAsync<ConsumptionStorePageData>($"api/consumption/stores?take={take}&skip={skip}", cancellationToken);
 
-    public Task RestockStoreAsync(
+    public async Task<Guid> RestockStoreAsync(
         ulong storeNetworkId,
         string reason,
         CancellationToken cancellationToken = default) =>
-        SendAdminJsonAsync(
+        await SendAdminJsonForIdAsync(
             HttpMethod.Post,
             $"api/consumption/stores/{storeNetworkId}/restock",
             new { reason },
             cancellationToken);
+
+    public async Task<(bool Accepted, string? Error, int Units)?> GetCommandResultAsync(
+        Guid commandId,
+        CancellationToken cancellationToken = default)
+    {
+        await EnsureAdminTokenAsync(cancellationToken);
+
+        using var response = await SendWithAuthRetryAsync(
+            () => http.GetAsync($"api/commands/{commandId}", cancellationToken), cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return null;
+        if (response.StatusCode == HttpStatusCode.Forbidden)
+            throw new UnauthorizedAccessException(LocalAdminUnavailableMessage);
+
+        response.EnsureSuccessStatusCode();
+        var result = await response.Content.ReadFromJsonAsync<CommandResultResponse>(
+            cancellationToken: cancellationToken);
+        if (result is null)
+            return null;
+
+        var units = result.Payload.ValueKind == JsonValueKind.Object &&
+                    result.Payload.TryGetProperty("units", out var unitsProperty) &&
+                    unitsProperty.TryGetInt32(out var parsedUnits)
+            ? parsedUnits
+            : 0;
+        return (result.Accepted, result.Error, units);
+    }
 
     public Task RepairUtilityNetworkAsync(
         string service,
@@ -674,6 +703,34 @@ public sealed class GameDataService
         response.EnsureSuccessStatusCode();
     }
 
+    private async Task<Guid> SendAdminJsonForIdAsync(
+        HttpMethod method,
+        string path,
+        object? body,
+        CancellationToken cancellationToken)
+    {
+        await EnsureAdminTokenAsync(cancellationToken);
+
+        using var response = await SendWithAuthRetryAsync(
+            () =>
+            {
+                var request = new HttpRequestMessage(method, path);
+                if (body is not null)
+                    request.Content = JsonContent.Create(body);
+                return http.SendAsync(request, cancellationToken);
+            },
+            cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.Forbidden)
+            throw new UnauthorizedAccessException(LocalAdminUnavailableMessage);
+
+        response.EnsureSuccessStatusCode();
+        var accepted = await response.Content.ReadFromJsonAsync<AcceptedCommandResponse>(
+            cancellationToken: cancellationToken);
+        return accepted?.CommandId ?? throw new InvalidOperationException(
+            "The API did not return a command id.");
+    }
+
     public Task StartSimulationAsync(CancellationToken cancellationToken = default)
         => SendAdminCommandAsync("api/simulation/start", cancellationToken);
 
@@ -774,6 +831,8 @@ public sealed class GameDataService
         "Local admin access is disabled. Enable Auth:Jwt:AllowLocalAdmin on the API and run the admin UI on the same machine.";
 
     private sealed record TokenResponse(string AccessToken, DateTimeOffset ExpiresAt);
+    private sealed record AcceptedCommandResponse(Guid CommandId);
+    private sealed record CommandResultResponse(Guid CommandId, bool Accepted, string? Error, JsonElement Payload);
 }
 
 public sealed record PlaceBuildingRequest(

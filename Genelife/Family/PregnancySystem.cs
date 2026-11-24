@@ -70,6 +70,13 @@ public sealed class PregnancySystem : ISimulationSystem
                 continue;
             }
 
+            if (!world.IsAlive(data.CarryingParent) || world.Has<Dead>(data.CarryingParent))
+            {
+                service.Cancel(entity, tick);
+                economy.Emit(new PregnancyLost(NetworkIdOf(entity), "parents-unavailable", tick));
+                continue;
+            }
+
             var household = Parenting.HouseholdOf(world, economy, data.CarryingParent);
             var cost = options.MonthlyPrenatalCareCost;
             var paid = Money.Zero;

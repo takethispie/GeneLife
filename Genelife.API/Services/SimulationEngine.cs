@@ -2120,7 +2120,7 @@ if (SnapshotsEnabled)
                     world,
                     economy!,
                     entity => networkIds.AllocateInfrastructure(entity));
-                grocery.RestockStore(store, tick, economy!.Clock.MonthOfYear(tick));
+                var outcome = grocery.RestockStore(store, tick, economy!.Clock.MonthOfYear(tick));
                 economy.Emit(new ConsumptionAdminActionApplied(
                     restock.CommandId,
                     "restock",
@@ -2128,7 +2128,16 @@ if (SnapshotsEnabled)
                     restock.StoreNetworkId.ToString(),
                     restock.Reason,
                     tick));
-                return new { store = restock.StoreNetworkId, restocked = true };
+                if (outcome.Needed && !outcome.Restocked)
+                    throw new InvalidOperationException(
+                        "Restock failed: neither the store nor the government can fund the supplier cost.");
+                return new
+                {
+                    store = restock.StoreNetworkId,
+                    restocked = outcome.Restocked,
+                    units = outcome.Units,
+                    costCents = outcome.Cost.Cents
+                };
             }
 
             case RepairUtilityNetworkCommand repair:

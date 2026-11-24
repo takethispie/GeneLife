@@ -8,6 +8,11 @@ using Genelife.Values;
 
 namespace Genelife.Consumption;
 
+public readonly record struct RestockOutcome(int Units, Money Cost, bool Needed)
+{
+    public bool Restocked => Units > 0;
+}
+
 /// <summary>
 /// Store inventory creation and lookup. Every store holds one inventory entity
 /// per catalog item; stock and price live there, never on the catalog.
@@ -103,13 +108,32 @@ public sealed class GroceryStoreService
             (Entity entity, ref Components.Company.Office _) => stores.Add(entity));
         stores.Sort((a, b) => a.Id.CompareTo(b.Id));
 
-        var supplier = FindSupplier(stores);
+        var companies = new List<Entity>();
+        var seenCompanies = new HashSet<Entity>();
+        foreach (var store in stores)
+        {
+            var office = world.Get<Components.Company.Office>(store);
+            if (office.IsClosed || office.Company == Entity.Null ||
+                !world.IsAlive(office.Company) || !seenCompanies.Add(office.Company))
+                continue;
+            companies.Add(office.Company);
+        }
+
+        Entity SupplierFor(Entity company)
+        {
+            foreach (var candidate in companies)
+                if (candidate != company)
+                    return candidate;
+            return Entity.Null;
+        }
+
         foreach (var store in stores)
         {
             EnsureInventory(store, tick);
             var storeCompany = world.Has<Components.Company.Office>(store)
                 ? world.Get<Components.Company.Office>(store).Company
                 : Entity.Null;
+            var supplier = SupplierFor(storeCompany);
             for (var index = 0; index < GroceryCatalog.Items.Count; index++)
             {
                 if (!FindInventory(store, index, out var entity, out var inventory))
@@ -135,13 +159,16 @@ public sealed class GroceryStoreService
         }
     }
 
-    public void RestockStore(Entity store, long tick, int monthOfYear = 0)
+    public RestockOutcome RestockStore(Entity store, long tick, int monthOfYear = 0)
     {
         EnsureInventory(store, tick);
         var storeCompany = world.Has<Components.Company.Office>(store)
             ? world.Get<Components.Company.Office>(store).Company
             : Entity.Null;
-        var supplier = FindSupplier(new List<Entity> { store });
+        var supplier = FindSupplier(storeCompany);
+        var restockedUnits = 0;
+        var restockCost = Money.Zero;
+        var needed = false;
         for (var index = 0; index < GroceryCatalog.Items.Count; index++)
         {
             if (!FindInventory(store, index, out var entity, out var inventory))
@@ -152,6 +179,7 @@ public sealed class GroceryStoreService
             var units = Math.Min(options.RestockAmount, maxStock - inventory.Stock);
             if (units <= 0)
                 continue;
+            needed = true;
             var cost = item.BasePrice * units;
             if (!PaySupplier(storeCompany, supplier, cost, tick))
                 continue;
@@ -161,7 +189,10 @@ public sealed class GroceryStoreService
                 item, inventory.Stock, maxStock, (int)(monthOfYear % 12), options);
             world.Get<StoreInventory>(entity) = inventory;
             economy.Emit(new GroceryRestocked(GetNetworkId(store), units, cost.Cents, tick));
+            restockedUnits += units;
+            restockCost += cost;
         }
+        return new RestockOutcome(restockedUnits, restockCost, needed);
     }
 
     public void Spoil(long tick)
@@ -212,58 +243,76 @@ public sealed class GroceryStoreService
         return true;
     }
 
-    private Entity FindSupplier(List<Entity> stores)
+    /// <summary>
+    /// Picks the lowest network id office that belongs to a different company.
+    /// A store cannot supply itself, so the previous "first office in the list"
+    /// lookup silently skipped every restock when that office was the store.
+    /// </summary>
+    private Entity FindSupplier(Entity storeCompany)
     {
-        foreach (var store in stores)
-        {
-            if (world.Has<Components.Company.Office>(store))
+        var candidates = new List<(Entity Company, ulong Order)>();
+        world.Query(in new QueryDescription().WithAll<Components.Company.Office>(),
+            (Entity entity, ref Components.Company.Office office) =>
             {
-                var company = world.Get<Components.Company.Office>(store).Company;
-                if (world.IsAlive(company))
-                    return company;
-            }
-        }
-        return Entity.Null;
+                if (office.IsClosed)
+                    return;
+                var company = office.Company;
+                if (company == Entity.Null || company == storeCompany || !world.IsAlive(company))
+                    return;
+                candidates.Add((company, GetNetworkId(entity)));
+            });
+
+        candidates.Sort((a, b) =>
+        {
+            var byId = a.Order.CompareTo(b.Order);
+            return byId != 0 ? byId : a.Company.Id.CompareTo(b.Company.Id);
+        });
+        return candidates.Count > 0 ? candidates[0].Company : Entity.Null;
     }
 
     private bool PaySupplier(Entity storeCompany, Entity supplier, Money cost, long tick)
     {
         if (!cost.IsPositive)
             return true;
-        if (supplier == Entity.Null || !world.IsAlive(supplier) || supplier == storeCompany)
+        if (supplier == storeCompany)
             return false;
 
-        Entity payer = storeCompany;
-        if (payer == Entity.Null || !world.IsAlive(payer))
-            payer = Entity.Null;
-
-        if (payer != Entity.Null && economy.Accounts.TryGet(payer, out var account))
+        var payer = storeCompany;
+        ulong payerId;
+        if (payer != Entity.Null && world.IsAlive(payer) && economy.Accounts.TryGet(payer, out var account))
         {
             if (account.Balance < cost)
                 return false;
             account.Balance -= cost;
             economy.Accounts.Set(payer, account);
-        }
-        else if (economy.Government.Balance < cost)
-        {
-            return false;
+            payerId = GetNetworkId(payer);
         }
         else
         {
+            if (economy.Government.Balance < cost)
+                return false;
             economy.Government.Balance -= cost;
+            payerId = EconomyAccountIds.Government;
         }
 
         // The supplier is a real company; the transfer is ledgered and keeps
-        // total money constant (no mint on restock).
-        economy.Accounts.ApplySettlement(supplier, cost, tick, revenue: true);
-        economy.RevenueThisYear += cost;
+        // total money constant (no mint on restock). With no in-world supplier
+        // the cost leaves the tracked economy as an import, which is still a
+        // real expense and never a mint.
+        ulong? payeeId = null;
+        if (supplier != Entity.Null && world.IsAlive(supplier))
+        {
+            economy.Accounts.ApplySettlement(supplier, cost, tick, revenue: true);
+            economy.RevenueThisYear += cost;
+            payeeId = GetNetworkId(supplier);
+        }
 
         economy.Ledger.Record(
             Guid.NewGuid(),
             tick,
             Components.Finance.LedgerKind.ConsumerSpending,
-            payer == Entity.Null ? EconomyAccountIds.Government : GetNetworkId(payer),
-            GetNetworkId(supplier),
+            payerId,
+            payeeId,
             cost,
             "grocery.restock");
         return true;

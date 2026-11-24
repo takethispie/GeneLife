@@ -1,4 +1,5 @@
 using Arch.Core;
+using Genelife.Api.Commands;
 using Genelife.Api.Services;
 using Genelife.Components.Company;
 using Genelife.Components.Consumption;
@@ -60,6 +61,85 @@ public class GroceryTests
         stores.Spoil(10_000);
         Assert.True(stores.FindInventory(store, 0, out _, out var spoiled));
         Assert.Equal(0, spoiled.Stock);
+    }
+
+    [Fact]
+    public void RestockStoreRestoresStockWithoutAnExternalSupplier()
+    {
+        var world = World.Create();
+        var economy = new EconomyContext(world);
+        var ids = new NetworkIdRegistry();
+        var company = world.Create(
+            new CompanyName("Grocer"),
+            CompanyAccount.Create(Money.FromUnits(1_000m), 0));
+        ids.Allocate(company);
+        var store = world.Create(new Office("Corner Store", company));
+        ids.Allocate(store);
+        var options = new GroceryOptions { StockPerItem = 3, RestockThreshold = 1, RestockAmount = 2 };
+        var stores = new GroceryStoreService(world, economy, entity => ids.Allocate(entity), options);
+        stores.EnsureInventory(store, 0);
+
+        Assert.True(stores.FindInventory(store, 0, out var itemEntity, out var soldOut));
+        soldOut.Stock = 0;
+        world.Get<StoreInventory>(itemEntity) = soldOut;
+        var balanceBefore = world.Get<CompanyAccount>(company).Balance;
+
+        var outcome = stores.RestockStore(store, 10, 1);
+
+        Assert.True(outcome.Restocked);
+        Assert.True(stores.FindInventory(store, 0, out _, out var restocked));
+        Assert.True(restocked.Stock > 0);
+        Assert.True(world.Get<CompanyAccount>(company).Balance < balanceBefore);
+
+        world.Dispose();
+    }
+
+    [Fact]
+    public void AdminRestockCommandAppliesToTheStore()
+    {
+        using var engine = new SimulationEngine();
+        engine.Initialize();
+        ulong storeId = 0;
+        var store = Entity.Null;
+        engine.ExecuteWithWorld(world =>
+        {
+            var company = world.Create(
+                new CompanyName("Grocer"),
+                CompanyAccount.Create(Money.FromUnits(1_000m), 0));
+            world.Add(company, engine.NetworkIds.Allocate(company));
+            store = world.Create(new Office("Corner Store", company));
+            storeId = engine.NetworkIds.Allocate(store).Value;
+            world.Add(store, new NetworkId(storeId));
+
+            var stores = new GroceryStoreService(
+                world,
+                engine.Economy!,
+                entity => engine.NetworkIds.AllocateInfrastructure(entity));
+            stores.EnsureInventory(store, 0);
+            Assert.True(stores.FindInventory(store, 0, out var itemEntity, out var inventory));
+            inventory.Stock = 0;
+            world.Get<StoreInventory>(itemEntity) = inventory;
+            return 0;
+        });
+
+        var commandId = engine.EnqueueAdminCommand(new RestockStoreCommand(
+            Guid.NewGuid(), "tester", storeId, "test-restock"));
+        engine.Tick(1f / 20f);
+
+        var result = engine.GetCommandResult(commandId);
+        Assert.NotNull(result);
+        Assert.True(result!.Accepted, result.Error);
+
+        engine.ExecuteWithWorld(world =>
+        {
+            var stores = new GroceryStoreService(
+                world,
+                engine.Economy!,
+                entity => engine.NetworkIds.AllocateInfrastructure(entity));
+            Assert.True(stores.FindInventory(store, 0, out _, out var inventory));
+            Assert.True(inventory.Stock > 0);
+            return 0;
+        });
     }
 
     [Fact]
