@@ -22,6 +22,12 @@ function harness() {
   return { root, ui, notifications, settings, actions, hud };
 }
 
+function buttonByLabel(root: HTMLElement, label: string): HTMLButtonElement {
+  const button = root.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`);
+  if (button === null) throw new Error(`missing button ${label}`);
+  return button;
+}
+
 const building: MapBuilding = {
   networkId: 1,
   kind: "office",
@@ -106,15 +112,45 @@ describe("Hud", () => {
   it("announces errors through the live region and hides the empty panel", () => {
     const h = harness();
     expect(h.root.querySelector(".hud-bottom-right")?.hasAttribute("hidden")).toBe(true);
+    expect(h.root.querySelector(".hud-bottom-left")?.hasAttribute("hidden")).toBe(true);
 
     h.notifications.push("error", "intent_blocked", "That tile is blocked");
     vi.advanceTimersByTime(100);
     expect(h.root.querySelector('[role="status"]')?.textContent).toBe("That tile is blocked");
     expect(h.root.querySelectorAll(".notification")).toHaveLength(1);
+    expect(h.root.querySelector(".hud-bottom-left")?.hasAttribute("hidden")).toBe(false);
 
     h.notifications.clear();
     vi.advanceTimersByTime(100);
     expect(h.root.querySelectorAll(".notification")).toHaveLength(0);
+    expect(h.root.querySelector(".hud-bottom-left")?.hasAttribute("hidden")).toBe(true);
+    h.hud.dispose();
+  });
+
+  it("keeps controls in one top-right toolbar and opens one panel at a time", () => {
+    const h = harness();
+    expect(h.root.querySelector(".hud-top-left")).toBeNull();
+    expect(h.root.querySelector(".hud-top-right")).toBeNull();
+
+    h.ui.patch({ connection: "connected" });
+    vi.advanceTimersByTime(100);
+    expect(h.root.querySelector('[data-field="connection"]')?.textContent).toBe("Connected");
+    expect(h.root.querySelector('[data-dock-id="status"]')?.getAttribute("data-connection")).toBe(
+      "connected"
+    );
+
+    const status = buttonByLabel(h.root, "Status");
+    const settings = buttonByLabel(h.root, "Settings");
+    status.click();
+    expect(h.root.querySelector(".hud-status")?.hasAttribute("hidden")).toBe(false);
+    expect(h.root.querySelector(".hud-settings")?.hasAttribute("hidden")).toBe(true);
+
+    settings.click();
+    expect(h.root.querySelector(".hud-status")?.hasAttribute("hidden")).toBe(true);
+    expect(h.root.querySelector(".hud-settings")?.hasAttribute("hidden")).toBe(false);
+
+    settings.click();
+    expect(h.root.querySelector(".hud-settings")?.hasAttribute("hidden")).toBe(true);
     h.hud.dispose();
   });
 

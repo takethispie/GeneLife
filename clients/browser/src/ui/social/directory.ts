@@ -1,3 +1,5 @@
+import type { HudDock } from "../hud-dock";
+
 export interface DirectoryPresence {
   playerId: string;
   displayName: string | null;
@@ -20,6 +22,7 @@ export interface PlayerDirectoryOptions {
   root: HTMLElement;
   apiBaseUrl: string;
   token: () => string | null;
+  dock?: HudDock;
   fetchImpl?: typeof fetch;
   intervalMs?: number;
   onError?: (message: string) => void;
@@ -50,7 +53,18 @@ export class PlayerDirectoryPanel {
     this.list = document.createElement("ul");
     this.list.className = "social-directory-list";
     this.root.appendChild(this.list);
-    options.root.appendChild(this.root);
+    if (options.dock) {
+      options.dock.addPanel({
+        id: "nearby",
+        label: "Nearby",
+        icon: "users",
+        order: 10,
+        content: this.root,
+        onOpen: () => void this.refresh()
+      });
+    } else {
+      options.root.appendChild(this.root);
+    }
 
     this.timer = setInterval(() => void this.refresh(), options.intervalMs ?? 5000);
     void this.refresh();

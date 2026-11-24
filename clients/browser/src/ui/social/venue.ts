@@ -1,3 +1,5 @@
+import type { HudDock } from "../hud-dock";
+
 export interface VenueOccupant {
   playerId: string;
   displayName: string | null;
@@ -34,6 +36,7 @@ export interface VenuePanelOptions {
   apiBaseUrl: string;
   token: () => string | null;
   sendAction: (kind: string, payload: Record<string, unknown>) => Promise<VenueActionOutcome>;
+  dock?: HudDock;
   fetchImpl?: typeof fetch;
   onError?: (message: string) => void;
 }
@@ -109,7 +112,18 @@ export class VenuePanel {
     this.notice.setAttribute("role", "status");
     this.root.appendChild(this.notice);
 
-    options.root.appendChild(this.root);
+    if (options.dock) {
+      options.dock.addPanel({
+        id: "venue",
+        label: "Venue",
+        icon: "pin",
+        order: 40,
+        content: this.root,
+        onOpen: () => void this.refresh()
+      });
+    } else {
+      options.root.appendChild(this.root);
+    }
     void this.refresh();
   }
 

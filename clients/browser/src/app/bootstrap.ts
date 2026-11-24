@@ -31,6 +31,7 @@ import { SceneRenderer, type SceneStats } from "../render/render-loop";
 import { SimulationStore } from "../simulation/store";
 import { AudioCuePlayer, type AudioCue } from "../ui/audio/audio";
 import { Hud } from "../ui/hud";
+import { HudDock } from "../ui/hud-dock";
 import { NotificationCenter, type NotificationKind } from "../ui/notifications";
 import { SettingsStore } from "../ui/settings";
 import { UiStore } from "../ui/ui-store";
@@ -79,6 +80,7 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
   const hudRoot = document.createElement("div");
   hudRoot.id = "hud";
   root.appendChild(hudRoot);
+  const dock = new HudDock(hudRoot);
 
   const store = new SimulationStore();
   const ui = new UiStore();
@@ -234,6 +236,7 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
 
   const hud = new Hud({
     root: hudRoot,
+    dock,
     ui,
     notifications,
     settings,
@@ -250,6 +253,7 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
     root,
     apiBaseUrl: config.apiBaseUrl,
     token: () => session.store.token,
+    dock,
     onError: (message) => notify("warning", "presence_failed", message)
   });
 
@@ -257,6 +261,7 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
     root,
     apiBaseUrl: config.apiBaseUrl,
     token: () => session.store.token,
+    dock,
     sendChat: async (request) => {
       if (hub === null) {
         return {
@@ -288,6 +293,7 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
     root,
     apiBaseUrl: config.apiBaseUrl,
     token: () => session.store.token,
+    dock,
     sendAction: async (kind, payload) => {
       const outcome = await intent.playerAction(kind, payload);
       return {
@@ -302,6 +308,7 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
     root,
     apiBaseUrl: config.apiBaseUrl,
     token: () => session.store.token,
+    dock,
     sendAction: async (kind, payload) => {
       const outcome = await intent.playerAction(kind, payload);
       return {

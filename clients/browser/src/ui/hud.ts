@@ -1,5 +1,6 @@
 import type { MapBuilding } from "../contracts/hub";
 import { describeBuilding } from "./building-panel";
+import { HudDock } from "./hud-dock";
 import type { ConnectionState } from "../net/events";
 import type { Notification, NotificationCenter } from "./notifications";
 import type {
@@ -23,6 +24,7 @@ export interface HudOptions {
   notifications: NotificationCenter;
   settings: SettingsStore;
   actions: HudActions;
+  dock?: HudDock;
   updateIntervalMs?: number;
 }
 
@@ -36,6 +38,7 @@ const CONNECTION_LABEL: Record<ConnectionState, string> = {
 };
 
 interface Elements {
+  dock: HudDock;
   connection: HTMLElement;
   player: HTMLElement;
   ownSim: HTMLElement;
@@ -65,7 +68,6 @@ interface Elements {
   notificationList: HTMLElement;
   ariaLive: HTMLElement;
   settingsPanel: HTMLElement;
-  settingsToggle: HTMLButtonElement;
   reduceMotion: HTMLInputElement;
   debugOverlay: HTMLInputElement;
   hudScale: HTMLInputElement;
@@ -76,6 +78,7 @@ interface Elements {
   handedness: HTMLSelectElement;
   bindingList: HTMLElement;
   connectionCard: HTMLElement;
+  notificationsPanel: HTMLElement;
   bottomRight: HTMLElement;
 }
 
@@ -96,7 +99,18 @@ export class Hud {
   private readonly options: HudOptions;
 
   private readonly onDocumentKeyDown = (event: KeyboardEvent): void => {
-    if (event.key === "Escape") this.options.actions.focusCanvas();
+    if (event.key !== "Escape") return;
+    if (this.elements.dock.isOpen) {
+      this.elements.dock.close(true);
+      return;
+    }
+    this.options.actions.focusCanvas();
+  };
+
+  private readonly onDocumentPointerDown = (event: PointerEvent): void => {
+    if (!this.elements.dock.isOpen) return;
+    if (event.target instanceof Node && this.elements.dock.contains(event.target)) return;
+    this.elements.dock.close();
   };
 
   constructor(options: HudOptions) {
@@ -118,6 +132,7 @@ export class Hud {
 
     this.timer = setInterval(() => this.flush(), options.updateIntervalMs ?? 100);
     document.addEventListener("keydown", this.onDocumentKeyDown);
+    document.addEventListener("pointerdown", this.onDocumentPointerDown, true);
     this.flush();
   }
 
@@ -127,6 +142,7 @@ export class Hud {
     this.unsubscribeNotifications();
     this.unsubscribeSettings();
     document.removeEventListener("keydown", this.onDocumentKeyDown);
+    document.removeEventListener("pointerdown", this.onDocumentPointerDown, true);
   }
 
   private flush(): void {
@@ -137,6 +153,7 @@ export class Hud {
 
     setText(e.connection, CONNECTION_LABEL[state.connection]);
     e.connectionCard.dataset.connection = state.connection;
+    e.dock.setConnection(state.connection);
     setText(e.player, state.playerId || "not signed in");
     setText(e.ownSim, state.ownSimNetworkId > 0 ? String(state.ownSimNetworkId) : "—");
     setText(e.map, state.mapId || "—");
@@ -203,6 +220,7 @@ export class Hud {
     const assertive = this.lastNotifications.filter((item) => item.kind === "error");
     this.elements.ariaLive.textContent =
       assertive.length > 0 ? (assertive[assertive.length - 1]?.message ?? "") : "";
+    this.elements.notificationsPanel.hidden = this.lastNotifications.length === 0;
   }
 
   private renderSettings(settings: ClientSettings): void {
@@ -264,18 +282,15 @@ function buildDom(options: HudOptions): Elements {
   root.replaceChildren();
   root.id = "hud";
 
-  const topLeft = panel("hud-panel hud-top-left");
+  const dock = options.dock ?? new HudDock(root);
+  if (options.dock) root.appendChild(dock.element);
+
   const connectionCard = div("connection-card");
   const connection = div("value");
   const player = div("value");
   const ownSim = div("value");
   connectionCard.append(row("Connection", connection), row("Player", player), row("Sim", ownSim));
-  const signOut = button("Sign out");
-  signOut.addEventListener("click", () => options.actions.onSignOut());
-  topLeft.append(connectionCard, signOut);
-  addControl(signOut);
 
-  const topRight = panel("hud-panel hud-top-right");
   const map = div("value");
   const version = div("value");
   const tick = div("value");
@@ -290,31 +305,47 @@ function buildDom(options: HudOptions): Elements {
   const renderer = div("value");
   const bytes = div("value");
   const lastError = div("value hud-error");
-  topRight.append(
-    row("Map", map),
-    row("Version", version),
-    row("Tick", tick),
-    row("FPS", fps),
-    row("Frame", frame),
-    row("Sims", sims),
-    row("Viewport r", viewport),
-    row("Buffer", buffer),
-    row("Interp", interp),
-    row("Input ack", inputAck),
-    row("Renderer", renderer),
-    row("Rate", bytes),
-    row("Build", build),
-    row("Last error", lastError)
-  );
 
-  const bottomLeft = panel("hud-panel hud-bottom-left");
+  const statusPanel = panel("hud-status");
+  statusPanel.append(
+    section("Session", connectionCard),
+    section(
+      "World",
+      row("Map", map),
+      row("Version", version),
+      row("Tick", tick),
+      row("Sims", sims),
+      row("Viewport r", viewport),
+      row("Renderer", renderer)
+    ),
+    section(
+      "Performance",
+      row("FPS", fps),
+      row("Frame", frame),
+      row("Buffer", buffer),
+      row("Interp", interp),
+      row("Input ack", inputAck),
+      row("Rate", bytes)
+    ),
+    section("Build", row("Build", build), row("Last error", lastError))
+  );
+  dock.addPanel({
+    id: "status",
+    label: "Status",
+    icon: "status",
+    order: 0,
+    content: statusPanel
+  });
+
+  const notificationsPanel = panel("hud-panel hud-bottom-left");
+  notificationsPanel.hidden = true;
   const notificationList = document.createElement("ul");
   notificationList.className = "notification-list";
   notificationList.setAttribute("aria-label", "Notifications");
+  notificationsPanel.append(notificationList);
   const ariaLive = div("sr-only");
   ariaLive.setAttribute("role", "status");
   ariaLive.setAttribute("aria-live", "assertive");
-  bottomLeft.append(notificationList, ariaLive);
 
   const bottomRight = panel("hud-panel hud-bottom-right");
   const selection = div("selection");
@@ -336,11 +367,7 @@ function buildDom(options: HudOptions): Elements {
   addControl(retry);
   bottomRight.append(selection, retry);
 
-  const settingsToggle = button("Settings");
-  settingsToggle.setAttribute("aria-expanded", "false");
-  settingsToggle.classList.add("settings-toggle");
-  addControl(settingsToggle);
-  const settingsPanel = panel("hud-panel hud-settings");
+  const settingsPanel = panel("hud-settings");
   settingsPanel.hidden = true;
   const reduce = checkbox("Reduce motion");
   reduce.input.addEventListener("change", () =>
@@ -406,14 +433,26 @@ function buildDom(options: HudOptions): Elements {
     labelled("Key bindings", bindingList),
     resetSettings
   );
-  settingsToggle.addEventListener("click", () => {
-    settingsPanel.hidden = !settingsPanel.hidden;
-    settingsToggle.setAttribute("aria-expanded", String(!settingsPanel.hidden));
+  dock.addPanel({
+    id: "settings",
+    label: "Settings",
+    icon: "settings",
+    order: 90,
+    content: settingsPanel
+  });
+  const signOut = dock.addAction({
+    label: "Sign out",
+    icon: "signout",
+    onClick: () => {
+      dock.close();
+      options.actions.onSignOut();
+    }
   });
 
-  root.append(topLeft, topRight, bottomLeft, bottomRight, settingsToggle, settingsPanel);
+  root.append(notificationsPanel, bottomRight, ariaLive);
 
   return {
+    dock,
     connection,
     player,
     ownSim,
@@ -443,7 +482,6 @@ function buildDom(options: HudOptions): Elements {
     notificationList,
     ariaLive,
     settingsPanel,
-    settingsToggle,
     reduceMotion: reduce.input,
     debugOverlay: debug.input,
     hudScale,
@@ -454,6 +492,7 @@ function buildDom(options: HudOptions): Elements {
     handedness,
     bindingList,
     connectionCard,
+    notificationsPanel,
     bottomRight
   };
 }
@@ -462,6 +501,16 @@ function panel(className: string): HTMLElement {
   const element = document.createElement("section");
   element.className = className;
   element.dataset.hudControl = "true";
+  return element;
+}
+
+function section(title: string, ...children: HTMLElement[]): HTMLElement {
+  const element = document.createElement("div");
+  element.className = "hud-section";
+  const heading = document.createElement("div");
+  heading.className = "hud-section-title";
+  heading.textContent = title;
+  element.append(heading, ...children);
   return element;
 }
 

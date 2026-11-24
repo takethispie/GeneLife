@@ -1,3 +1,5 @@
+import type { HudDock } from "../hud-dock";
+
 export interface RelationshipInvitationStatus {
   id: string;
   fromPlayerId: string;
@@ -28,6 +30,7 @@ export interface RelationshipsPanelOptions {
   apiBaseUrl: string;
   token: () => string | null;
   sendAction: (kind: string, payload: Record<string, unknown>) => Promise<RelationshipActionOutcome>;
+  dock?: HudDock;
   fetchImpl?: typeof fetch;
   onError?: (message: string) => void;
 }
@@ -112,7 +115,18 @@ export class RelationshipsPanel {
       void this.invitePartner();
     });
 
-    options.root.appendChild(this.root);
+    if (options.dock) {
+      options.dock.addPanel({
+        id: "relationships",
+        label: "Social",
+        icon: "heart",
+        order: 30,
+        content: this.root,
+        onOpen: () => void this.refresh()
+      });
+    } else {
+      options.root.appendChild(this.root);
+    }
     void this.refresh();
   }
 

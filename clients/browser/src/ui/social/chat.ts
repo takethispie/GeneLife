@@ -7,6 +7,7 @@ import type {
   EmoteKind,
   EmoteSendResult
 } from "../../contracts/hub";
+import type { HudDock } from "../hud-dock";
 
 const EMOTES: ReadonlyArray<{ kind: EmoteKind; value: number }> = [
   { kind: "Wave", value: 0 },
@@ -34,6 +35,7 @@ export interface ChatPanelOptions {
   token: () => string | null;
   sendChat: (request: ChatSendRequest) => Promise<ChatSendResult>;
   sendEmote: (emote: number) => Promise<EmoteSendResult>;
+  dock?: HudDock;
   fetchImpl?: typeof fetch;
   maxLength?: number;
   onError?: (message: string) => void;
@@ -133,7 +135,18 @@ export class ChatPanel {
       void this.sendMessage();
     });
 
-    options.root.appendChild(this.root);
+    if (options.dock) {
+      options.dock.addPanel({
+        id: "chat",
+        label: "Chat",
+        icon: "chat",
+        order: 20,
+        content: this.root,
+        onOpen: () => void this.refresh()
+      });
+    } else {
+      options.root.appendChild(this.root);
+    }
     void this.refresh();
   }
 
