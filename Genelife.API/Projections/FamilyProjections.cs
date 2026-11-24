@@ -369,6 +369,9 @@ public sealed partial class PregnancyProjection : EventProjection
 
     public async Task Project(BirthRecorded e, IDocumentOperations ops)
     {
+        if (e.PregnancyNetworkId == 0)
+            return;
+
         var doc = await GetOrCreate(ops, e.PregnancyNetworkId);
         doc.Status = "Completed";
         doc.ResolvedTick = e.Tick;
