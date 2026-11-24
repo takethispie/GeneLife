@@ -76,13 +76,13 @@ Prove that the social layer is safe, private, durable and usable with 32 concurr
 
 ## Tasks
 
-- [ ] Add the social acceptance suite.
-- [ ] Add the 32-player soak test.
-- [ ] Add the schema 14 fixture.
-- [ ] Add the privacy assertion.
-- [ ] Add the admin Social smoke test.
-- [ ] Record results in `roadmap-v5/STATUS.md` when implemented.
-- [ ] Add the social section to the release checklist.
+- [x] Add the social acceptance suite.
+- [x] Add the 32-player soak test.
+- [x] Add the schema 14 fixture.
+- [x] Add the privacy assertion.
+- [x] Add the admin Social smoke test.
+- [x] Record results in `roadmap-v5/STATUS.md` when implemented.
+- [x] Add the social section to the release checklist.
 
 ## Files
 

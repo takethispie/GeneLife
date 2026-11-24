@@ -166,6 +166,45 @@ public class ChatTests
     }
 
     [Fact]
+    public async Task GlobalChatBudgetAppliesAcrossPlayers()
+    {
+        var fixture = new ChatFixture(options: new ChatOptions
+        {
+            SayPerWindow = 100,
+            GlobalSayPerWindow = 3,
+            RateWindowSeconds = 10
+        });
+        fixture.Directory.Add("alice", 10, 10, venue: null);
+        fixture.Directory.Add("bob", 11, 10, venue: null);
+
+        Assert.True((await fixture.Chat.SendAsync("alice", new ChatSendRequest
+        {
+            Text = "a1",
+            Channel = ChatChannel.Say
+        }, tick: 1)).Accepted);
+        Assert.True((await fixture.Chat.SendAsync("alice", new ChatSendRequest
+        {
+            Text = "a2",
+            Channel = ChatChannel.Say
+        }, tick: 2)).Accepted);
+        Assert.True((await fixture.Chat.SendAsync("bob", new ChatSendRequest
+        {
+            Text = "b1",
+            Channel = ChatChannel.Say
+        }, tick: 3)).Accepted);
+
+        var limited = await fixture.Chat.SendAsync("bob", new ChatSendRequest
+        {
+            Text = "b2",
+            Channel = ChatChannel.Say
+        }, tick: 4);
+
+        Assert.False(limited.Accepted);
+        Assert.Equal("rate_limited", limited.Code);
+        Assert.Contains("world", limited.Notice);
+    }
+
+    [Fact]
     public async Task RetentionRemovesMessagesFromReadsAndStorage()
     {
         var fixture = new ChatFixture();

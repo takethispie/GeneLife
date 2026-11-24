@@ -50,6 +50,8 @@ public interface IChatStore
     Task<bool> RemoveAsync(Guid messageId, CancellationToken cancellationToken = default);
 
     Task<int> PurgeExpiredAsync(DateTimeOffset now, CancellationToken cancellationToken = default);
+
+    Task<ChatRetentionStatus> StatusAsync(DateTimeOffset now, CancellationToken cancellationToken = default);
 }
 
 public sealed record ChatSendRequest
@@ -82,7 +84,7 @@ public sealed class ChatService
     private readonly IChatDirectory directory;
     private readonly ChatOptions options;
     private readonly TimeProvider time;
-    private readonly ConcurrentDictionary<string, RateWindow> rateWindows = new(StringComparer.Ordinal);
+    private readonly SocialRateLimiter limiter;
 
     public ChatService(
         IChatStore store,
@@ -96,6 +98,7 @@ public sealed class ChatService
         this.directory = directory;
         this.options = options;
         this.time = time;
+        this.limiter = new SocialRateLimiter(time);
         this.options.Validate();
     }
 
@@ -117,6 +120,9 @@ public sealed class ChatService
             return ChatSendResult.Reject(
                 "too_long",
                 $"Messages are limited to {options.MaxLength} characters.");
+
+        if (social.IsChatBlocked(playerId, tick))
+            return ChatSendResult.Reject("chat_suspended", "Your chat is currently restricted.");
 
         if (!TryAcquireRateLimit(playerId, request.Channel, out var notice))
             return ChatSendResult.Reject("rate_limited", notice);
@@ -272,47 +278,31 @@ public sealed class ChatService
     public async Task<bool> RemoveAsync(Guid messageId, CancellationToken cancellationToken = default) =>
         await store.RemoveAsync(messageId, cancellationToken);
 
+    public Task<ChatRetentionStatus> StatusAsync(
+        DateTimeOffset now,
+        CancellationToken cancellationToken = default) =>
+        store.StatusAsync(now, cancellationToken);
+
     private bool TryAcquireRateLimit(string playerId, ChatChannel channel, out string notice)
     {
-        var limit = channel switch
+        var policy = channel switch
         {
-            ChatChannel.Say => options.SayPerWindow,
-            ChatChannel.Venue => options.VenuePerWindow,
-            ChatChannel.Whisper => options.WhisperPerWindow,
-            _ => 0
+            ChatChannel.Say => new SocialRateLimitPolicy(
+                options.SayPerWindow,
+                options.GlobalSayPerWindow,
+                options.RateWindowSeconds),
+            ChatChannel.Venue => new SocialRateLimitPolicy(
+                options.VenuePerWindow,
+                options.GlobalVenuePerWindow,
+                options.RateWindowSeconds),
+            ChatChannel.Whisper => new SocialRateLimitPolicy(
+                options.WhisperPerWindow,
+                options.GlobalWhisperPerWindow,
+                options.RateWindowSeconds),
+            _ => SocialRateLimitPolicy.Disabled
         };
 
-        if (limit <= 0)
-        {
-            notice = string.Empty;
-            return true;
-        }
-
-        var window = rateWindows.GetOrAdd(
-            $"{playerId}|{(byte)channel}",
-            _ => new RateWindow(DateTimeOffset.MinValue));
-
-        var now = time.GetUtcNow();
-        lock (window)
-        {
-            if (window.Start == DateTimeOffset.MinValue
-                || now - window.Start >= TimeSpan.FromSeconds(options.RateWindowSeconds))
-            {
-                window.Start = now;
-                window.Count = 0;
-            }
-
-            if (window.Count >= limit)
-            {
-                notice = "You are sending messages too quickly. Try again shortly.";
-                return false;
-            }
-
-            window.Count++;
-        }
-
-        notice = string.Empty;
-        return true;
+        return limiter.TryAcquire($"chat:{(byte)channel}", playerId, policy, out notice);
     }
 
     private bool IsNearby(ChatPlayerContext reader, string authorPlayerId)

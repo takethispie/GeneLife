@@ -1,0 +1,203 @@
+@page "/social"
+@using Genelife.Api.DTOs
+@inject GameDataService GameData
+
+<PageTitle>Social</PageTitle>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+    <div>
+        <h1 class="mb-1">Social</h1>
+        <p class="text-muted mb-0">Presence, venues, reports, social edges, partnerships and moderation audit.</p>
+    </div>
+    <button class="btn btn-primary" type="button" @onclick="RefreshAsync" disabled="@isLoading">
+        @if (isLoading)
+        {
+            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+        }
+        Refresh
+    </button>
+</div>
+
+@if (error is not null)
+{
+    <div class="alert alert-danger">
+        <div class="fw-semibold">Could not load social data.</div>
+        <div class="small">@error</div>
+    </div>
+}
+
+@if (social is not null)
+{
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-md-3"><div class="card h-100"><div class="card-body">
+            <div class="text-muted small">Online</div>
+            <div class="fs-3 fw-semibold">@social.Online.Count</div>
+        </div></div></div>
+        <div class="col-12 col-md-3"><div class="card h-100"><div class="card-body">
+            <div class="text-muted small">Open reports</div>
+            <div class="fs-3 fw-semibold">@social.Reports.Count(report => report.Status != "Resolved" && report.Status != "Dismissed")</div>
+        </div></div></div>
+        <div class="col-12 col-md-3"><div class="card h-100"><div class="card-body">
+            <div class="text-muted small">Social edges</div>
+            <div class="fs-3 fw-semibold">@social.Edges.Count</div>
+        </div></div></div>
+        <div class="col-12 col-md-3"><div class="card h-100"><div class="card-body">
+            <div class="text-muted small">Chat retained</div>
+            <div class="fs-3 fw-semibold">@social.ChatRetention.RetainedMessages</div>
+            <div class="small text-muted">@social.ChatRetention.DeletedMessages deleted &middot; @social.ChatRetention.RetentionDays day retention</div>
+        </div></div></div>
+    </div>
+
+    <div class="card mb-4"><div class="card-body">
+        <h2 class="h6 text-uppercase text-muted">Presence &amp; venues</h2>
+        <div class="table-responsive">
+            <table class="table table-sm table-striped align-middle mb-3">
+                <thead><tr><th>Player</th><th>State</th><th>Tile</th><th>Building</th></tr></thead>
+                <tbody>
+                    @foreach (var player in social.Online)
+                    {
+                        <tr><td>@player.PlayerId</td><td>@player.State</td><td>@player.TileX,@player.TileY</td><td>@player.BuildingNetworkId</td></tr>
+                    }
+                    @if (social.Online.Count == 0)
+                    {
+                        <tr><td colspan="4" class="text-muted">No one online.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm table-striped align-middle mb-0">
+                <thead><tr><th>Venue</th><th>Kind</th><th>Occupancy</th><th>Status</th></tr></thead>
+                <tbody>
+                    @foreach (var venue in social.Venues)
+                    {
+                        <tr><td>@venue.Name (#@venue.VenueNetworkId)</td><td>@venue.Kind</td><td>@venue.Occupancy / @venue.Capacity</td><td>@(venue.IsClosed ? "Closed" : venue.IsOpen ? "Open" : "Outside hours")</td></tr>
+                    }
+                    @if (social.Venues.Count == 0)
+                    {
+                        <tr><td colspan="4" class="text-muted">No venues configured.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div></div>
+
+    <div class="card mb-4"><div class="card-body">
+        <h2 class="h6 text-uppercase text-muted">Report queue</h2>
+        <div class="table-responsive">
+            <table class="table table-sm table-striped align-middle mb-0">
+                <thead><tr><th>Report</th><th>Reporter</th><th>Target</th><th>Reason</th><th>Evidence</th><th>Status</th></tr></thead>
+                <tbody>
+                    @foreach (var report in social.Reports)
+                    {
+                        <tr><td class="small">@report.Id</td><td>@report.ReporterPlayerId</td><td>@report.TargetPlayerId</td><td>@report.Reason</td><td class="small">@report.Evidence</td><td>@report.Status</td></tr>
+                    }
+                    @if (social.Reports.Count == 0)
+                    {
+                        <tr><td colspan="6" class="text-muted">No reports.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div></div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-xl-6"><div class="card h-100"><div class="card-body">
+            <h2 class="h6 text-uppercase text-muted">Edges</h2>
+            <div class="table-responsive"><table class="table table-sm table-striped align-middle mb-0">
+                <thead><tr><th>From</th><th>To</th><th>Kind</th><th>Source</th></tr></thead>
+                <tbody>
+                    @foreach (var edge in social.Edges)
+                    {
+                        <tr><td>@edge.FromPlayerId</td><td>@edge.ToPlayerId</td><td>@edge.Kind</td><td>@edge.Source</td></tr>
+                    }
+                    @if (social.Edges.Count == 0)
+                    {
+                        <tr><td colspan="4" class="text-muted">No edges.</td></tr>
+                    }
+                </tbody>
+            </table></div>
+        </div></div></div>
+        <div class="col-12 col-xl-6"><div class="card h-100"><div class="card-body">
+            <h2 class="h6 text-uppercase text-muted">Requests &amp; partnerships</h2>
+            <div class="table-responsive"><table class="table table-sm table-striped align-middle mb-0">
+                <thead><tr><th>From</th><th>To</th><th>Kind</th><th>Status</th></tr></thead>
+                <tbody>
+                    @foreach (var request in social.Requests)
+                    {
+                        <tr><td>@request.FromPlayerId</td><td>@request.ToPlayerId</td><td>@request.Kind</td><td>@request.Status</td></tr>
+                    }
+                    @foreach (var invitation in social.PartnershipInvitations)
+                    {
+                        <tr><td>@invitation.FromPlayerId</td><td>@invitation.ToPlayerId</td><td>@invitation.Kind</td><td>@invitation.Status</td></tr>
+                    }
+                    @if (social.Requests.Count == 0 && social.PartnershipInvitations.Count == 0)
+                    {
+                        <tr><td colspan="4" class="text-muted">No pending requests.</td></tr>
+                    }
+                </tbody>
+            </table></div>
+        </div></div></div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-xl-7"><div class="card h-100"><div class="card-body">
+            <h2 class="h6 text-uppercase text-muted">Moderation audit</h2>
+            <div class="table-responsive"><table class="table table-sm table-striped align-middle mb-0">
+                <thead><tr><th>Moderator</th><th>Target</th><th>Action</th><th>Reason</th><th>Tick</th></tr></thead>
+                <tbody>
+                    @foreach (var action in social.ModerationActions)
+                    {
+                        <tr><td>@action.ModeratorId</td><td>@action.TargetPlayerId</td><td>@action.Kind</td><td class="small">@action.Reason</td><td>@action.CreatedTick</td></tr>
+                    }
+                    @if (social.ModerationActions.Count == 0)
+                    {
+                        <tr><td colspan="5" class="text-muted">No moderation actions.</td></tr>
+                    }
+                </tbody>
+            </table></div>
+        </div></div></div>
+        <div class="col-12 col-xl-5"><div class="card h-100"><div class="card-body">
+            <h2 class="h6 text-uppercase text-muted">Privacy settings</h2>
+            <div class="table-responsive"><table class="table table-sm table-striped align-middle mb-0">
+                <thead><tr><th>Player</th><th>Display name</th><th>Nearby</th><th>Friends-only messages</th></tr></thead>
+                <tbody>
+                    @foreach (var setting in social.Privacy)
+                    {
+                        <tr><td>@setting.PlayerId</td><td>@(setting.ShowDisplayName ? "Visible" : "Hidden")</td><td>@(setting.AllowNearbyForNonFriends ? "Yes" : "No")</td><td>@(setting.FriendsOnlyMessages ? "Yes" : "No")</td></tr>
+                    }
+                    @if (social.Privacy.Count == 0)
+                    {
+                        <tr><td colspan="4" class="text-muted">No player privacy settings yet.</td></tr>
+                    }
+                </tbody>
+            </table></div>
+        </div></div></div>
+    </div>
+}
+
+@code {
+    private SocialAdminOverviewDto? social;
+    private string? error;
+    private bool isLoading;
+
+    protected override Task OnInitializedAsync() => RefreshAsync();
+
+    private async Task RefreshAsync()
+    {
+        isLoading = true;
+        error = null;
+        try
+        {
+            social = await GameData.GetSocialAdminAsync();
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

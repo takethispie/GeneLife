@@ -23,7 +23,10 @@ public sealed record SocialReport
 public sealed record SocialGraphSnapshot(
     IReadOnlyList<SocialEdge> Edges,
     IReadOnlyList<SocialRequest> Requests,
-    IReadOnlyList<SocialReport> Reports);
+    IReadOnlyList<SocialReport> Reports)
+{
+    public IReadOnlyList<SocialRestriction> Restrictions { get; init; } = Array.Empty<SocialRestriction>();
+}
 
 public sealed record SocialOverview(
     string PlayerId,

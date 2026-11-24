@@ -16,8 +16,11 @@ public sealed record PlayerPresenceDto(
 public sealed record PlayerDirectoryDto(
     string Scope,
     int Radius,
-    IReadOnlyList<PlayerPresenceDto> Items);
+    IReadOnlyList<PlayerPresenceDto> Items)
+{
+    public string? Notice { get; init; }
+}
 
-public sealed record SocialPrivacyDto(bool ShowDisplayName, bool AllowNearbyForNonFriends);
+public sealed record SocialPrivacyDto(bool ShowDisplayName, bool AllowNearbyForNonFriends, bool FriendsOnlyMessages = false);
 
-public sealed record SocialPrivacyUpdateRequest(bool ShowDisplayName, bool AllowNearbyForNonFriends);
+public sealed record SocialPrivacyUpdateRequest(bool ShowDisplayName, bool AllowNearbyForNonFriends, bool FriendsOnlyMessages = false);

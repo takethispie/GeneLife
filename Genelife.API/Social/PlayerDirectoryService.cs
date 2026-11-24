@@ -15,22 +15,35 @@ public sealed class PlayerDirectoryService
     private readonly IConnectionRegistry connections;
     private readonly SocialPrivacyRegistry privacy;
     private readonly SocialGraphService social;
+    private readonly SocialRateLimitOptions limits;
+    private readonly SocialRateLimiter presenceLimiter;
 
     public PlayerDirectoryService(
         SimulationEngine engine,
         IConnectionRegistry connections,
         SocialPrivacyRegistry privacy,
-        SocialGraphService social)
+        SocialGraphService social,
+        SocialRateLimitOptions? limits = null,
+        TimeProvider? time = null)
     {
         this.engine = engine;
         this.connections = connections;
         this.privacy = privacy;
         this.social = social;
+        this.limits = limits ?? new SocialRateLimitOptions();
+        this.limits.Validate();
+        presenceLimiter = new SocialRateLimiter(time ?? TimeProvider.System);
     }
 
     public PlayerDirectoryDto Directory(string callerId, PresenceScope scope, int radius = 12)
     {
         radius = Math.Clamp(radius, 1, 32);
+        if (!presenceLimiter.TryAcquire("presence", callerId, limits.PresencePolicy, out var limitNotice))
+            return new PlayerDirectoryDto(scope.ToString(), radius, Array.Empty<PlayerPresenceDto>())
+            {
+                Notice = limitNotice
+            };
+
         var caller = engine.BuildPlayerPresence(callerId);
         if (caller is null)
             return new PlayerDirectoryDto(scope.ToString(), radius, Array.Empty<PlayerPresenceDto>());
@@ -59,14 +72,18 @@ public sealed class PlayerDirectoryService
     public SocialPrivacyDto GetPrivacy(string playerId)
     {
         var settings = privacy.For(playerId);
-        return new SocialPrivacyDto(settings.ShowDisplayName, settings.AllowNearbyForNonFriends);
+        return new SocialPrivacyDto(
+            settings.ShowDisplayName,
+            settings.AllowNearbyForNonFriends,
+            settings.FriendsOnlyMessages);
     }
 
     public void SetPrivacy(string playerId, SocialPrivacyDto update) =>
         privacy.Set(playerId, new SocialPrivacy
         {
             ShowDisplayName = update.ShowDisplayName,
-            AllowNearbyForNonFriends = update.AllowNearbyForNonFriends
+            AllowNearbyForNonFriends = update.AllowNearbyForNonFriends,
+            FriendsOnlyMessages = update.FriendsOnlyMessages
         });
 
     private bool Visible(

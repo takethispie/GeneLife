@@ -1,0 +1,12 @@
+{
+  "SchemaVersion": 14,
+  "PlayerProfiles": [
+    {
+      "PlayerId": "fixture-player",
+      "SimNetworkId": 0,
+      "ContinuationPolicy": "Heir",
+      "AwaitingContinuation": false,
+      "Observer": false
+    }
+  ]
+}

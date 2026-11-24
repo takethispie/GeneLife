@@ -73,6 +73,8 @@ public sealed class AuthorizationTests : IClassFixture<TestApplicationFactory>
     [InlineData("POST", "/api/simulation/sims")]
     [InlineData("POST", "/api/companies")]
     [InlineData("DELETE", "/api/companies/1")]
+    [InlineData("GET", "/api/social/admin/overview")]
+    [InlineData("GET", "/api/social/admin/moderation/queue")]
     public async Task Anonymous_admin_endpoints_return_401(string method, string path)
     {
         using var request = new HttpRequestMessage(new HttpMethod(method), path);
@@ -107,6 +109,8 @@ public sealed class AuthorizationTests : IClassFixture<TestApplicationFactory>
     [InlineData("POST", "/api/simulation/sims")]
     [InlineData("POST", "/api/companies")]
     [InlineData("DELETE", "/api/companies/1")]
+    [InlineData("GET", "/api/social/admin/overview")]
+    [InlineData("GET", "/api/social/admin/moderation/queue")]
     public async Task Player_cannot_call_admin_endpoints(string method, string path)
     {
         using var request = new HttpRequestMessage(new HttpMethod(method), path);

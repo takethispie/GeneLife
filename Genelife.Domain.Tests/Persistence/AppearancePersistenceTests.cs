@@ -32,7 +32,7 @@ public class AppearancePersistenceTests
         });
 
         var state = engine.CaptureState(engine.NetworkIds);
-        Assert.Equal(14, PersistedWorldState.CurrentSchemaVersion);
+        Assert.Equal(15, PersistedWorldState.CurrentSchemaVersion);
         var saved = state.Sims.Single(sim => sim.NetworkId == simNetworkId);
         Assert.True(saved.AppearanceMigrated);
         Assert.Equal((int)skin, saved.SkinTone);
@@ -91,7 +91,7 @@ public class AppearancePersistenceTests
         saved.FaceShape = 0;
 
         SnapshotMigrations.Upgrade(state, 12);
-        Assert.Equal(14, state.SchemaVersion);
+        Assert.Equal(15, state.SchemaVersion);
 
         using var first = new SimulationEngine();
         first.Restore(state, first.NetworkIds);

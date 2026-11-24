@@ -9,15 +9,21 @@ public sealed class SocialGraphService : IChatSocialPolicy
 {
     private readonly object gate = new();
     private readonly SocialGraphOptions options;
+    private readonly ISocialAuditStore? auditStore;
     private readonly List<SocialEdge> edges = new();
     private readonly Dictionary<Guid, SocialRequest> requests = new();
     private readonly Dictionary<(string From, string To), long> declineCooldowns = new();
     private readonly List<SocialReport> reports = new();
+    private readonly List<SocialRestriction> restrictions = new();
+    private bool auditLoaded;
 
-    public SocialGraphService(SocialGraphOptions? options = null)
+    public SocialGraphService(
+        SocialGraphOptions? options = null,
+        ISocialAuditStore? auditStore = null)
     {
         this.options = options ?? new SocialGraphOptions();
         this.options.Validate();
+        this.auditStore = auditStore;
     }
 
     public SocialEdgeResult AddFriend(
@@ -128,6 +134,8 @@ public sealed class SocialGraphService : IChatSocialPolicy
     {
         if (Same(fromPlayerId, toPlayerId))
             return SocialRequestResult.Reject("self_edge");
+        if (AreInvitationsBlocked(fromPlayerId, tick))
+            return SocialRequestResult.Reject("suspended");
 
         lock (gate)
         {
@@ -244,6 +252,7 @@ public sealed class SocialGraphService : IChatSocialPolicy
 
         lock (gate)
         {
+            EnsureAuditLoadedLocked();
             var existing = reports.LastOrDefault(report =>
                 Same(report.ReporterPlayerId, reporterPlayerId)
                 && Same(report.TargetPlayerId, targetPlayerId)
@@ -265,6 +274,7 @@ public sealed class SocialGraphService : IChatSocialPolicy
                 Status = ReportStatus.Open
             };
             reports.Add(report);
+            auditStore?.UpsertReport(report);
             return new SocialReportResult(true, null, null, report);
         }
     }
@@ -293,21 +303,74 @@ public sealed class SocialGraphService : IChatSocialPolicy
     public IReadOnlyList<SocialReport> Reports(Guid? messageId = null)
     {
         lock (gate)
+        {
+            EnsureAuditLoadedLocked();
             return reports
                 .Where(report => messageId is null || report.MessageId == messageId)
                 .OrderByDescending(report => report.CreatedTick)
                 .ToArray();
+        }
+    }
+
+    public void ApplyRestriction(SocialRestriction restriction)
+    {
+        ArgumentNullException.ThrowIfNull(restriction);
+        lock (gate)
+        {
+            restrictions.RemoveAll(existing => existing.ActionId == restriction.ActionId);
+            restrictions.Add(restriction);
+        }
+    }
+
+    public bool RemoveRestriction(Guid actionId)
+    {
+        lock (gate)
+            return restrictions.RemoveAll(restriction => restriction.ActionId == actionId) > 0;
+    }
+
+    public SocialRestriction? ActiveRestriction(string playerId, long tick)
+    {
+        lock (gate)
+        {
+            restrictions.RemoveAll(restriction => restriction.UntilTick <= tick);
+            return restrictions
+                .Where(restriction => Same(restriction.PlayerId, playerId))
+                .OrderByDescending(restriction => restriction.CreatedTick)
+                .FirstOrDefault();
+        }
+    }
+
+    public bool IsChatBlocked(string playerId, long tick) =>
+        AnyRestriction(playerId, tick, restriction => restriction.ChatBlocked);
+
+    public bool IsActivityBlocked(string playerId, long tick) =>
+        AnyRestriction(playerId, tick, restriction => restriction.ActivityBlocked);
+
+    public bool AreInvitationsBlocked(string playerId, long tick) =>
+        AnyRestriction(playerId, tick, restriction => restriction.InvitationsBlocked);
+
+    public int TrimReportsBefore(long tick)
+    {
+        lock (gate)
+        {
+            EnsureAuditLoadedLocked();
+            var removed = reports.RemoveAll(report => report.CreatedTick < tick);
+            auditStore?.TrimReportsBefore(tick);
+            return removed;
+        }
     }
 
     public bool SetReportStatus(Guid reportId, ReportStatus status)
     {
         lock (gate)
         {
+            EnsureAuditLoadedLocked();
             var index = reports.FindIndex(report => report.Id == reportId);
             if (index < 0)
                 return false;
 
             reports[index] = reports[index] with { Status = status };
+            auditStore?.SetReportStatus(reportId, status);
             return true;
         }
     }
@@ -350,7 +413,10 @@ public sealed class SocialGraphService : IChatSocialPolicy
             return new SocialGraphSnapshot(
                 edges.OrderBy(EdgeKey, StringComparer.Ordinal).ToArray(),
                 requests.Values.OrderBy(request => request.CreatedTick).ToArray(),
-                reports.OrderBy(report => report.CreatedTick).ToArray());
+                reports.OrderBy(report => report.CreatedTick).ToArray())
+            {
+                Restrictions = restrictions.OrderBy(restriction => restriction.CreatedTick).ToArray()
+            };
     }
 
     public void Restore(SocialGraphSnapshot snapshot)
@@ -363,6 +429,7 @@ public sealed class SocialGraphService : IChatSocialPolicy
             requests.Clear();
             declineCooldowns.Clear();
             reports.Clear();
+            restrictions.Clear();
 
             foreach (var edge in snapshot.Edges)
             {
@@ -377,6 +444,7 @@ public sealed class SocialGraphService : IChatSocialPolicy
                 requests[request.Id] = request;
 
             reports.AddRange(snapshot.Reports);
+            restrictions.AddRange(snapshot.Restrictions);
         }
     }
 
@@ -399,6 +467,19 @@ public sealed class SocialGraphService : IChatSocialPolicy
             return HasEdgeLocked(muterPlayerId, authorPlayerId, SocialEdgeKind.Mute);
     }
 
+    private bool AnyRestriction(
+        string playerId,
+        long tick,
+        Func<SocialRestriction, bool> predicate)
+    {
+        lock (gate)
+        {
+            restrictions.RemoveAll(restriction => restriction.UntilTick <= tick);
+            return restrictions.Any(restriction =>
+                Same(restriction.PlayerId, playerId) && predicate(restriction));
+        }
+    }
+
     private IReadOnlyList<SocialEdge> EdgesFor(string playerId, SocialEdgeKind kind)
     {
         lock (gate)
@@ -406,6 +487,19 @@ public sealed class SocialGraphService : IChatSocialPolicy
                 .Where(edge => edge.Kind == kind && Same(edge.FromPlayerId, playerId))
                 .OrderBy(edge => edge.ToPlayerId, StringComparer.Ordinal)
                 .ToArray();
+    }
+
+    private void EnsureAuditLoadedLocked()
+    {
+        if (auditLoaded || auditStore is null)
+            return;
+
+        auditLoaded = true;
+        foreach (var report in auditStore.LoadReports())
+        {
+            if (reports.All(existing => existing.Id != report.Id))
+                reports.Add(report);
+        }
     }
 
     private bool IsBlockedLocked(string firstPlayerId, string secondPlayerId) =>

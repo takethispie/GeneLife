@@ -90,6 +90,24 @@ public sealed class MartenChatStore : IChatStore
         return true;
     }
 
+    public Task<ChatRetentionStatus> StatusAsync(
+        DateTimeOffset now,
+        CancellationToken cancellationToken = default)
+    {
+        using var session = store.QuerySession();
+        var documents = session.Query<ChatMessageDocument>()
+            .ToListAsync()
+            .GetAwaiter()
+            .GetResult();
+        var retained = documents.Where(document => document.DeletedAt is null && document.ExpiresAt > now).ToArray();
+        var deleted = documents.Count(document => document.DeletedAt is not null);
+        return Task.FromResult(new ChatRetentionStatus(
+            retained.Length,
+            deleted,
+            retained.OrderBy(document => document.CreatedAt).Select(document => (DateTimeOffset?)document.CreatedAt).FirstOrDefault(),
+            now));
+    }
+
     public async Task<int> PurgeExpiredAsync(
         DateTimeOffset now,
         CancellationToken cancellationToken = default)
@@ -183,6 +201,24 @@ public sealed class InMemoryChatStore : IChatStore
 
             messages[messageId] = stored with { DeletedAt = DateTimeOffset.UtcNow };
             return Task.FromResult(true);
+        }
+    }
+
+    public Task<ChatRetentionStatus> StatusAsync(
+        DateTimeOffset now,
+        CancellationToken cancellationToken = default)
+    {
+        lock (gate)
+        {
+            var retained = messages.Values
+                .Where(stored => stored.DeletedAt is null && stored.ExpiresAt > now)
+                .ToArray();
+            var deleted = messages.Values.Count(stored => stored.DeletedAt is not null);
+            return Task.FromResult(new ChatRetentionStatus(
+                retained.Length,
+                deleted,
+                retained.OrderBy(stored => stored.CreatedAt).Select(stored => (DateTimeOffset?)stored.CreatedAt).FirstOrDefault(),
+                now));
         }
     }
 

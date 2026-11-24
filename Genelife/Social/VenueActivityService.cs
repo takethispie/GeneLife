@@ -71,6 +71,8 @@ public sealed class VenueActivityService
             world.Has<Dead>(profile.ControlledSim))
             return VenueActivityResult.Reject("not_available", "Your character is not available.");
 
+        if (social.IsActivityBlocked(playerId, tick))
+            return VenueActivityResult.Reject("suspended", "Your social activities are currently restricted.");
         if (!venues.IsOccupant(playerId, venue))
             return VenueActivityResult.Reject("not_in_venue", "You are not inside that venue.");
         if (!venues.IsOpen(venue, tick))

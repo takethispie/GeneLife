@@ -80,6 +80,14 @@ public sealed class VenueService
         }
     }
 
+    public IReadOnlyList<Entity> ConfiguredVenues()
+    {
+        var result = new List<Entity>();
+        world.Query(in new QueryDescription().WithAll<SocialVenue>(),
+            (Entity entity) => result.Add(entity));
+        return result;
+    }
+
     public Entity FindByNetworkId(ulong networkId)
     {
         var found = Entity.Null;

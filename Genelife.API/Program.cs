@@ -60,10 +60,18 @@ builder.Services.AddSingleton<ICommandQueue, CommandQueue>();
 builder.Services.AddSingleton<Genelife.Social.SocialPrivacyRegistry>();
 builder.Services.Configure<Genelife.Social.SocialGraphOptions>(builder.Configuration.GetSection("SocialGraph"));
 builder.Services.Configure<Genelife.Social.VenueOptions>(builder.Configuration.GetSection("Venue"));
+builder.Services.Configure<Genelife.Social.SocialRateLimitOptions>(builder.Configuration.GetSection("SocialLimits"));
+builder.Services.Configure<Genelife.Social.ModerationOptions>(builder.Configuration.GetSection("Moderation"));
 builder.Services.AddSingleton(provider =>
     provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<Genelife.Social.VenueOptions>>().Value);
 builder.Services.AddSingleton(provider =>
+    provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<Genelife.Social.SocialRateLimitOptions>>().Value);
+builder.Services.AddSingleton(provider =>
     provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<Genelife.Social.SocialGraphOptions>>().Value);
+builder.Services.AddSingleton<Genelife.Social.ISocialAuditStore>(provider =>
+    provider.GetService<Marten.IDocumentStore>() is { } auditDocumentStore
+        ? new Genelife.Api.Social.MartenSocialAuditStore(auditDocumentStore)
+        : new Genelife.Social.InMemorySocialAuditStore());
 builder.Services.AddSingleton<Genelife.Social.SocialGraphService>();
 builder.Services.AddSingleton<Genelife.Social.IChatSocialPolicy>(provider =>
     provider.GetRequiredService<Genelife.Social.SocialGraphService>());
@@ -77,6 +85,10 @@ builder.Services.AddSingleton<Genelife.Social.IChatStore>(provider =>
         ? new Genelife.Api.Social.MartenChatStore(documentStore)
         : new Genelife.Api.Social.InMemoryChatStore());
 builder.Services.AddSingleton<Genelife.Social.ChatService>();
+builder.Services.AddSingleton(provider =>
+    provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<Genelife.Social.ModerationOptions>>().Value);
+builder.Services.AddSingleton<Genelife.Api.Social.ModerationService>();
+builder.Services.AddHostedService<Genelife.Api.Social.ModerationRetentionService>();
 builder.Services.AddSingleton<Genelife.Social.EmoteService>();
 builder.Services.AddHostedService<Genelife.Api.Social.ChatRetentionService>();
 builder.Services.AddSingleton<PlayerCommandService>();
@@ -132,6 +144,10 @@ if (useMartenReads)
         opts.Schema.For<Genelife.Api.Models.EstateDocument>().Index(x => x.DeceasedNetworkId);
         opts.Schema.For<Genelife.Api.Models.FamilyAdminActionDocument>().Identity(x => x.Id);
         opts.Schema.For<Genelife.Api.Models.FamilyAdminActionDocument>().Index(x => x.CommandId);
+        opts.Schema.For<Genelife.Api.Models.SocialReportDocument>().Identity(x => x.Id);
+        opts.Schema.For<Genelife.Api.Models.SocialReportDocument>().Index(x => x.CreatedTick);
+        opts.Schema.For<Genelife.Api.Models.ModerationActionDocument>().Identity(x => x.Id);
+        opts.Schema.For<Genelife.Api.Models.ModerationActionDocument>().Index(x => x.CreatedTick);
         opts.Schema.For<Genelife.Api.Models.ChatMessageDocument>().Identity(x => x.Id);
         opts.Schema.For<Genelife.Api.Models.ChatMessageDocument>().Index(x => x.PlayerId);
         opts.Schema.For<Genelife.Api.Models.ChatMessageDocument>().Index(x => x.ExpiresAt);

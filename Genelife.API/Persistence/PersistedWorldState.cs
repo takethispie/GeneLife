@@ -2,7 +2,7 @@ namespace Genelife.Api.Persistence;
 
 public sealed class PersistedWorldState
 {
-    public const int CurrentSchemaVersion = 14;
+    public const int CurrentSchemaVersion = 15;
 
     public int SchemaVersion { get; set; }
     public long Tick { get; set; }
@@ -56,6 +56,62 @@ public sealed class PersistedWorldState
     public int GroceryCatalogVersion { get; set; } = 1;
     public PersistedImmigration Immigration { get; set; } = new();
     public PersistedFiscal Fiscal { get; set; } = new();
+    public List<PersistedSocialEdge> SocialEdges { get; set; } = [];
+    public List<PersistedSocialRequest> SocialRequests { get; set; } = [];
+    public List<PersistedSocialSettings> SocialSettings { get; set; } = [];
+    public List<PersistedSocialRestriction> SocialRestrictions { get; set; } = [];
+    public List<PersistedPlayerRelationshipInvitation> PlayerRelationshipInvitations { get; set; } = [];
+}
+
+public sealed class PersistedSocialEdge
+{
+    public string FromPlayerId { get; set; } = "";
+    public string ToPlayerId { get; set; } = "";
+    public Genelife.Social.SocialEdgeKind Kind { get; set; }
+    public long SinceTick { get; set; }
+    public Genelife.Social.SocialEdgeSource Source { get; set; }
+}
+
+public sealed class PersistedSocialRequest
+{
+    public Guid Id { get; set; }
+    public string FromPlayerId { get; set; } = "";
+    public string ToPlayerId { get; set; } = "";
+    public Genelife.Social.SocialRequestKind Kind { get; set; }
+    public Genelife.Social.SocialRequestStatus Status { get; set; }
+    public long CreatedTick { get; set; }
+    public long ExpiresTick { get; set; }
+}
+
+public sealed class PersistedSocialSettings
+{
+    public string PlayerId { get; set; } = "";
+    public bool ShowDisplayName { get; set; } = true;
+    public bool AllowNearbyForNonFriends { get; set; } = true;
+    public bool FriendsOnlyMessages { get; set; }
+}
+
+public sealed class PersistedSocialRestriction
+{
+    public Guid ActionId { get; set; }
+    public string PlayerId { get; set; } = "";
+    public long UntilTick { get; set; }
+    public bool ChatBlocked { get; set; }
+    public bool ActivityBlocked { get; set; }
+    public bool InvitationsBlocked { get; set; }
+    public string Reason { get; set; } = "";
+    public long CreatedTick { get; set; }
+}
+
+public sealed class PersistedPlayerRelationshipInvitation
+{
+    public Guid Id { get; set; }
+    public string FromPlayerId { get; set; } = "";
+    public string ToPlayerId { get; set; } = "";
+    public string Kind { get; set; } = "";
+    public string Status { get; set; } = "";
+    public long CreatedTick { get; set; }
+    public long ExpiresTick { get; set; }
 }
 
 public sealed class PersistedSim

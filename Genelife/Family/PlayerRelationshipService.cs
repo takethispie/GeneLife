@@ -61,6 +61,8 @@ public sealed class PlayerRelationshipService
         lock (gate)
         {
             RefreshLocked(tick);
+            if (social.AreInvitationsBlocked(fromPlayerId, tick))
+                return PlayerRelationshipResult.Reject("suspended", "Your invitations are currently restricted.");
             if (social.IsBlocked(fromPlayerId, toPlayerId))
                 return PlayerRelationshipResult.Reject("blocked", "You cannot invite that player.");
             if (!TryResolve(fromPlayerId, out var fromSim) || !TryResolve(toPlayerId, out var toSim))
@@ -103,6 +105,8 @@ public sealed class PlayerRelationshipService
         lock (gate)
         {
             RefreshLocked(tick);
+            if (social.AreInvitationsBlocked(fromPlayerId, tick))
+                return PlayerRelationshipResult.Reject("suspended", "Your invitations are currently restricted.");
             if (social.IsBlocked(fromPlayerId, toPlayerId))
                 return PlayerRelationshipResult.Reject("blocked", "You cannot invite that player.");
             if (!TryResolve(fromPlayerId, out var fromSim) || !TryResolve(toPlayerId, out var toSim))
@@ -167,6 +171,12 @@ public sealed class PlayerRelationshipService
                 SetStatusLocked(invitation, FamilyInvitationStatus.Expired);
                 EmitResponded(invitation, accepted: false, code: "not_available", tick);
                 return PlayerRelationshipResult.Reject("not_available", "One of the players has no active sim.");
+            }
+
+            if (social.AreInvitationsBlocked(actorPlayerId, tick))
+            {
+                EmitResponded(invitation, accepted: false, code: "suspended", tick);
+                return PlayerRelationshipResult.Reject("suspended", "Your invitations are currently restricted.");
             }
 
             if (social.IsBlocked(invitation.FromPlayerId, invitation.ToPlayerId))
@@ -251,6 +261,25 @@ public sealed class PlayerRelationshipService
                 sharesHousehold,
                 partner != Entity.Null && !sharesHousehold,
                 pending);
+        }
+    }
+
+    public IReadOnlyList<PlayerRelationshipInvitation> ExportInvitations()
+    {
+        lock (gate)
+            return invitations.Values
+                .OrderBy(invitation => invitation.CreatedTick)
+                .ToArray();
+    }
+
+    public void RestoreInvitations(IEnumerable<PlayerRelationshipInvitation> restored)
+    {
+        lock (gate)
+        {
+            invitations.Clear();
+            declineCooldowns.Clear();
+            foreach (var invitation in restored)
+                invitations[invitation.Id] = invitation;
         }
     }
 

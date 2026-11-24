@@ -50,7 +50,8 @@ public static class SocialEndpoints
         var playerId = http.User.GetPlayerId() ?? string.Empty;
         directory.SetPrivacy(playerId, new SocialPrivacyDto(
             request.ShowDisplayName,
-            request.AllowNearbyForNonFriends));
+            request.AllowNearbyForNonFriends,
+            request.FriendsOnlyMessages));
         return directory.GetPrivacy(playerId);
     }
 

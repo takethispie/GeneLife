@@ -53,7 +53,7 @@ public class PresenceTests
         connections.Register("c1", "alice");
         connections.Register("c2", "bob");
         connections.Register("c3", "carol");
-        var directory = new PlayerDirectoryService(engine, connections, privacy, new SocialGraphService());
+        var directory = new PlayerDirectoryService(engine, connections, privacy, new SocialGraphService(), new SocialRateLimitOptions { PresencePerPlayer = 1000, PresenceGlobal = 1000 });
 
         var alicePresence = engine.BuildPlayerPresence("alice");
         Assert.NotNull(alicePresence);
@@ -116,7 +116,7 @@ public class PresenceTests
         connections.Register("c1", "alice");
         connections.Register("c2", "bob");
         var graph = new SocialGraphService();
-        var directory = new PlayerDirectoryService(engine, connections, new SocialPrivacyRegistry(), graph);
+        var directory = new PlayerDirectoryService(engine, connections, new SocialPrivacyRegistry(), graph, new SocialRateLimitOptions { PresencePerPlayer = 1000, PresenceGlobal = 1000 });
 
         Assert.Empty(directory.Directory("alice", PresenceScope.Friend).Items);
 
@@ -137,6 +137,49 @@ public class PresenceTests
             item => item.PlayerId == "alice");
     }
 
+    [Fact]
+    public void PresenceQueriesAreRateLimitedPerPlayer()
+    {
+        var connections = new ConnectionRegistry();
+        using var engine = new SimulationEngine();
+        engine.Initialize();
+        var alice = engine.EnsurePlayerSim("alice");
+        var bob = engine.EnsurePlayerSim("bob");
+        engine.ExecuteWithWorld(world =>
+        {
+            Place(world, engine, alice, new TileCoord(10, 10));
+            Place(world, engine, bob, new TileCoord(11, 10));
+            return 0;
+        });
+        connections.Register("c1", "alice");
+        connections.Register("c2", "bob");
+
+        var time = new MutableTimeProvider(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
+        var directory = new PlayerDirectoryService(
+            engine,
+            connections,
+            new SocialPrivacyRegistry(),
+            new SocialGraphService(),
+            new SocialRateLimitOptions
+            {
+                PresencePerPlayer = 1,
+                PresenceGlobal = 100,
+                PresenceWindowSeconds = 10
+            },
+            time);
+
+        var first = directory.Directory("alice", PresenceScope.Nearby, radius: 4);
+        Assert.Contains(first.Items, item => item.PlayerId == "bob");
+
+        var limited = directory.Directory("alice", PresenceScope.Nearby, radius: 4);
+        Assert.Empty(limited.Items);
+        Assert.NotNull(limited.Notice);
+
+        time.Advance(TimeSpan.FromSeconds(11));
+        var recovered = directory.Directory("alice", PresenceScope.Nearby, radius: 4);
+        Assert.Contains(recovered.Items, item => item.PlayerId == "bob");
+    }
+
     private static void Place(World world, SimulationEngine engine, ulong simNetworkId, TileCoord tile)
     {
         Assert.True(engine.NetworkIds.TryGetEntity(new NetworkId(simNetworkId), out var sim));
@@ -144,5 +187,14 @@ public class PresenceTests
             world.Get<TilePosition>(sim) = new TilePosition(tile);
         else
             world.Add(sim, new TilePosition(tile));
+    }
+
+    private sealed class MutableTimeProvider(DateTimeOffset now) : TimeProvider
+    {
+        private DateTimeOffset current = now;
+
+        public override DateTimeOffset GetUtcNow() => current;
+
+        public void Advance(TimeSpan by) => current += by;
     }
 }

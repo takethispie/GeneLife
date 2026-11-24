@@ -108,6 +108,7 @@ private readonly NetworkIdRegistry networkIds = new();
     private readonly Genelife.Social.SocialGraphService socialGraph;
     private readonly Genelife.Social.VenueOptions venueOptions;
     private readonly Genelife.Api.Auth.IConnectionRegistry? connections;
+    private readonly Genelife.Social.SocialPrivacyRegistry? socialPrivacy;
     private static readonly string[] ActionNames = Enum.GetNames<ActionType>();
 
     public SimulationEngine(
@@ -116,7 +117,8 @@ private readonly NetworkIdRegistry networkIds = new();
         ICommandQueue? commandQueue = null,
         Genelife.Social.SocialGraphService? socialGraph = null,
         Genelife.Social.VenueOptions? venueOptions = null,
-        Genelife.Api.Auth.IConnectionRegistry? connections = null)
+        Genelife.Api.Auth.IConnectionRegistry? connections = null,
+        Genelife.Social.SocialPrivacyRegistry? socialPrivacy = null)
     {
         this.worldSaveService = worldSaveService;
         this.documentStore = documentStore;
@@ -125,6 +127,7 @@ private readonly NetworkIdRegistry networkIds = new();
         this.venueOptions = venueOptions ?? new Genelife.Social.VenueOptions();
         this.venueOptions.Validate();
         this.connections = connections;
+        this.socialPrivacy = socialPrivacy;
         recordSystemRun = result =>
             metrics.RecordSystem(result.Name, result.Milliseconds, result.AllocatedBytes);
     }
@@ -6995,6 +6998,69 @@ if (SnapshotsEnabled)
                     });
                 });
 
+            var socialSnapshot = socialGraph.Export();
+            var socialEdges = socialSnapshot.Edges
+                .Select(edge => new PersistedSocialEdge
+                {
+                    FromPlayerId = edge.FromPlayerId,
+                    ToPlayerId = edge.ToPlayerId,
+                    Kind = edge.Kind,
+                    SinceTick = edge.SinceTick,
+                    Source = edge.Source
+                })
+                .ToList();
+            var socialRequests = socialSnapshot.Requests
+                .Select(request => new PersistedSocialRequest
+                {
+                    Id = request.Id,
+                    FromPlayerId = request.FromPlayerId,
+                    ToPlayerId = request.ToPlayerId,
+                    Kind = request.Kind,
+                    Status = request.Status,
+                    CreatedTick = request.CreatedTick,
+                    ExpiresTick = request.ExpiresTick
+                })
+                .ToList();
+            var socialRestrictions = socialSnapshot.Restrictions
+                .Select(restriction => new PersistedSocialRestriction
+                {
+                    ActionId = restriction.ActionId,
+                    PlayerId = restriction.PlayerId,
+                    UntilTick = restriction.UntilTick,
+                    ChatBlocked = restriction.ChatBlocked,
+                    ActivityBlocked = restriction.ActivityBlocked,
+                    InvitationsBlocked = restriction.InvitationsBlocked,
+                    Reason = restriction.Reason,
+                    CreatedTick = restriction.CreatedTick
+                })
+                .ToList();
+            if (socialPrivacy is not null)
+            {
+                foreach (var profile in playerRegistry.All())
+                    socialPrivacy.For(profile.PlayerId);
+            }
+            var socialSettings = socialPrivacy?.Export()
+                .Select(setting => new PersistedSocialSettings
+                {
+                    PlayerId = setting.PlayerId,
+                    ShowDisplayName = setting.ShowDisplayName,
+                    AllowNearbyForNonFriends = setting.AllowNearbyForNonFriends,
+                    FriendsOnlyMessages = setting.FriendsOnlyMessages
+                })
+                .ToList() ?? [];
+            var relationshipInvitations = playerRelationships?.ExportInvitations()
+                .Select(invitation => new PersistedPlayerRelationshipInvitation
+                {
+                    Id = invitation.Id,
+                    FromPlayerId = invitation.FromPlayerId,
+                    ToPlayerId = invitation.ToPlayerId,
+                    Kind = invitation.Kind.ToString(),
+                    Status = invitation.Status.ToString(),
+                    CreatedTick = invitation.CreatedTick,
+                    ExpiresTick = invitation.ExpiresTick
+                })
+                .ToList() ?? [];
+
             return new PersistedWorldState
             {
                 SchemaVersion = PersistedWorldState.CurrentSchemaVersion,
@@ -7022,6 +7088,11 @@ if (SnapshotsEnabled)
                 PlayerProfiles = playerProfiles,
                 PlayerLives = playerLives,
                 FamilyInvitations = familyInvitations,
+                SocialEdges = socialEdges,
+                SocialRequests = socialRequests,
+                SocialSettings = socialSettings,
+                SocialRestrictions = socialRestrictions,
+                PlayerRelationshipInvitations = relationshipInvitations,
                 UtilityNetworks = utilityNetworks,
                 ServiceLinks = serviceLinks,
                 HouseholdMeters = householdMeters,
@@ -7956,6 +8027,60 @@ if (SnapshotsEnabled)
                     world.Add(sim, new PlayerControlled(persisted.PlayerId));
                 }
             }
+
+            socialGraph.Restore(new Genelife.Social.SocialGraphSnapshot(
+                state.SocialEdges.Select(edge => new Genelife.Social.SocialEdge
+                {
+                    FromPlayerId = edge.FromPlayerId,
+                    ToPlayerId = edge.ToPlayerId,
+                    Kind = edge.Kind,
+                    SinceTick = edge.SinceTick,
+                    Source = edge.Source
+                }).ToArray(),
+                state.SocialRequests.Select(request => new Genelife.Social.SocialRequest
+                {
+                    Id = request.Id,
+                    FromPlayerId = request.FromPlayerId,
+                    ToPlayerId = request.ToPlayerId,
+                    Kind = request.Kind,
+                    Status = request.Status,
+                    CreatedTick = request.CreatedTick,
+                    ExpiresTick = request.ExpiresTick
+                }).ToArray(),
+                socialGraph.Reports())
+            {
+                Restrictions = state.SocialRestrictions.Select(restriction =>
+                    new Genelife.Social.SocialRestriction(
+                        restriction.ActionId,
+                        restriction.PlayerId,
+                        restriction.UntilTick,
+                        restriction.ChatBlocked,
+                        restriction.ActivityBlocked,
+                        restriction.InvitationsBlocked,
+                        restriction.Reason,
+                        restriction.CreatedTick)).ToArray()
+            });
+
+            socialPrivacy?.Restore(state.SocialSettings.Select(setting =>
+                new Genelife.Social.SocialPrivacySetting(
+                    setting.PlayerId,
+                    setting.ShowDisplayName,
+                    setting.AllowNearbyForNonFriends,
+                    setting.FriendsOnlyMessages)));
+
+            playerRelationships?.RestoreInvitations(state.PlayerRelationshipInvitations
+                .Select(invitation => new Genelife.Family.PlayerRelationshipInvitation
+                {
+                    Id = invitation.Id,
+                    FromPlayerId = invitation.FromPlayerId,
+                    ToPlayerId = invitation.ToPlayerId,
+                    Kind = Enum.TryParse<Genelife.Components.Family.FamilyInvitationKind>(
+                        invitation.Kind, out var kind) ? kind : Genelife.Components.Family.FamilyInvitationKind.Partnership,
+                    Status = Enum.TryParse<Genelife.Components.Family.FamilyInvitationStatus>(
+                        invitation.Status, out var status) ? status : Genelife.Components.Family.FamilyInvitationStatus.Cancelled,
+                    CreatedTick = invitation.CreatedTick,
+                    ExpiresTick = invitation.ExpiresTick
+                }));
 
             foreach (var persisted in state.PlayerLives)
             {

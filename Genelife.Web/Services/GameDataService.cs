@@ -516,6 +516,9 @@ public sealed class GameDataService
             new { reason },
             cancellationToken);
 
+    public Task<SocialAdminOverviewDto> GetSocialAdminAsync(CancellationToken cancellationToken = default) =>
+        GetAdminAsync<SocialAdminOverviewDto>("api/social/admin/overview", cancellationToken);
+
     public Task<FamilyData> GetFamilyAsync(CancellationToken cancellationToken = default) =>
         GetAdminAsync<FamilyData>("api/family", cancellationToken);
 

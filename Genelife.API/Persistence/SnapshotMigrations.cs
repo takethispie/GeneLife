@@ -196,6 +196,34 @@ public static class SnapshotMigrations
             // restore so no legacy household is silently cut off.
         }
 
+        if (fromVersion <= 14)
+        {
+            // v15 adds the social graph. Legacy worlds start with no invented
+            // friendships, blocks or partnerships and an empty chat store.
+            state.PlayerProfiles ??= [];
+            state.SocialEdges ??= [];
+            state.SocialRequests ??= [];
+            state.SocialSettings ??= [];
+            state.SocialRestrictions ??= [];
+            state.PlayerRelationshipInvitations ??= [];
+
+            var configured = state.SocialSettings
+                .Select(setting => setting.PlayerId)
+                .ToHashSet(StringComparer.Ordinal);
+            foreach (var profile in state.PlayerProfiles)
+            {
+                if (configured.Contains(profile.PlayerId))
+                    continue;
+                state.SocialSettings.Add(new PersistedSocialSettings
+                {
+                    PlayerId = profile.PlayerId,
+                    ShowDisplayName = true,
+                    AllowNearbyForNonFriends = true,
+                    FriendsOnlyMessages = false
+                });
+            }
+        }
+
         state.SchemaVersion = PersistedWorldState.CurrentSchemaVersion;
     }
 }

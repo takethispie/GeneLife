@@ -53,6 +53,8 @@ public sealed class EmoteService
         var sender = directory.Describe(playerId);
         if (sender is null)
             return EmoteSendResult.Reject("not_online", "Your character is not in the world.");
+        if (social.IsChatBlocked(playerId, tick))
+            return EmoteSendResult.Reject("chat_suspended", "Your chat is currently restricted.");
 
         var now = time.GetUtcNow();
         var cooldownKey = $"{playerId}|{(byte)emote}";

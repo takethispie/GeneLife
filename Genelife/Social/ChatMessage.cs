@@ -34,3 +34,9 @@ public sealed record ChatEmote
     public long Tick { get; init; }
     public ulong? VenueNetworkId { get; init; }
 }
+
+public sealed record ChatRetentionStatus(
+    int RetainedMessages,
+    int DeletedMessages,
+    DateTimeOffset? OldestRetained,
+    DateTimeOffset CheckedAt);

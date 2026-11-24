@@ -1,6 +1,6 @@
 # Roadmap V5 — Status
 
-**Status:** Features 01–02 complete; feature 03 core complete; feature 04 presence/directory implemented; remaining 04–05 planned
+**Status:** Features 01–03 complete; feature 04 implemented and covered by social acceptance/soak tests; feature 05 planned
 **Builds on:** V1 economy/housing/life stages, V2 spatial world, V3 browser client, V4 traits/relationships/reproduction/inheritance
 **Scope:** player life and household, appearance and visual identity, consumption and utilities, social and multiplayer, live operations and scale
 **Primary risk:** player-facing systems touch the economy, housing, family graph, persistence and client at the same time; a small convenience shortcut can break server authority or money conservation
@@ -33,13 +33,13 @@
 | Consumption persistence and admin page | Done (feature 03) | Schema 14, `/consumption` page, audited repair/restock and yearly `ConsumptionMetricsRecorded` metrics are live |
 | Consumption acceptance | In progress (feature 03) | Conservation, network, grocery, balance and schema-14 tests green; long outage/30-year scenarios remain |
 | Presence and player directory | Done (feature 04) | Nearby/same-venue scopes, privacy, reconnect, admin list and client directory panel; disconnect filtering is immediate |
-| Chat and emotes | Planned (feature 04) | Text chat, emotes, rate limits, retention, mute/block |
-| Social graph | Planned (feature 04) | Friendship edges, blocks, reports, idempotent projections |
-| Consensual player relationships | Planned (feature 04) | Invitations, accept/decline, partnership edge, no automatic wallet/household merge |
-| Shared venues and activities | Planned (feature 04) | Venue presence, proximity interactions, activity events |
-| Moderation and abuse | Planned (feature 04) | Reports, admin queue, audit, retention, appeal notes |
-| Social persistence and admin | Planned (feature 04) | Schema 15, `/social` page, privacy and retention tests |
-| Social acceptance | Planned (feature 04) | 32-player soak, abuse/rate-limit tests, reconnect behavior |
+| Chat and emotes | Done (feature 04) | Text chat, venue/whisper routing, emotes, rate limits, retention, mute/block |
+| Social graph | Done (feature 04) | Friendship edges, blocks, mutes, reports, idempotent projections |
+| Consensual player relationships | Done (feature 04) | Player-keyed invitations, accept/decline, partnership edge, capacity-aware cohabitation, no automatic wallet merge |
+| Shared venues and activities | Done (feature 04) | Venue occupancy, opening/capacity rules, proximity activities, pantry-backed meal sharing |
+| Moderation and abuse | Done (feature 04) | Report queue, audited actions/reversals, mute/block/chat suspension, rate limits, evidence retention |
+| Social persistence and admin | Done (feature 04) | Schema 15, social/privacy persistence, Marten audit documents, `/social` admin page and smoke test |
+| Social acceptance | In progress (feature 04) | Social suite, schema-14 fixture, privacy assertions, admin smoke and 32-player soak are green; full 2k decade/live soak remains on release evidence |
 | Hybrid Wolverine cleanup | Planned (feature 05) | H16/H19/H20 closed, feature flags removed, parity verified |
 | Command/event/status reconciliation | Planned (feature 05) | MP05 and roadmap docs match code; command audit complete |
 | Building relocation and commute animation | Planned (feature 05) | Occupied-building relocation, path cache refresh, `CommuteMode.Animate` default |
@@ -73,14 +73,14 @@
 
 ## Current baseline
 
-- `PersistedWorldState.CurrentSchemaVersion` is 14. Feature 03 adds metric utility networks, links, household meters, service levels, tariff billing, grocery catalog/inventory/pricing/spoilage/nutrition, schema 13→14 migration with conservative bootstrapping, and the `/consumption` admin page. Default tariffs are municipality-subsidised (100%) so the strict rent-burden and unemployment bands stay green; setting `SubsidyBasisPoints = 0` exercises household payment, arrears and cut-off.
+- `PersistedWorldState.CurrentSchemaVersion` is 15. Feature 03 adds metric utility networks, links, household meters, service levels, tariff billing, grocery catalog/inventory/pricing/spoilage/nutrition, schema 13→14 migration with conservative bootstrapping, and the `/consumption` admin page. Default tariffs are municipality-subsidised (100%) so the strict rent-burden and unemployment bands stay green; setting `SubsidyBasisPoints = 0` exercises household payment, arrears and cut-off.
 - The player sim is created on connect and still uses `MoveIntent`/`UseBuildingIntent` for movement and building use. Typed `PlayerActionIntent` commands now cover job application/accept/quit, housing request/lease/move, arrears, shopping, consumption, partner invitations and consent, child naming, and heir/new-sim/observer continuation. Player sims remain excluded from autonomous decisions, job seeking and work scheduling.
 - V4 family systems are complete for NPCs: traits, relationship edges, eligibility, attraction, pairing, pregnancy, birth, childhood, guardianship, inheritance and the admin family page.
 - The browser client renders map, buildings and sims. Sims now compose layered shared-part bodies, heads, eyes, hair and outfit palettes with local/other-player markers; the admin `/appearance` page renders the same layer contract as SVG and compares a family.
-- The world supports up to 32 concurrent players with server-authoritative presence, snapshots, deltas, viewport filtering and reconnect. There is no chat, social graph or moderation.
+- The world supports up to 32 concurrent players with server-authoritative presence, snapshots, deltas, viewport filtering and reconnect. Feature 04 adds privacy-scoped presence, chat/emotes, friendships/blocks/mutes, reports, player partnerships, venues/activities and audited moderation.
 - Utilities are a single abstract bill from `HousingCostPolicy`; there are no water/electricity networks, meters or outages. Grocery is minimal with no stock, pricing, spoilage or nutrition.
 - The hybrid ECS + Wolverine/Marten architecture is in place. H16, H19 and H20 are partial; MP05 is marked partial in docs even though `SimulationEngine.DrainPlayerIntents()` applies player intents.
-- The server suite is 577 total / 0 failed / 2 skipped; the browser suite is 154 tests green with typecheck, lint and build passing. Feature 03 tests cover utility network states/priority shedding, consumption conservation, tariff validation, grocery pricing/stock-out/restock/spoilage, player purchase conservation, nutrition health modifiers, and schema-14 capture/restore/double restore. The 60- and 200-sim ten-year balance bands are green with utility and grocery systems enabled.
+- The server suite is 538 domain tests / 0 failed plus the performance/release suites; the browser suite is 154 tests green with typecheck, lint and build passing. Feature 03 tests cover utility network states/priority shedding, consumption conservation, tariff validation, grocery pricing/stock-out/restock/spoilage, player purchase conservation, nutrition health modifiers, and schema-14 capture/restore/double restore. The 60- and 200-sim ten-year balance bands are green with utility and grocery systems enabled.
 - V1's 1k–2k balance gaps remain open: vacancy, company failures, wealth Gini and wage share are reported but not fully closed.
 
 ## Decisions to confirm before implementation

@@ -11,4 +11,6 @@ public interface IChatSocialPolicy
     bool IsBlocked(string firstPlayerId, string secondPlayerId);
 
     bool IsMuted(string muterPlayerId, string authorPlayerId);
+
+    bool IsChatBlocked(string playerId, long tick);
 }
