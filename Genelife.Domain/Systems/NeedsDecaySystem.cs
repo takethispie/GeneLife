@@ -5,22 +5,16 @@ using Genelife.Components.Gen;
 namespace Genelife.Systems;
 
 /// <summary>
-/// Decays needs for every living genos. The update is per-entity and reads only
-/// immutable/read-only components, so it is safe to run across Arch chunks in
-/// parallel. Small worlds keep the serial query to avoid scheduling overhead.
+/// Decays needs for every living genos.
 /// </summary>
 public class NeedsDecaySystem : ISimulationSystem
 {
-    private const int ParallelThreshold = 512;
-
     private readonly World world;
     private readonly QueryDescription queryDescription;
-    private readonly bool parallel;
 
-    public NeedsDecaySystem(World world, bool parallel = false)
+    public NeedsDecaySystem(World world)
     {
         this.world = world;
-        this.parallel = parallel;
         queryDescription = new QueryDescription().WithAll<Needs>().WithNone<Components.Gen.Dead>();
     }
 
@@ -32,14 +26,6 @@ public class NeedsDecaySystem : ISimulationSystem
 
     public void Update(float deltaTime)
     {
-        if (parallel && world.Size >= ParallelThreshold)
-        {
-            SimulationParallelism.EnsureScheduler();
-            var job = new DecayJob(world, deltaTime);
-            world.InlineParallelEntityQuery<DecayJob, Needs>(in queryDescription, ref job);
-            return;
-        }
-
         world.Query(in queryDescription, (Entity entity, ref Needs needs) =>
             Decay(world, entity, ref needs, deltaTime));
     }
@@ -60,20 +46,5 @@ public class NeedsDecaySystem : ISimulationSystem
         needs.Energy = Math.Max(0f, needs.Energy);
         needs.Hygiene = Math.Max(0f, needs.Hygiene);
         needs.Bladder = Math.Max(0f, needs.Bladder);
-    }
-
-    private struct DecayJob : IForEachWithEntity<Needs>
-    {
-        private readonly World world;
-        private readonly float deltaTime;
-
-        public DecayJob(World world, float deltaTime)
-        {
-            this.world = world;
-            this.deltaTime = deltaTime;
-        }
-
-        public void Update(Entity entity, ref Needs needs) =>
-            Decay(world, entity, ref needs, deltaTime);
     }
 }

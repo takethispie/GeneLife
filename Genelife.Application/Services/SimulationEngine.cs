@@ -222,13 +222,6 @@ private readonly NetworkIdRegistry networkIds = new();
     /// </summary>
     public bool StaggerCadence { get; set; }
     /// <summary>
-    /// Runs the per-entity needs/decision/action passes across Arch chunks. Must
-    /// be set before <see cref="Initialize"/>. Off by default: on the 1k/5k load
-    /// harness the chunk scheduling cost exceeds the win for these cheap passes,
-    /// so it is kept as a measured opt-in for larger worlds and release builds.
-    /// </summary>
-    public bool ParallelSystems { get; set; }
-    /// <summary>
     /// When true the tick signals a dedicated consumer instead of building the
     /// snapshot inline. The hosted simulation loop enables this so snapshot
     /// construction stays off the tick budget. Tests that call Tick directly
@@ -437,7 +430,7 @@ private readonly NetworkIdRegistry networkIds = new();
                 venueActivities);
 
             systems = new SystemRegistry(samplingInterval: 5);
-            systems.Register(new NeedsDecaySystem(world, ParallelSystems));
+            systems.Register(new NeedsDecaySystem(world));
             systems.Register(new PathfindingSystem(world, mapContext.Map, movementIndex, MovementOptions.PathRequestBudgetPerTick, MovementOptions.MaxPathIterationsPerTick));
             systems.Register(new MovementSystem(world, mapContext.Map, movementIndex, MovementOptions.PlayerSpeedTilesPerSecond));
             systems.Register(new VenuePresenceSystem(venueService));
@@ -445,8 +438,8 @@ private readonly NetworkIdRegistry networkIds = new();
             systems.Register(new HousingModifierSystem(world, economy.Housing));
             systems.Register(new AgingSystem(world, economy));
             systems.Register(new HealthSystem(world, economy));
-            systems.Register(new DecisionSystem(world, ParallelSystems));
-            systems.Register(new ActionSystem(world, ParallelSystems));
+            systems.Register(new DecisionSystem(world));
+            systems.Register(new ActionSystem(world));
             systems.Register(new EducationSystem(world, economy));
             systems.Register(new EnrollmentSystem(world, economy));
             systems.Register(new WorkScheduleSystem(world, economy, mapContext, movementIndex, CommuteOptions));

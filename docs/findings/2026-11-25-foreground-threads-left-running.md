@@ -1,7 +1,7 @@
 # Foreground threads left running in the domain suite
 
 Date: 2026-11-25
-Status: Root cause identified, not fixed (no source changes made)
+Status: Fixed (option A: parallel passes removed)
 
 ## Symptom
 
@@ -208,3 +208,25 @@ Also run the isolated determinism class and, for option B/C, verify with
 `dotnet-stack` during shutdown that no `Schedulers.JobScheduler.WorkerLoop` threads
 remain. For production, start the API with `ParallelSystems = true`, send SIGTERM,
 and confirm the process exits.
+
+## Resolution (option A)
+
+Implemented on 2026-11-25:
+
+- Deleted `Genelife.Domain/Systems/SimulationParallelism.cs` and the
+  `Schedulers`-based scheduler entirely; nothing in the product assigns
+  `World.SharedJobScheduler`.
+- Removed the `parallel` constructor parameter, threshold branch and job structs
+  from `NeedsDecaySystem`, `DecisionSystem` and `ActionSystem`; they run serial
+  queries only.
+- Removed `SimulationEngine.ParallelSystems` and the three parallel arguments.
+- Replaced `ParallelSystemDeterminismTests` with `EveryTickSystemsTests`, a
+  600-genos, 20-tick serial regression that runs the three passes twice and
+  compares the resulting component values.
+- Updated `docs/plans/roadmap-v6/IMPLEMENTATION.md` (step 3.2, opt-in decision and
+  follow-up) to record the removal.
+
+Result: `Total: 578, Errors: 0, Failed: 0`, exit code 0, and no
+`Waiting 10 seconds for foreground threads to exit...` line. The feature can be
+re-added only together with a scheduler that starts background threads and can be
+disposed from the tick thread.

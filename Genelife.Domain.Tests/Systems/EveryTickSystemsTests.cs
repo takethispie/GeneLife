@@ -6,26 +6,26 @@ using Genelife.Systems;
 namespace Genelife.UnitTests.Systems;
 
 /// <summary>
-/// The every-tick needs/decision/action passes are per-entity and write only
-/// their own entity's components. Running them across Arch chunks must produce
-/// exactly the same component values as the serial path.
+/// The every-tick needs/decision/action passes must produce the same component
+/// values for the same input world: no hidden static state or iteration-order
+/// dependence may leak between runs.
 /// </summary>
-public class ParallelSystemDeterminismTests
+public class EveryTickSystemsTests
 {
     private const int GenosCount = 600;
     private const int Ticks = 20;
     private const float DeltaTime = 1f / 20f;
 
     [Fact]
-    public void ParallelEveryTickPasses_MatchSerialResults()
+    public void EveryTickPasses_AreDeterministic()
     {
-        var serial = Run(parallel: false);
-        var parallel = Run(parallel: true);
+        var first = Run();
+        var second = Run();
 
-        Assert.Equal(serial.Count, parallel.Count);
-        foreach (var (networkId, expected) in serial)
+        Assert.Equal(first.Count, second.Count);
+        foreach (var (networkId, expected) in first)
         {
-            Assert.True(parallel.TryGetValue(networkId, out var actual), $"missing genos {networkId}");
+            Assert.True(second.TryGetValue(networkId, out var actual), $"missing genos {networkId}");
             Assert.Equal(expected.Hunger, actual.Hunger);
             Assert.Equal(expected.Energy, actual.Energy);
             Assert.Equal(expected.Hygiene, actual.Hygiene);
@@ -35,7 +35,7 @@ public class ParallelSystemDeterminismTests
         }
     }
 
-    private static Dictionary<ulong, Snapshot> Run(bool parallel)
+    private static Dictionary<ulong, Snapshot> Run()
     {
         using var world = World.Create();
 
@@ -53,9 +53,9 @@ public class ParallelSystemDeterminismTests
                 new CurrentAction(ActionType.Idle, 0f));
         }
 
-        var decay = new NeedsDecaySystem(world, parallel);
-        var decision = new DecisionSystem(world, parallel);
-        var action = new ActionSystem(world, parallel);
+        var decay = new NeedsDecaySystem(world);
+        var decision = new DecisionSystem(world);
+        var action = new ActionSystem(world);
 
         for (var tick = 1; tick <= Ticks; tick++)
         {

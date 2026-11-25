@@ -33,15 +33,15 @@ default path. Replay, balance, family-release, multiplayer and performance suite
 | Step | Change | Files |
 |---|---|---|
 | 3.1 | The fixed-step loop runs on a dedicated long-running thread instead of a thread-pool continuation. The legacy admin mutations (`AddGenos`, `AddCompany`, `DeleteGenos`, `SetGenosAction`) now enqueue typed admin commands and wait for the tick to apply them, so request threads no longer mutate the world. | `Genelife.API/Services/SimulationLoop.cs`, `SimulationManager.cs`, `SimulationEngine.cs`, `Commands/AdminCommand.cs`, `Genelife.Domain.Tests/Services/AdminCommandQueueTests.cs` |
-| 3.2 | Per-entity parallel passes for needs decay, decision and action using Arch `InlineParallelEntityQuery`, behind `SimulationEngine.ParallelSystems` (default off — see below). A determinism test compares 600 genoses serial vs parallel. | `Genelife/Systems/{NeedsDecay,Decision,Action}System.cs`, `SimulationParallelism.cs`, `Genelife.Domain.Tests/Systems/ParallelSystemDeterminismTests.cs` |
+| 3.2 | Per-entity parallel passes for needs decay, decision and action using Arch `InlineParallelEntityQuery`, behind `SimulationEngine.ParallelSystems` (default off). Measured a loss and, because `Schedulers.JobScheduler` starts non-background worker threads that keep the process alive after the world is disposed, the experiment was removed; the passes are serial-only again. A 600-genos regression still checks that the serial passes stay deterministic. | `Genelife/Systems/{NeedsDecay,Decision,Action}System.cs`, `Genelife.Domain.Tests/Systems/EveryTickSystemsTests.cs` |
 | 3.3 | Snapshot construction moved to a dedicated consumer thread with a coalescing signal. Enabled by the hosted `SimulationLoop` (`AsyncSnapshots = true`); direct `Tick` callers (tests, harness) keep synchronous snapshots. | `Genelife.API/Services/SimulationEngine.cs`, `SimulationLoop.cs`, `Genelife.Domain.Tests/Snapshots/AsyncSnapshotTests.cs` |
 
 ## Opt-in decisions (with evidence)
 
 The roadmap assumed cadence staggering and parallel per-entity passes would be free wins. The
-measurements say otherwise on this codebase, so both are implemented but default off. The
-roadmap's own rule is: keep a change only if it moves p95/p99/allocation/dropped ticks without
-breaking determinism or the V5 acceptance runs.
+measurements said otherwise on this codebase, so both were implemented default off; the parallel
+passes were later removed entirely (see 3.2). The roadmap's own rule is: keep a change only if it
+moves p95/p99/allocation/dropped ticks without breaking determinism or the V5 acceptance runs.
 
 - **Cadence staggering (`StaggerCadence`).** Offsets 0/2/4/6/8/10/12 for the monthly family
   chain and 3/6/9 for the pay-cycle systems make monthly systems fire on different ticks.
@@ -52,11 +52,13 @@ breaking determinism or the V5 acceptance runs.
   (0.4073 rent burden, 0.776 Gini), because every-tick systems still interleave differently.
   Per-interval run counts and same-seed determinism are unchanged, but the V5 balance bands
   are part of acceptance, so the default keeps offsets at zero.
-- **Parallel per-entity passes (`ParallelSystems`).** The passes are deterministic across
-  chunks (proved by `ParallelSystemDeterminismTests`), but chunk scheduling costs more than
-  the work for these cheap per-entity loops on the 1k/5k harness in Debug builds. Enabling it
-  raised 5k p95 from ~6.4 ms to ~11 ms. It remains available for release-build experiments
-  and much larger worlds.
+- **Parallel per-entity passes (`ParallelSystems`, removed).** The passes were deterministic across
+  chunks, but chunk scheduling costs more than the work for these cheap per-entity loops on the
+  1k/5k harness in Debug builds; enabling it raised 5k p95 from ~6.4 ms to ~11 ms. It was kept as
+  an opt-in until `Schedulers.JobScheduler` was found to start seven foreground worker threads that
+  survive world disposal and make the test runner and API host fail to exit cleanly. The feature
+  was removed rather than keeping a fork of the scheduler; re-add it only with a scheduler that
+  uses background threads.
 
 ## Deviations from the plan
 
@@ -117,8 +119,8 @@ dotnet run --project Genelife.Performance.Tests/Genelife.Performance.Tests.cspro
 
 ## Known follow-ups
 
-- Re-measure `ParallelSystems` and `StaggerCadence` in a Release build and on a quiet machine
-  before deciding whether either should become the default.
+- Re-measure `StaggerCadence` in a Release build and on a quiet machine before deciding whether
+  it should become the default. (`ParallelSystems` was removed; see 3.2.)
 - The legacy admin endpoints now wait up to 50 ms for the next tick; if that latency matters,
   convert them to the `202 Accepted` + `/api/commands/{id}` pattern used by the newer admin
   endpoints.

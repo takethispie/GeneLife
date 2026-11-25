@@ -6,22 +6,16 @@ using Genelife.Enums;
 namespace Genelife.Systems;
 
 /// <summary>
-/// System that handles action execution and need fulfillment. The pass is
-/// per-entity and writes only that entity's action and needs, so it can run
-/// across Arch chunks in parallel. Small worlds keep the serial query.
+/// System that handles action execution and need fulfillment.
 /// </summary>
 public class ActionSystem : ISimulationSystem
 {
-    private const int ParallelThreshold = 512;
-
     private readonly World world;
     private readonly QueryDescription queryDescription;
-    private readonly bool parallel;
 
-    public ActionSystem(World world, bool parallel = false)
+    public ActionSystem(World world)
     {
         this.world = world;
-        this.parallel = parallel;
         queryDescription = new QueryDescription().WithAll<CurrentAction, Needs>().WithNone<Dead>();
     }
 
@@ -33,14 +27,6 @@ public class ActionSystem : ISimulationSystem
 
     public void Update(float deltaTime)
     {
-        if (parallel && world.Size >= ParallelThreshold)
-        {
-            SimulationParallelism.EnsureScheduler();
-            var job = new ActJob(world, deltaTime);
-            world.InlineParallelEntityQuery<ActJob, CurrentAction, Needs>(in queryDescription, ref job);
-            return;
-        }
-
         world.Query(in queryDescription, (Entity entity, ref CurrentAction action, ref Needs needs) =>
             Act(world, deltaTime, entity, ref action, ref needs));
     }
@@ -129,20 +115,5 @@ public class ActionSystem : ISimulationSystem
             ActionType.Showering => state.HygienePurchased,
             _ => true
         };
-    }
-
-    private struct ActJob : IForEachWithEntity<CurrentAction, Needs>
-    {
-        private readonly World world;
-        private readonly float deltaTime;
-
-        public ActJob(World world, float deltaTime)
-        {
-            this.world = world;
-            this.deltaTime = deltaTime;
-        }
-
-        public void Update(Entity entity, ref CurrentAction action, ref Needs needs) =>
-            Act(world, deltaTime, entity, ref action, ref needs);
     }
 }

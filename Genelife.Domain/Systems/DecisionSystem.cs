@@ -7,24 +7,18 @@ using Genelife.Enums;
 namespace Genelife.Systems;
 
 /// <summary>
-/// Picks a critical-need action for idle genoses. Per-entity only: it writes
-/// <see cref="CurrentAction"/> and reads <see cref="Needs"/>, work schedule and
-/// lifecycle, so it can run across Arch chunks in parallel. Small worlds keep
-/// the serial query.
+/// Picks a critical-need action for idle genoses.
 /// </summary>
 public class DecisionSystem : ISimulationSystem
 {
     private const float CriticalThreshold = 30f;
-    private const int ParallelThreshold = 512;
 
     private readonly World world;
     private readonly QueryDescription queryDescription;
-    private readonly bool parallel;
 
-    public DecisionSystem(World world, bool parallel = false)
+    public DecisionSystem(World world)
     {
         this.world = world;
-        this.parallel = parallel;
         queryDescription = new QueryDescription()
             .WithAll<CurrentAction, Needs>()
             .WithNone<PlayerControlled, Dead>();
@@ -38,14 +32,6 @@ public class DecisionSystem : ISimulationSystem
 
     public void Update()
     {
-        if (parallel && world.Size >= ParallelThreshold)
-        {
-            SimulationParallelism.EnsureScheduler();
-            var job = new DecideJob(world);
-            world.InlineParallelEntityQuery<DecideJob, CurrentAction, Needs>(in queryDescription, ref job);
-            return;
-        }
-
         world.Query(in queryDescription, (Entity entity, ref CurrentAction action, ref Needs needs) =>
             Decide(world, entity, ref action, ref needs));
     }
@@ -105,17 +91,4 @@ public class DecisionSystem : ISimulationSystem
     }
 
     private readonly record struct NeedInfo(float Value, ActionType ActionType, float Duration);
-
-    private struct DecideJob : IForEachWithEntity<CurrentAction, Needs>
-    {
-        private readonly World world;
-
-        public DecideJob(World world)
-        {
-            this.world = world;
-        }
-
-        public void Update(Entity entity, ref CurrentAction action, ref Needs needs) =>
-            Decide(world, entity, ref action, ref needs);
-    }
 }
