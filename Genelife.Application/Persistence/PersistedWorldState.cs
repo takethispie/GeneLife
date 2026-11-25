@@ -2,7 +2,7 @@ namespace Genelife.Api.Persistence;
 
 public sealed class PersistedWorldState
 {
-    public const int CurrentSchemaVersion = 15;
+    public const int CurrentSchemaVersion = 16;
 
     public int SchemaVersion { get; set; }
     public long Tick { get; set; }
@@ -376,6 +376,10 @@ public sealed class PersistedCompany
     public long WagesLastCycleCents { get; set; }
     public long CostsLastCycleCents { get; set; }
     public long InterestPaidLastCycleCents { get; set; }
+    public long RevenueThisCycleCents { get; set; }
+    public long WagesThisCycleCents { get; set; }
+    public long CostsThisCycleCents { get; set; }
+    public long InterestPaidThisCycleCents { get; set; }
     public long ArrearsCents { get; set; }
     public long TaxArrearsCents { get; set; }
     public long LossCarryForwardCents { get; set; }

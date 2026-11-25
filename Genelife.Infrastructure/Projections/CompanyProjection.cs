@@ -7,16 +7,20 @@ namespace Genelife.Api.Projections;
 
 public partial class CompanyProjection : EventProjection
 {
-    public CompanyDocument Create(CompanyCreated e)
+    public async Task Project(CompanyCreated e, IDocumentOperations ops)
     {
-        return new CompanyDocument
-        {
-            Id = DocumentIds.ForNetworkId(e.NetworkId),
-            NetworkId = (long)e.NetworkId,
-            Name = e.Name,
-            CreatedAt = DateTimeOffset.UtcNow,
-            UpdatedAt = DateTimeOffset.UtcNow
-        };
+        var id = DocumentIds.ForNetworkId(e.NetworkId);
+        var doc = await ops.LoadAsync<CompanyDocument>(id)
+            ?? new CompanyDocument
+            {
+                Id = id,
+                NetworkId = (long)e.NetworkId,
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+
+        doc.Name = e.Name;
+        doc.UpdatedAt = DateTimeOffset.UtcNow;
+        ops.Store(doc);
     }
 
     public async Task Project(EmployeeHired e, IDocumentOperations ops)

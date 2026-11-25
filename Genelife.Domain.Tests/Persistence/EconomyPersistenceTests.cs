@@ -43,6 +43,14 @@ public class EconomyPersistenceTests
         account.Balance = Money.FromUnits(7_500m);
         account.Arrears = Money.FromUnits(25m);
         account.State = CompanySolvency.Arrears;
+        account.RevenueLastCycle = Money.FromUnits(900m);
+        account.WagesLastCycle = Money.FromUnits(700m);
+        account.CostsLastCycle = Money.FromUnits(50m);
+        account.InterestPaidLastCycle = Money.FromUnits(10m);
+        account.RevenueThisCycle = Money.FromUnits(100m);
+        account.WagesThisCycle = Money.FromUnits(80m);
+        account.CostsThisCycle = Money.FromUnits(20m);
+        account.InterestPaidThisCycle = Money.FromUnits(5m);
         world.Get<CompanyAccount>(company) = account;
 
         var state = engine.CaptureState(registry);
@@ -59,6 +67,14 @@ public class EconomyPersistenceTests
         Assert.Equal(Money.FromUnits(7_500m), restoredAccount.Balance);
         Assert.Equal(Money.FromUnits(25m), restoredAccount.Arrears);
         Assert.Equal(CompanySolvency.Arrears, restoredAccount.State);
+        Assert.Equal(Money.FromUnits(900m), restoredAccount.RevenueLastCycle);
+        Assert.Equal(Money.FromUnits(700m), restoredAccount.WagesLastCycle);
+        Assert.Equal(Money.FromUnits(50m), restoredAccount.CostsLastCycle);
+        Assert.Equal(Money.FromUnits(10m), restoredAccount.InterestPaidLastCycle);
+        Assert.Equal(Money.FromUnits(100m), restoredAccount.RevenueThisCycle);
+        Assert.Equal(Money.FromUnits(80m), restoredAccount.WagesThisCycle);
+        Assert.Equal(Money.FromUnits(20m), restoredAccount.CostsThisCycle);
+        Assert.Equal(Money.FromUnits(5m), restoredAccount.InterestPaidThisCycle);
         Assert.Equal(Money.FromUnits(250m), restoredWorld.Get<SavingsAccount>(restoredGenos).Balance);
         Assert.True(restoredWorld.Has<Employee>(restoredGenos));
         Assert.Equal(1, restoredEconomy.Employment.CountEmployees(restoredCompany));

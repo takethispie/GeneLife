@@ -224,6 +224,20 @@ public static class SnapshotMigrations
             }
         }
 
+        if (fromVersion <= 15)
+        {
+            // v16 splits per-cycle accumulators from the last-cycle display
+            // values. Older saves hold the in-progress cycle in the last-cycle
+            // fields, so seed the new accumulators from them.
+            foreach (var company in state.Companies)
+            {
+                company.RevenueThisCycleCents = company.RevenueLastCycleCents;
+                company.WagesThisCycleCents = company.WagesLastCycleCents;
+                company.CostsThisCycleCents = company.CostsLastCycleCents;
+                company.InterestPaidThisCycleCents = company.InterestPaidLastCycleCents;
+            }
+        }
+
         state.SchemaVersion = PersistedWorldState.CurrentSchemaVersion;
     }
 }

@@ -6575,37 +6575,27 @@ private readonly NetworkIdRegistry networkIds = new();
 
         // One office pass per snapshot keeps this O(companies + offices) instead
         // of running an Office query inside the company loop.
-        var officesByCompany = new Dictionary<Entity, int>();
-        world.Query(in new QueryDescription().WithAll<Office>(), (Entity officeEntity, ref Office office) =>
-        {
-            if (office.IsClosed)
-                return;
-
-            officesByCompany.TryGetValue(office.Company, out var count);
-            officesByCompany[office.Company] = count + 1;
-        });
+        var officesByCompany = CompanyOfficeCounter.CountOpenByCompany(world);
 
         world.Query(in query, (Entity entity, ref CompanyName companyName) =>
         {
-            officesByCompany.TryGetValue(entity, out var officeCount);
-
             var status = new CompanyStatus
             {
                 NetworkId = world.Has<NetworkId>(entity) ? world.Get<NetworkId>(entity).Value : 0,
                 Name = companyName.Name,
                 EmployeeCount = index.CountEmployees(entity),
-                OfficeCount = officeCount
+                OfficeCount = officesByCompany.GetValueOrDefault(entity)
             };
 
             if (world.Has<CompanyAccount>(entity))
             {
-                ref var account = ref world.Get<CompanyAccount>(entity);
-                status.Balance = account.Balance.Units;
-                status.ReservedForPayroll = account.ReservedForPayroll.Units;
-                status.Arrears = account.Arrears.Units;
-                status.RevenueLastCycle = account.RevenueLastCycle.Units;
-                status.WagesLastCycle = account.WagesLastCycle.Units;
-                status.Solvency = account.State.ToString();
+                var financials = CompanyFinancialSnapshot.From(world.Get<CompanyAccount>(entity));
+                status.Balance = financials.Balance;
+                status.ReservedForPayroll = financials.ReservedForPayroll;
+                status.Arrears = financials.Arrears;
+                status.RevenueLastCycle = financials.RevenueLastCycle;
+                status.WagesLastCycle = financials.WagesLastCycle;
+                status.Solvency = financials.Solvency;
             }
 
             companies.Add(status);
@@ -7039,6 +7029,10 @@ private readonly NetworkIdRegistry networkIds = new();
                     company.WagesLastCycleCents = account.WagesLastCycle.Cents;
                     company.CostsLastCycleCents = account.CostsLastCycle.Cents;
                     company.InterestPaidLastCycleCents = account.InterestPaidLastCycle.Cents;
+                    company.RevenueThisCycleCents = account.RevenueThisCycle.Cents;
+                    company.WagesThisCycleCents = account.WagesThisCycle.Cents;
+                    company.CostsThisCycleCents = account.CostsThisCycle.Cents;
+                    company.InterestPaidThisCycleCents = account.InterestPaidThisCycle.Cents;
                     company.ArrearsCents = account.Arrears.Cents;
                     company.TaxArrearsCents = account.TaxArrears.Cents;
                     company.LossCarryForwardCents = account.LossCarryForward.Cents;
@@ -8055,6 +8049,10 @@ private readonly NetworkIdRegistry networkIds = new();
                 account.WagesLastCycle = new Money(company.WagesLastCycleCents);
                 account.CostsLastCycle = new Money(company.CostsLastCycleCents);
                 account.InterestPaidLastCycle = new Money(company.InterestPaidLastCycleCents);
+                account.RevenueThisCycle = new Money(company.RevenueThisCycleCents);
+                account.WagesThisCycle = new Money(company.WagesThisCycleCents);
+                account.CostsThisCycle = new Money(company.CostsThisCycleCents);
+                account.InterestPaidThisCycle = new Money(company.InterestPaidThisCycleCents);
                 account.Arrears = new Money(company.ArrearsCents);
                 account.TaxArrears = new Money(company.TaxArrearsCents);
                 account.LossCarryForward = new Money(company.LossCarryForwardCents);

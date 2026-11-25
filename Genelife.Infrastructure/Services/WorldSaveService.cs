@@ -92,18 +92,34 @@ public class WorldSaveService : IWorldPersistence
 
         var companies = new List<CompanyDocument>();
 
+        var officesByCompany = CompanyOfficeCounter.CountOpenByCompany(world);
+
         var companyQuery = new QueryDescription().WithAll<CompanyName, NetworkId>();
         world.Query(in companyQuery, (Entity entity, ref CompanyName name, ref NetworkId nid) =>
         {
-            companies.Add(new CompanyDocument
+            var document = new CompanyDocument
             {
                 Id = DocumentIds.ForNetworkId(nid.Value),
                 NetworkId = (long)nid.Value,
                 Name = name.Name,
                 EmployeeCount = employmentIndex.CountEmployees(entity),
+                OfficeCount = officesByCompany.GetValueOrDefault(entity),
                 CreatedAt = DateTimeOffset.UtcNow,
                 UpdatedAt = DateTimeOffset.UtcNow
-            });
+            };
+
+            if (world.TryGet<CompanyAccount>(entity, out var account))
+            {
+                var financials = CompanyFinancialSnapshot.From(account);
+                document.Balance = financials.Balance;
+                document.ReservedForPayroll = financials.ReservedForPayroll;
+                document.Arrears = financials.Arrears;
+                document.RevenueLastCycle = financials.RevenueLastCycle;
+                document.WagesLastCycle = financials.WagesLastCycle;
+                document.Solvency = financials.Solvency;
+            }
+
+            companies.Add(document);
         });
 
         return new WorldSaveBatch(genoses, companies);

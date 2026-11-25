@@ -191,8 +191,8 @@ public class PayrollSystem : ISimulationSystem
 
         var account = economy.Accounts.GetOrCreate(company, Money.Zero, tick);
         account.ReservedForPayroll = cashNeeded;
-        account.WagesLastCycle += grossTotal;
-        account.CostsLastCycle += employerPensionTotal;
+        account.WagesThisCycle += grossTotal;
+        account.CostsThisCycle += employerPensionTotal;
 
         if (deferredAny)
         {

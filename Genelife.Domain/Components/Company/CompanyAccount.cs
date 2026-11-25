@@ -23,6 +23,10 @@ public record struct CompanyAccount
     public Money WagesLastCycle;
     public Money CostsLastCycle;
     public Money InterestPaidLastCycle;
+    public Money RevenueThisCycle;
+    public Money WagesThisCycle;
+    public Money CostsThisCycle;
+    public Money InterestPaidThisCycle;
     public Money Arrears;
     public Money TaxArrears;
     public Money LossCarryForward;

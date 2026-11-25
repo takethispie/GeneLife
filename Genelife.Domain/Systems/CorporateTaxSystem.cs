@@ -39,8 +39,16 @@ public class CorporateTaxSystem : ISimulationSystem
 
         foreach (var (company, accountSnapshot) in companies)
         {
-            if (!world.IsAlive(company) || accountSnapshot.State == CompanySolvency.Bankrupt)
+            if (!world.IsAlive(company))
                 continue;
+
+            if (accountSnapshot.State == CompanySolvency.Bankrupt)
+            {
+                var bankrupt = economy.Accounts.GetOrCreate(company, Money.Zero, tick);
+                RollCycleToDisplay(ref bankrupt);
+                economy.Accounts.Set(company, bankrupt);
+                continue;
+            }
 
             var work = accountSnapshot;
             work.LastTaxPaid = Money.Zero;
@@ -65,10 +73,10 @@ public class CorporateTaxSystem : ISimulationSystem
                 }
             }
 
-            var profit = work.RevenueLastCycle
-                         - work.WagesLastCycle
-                         - work.CostsLastCycle
-                         - work.InterestPaidLastCycle;
+            var profit = work.RevenueThisCycle
+                         - work.WagesThisCycle
+                         - work.CostsThisCycle
+                         - work.InterestPaidThisCycle;
             work.LastProfit = profit;
 
             if (profit.IsNegative)
@@ -118,10 +126,7 @@ public class CorporateTaxSystem : ISimulationSystem
             }
 
             var live = economy.Accounts.GetOrCreate(company, Money.Zero, tick);
-            live.RevenueLastCycle = Money.Zero;
-            live.WagesLastCycle = Money.Zero;
-            live.CostsLastCycle = Money.Zero;
-            live.InterestPaidLastCycle = Money.Zero;
+            RollCycleToDisplay(ref live);
             live.LastProfit = work.LastProfit;
             live.LastTaxPaid = work.LastTaxPaid;
             live.LossCarryForward = work.LossCarryForward;
@@ -135,5 +140,17 @@ public class CorporateTaxSystem : ISimulationSystem
                 work.LastTaxPaid.Cents,
                 tick));
         }
+    }
+
+    private static void RollCycleToDisplay(ref CompanyAccount account)
+    {
+        account.RevenueLastCycle = account.RevenueThisCycle;
+        account.WagesLastCycle = account.WagesThisCycle;
+        account.CostsLastCycle = account.CostsThisCycle;
+        account.InterestPaidLastCycle = account.InterestPaidThisCycle;
+        account.RevenueThisCycle = Money.Zero;
+        account.WagesThisCycle = Money.Zero;
+        account.CostsThisCycle = Money.Zero;
+        account.InterestPaidThisCycle = Money.Zero;
     }
 }

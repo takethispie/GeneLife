@@ -109,6 +109,45 @@ public class EconomySystemTests
     }
 
     [Fact]
+    public void PayCycleBoundary_PublishesLastCycleValuesAndClearsAccumulators()
+    {
+        var world = World.Create();
+        var economy = new EconomyContext(world);
+        var companyAccount = CompanyAccount.Create(Money.FromUnits(10_000m), 0);
+        companyAccount.InterestPaidThisCycle = Money.FromUnits(25m);
+        var company = world.Create(new CompanyName("Shop"), companyAccount);
+        var office = world.Create(new Office("HQ", company, 10, Money.FromUnits(100m)));
+        world.Create(new Employee(company, office, "Clerk", Money.FromUnits(1_000m)));
+        world.Create(new GenName("Buyer"), new Wallet(Money.FromUnits(1_000m)));
+
+        var registry = new SystemRegistry();
+        registry.Register(new CompanyRevenueSystem(world, economy));
+        registry.Register(new ConsumerSpendingSystem(world, economy));
+        registry.Register(new PayrollSystem(world, economy));
+        registry.Register(new CompanyCostsSystem(world, economy));
+        registry.Register(new CorporateTaxSystem(world, economy));
+
+        for (var tick = 1; tick <= economy.Clock.TicksPerPayCycle; tick++)
+            registry.Update(new SimulationContext(tick, 1f / 20f, economy.Clock));
+
+        var account = world.Get<CompanyAccount>(company);
+
+        Assert.True(account.RevenueLastCycle.IsPositive);
+        Assert.True(account.WagesLastCycle.IsPositive);
+        Assert.Equal(Money.FromUnits(25m), account.InterestPaidLastCycle);
+        Assert.Equal(Money.Zero, account.RevenueThisCycle);
+        Assert.Equal(Money.Zero, account.WagesThisCycle);
+        Assert.Equal(Money.Zero, account.CostsThisCycle);
+        Assert.Equal(Money.Zero, account.InterestPaidThisCycle);
+        Assert.Equal(
+            account.RevenueLastCycle
+            - account.WagesLastCycle
+            - account.CostsLastCycle
+            - account.InterestPaidLastCycle,
+            account.LastProfit);
+    }
+
+    [Fact]
     public void Diagnostic_FindsFirstMoneyLeak()
     {
         var world = World.Create();

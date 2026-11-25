@@ -31,7 +31,7 @@ public class ConsumptionPersistenceTests
             engine.Tick(1f / 20f);
 
         var first = engine.CaptureState(engine.NetworkIds);
-        Assert.Equal(15, first.SchemaVersion);
+        Assert.Equal(16, first.SchemaVersion);
         Assert.Equal(2, first.UtilityNetworks.Count);
         Assert.NotEmpty(first.ServiceLinks);
         Assert.NotEmpty(first.HouseholdMeters);

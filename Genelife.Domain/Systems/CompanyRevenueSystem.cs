@@ -62,7 +62,7 @@ public class CompanyRevenueSystem : ISimulationSystem
                 }
 
                 var account = economy.Accounts.GetOrCreate(company, Money.Zero, tick);
-                account.RevenueLastCycle += revenue.Total;
+                account.RevenueThisCycle += revenue.Total;
                 economy.Accounts.Set(company, account);
             }
             else

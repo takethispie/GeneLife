@@ -68,7 +68,7 @@ public class CompanyCostsSystem : ISimulationSystem
 
             var unpaid = total - paid;
             account = economy.Accounts.GetOrCreate(company, Money.Zero, tick);
-            account.CostsLastCycle += total;
+            account.CostsThisCycle += total;
             if (unpaid.IsPositive)
             {
                 account.Arrears += unpaid;

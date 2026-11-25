@@ -197,7 +197,7 @@ public class CreditSystem : ISimulationSystem
             if (account.State is CompanySolvency.Healthy or CompanySolvency.Tight)
             {
                 account = economy.Accounts.GetOrCreate(loan.Company, Money.Zero, tick);
-                account.InterestPaidLastCycle += interestPaid;
+                account.InterestPaidThisCycle += interestPaid;
                 economy.Accounts.Set(loan.Company, account);
             }
 

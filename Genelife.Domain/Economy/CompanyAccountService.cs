@@ -143,7 +143,7 @@ public sealed class CompanyAccountService
         var account = GetOrCreate(company, Money.Zero, tick);
         account.Balance += amount;
         if (revenue)
-            account.RevenueLastCycle += amount;
+            account.RevenueThisCycle += amount;
         Set(company, account);
     }
 

@@ -106,16 +106,17 @@ public class CompanyRepository
             EmployeeCount = index.CountEmployees(entity)
         };
 
+        status.OfficeCount = CompanyOfficeCounter.CountOpenByCompany(world).GetValueOrDefault(entity);
+
         if (world.Has<CompanyAccount>(entity))
         {
-            ref var account = ref world.Get<CompanyAccount>(entity);
-            status.Balance = account.Balance.Units;
-            status.ReservedForPayroll = account.ReservedForPayroll.Units;
-            status.Arrears = account.Arrears.Units;
-            status.Solvency = account.State.ToString();
-            status.RevenueLastCycle = account.RevenueLastCycle.Units;
-            status.WagesLastCycle = account.WagesLastCycle.Units;
-            status.OfficeCount = CountOffices(entity);
+            var financials = CompanyFinancialSnapshot.From(world.Get<CompanyAccount>(entity));
+            status.Balance = financials.Balance;
+            status.ReservedForPayroll = financials.ReservedForPayroll;
+            status.Arrears = financials.Arrears;
+            status.Solvency = financials.Solvency;
+            status.RevenueLastCycle = financials.RevenueLastCycle;
+            status.WagesLastCycle = financials.WagesLastCycle;
         }
 
         return status;
@@ -125,6 +126,7 @@ public class CompanyRepository
     {
         var companies = new List<CompanyStatus>();
         var query = new QueryDescription().WithAll<CompanyName, NetworkId>();
+        var officesByCompany = CompanyOfficeCounter.CountOpenByCompany(world);
 
         world.Query(in query, (Entity entity, ref CompanyName companyName, ref NetworkId networkId) =>
         {
@@ -133,18 +135,18 @@ public class CompanyRepository
                 NetworkId = networkId.Value,
                 Name = companyName.Name,
                 EmployeeCount = index.CountEmployees(entity),
-                OfficeCount = CountOffices(entity)
+                OfficeCount = officesByCompany.GetValueOrDefault(entity)
             };
 
             if (world.Has<CompanyAccount>(entity))
             {
-                ref var account = ref world.Get<CompanyAccount>(entity);
-                status.Balance = account.Balance.Units;
-                status.ReservedForPayroll = account.ReservedForPayroll.Units;
-                status.Arrears = account.Arrears.Units;
-                status.Solvency = account.State.ToString();
-                status.RevenueLastCycle = account.RevenueLastCycle.Units;
-                status.WagesLastCycle = account.WagesLastCycle.Units;
+                var financials = CompanyFinancialSnapshot.From(world.Get<CompanyAccount>(entity));
+                status.Balance = financials.Balance;
+                status.ReservedForPayroll = financials.ReservedForPayroll;
+                status.Arrears = financials.Arrears;
+                status.Solvency = financials.Solvency;
+                status.RevenueLastCycle = financials.RevenueLastCycle;
+                status.WagesLastCycle = financials.WagesLastCycle;
             }
 
             companies.Add(status);
@@ -295,18 +297,6 @@ public class CompanyRepository
 
         DebugInvariantCheck();
         return true;
-    }
-
-    private int CountOffices(Entity company)
-    {
-        var count = 0;
-        var query = new QueryDescription().WithAll<Office>();
-        world.Query(in query, (ref Office office) =>
-        {
-            if (office.Company == company && !office.IsClosed)
-                count++;
-        });
-        return count;
     }
 
     [Conditional("DEBUG")]
