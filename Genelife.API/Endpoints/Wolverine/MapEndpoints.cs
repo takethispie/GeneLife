@@ -14,6 +14,79 @@ public static class MapEndpoints
     public static MapStatus GetMap(SimulationManager simulationManager) =>
         simulationManager.GetMapStatus();
 
+    [WolverinePost("/api/map/create")]
+    [Authorize(Policy = AuthPolicies.Admin)]
+    public static async Task<IResult> CreateMap(
+        CreateMapRequest request,
+        SimulationManager simulationManager,
+        IConnectionRegistry connections,
+        HttpContext http)
+    {
+        const int minimumDimension = 64;
+        const int maximumDimension = 512;
+        const int maximumPopulation = 5000;
+
+        if (request.Width < minimumDimension || request.Width > maximumDimension ||
+            request.Height < minimumDimension || request.Height > maximumDimension)
+        {
+            return Results.BadRequest(new
+            {
+                message = $"Width and height must be between {minimumDimension} and {maximumDimension}."
+            });
+        }
+
+        if (request.Population < 0 || request.Population > maximumPopulation)
+        {
+            return Results.BadRequest(new
+            {
+                message = $"Population must be between 0 and {maximumPopulation}."
+            });
+        }
+
+        if (request.Adults is < 0 || request.Children is < 0)
+            return Results.BadRequest(new { message = "Adults and children cannot be negative." });
+
+        if ((request.Adults ?? 0) > request.Population || (request.Children ?? 0) > request.Population)
+            return Results.BadRequest(new { message = "Adults and children cannot exceed the population." });
+
+        if (simulationManager.HasMap && !request.Confirm)
+        {
+            return Results.Conflict(new
+            {
+                message = "A map already exists; confirmation is required.",
+                requiresConfirmation = true
+            });
+        }
+
+        var issuedBy = http.User.Identity?.Name ?? "admin";
+
+        try
+        {
+            var playerIds = connections.GetPlayerIds();
+            var result = await simulationManager.CreateMap(request, playerIds, issuedBy, http.RequestAborted);
+            return Results.Ok(result);
+        }
+        catch (WorldResetConfirmationRequiredException)
+        {
+            return Results.Conflict(new
+            {
+                message = "A map already exists; confirmation is required.",
+                requiresConfirmation = true
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Results.BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem(
+                title: "World creation failed",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status500InternalServerError);
+        }
+    }
+
     [WolverineGet("/api/map/snapshot")]
     [Authorize(Policy = AuthPolicies.Player)]
     public static IResult GetSnapshot(

@@ -1,0 +1,30 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "_managed_by": "memanto",
+            "type": "command",
+            "command": "\"C:/Python315/python.exe\" -m memanto memory sync --project-dir . --catch-up",
+            "timeout": 30,
+            "statusMessage": "Loading MEMANTO memory..."
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "_managed_by": "memanto",
+            "type": "command",
+            "command": "\"C:/Python315/python.exe\" -m memanto memory sync --project-dir .",
+            "timeout": 30,
+            "statusMessage": "Saving MEMANTO memory..."
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -432,6 +432,24 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
         notify("success", "respawned", `You are now ${notice.name}.`);
       }
     },
+    onWorldReset: (reset) => {
+      traffic.addPayload(reset);
+      store.reset();
+      centeredOnPlayer = false;
+      respawnPopin.hide();
+      selection.select(null);
+      targeting.clearAll();
+      ui.patch({
+        ownSimNetworkId: 0,
+        mapId: reset.mapId,
+        mapVersion: reset.mapVersion,
+        tick: reset.tick
+      });
+      notify("info", "world_reset", "The world was replaced; reloading map and world state.");
+      void hub?.requestWelcome();
+      void hub?.requestMapSnapshot();
+      void hub?.requestSnapshot(null);
+    },
     onStateChange: (state) => {
       ui.patch({ connection: state, reconnectCount: hub?.reconnects ?? 0 });
       if (state === "failed" && sceneReady) {

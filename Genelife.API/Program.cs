@@ -103,7 +103,9 @@ builder.Services.AddSingleton<IEventConsumerProbe, MartenEventConsumerProbe>();
 builder.Services.AddSingleton<Genelife.Api.Handlers.Push.SimStatePushHandler>();
 builder.Services.AddSingleton<Genelife.Api.Handlers.Push.CompanyStatePushHandler>();
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddHostedService<SnapshotBroadcastService>();
+builder.Services.AddSingleton<SnapshotBroadcastService>();
+builder.Services.AddSingleton<IWorldResetNotifier>(provider => provider.GetRequiredService<SnapshotBroadcastService>());
+builder.Services.AddHostedService(provider => provider.GetRequiredService<SnapshotBroadcastService>());
 
 // Marten document store. Reads, projections and the event store are the only
 // read/write path; there is no snapshot fallback.

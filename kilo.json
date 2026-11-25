@@ -1,0 +1,13 @@
+{
+  "$schema": "https://app.kilo.ai/config.json",
+  "mcp": {
+    "memanto": {
+      "type": "local",
+      "command": ["C:\\Python315\\python.exe", "-m", "memanto_mcp"],
+      "environment": {
+        "MEMANTO_DEFAULT_AGENT_ID": "genelife"
+      },
+      "enabled": true
+    }
+  }
+}

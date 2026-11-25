@@ -2,8 +2,11 @@ namespace Genelife.Api.DTOs;
 
 public sealed class MapStatus
 {
+    public bool HasMap { get; set; }
     public string MapId { get; set; } = string.Empty;
     public int Version { get; set; }
+    public int LayoutVersion { get; set; }
+    public int Seed { get; set; }
     public int Width { get; set; }
     public int Height { get; set; }
     public float TileSize { get; set; }

@@ -11,7 +11,7 @@ namespace Genelife.Api.Services;
 /// delta; everyone else receives a full snapshot. Optional viewport
 /// subscriptions filter the dynamic sim payload.
 /// </summary>
-public sealed class SnapshotBroadcastService : BackgroundService
+public sealed class SnapshotBroadcastService : BackgroundService, IWorldResetNotifier
 {
     private readonly SimulationEngine engine;
     private readonly IHubContext<Hubs.WorldHub> hubContext;
@@ -24,7 +24,12 @@ public sealed class SnapshotBroadcastService : BackgroundService
     private static readonly TimeSpan BroadcastInterval = TimeSpan.FromMilliseconds(40);
     private long lastBroadcastedTick;
     private int lastMapVersion;
+    private int lastMapSeed;
+    private int lastMapWidth;
+    private int lastMapHeight;
+    private int lastLayoutVersion;
     private Dictionary<ulong, MapBuildingStatus> lastMapBuildings = new();
+    private WorldResetMessage? pendingWorldReset;
 
     public SnapshotBroadcastService(
         SimulationEngine engine,
@@ -61,12 +66,23 @@ public sealed class SnapshotBroadcastService : BackgroundService
 
             try
             {
+                var reset = Interlocked.Exchange(ref pendingWorldReset, null);
+                if (reset is not null)
+                    await ApplyWorldResetAsync(reset, cancellationToken);
+
                 var snapshot = engine.GetLatestSnapshot();
-                if (snapshot is not null && snapshot.Tick > Interlocked.Read(ref lastBroadcastedTick))
+                if (snapshot is not null)
                 {
-                    Interlocked.Exchange(ref lastBroadcastedTick, snapshot.Tick);
-                    await BroadcastWorld(snapshot, cancellationToken);
-                    await BroadcastMap(cancellationToken);
+                    var lastTick = Interlocked.Read(ref lastBroadcastedTick);
+                    if (snapshot.Tick < lastTick)
+                        Interlocked.Exchange(ref lastBroadcastedTick, Math.Max(0, snapshot.Tick - 1));
+
+                    if (snapshot.Tick > Interlocked.Read(ref lastBroadcastedTick))
+                    {
+                        Interlocked.Exchange(ref lastBroadcastedTick, snapshot.Tick);
+                        await BroadcastWorld(snapshot, cancellationToken);
+                        await BroadcastMap(cancellationToken);
+                    }
                 }
 
                 await BroadcastIntentRejections(cancellationToken);
@@ -209,16 +225,71 @@ public sealed class SnapshotBroadcastService : BackgroundService
         }
     }
 
-    private async Task BroadcastMap(CancellationToken cancellationToken)
+    /// <summary>
+    /// Queues a world reset notification for the next broadcast pass. The
+    /// simulation manager calls this after the new world is generated.
+    /// </summary>
+    public void NotifyWorldReset(WorldResetMessage message) =>
+        Volatile.Write(ref pendingWorldReset, message);
+
+    private async Task ApplyWorldResetAsync(WorldResetMessage reset, CancellationToken cancellationToken)
     {
-        if (engine.MapVersion == lastMapVersion)
-            return;
+        foreach (var connectionId in registry.GetConnectionIds())
+            replicationTracker.Invalidate(connectionId);
+
+        Interlocked.Exchange(ref lastBroadcastedTick, Math.Max(0, reset.Tick - 1));
+        lastMapVersion = 0;
+        lastMapSeed = 0;
+        lastMapWidth = 0;
+        lastMapHeight = 0;
+        lastLayoutVersion = 0;
+        lastMapBuildings = new Dictionary<ulong, MapBuildingStatus>();
+
+        await hubContext.Clients.All.SendAsync("WorldReset", reset, cancellationToken);
 
         var map = engine.BuildMapStatus();
-        if (map.Version == lastMapVersion)
+        if (!map.HasMap)
             return;
 
-        if (lastMapVersion > 0)
+        await hubContext.Clients.All.SendAsync("SendMapSnapshot", engine.BuildMapSnapshot(), cancellationToken);
+
+        lastMapVersion = map.Version;
+        lastMapSeed = map.Seed;
+        lastMapWidth = map.Width;
+        lastMapHeight = map.Height;
+        lastLayoutVersion = map.LayoutVersion;
+        lastMapBuildings = map.BuildingList.ToDictionary(building => building.NetworkId);
+
+        logger?.LogInformation(
+            "Broadcast world reset for map {MapId} v{MapVersion} (layout {LayoutVersion})",
+            reset.MapId,
+            reset.MapVersion,
+            reset.LayoutVersion);
+    }
+
+    private async Task BroadcastMap(CancellationToken cancellationToken)
+    {
+        var map = engine.BuildMapStatus();
+        if (!map.HasMap)
+            return;
+
+        var layoutChanged = lastMapVersion > 0
+            && (map.Seed != lastMapSeed
+                || map.Width != lastMapWidth
+                || map.Height != lastMapHeight
+                || map.LayoutVersion != lastLayoutVersion);
+
+        if (!layoutChanged && map.Version == lastMapVersion)
+            return;
+
+        if (layoutChanged)
+        {
+            await hubContext.Clients.All.SendAsync(
+                "SendMapSnapshot",
+                engine.BuildMapSnapshot(),
+                cancellationToken);
+        }
+        else if (lastMapVersion > 0)
         {
             var current = map.BuildingList.ToDictionary(building => building.NetworkId);
             var delta = new MapDelta
@@ -248,6 +319,10 @@ public sealed class SnapshotBroadcastService : BackgroundService
         }
 
         lastMapVersion = map.Version;
+        lastMapSeed = map.Seed;
+        lastMapWidth = map.Width;
+        lastMapHeight = map.Height;
+        lastLayoutVersion = map.LayoutVersion;
         lastMapBuildings = map.BuildingList.ToDictionary(building => building.NetworkId);
     }
 

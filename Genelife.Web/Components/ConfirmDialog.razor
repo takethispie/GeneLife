@@ -1,0 +1,87 @@
+@if (IsVisible)
+{
+    <div class="confirm-dialog-backdrop" @onkeydown="HandleKeyDown" @onkeydown:preventDefault="true" tabindex="-1">
+        <div class="card shadow confirm-dialog-card" role="dialog" aria-modal="true" aria-labelledby="@titleId">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <h2 class="h5 mb-0" id="@titleId">@Title</h2>
+                <button type="button" class="btn-close" aria-label="Close" disabled="@IsBusy" @onclick="CancelAsync"></button>
+            </div>
+            <div class="card-body">
+                @if (!string.IsNullOrWhiteSpace(Message))
+                {
+                    <p class="@(IsDestructive ? "text-danger fw-semibold" : null)">@Message</p>
+                }
+                @ChildContent
+            </div>
+            <div class="card-footer d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-outline-secondary" @ref="cancelButton" disabled="@IsBusy"
+                        @onclick="CancelAsync">
+                    @CancelLabel
+                </button>
+                <button type="button" class="btn @(IsDestructive ? "btn-danger" : "btn-primary")" disabled="@IsBusy"
+                        @onclick="ConfirmAsync">
+                    @if (IsBusy)
+                    {
+                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                    }
+                    @ConfirmLabel
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private static int dialogIds;
+    private ElementReference cancelButton;
+    private bool focused;
+    private readonly string titleId = $"confirm-dialog-title-{Interlocked.Increment(ref dialogIds)}";
+
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public string Title { get; set; } = "Confirm";
+    [Parameter] public string Message { get; set; } = string.Empty;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public string ConfirmLabel { get; set; } = "Confirm";
+    [Parameter] public string CancelLabel { get; set; } = "Cancel";
+    [Parameter] public bool IsBusy { get; set; }
+    [Parameter] public bool IsDestructive { get; set; }
+    [Parameter] public EventCallback OnConfirm { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!IsVisible)
+        {
+            focused = false;
+            return;
+        }
+
+        if (focused)
+            return;
+
+        focused = true;
+        await cancelButton.FocusAsync();
+    }
+
+    private async Task ConfirmAsync()
+    {
+        if (IsBusy)
+            return;
+
+        await OnConfirm.InvokeAsync();
+    }
+
+    private async Task CancelAsync()
+    {
+        if (IsBusy)
+            return;
+
+        await OnCancel.InvokeAsync();
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Escape")
+            await CancelAsync();
+    }
+}

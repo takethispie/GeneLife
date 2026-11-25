@@ -11,6 +11,7 @@ import type {
   SnapshotRejected,
   ViewportResult,
   WelcomeMessage,
+  WorldResetMessage,
   WorldSnapshot,
   WorldSnapshotDelta
 } from "../contracts/hub";
@@ -24,12 +25,14 @@ export const HUB_EVENTS = {
   snapshotRejected: "SnapshotRejected",
   intentRejected: "IntentRejected",
   playerLifecycle: "PlayerLifecycle",
+  worldReset: "WorldReset",
   receiveChat: "ReceiveChat",
   receiveEmote: "ReceiveEmote"
 } as const;
 
 export const HUB_METHODS = {
   requestSnapshot: "RequestSnapshot",
+  requestWelcome: "RequestWelcome",
   acknowledgeSnapshot: "AcknowledgeSnapshot",
   requestMapSnapshot: "RequestMapSnapshot",
   setViewport: "SetViewport",
@@ -56,6 +59,7 @@ export interface HubHandlers {
   onSnapshotRejected(rejection: SnapshotRejected): void;
   onIntentRejected(rejection: IntentRejected): void;
   onPlayerLifecycle?(notice: PlayerLifecycleNotice): void;
+  onWorldReset?(reset: WorldResetMessage): void;
   onStateChange(state: ConnectionState): void;
   onReconnected?(): void;
   onChatMessage?(message: ChatMessage): void;

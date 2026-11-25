@@ -86,6 +86,43 @@ public sealed class GameDataService
             $"Relocation failed ({(int)response.StatusCode}): {body}");
     }
 
+    /// <summary>
+    /// Creates a new world map. This is a destructive, potentially slow admin
+    /// operation, so it uses a dedicated two-minute client instead of the normal
+    /// ten-second admin timeout.
+    /// </summary>
+    public async Task<CreateMapResult> CreateMapAsync(
+        CreateMapRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        await EnsureAdminTokenAsync(cancellationToken);
+
+        using var client = new HttpClient
+        {
+            BaseAddress = http.BaseAddress,
+            Timeout = TimeSpan.FromMinutes(2)
+        };
+        if (!string.IsNullOrWhiteSpace(accessToken))
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        using var response = await client.PostAsJsonAsync("api/map/create", request, cancellationToken);
+        if (response.StatusCode == HttpStatusCode.Conflict)
+        {
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new MapConfirmationRequiredException(body);
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new InvalidOperationException(
+                $"Map creation failed ({(int)response.StatusCode}): {body}");
+        }
+
+        return await response.Content.ReadFromJsonAsync<CreateMapResult>(cancellationToken: cancellationToken)
+            ?? throw new InvalidOperationException("The API returned an empty map creation result.");
+    }
+
     public async Task<SimulationStatus> GetSimulationStatusAsync(CancellationToken cancellationToken = default)    {
         using var response = await SendWithAuthRetryAsync(
             () => http.GetAsync("api/simulation/status", cancellationToken), cancellationToken);
@@ -867,3 +904,10 @@ public sealed record RelocateBuildingRequest(
     int Y,
     int EntryX,
     int EntryY);
+
+public sealed class MapConfirmationRequiredException : Exception
+{
+    public MapConfirmationRequiredException(string message) : base(message)
+    {
+    }
+}

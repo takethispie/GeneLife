@@ -36,6 +36,14 @@ public partial class MapProjection : EventProjection
         }
 
         existing.Version = e.Version;
+        existing.Seed = e.Seed;
+        existing.Width = e.Width;
+        existing.Height = e.Height;
+        existing.TileSize = e.TileSize;
+        existing.MinX = -(e.Width / 2);
+        existing.MinY = -(e.Height / 2);
+        existing.MaxX = existing.MinX + e.Width - 1;
+        existing.MaxY = existing.MinY + e.Height - 1;
         existing.UpdatedAt = DateTimeOffset.UtcNow;
         ops.Store(existing);
     }

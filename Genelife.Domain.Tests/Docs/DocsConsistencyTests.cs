@@ -70,6 +70,7 @@ public class DocsConsistencyTests
                      "/api/simulation/save",
                      "/api/simulation/restore",
                      "/api/data",
+                     "/api/map/create",
                      "/api/map/buildings/{networkId}/relocate"
                  })
             Assert.Contains(route, endpoints);

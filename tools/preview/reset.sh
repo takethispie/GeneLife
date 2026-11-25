@@ -5,9 +5,10 @@
 #   tools/preview/reset.sh                 # API is already running
 #   PREVIEW_API=http://localhost:5288 tools/preview/reset.sh
 #
-# The script stops the current simulation (discarding the in-memory world),
-# starts a fresh map, generates the configured population from a fixed seed and
-# saves a snapshot, so repeated runs start from the same world.
+# The script creates a fresh map and population from a fixed seed and saves a
+# snapshot, so repeated runs start from the same world. /api/map/create is the
+# same destructive admin operation the admin UI uses; it replaces any existing
+# map, buildings, NPCs and player characters.
 set -euo pipefail
 
 API="${PREVIEW_API:-http://localhost:5288}"
@@ -20,15 +21,9 @@ token_json="$(curl -fsS -X POST "$API/api/auth/local-admin")"
 token="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["accessToken"])' <<<"$token_json")"
 auth=(-H "Authorization: Bearer $token" -H "Content-Type: application/json")
 
-echo "preview: stopping simulation at $API"
-curl -fsS -X POST "$API/api/simulation/stop" "${auth[@]}" >/dev/null || true
-
-echo "preview: starting fresh map (seed $SEED)"
-curl -fsS -X POST "$API/api/simulation/start" "${auth[@]}" >/dev/null
-
-echo "preview: generating $SIMS sims (seed $SEED)"
-curl -fsS -X POST "$API/api/population/generate" "${auth[@]}" \
-  -d "{\"totalSims\":$SIMS,\"seed\":$SEED,\"adults\":$ADULTS,\"children\":$CHILDREN}" >/dev/null
+echo "preview: creating map with $SIMS sims (seed $SEED)"
+curl -fsS -X POST "$API/api/map/create" "${auth[@]}" \
+  -d "{\"seed\":$SEED,\"width\":256,\"height\":256,\"population\":$SIMS,\"populationSeed\":$SEED,\"adults\":$ADULTS,\"children\":$CHILDREN,\"confirm\":true}" >/dev/null
 
 ready=0
 for _ in $(seq 1 120); do
@@ -47,5 +42,4 @@ if [ "$ready" -ne 1 ]; then
   exit 1
 fi
 
-curl -fsS -X POST "$API/api/simulation/save" "${auth[@]}" >/dev/null
-echo "preview: seeded snapshot saved"
+echo "preview: world created and snapshot saved"

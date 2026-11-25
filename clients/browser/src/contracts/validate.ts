@@ -10,6 +10,7 @@ import type {
   PlayerLifecycleNotice,
   SimStatus,
   WelcomeMessage,
+  WorldResetMessage,
   WorldSnapshot,
   WorldSnapshotDelta
 } from "./hub";
@@ -326,6 +327,20 @@ export function validateMapDelta(value: unknown, path = "mapDelta"): MapDelta {
       }
       return id;
     })
+  };
+}
+
+export function validateWorldReset(
+  value: unknown,
+  path = "worldReset"
+): WorldResetMessage {
+  const record = asRecord(value, path);
+  return {
+    mapId: requireString(record, "mapId", path),
+    mapVersion: requireInteger(record, "mapVersion", path),
+    layoutVersion: optionalNumber(record, "layoutVersion", path),
+    seed: optionalNumber(record, "seed", path),
+    tick: requireInteger(record, "tick", path)
   };
 }
 

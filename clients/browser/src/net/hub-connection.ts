@@ -20,6 +20,7 @@ import {
   validateMapSnapshot,
   validatePlayerLifecycleNotice,
   validateWelcome,
+  validateWorldReset,
   validateWorldSnapshot,
   validateWorldSnapshotDelta
 } from "../contracts/validate";
@@ -134,6 +135,10 @@ export class WorldHubClient {
     await this.requireConnection().invoke(HUB_METHODS.requestSnapshot, sinceTick);
   }
 
+  async requestWelcome(): Promise<void> {
+    await this.requireConnection().send(HUB_METHODS.requestWelcome);
+  }
+
   async requestMapSnapshot(): Promise<void> {
     await this.requireConnection().send(HUB_METHODS.requestMapSnapshot);
   }
@@ -218,6 +223,11 @@ export class WorldHubClient {
     connection.on(HUB_EVENTS.playerLifecycle, (raw: unknown) => {
       this.guard("PlayerLifecycle", () =>
         this.handlers.onPlayerLifecycle?.(validatePlayerLifecycleNotice(raw))
+      );
+    });
+    connection.on(HUB_EVENTS.worldReset, (raw: unknown) => {
+      this.guard("WorldReset", () =>
+        this.handlers.onWorldReset?.(validateWorldReset(raw))
       );
     });
     connection.on(HUB_EVENTS.receiveChat, (raw: unknown) => {

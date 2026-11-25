@@ -27,11 +27,18 @@
             }
             Refresh
         </button>
+        <button class="btn btn-outline-danger" type="button" @onclick="RequestCreateMapAsync" disabled="@creating">
+            @if (creating)
+            {
+                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+            }
+            Create map
+        </button>
     </div>
 </div>
 
 <div class="d-flex flex-wrap align-items-center gap-2 mb-3 small text-muted">
-    <span>@map.MapId v@map.Version</span>
+    <span>@($"{map.MapId} v{map.Version}")</span>
     <span>&middot;</span>
     <span>@map.Width &times; @map.Height tiles</span>
     @if (loadedAt is not null)
@@ -53,6 +60,113 @@
 {
     <div class="alert alert-info">The simulation is stopped. The last map and positions are shown.</div>
 }
+
+@if (creating)
+{
+    <div class="alert alert-warning d-flex align-items-center gap-2">
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        <span>Generating a new map. This can take a while for large populations.</span>
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(createMessage))
+{
+    <div class="alert alert-success">
+        <div class="fw-semibold">Map created.</div>
+        <div class="small">@createMessage</div>
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(createError))
+{
+    <div class="alert alert-danger">
+        <div class="fw-semibold">Could not create the map.</div>
+        <div class="small">@createError</div>
+    </div>
+}
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+            <div>
+                <div class="fw-semibold">World generation</div>
+                <div class="text-muted small">
+                    Generate a new map. An existing map, its buildings, NPCs and player characters are replaced.
+                </div>
+            </div>
+            <button class="btn btn-sm btn-outline-secondary" type="button" @onclick="() => showAdvanced = !showAdvanced">
+                @(showAdvanced ? "Hide advanced" : "Advanced")
+            </button>
+        </div>
+
+        @if (showAdvanced)
+        {
+            <div class="row g-2 mt-3">
+                <div class="col-6 col-md-3">
+                    <label class="form-label small">Seed</label>
+                    <input class="form-control form-control-sm" type="number" @bind="createSeed" />
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="form-label small">Width</label>
+                    <input class="form-control form-control-sm" type="number" min="64" max="512" @bind="createWidth" />
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="form-label small">Height</label>
+                    <input class="form-control form-control-sm" type="number" min="64" max="512" @bind="createHeight" />
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="form-label small">Population</label>
+                    <input class="form-control form-control-sm" type="number" min="0" max="5000" @bind="createPopulation" />
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="form-label small">Population seed</label>
+                    <input class="form-control form-control-sm" type="number" @bind="createPopulationSeed" />
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="form-label small">Adults (optional)</label>
+                    <input class="form-control form-control-sm" type="number" min="0" @bind="createAdults" />
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="form-label small">Children (optional)</label>
+                    <input class="form-control form-control-sm" type="number" min="0" @bind="createChildren" />
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="text-muted small mt-2">
+                Seed @createSeed &middot; @createWidth &times; @createHeight tiles &middot; @createPopulation population
+            </div>
+        }
+    </div>
+</div>
+
+<ConfirmDialog IsVisible="showCreateDialog"
+               Title="Replace the existing map?"
+               IsBusy="creating"
+               IsDestructive="true"
+               ConfirmLabel="Replace map"
+               OnConfirm="ConfirmCreateMapAsync"
+               OnCancel="CancelCreateMap">
+    <p class="mb-2">
+        The current map, all buildings, all NPCs and all player characters will be permanently replaced.
+        Anything created manually in the current world is also discarded.
+    </p>
+    <dl class="row small mb-2">
+        <dt class="col-5">Seed</dt>
+        <dd class="col-7">@createSeed</dd>
+        <dt class="col-5">Dimensions</dt>
+        <dd class="col-7">@createWidth &times; @createHeight tiles</dd>
+        <dt class="col-5">Population</dt>
+        <dd class="col-7">@createPopulation</dd>
+        <dt class="col-5">Player characters</dt>
+        <dd class="col-7">Recreated for every known player</dd>
+    </dl>
+    <p class="text-muted small mb-0">
+        If the new map is too small for the generated buildings, the reset fails and you must retry with a
+        different seed or a larger map.
+    </p>
+</ConfirmDialog>
 
 <div class="row g-3 mb-3">
     @foreach (var card in SummaryCards)
@@ -306,6 +420,19 @@
     private string? error;
     private DateTimeOffset? loadedAt;
     private CancellationTokenSource cts = new();
+    private bool defaultsInitialized;
+    private bool showAdvanced;
+    private bool showCreateDialog;
+    private bool creating;
+    private string? createMessage;
+    private string? createError;
+    private int createSeed = 1;
+    private int createWidth = 256;
+    private int createHeight = 256;
+    private int createPopulation = 500;
+    private int createPopulationSeed = 1;
+    private int? createAdults;
+    private int? createChildren;
 
     private string ViewBox => $"{map.MinX} {map.MinY} {Math.Max(1, map.Width)} {Math.Max(1, map.Height)}";
 
@@ -337,16 +464,21 @@
         try
         {
             while (await timer.WaitForNextTickAsync(cancellationToken))
-                await InvokeAsync(RefreshAsync);
+            {
+                if (creating)
+                    continue;
+
+                await InvokeAsync(() => RefreshAsync());
+            }
         }
         catch (OperationCanceledException)
         {
         }
     }
 
-    private async Task RefreshAsync()
+    private async Task RefreshAsync(bool force = false)
     {
-        if (isLoading)
+        if (isLoading || (creating && !force))
             return;
 
         isLoading = true;
@@ -362,6 +494,7 @@
             error = null;
             hasLoaded = true;
             loadedAt = DateTimeOffset.Now;
+            ApplyDefaultsFromWorld();
         }
         catch (OperationCanceledException)
         {
@@ -374,6 +507,115 @@
         finally
         {
             isLoading = false;
+        }
+    }
+
+    private void ApplyDefaultsFromWorld()
+    {
+        if (defaultsInitialized)
+            return;
+
+        createSeed = map.Seed != 0 ? map.Seed : 1;
+        createWidth = map.Width >= 64 ? map.Width : 256;
+        createHeight = map.Height >= 64 ? map.Height : 256;
+
+        var living = world.Sims.Count(sim => !sim.IsDead);
+        createPopulation = Math.Clamp(living == 0 ? 500 : living, 0, 5000);
+        createPopulationSeed = createSeed;
+        createAdults = null;
+        createChildren = null;
+        defaultsInitialized = true;
+    }
+
+    private async Task RequestCreateMapAsync()
+    {
+        if (creating)
+            return;
+
+        ApplyDefaultsFromWorld();
+
+        if (map.HasMap || world.IsRunning)
+        {
+            showCreateDialog = true;
+            return;
+        }
+
+        await CreateMapAsync(confirm: false);
+    }
+
+    private Task ConfirmCreateMapAsync() => CreateMapAsync(confirm: true);
+
+    private void CancelCreateMap()
+    {
+        if (creating)
+            return;
+
+        showCreateDialog = false;
+    }
+
+    private async Task CreateMapAsync(bool confirm)
+    {
+        if (creating)
+            return;
+
+        creating = true;
+        showCreateDialog = false;
+        createMessage = null;
+        createError = null;
+        var refresh = false;
+
+        try
+        {
+            var request = new CreateMapRequest(
+                createSeed,
+                createWidth,
+                createHeight,
+                createPopulation,
+                createPopulationSeed,
+                createAdults,
+                createChildren,
+                confirm);
+
+            var result = await GameData.CreateMapAsync(request, cts.Token);
+            createMessage =
+                $"Created map {result.Width}×{result.Height} (seed {result.Seed}) with {result.Buildings} buildings, " +
+                $"{result.Population} population and {result.Players} player character(s) in {result.ElapsedMs} ms.";
+            selected = null;
+            confirmingRelocate = false;
+            defaultsInitialized = false;
+            refresh = true;
+        }
+        catch (MapConfirmationRequiredException)
+        {
+            showCreateDialog = true;
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            createError = ex.Message;
+        }
+        finally
+        {
+            creating = false;
+        }
+
+        if (refresh)
+        {
+            for (var attempt = 0; attempt < 20 && isLoading; attempt++)
+            {
+                try
+                {
+                    await Task.Delay(50, cts.Token);
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+            }
+
+            await RefreshAsync(force: true);
         }
     }
 

@@ -55,6 +55,18 @@ export interface MapDelta {
   removed: number[];
 }
 
+/**
+ * Sent after an admin world reset. The client must drop its cached map and
+ * world state, then request a fresh Welcome, map snapshot and world snapshot.
+ */
+export interface WorldResetMessage {
+  mapId: string;
+  mapVersion: number;
+  layoutVersion: number;
+  seed: number;
+  tick: number;
+}
+
 export interface AppearanceStatus {
   skinTone: number;
   faceShape: number;

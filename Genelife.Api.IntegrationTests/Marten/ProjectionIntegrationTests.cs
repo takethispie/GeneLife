@@ -142,4 +142,36 @@ public sealed class ProjectionIntegrationTests : IClassFixture<TestApplicationFa
         var deleted = await verify.Query<BuildingDocument>().FirstOrDefaultAsync(x => x.NetworkId == (long)networkId);
         Assert.Null(deleted);
     }
+
+    [Fact]
+    public async Task MapGenerated_for_an_existing_map_overwrites_layout_metadata()
+    {
+        var store = factory.Services.GetRequiredService<IDocumentStore>();
+        var mapId = $"test-map-{Guid.NewGuid():N}";
+        var streamId = Guid.NewGuid();
+
+        await using (var session = store.LightweightSession())
+        {
+            session.Events.StartStream(streamId, new MapGenerated(mapId, 2, 7, 64, 64, 1f, 10));
+            await session.SaveChangesAsync();
+        }
+
+        await using (var update = store.LightweightSession())
+        {
+            update.Events.Append(streamId, new MapGenerated(mapId, 5, 99, 128, 96, 1f, 20));
+            await update.SaveChangesAsync();
+        }
+
+        await using var read = store.LightweightSession();
+        var doc = await read.LoadAsync<MapDocument>(mapId);
+        Assert.NotNull(doc);
+        Assert.Equal(5, doc!.Version);
+        Assert.Equal(99, doc.Seed);
+        Assert.Equal(128, doc.Width);
+        Assert.Equal(96, doc.Height);
+        Assert.Equal(-64, doc.MinX);
+        Assert.Equal(63, doc.MaxX);
+        Assert.Equal(-48, doc.MinY);
+        Assert.Equal(47, doc.MaxY);
+    }
 }

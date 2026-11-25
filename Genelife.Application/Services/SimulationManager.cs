@@ -3,8 +3,10 @@ using Genelife.Api.Persistence;
 using Genelife.Api.Repositories;
 using Genelife.Components.Gen;
 using Genelife.Messages.Events;
+using Genelife.Map;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 
 namespace Genelife.Api.Services;
 
@@ -14,22 +16,26 @@ public class SimulationManager : IHostedService, IDisposable
     private readonly ISnapshotStore store;
     private readonly IReadModelStore? readModelStore;
     private readonly IWorldPersistence? worldPersistence;
+    private readonly IWorldResetNotifier? worldResetNotifier;
     private readonly ILogger<SimulationManager>? logger;
+    private readonly SemaphoreSlim lifecycleGate = new(1, 1);
     private PeriodicTimer? saveTimer;
     private CancellationTokenSource? saveCts;
 
-    public SimulationManager(SimulationEngine engine, ISnapshotStore store, IReadModelStore? readModelStore = null, IWorldPersistence? worldPersistence = null, ILogger<SimulationManager>? logger = null)
+    public SimulationManager(SimulationEngine engine, ISnapshotStore store, IReadModelStore? readModelStore = null, IWorldPersistence? worldPersistence = null, ILogger<SimulationManager>? logger = null, IWorldResetNotifier? worldResetNotifier = null)
     {
         this.engine = engine;
         this.store = store;
         this.readModelStore = readModelStore;
         this.worldPersistence = worldPersistence;
         this.logger = logger;
+        this.worldResetNotifier = worldResetNotifier;
     }
 
     private NetworkIdRegistry networkIds => engine.NetworkIds;
 
     public bool IsRunning => engine.IsRunning;
+    public bool HasMap => engine.MapContext is not null;
     public DateTime? LastSaveTime { get; private set; }
     public DateTime? LastLoadTime { get; private set; }
 
@@ -83,22 +89,38 @@ public class SimulationManager : IHostedService, IDisposable
 
     public void StartSimulation()
     {
-        if (engine.IsRunning)
-            return;
+        lifecycleGate.Wait();
+        try
+        {
+            if (engine.IsRunning)
+                return;
 
-        networkIds.Clear();
-        engine.Initialize();
-        StartPeriodicSave();
+            networkIds.Clear();
+            engine.Initialize();
+            StartPeriodicSave();
+        }
+        finally
+        {
+            lifecycleGate.Release();
+        }
     }
 
     public void StopSimulation()
     {
-        if (!engine.IsRunning)
-            return;
+        lifecycleGate.Wait();
+        try
+        {
+            if (!engine.IsRunning)
+                return;
 
-        StopPeriodicSave();
-        engine.Shutdown();
-        networkIds.Clear();
+            StopPeriodicSave();
+            engine.Shutdown();
+            networkIds.Clear();
+        }
+        finally
+        {
+            lifecycleGate.Release();
+        }
     }
 
     public PersistedWorldState SaveSnapshot()
@@ -116,17 +138,169 @@ public class SimulationManager : IHostedService, IDisposable
 
     public void RestoreSnapshot()
     {
-        if (engine.IsRunning)
-            throw new InvalidOperationException("Simulation is running. Stop it before restoring.");
+        lifecycleGate.Wait();
+        try
+        {
+            if (engine.IsRunning)
+                throw new InvalidOperationException("Simulation is running. Stop it before restoring.");
 
-        var latest = store.LoadLatest();
-        if (latest == null)
-            throw new InvalidOperationException("No snapshot found to restore");
+            var latest = store.LoadLatest();
+            if (latest == null)
+                throw new InvalidOperationException("No snapshot found to restore");
 
-        networkIds.Clear();
-        engine.Restore(latest, networkIds);
-        LastLoadTime = DateTime.UtcNow;
-        StartPeriodicSave();
+            networkIds.Clear();
+            engine.Restore(latest, networkIds);
+            LastLoadTime = DateTime.UtcNow;
+            StartPeriodicSave();
+        }
+        finally
+        {
+            lifecycleGate.Release();
+        }
+    }
+
+    /// <summary>
+    /// Replaces the world with a freshly generated map and population. This is a
+    /// destructive lifecycle operation: it stops the current simulation, builds
+    /// the new world outside the tick lock, persists it and signals clients.
+    /// </summary>
+    public async Task<CreateMapResult> CreateMap(
+        CreateMapRequest request,
+        IReadOnlyCollection<string> connectedPlayerIds,
+        string issuedBy,
+        CancellationToken cancellationToken = default)
+    {
+        await lifecycleGate.WaitAsync(cancellationToken);
+        try
+        {
+            // Re-check inside the gate: a concurrent create could have replaced
+            // the world between the endpoint's check and this point.
+            if (engine.MapContext is not null && !request.Confirm)
+                throw new WorldResetConfirmationRequiredException();
+
+            var startTimestamp = Stopwatch.GetTimestamp();
+
+            var previousTick = engine.CurrentTick;
+            var previousMap = engine.BuildMapStatus();
+            var oldMapId = string.IsNullOrWhiteSpace(previousMap.MapId) ? "world" : previousMap.MapId;
+            var oldMapVersion = previousMap.Version;
+            var oldPlacementIds = engine.MapContext?.Map.Placements.Keys
+                .Select(networkId => networkId.Value)
+                .ToList() ?? new List<ulong>();
+
+            var playerIds = connectedPlayerIds
+                .Concat(engine.Players.All().Select(profile => profile.PlayerId))
+                .Where(playerId => !string.IsNullOrWhiteSpace(playerId))
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+
+            logger?.LogWarning(
+                "Creating a new world (issued by {IssuedBy}): seed {Seed}, {Width}x{Height}, population {Population}, {PlayerCount} known player(s)",
+                issuedBy,
+                request.Seed,
+                request.Width,
+                request.Height,
+                request.Population,
+                playerIds.Count);
+
+            StopPeriodicSave();
+            if (engine.IsRunning)
+                engine.Shutdown();
+            networkIds.Clear();
+            engine.ClearTransientState();
+
+            engine.MapOptions = new MapOptions
+            {
+                MapId = "world",
+                Version = Math.Max(1, previousMap.Version + 1),
+                Seed = request.Seed,
+                Width = request.Width,
+                Height = request.Height,
+                TileSize = 1f
+            };
+            engine.RandomSeed = request.PopulationSeed;
+            engine.Initialize(startTick: previousTick + 1);
+            StartPeriodicSave();
+
+            PopulationGenerationResult? population = null;
+            if (request.Population > 0)
+            {
+                try
+                {
+                    population = engine.GeneratePopulation(
+                        request.Population,
+                        request.PopulationSeed,
+                        request.Adults,
+                        request.Children);
+                }
+                catch (Exception ex)
+                {
+                    StopPeriodicSave();
+                    engine.Shutdown();
+                    networkIds.Clear();
+                    logger?.LogError(
+                        ex,
+                        "World creation failed while generating a population for {Population} sims (issued by {IssuedBy})",
+                        request.Population,
+                        issuedBy);
+                    throw new InvalidOperationException(
+                        $"The new map could not be populated: {ex.Message} Try a different seed or a larger map.",
+                        ex);
+                }
+            }
+
+            var playerSimIds = new Dictionary<string, ulong>(StringComparer.Ordinal);
+            foreach (var playerId in playerIds)
+            {
+                var simNetworkId = engine.EnsurePlayerSim(playerId);
+                engine.EnsurePlayerSpawn(playerId);
+                if (simNetworkId != 0)
+                    playerSimIds[playerId] = simNetworkId;
+            }
+
+            foreach (var networkId in oldPlacementIds)
+                engine.Emit(new BuildingRemoved(oldMapId, oldMapVersion, networkId, engine.CurrentTick));
+
+            SaveSnapshot();
+            await SaveWorldDocumentsAsync();
+
+            var mapStatus = engine.BuildMapStatus();
+            var result = new CreateMapResult(
+                mapStatus.MapId,
+                mapStatus.Version,
+                mapStatus.LayoutVersion,
+                mapStatus.Seed,
+                mapStatus.Width,
+                mapStatus.Height,
+                mapStatus.Buildings,
+                population?.Total ?? 0,
+                playerSimIds.Count,
+                (long)Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds);
+
+            worldResetNotifier?.NotifyWorldReset(new WorldResetMessage
+            {
+                MapId = result.MapId,
+                MapVersion = result.Version,
+                LayoutVersion = result.LayoutVersion,
+                Seed = result.Seed,
+                Tick = engine.CurrentTick
+            });
+
+            logger?.LogWarning(
+                "World reset complete (issued by {IssuedBy}): seed {Seed}, {Buildings} buildings, {Population} population, {Players} player(s) in {ElapsedMs} ms",
+                issuedBy,
+                result.Seed,
+                result.Buildings,
+                result.Population,
+                result.Players,
+                result.ElapsedMs);
+
+            return result;
+        }
+        finally
+        {
+            lifecycleGate.Release();
+        }
     }
 
     public ulong AddSim(string name, int age)
@@ -349,5 +523,6 @@ public class SimulationManager : IHostedService, IDisposable
         StopPeriodicSave();
         (store as IDisposable)?.Dispose();
         engine.Dispose();
+        lifecycleGate.Dispose();
     }
 }

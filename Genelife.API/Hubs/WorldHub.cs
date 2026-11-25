@@ -102,32 +102,12 @@ public sealed class WorldHub : Hub
         await Groups.AddToGroupAsync(Context.ConnectionId, $"player-{playerId}");
         await Groups.AddToGroupAsync(Context.ConnectionId, "all");
 
-        var snapshot = engine.GetLatestSnapshot();
+        var welcome = BuildWelcome(playerId);
+        await Clients.Caller.SendAsync("Welcome", welcome);
+
         var map = engine.BuildMapSnapshot();
-        var simNetworkId = engine.GetPlayerSimNetworkId(playerId);
-        var profile = engine.Players.TryGet(playerId, out var known) ? known : null;
-        var awaitingRespawn = profile is
-        {
-            AwaitingContinuation: true,
-            Observer: false,
-            ContinuationPolicy: not PlayerContinuationPolicy.Observer
-        } && (profile.LastSimName is not null || profile.LastSimTraits is not null);
-
-        await Clients.Caller.SendAsync("Welcome", new WelcomeMessage
-        {
-            PlayerId = playerId,
-            SimNetworkId = simNetworkId,
-            MapId = map.MapId,
-            MapVersion = map.Version,
-            Tick = snapshot?.Tick ?? engine.CurrentTick,
-            TickIntervalMs = tickIntervalMs,
-            SnapshotVersion = snapshot?.Version ?? WorldSnapshot.CurrentVersion,
-            ProtocolVersion = WelcomeMessage.CurrentProtocolVersion,
-            AwaitingRespawn = awaitingRespawn,
-            LastSimName = profile?.LastSimName,
-            LastSimAge = profile?.LastSimAge ?? 0
-        });
-
+        var snapshot = engine.GetLatestSnapshot();
+        var simNetworkId = welcome.SimNetworkId;
         await Clients.Caller.SendAsync("SendMapSnapshot", map);
         if (snapshot is not null)
         {
@@ -145,6 +125,48 @@ public sealed class WorldHub : Hub
 
         logger?.LogInformation("Player {PlayerId} connected on {ConnectionId}", playerId, Context.ConnectionId);
         await base.OnConnectedAsync();
+    }
+
+    /// <summary>
+    /// Resends the Welcome payload. Clients call this after a world reset so
+    /// they learn their freshly created sim network id and the new map version.
+    /// </summary>
+    public async Task RequestWelcome()
+    {
+        var playerId = Context.User?.GetPlayerId();
+        if (string.IsNullOrWhiteSpace(playerId))
+            return;
+
+        await Clients.Caller.SendAsync("Welcome", BuildWelcome(playerId), Context.ConnectionAborted);
+    }
+
+    private WelcomeMessage BuildWelcome(string playerId)
+    {
+        var snapshot = engine.GetLatestSnapshot();
+        var map = engine.BuildMapSnapshot();
+        var simNetworkId = engine.GetPlayerSimNetworkId(playerId);
+        var profile = engine.Players.TryGet(playerId, out var known) ? known : null;
+        var awaitingRespawn = profile is
+        {
+            AwaitingContinuation: true,
+            Observer: false,
+            ContinuationPolicy: not PlayerContinuationPolicy.Observer
+        } && (profile.LastSimName is not null || profile.LastSimTraits is not null);
+
+        return new WelcomeMessage
+        {
+            PlayerId = playerId,
+            SimNetworkId = simNetworkId,
+            MapId = map.MapId,
+            MapVersion = map.Version,
+            Tick = snapshot?.Tick ?? engine.CurrentTick,
+            TickIntervalMs = tickIntervalMs,
+            SnapshotVersion = snapshot?.Version ?? WorldSnapshot.CurrentVersion,
+            ProtocolVersion = WelcomeMessage.CurrentProtocolVersion,
+            AwaitingRespawn = awaitingRespawn,
+            LastSimName = profile?.LastSimName,
+            LastSimAge = profile?.LastSimAge ?? 0
+        };
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)

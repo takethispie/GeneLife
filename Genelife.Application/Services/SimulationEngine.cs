@@ -290,7 +290,8 @@ private readonly NetworkIdRegistry networkIds = new();
         ReproductionOptions? reproductionOptions = null,
         FamilyHousingPolicy? familyHousingPolicy = null,
         InheritanceOptions? inheritanceOptions = null,
-        GuardianshipOptions? guardianshipOptions = null)
+        GuardianshipOptions? guardianshipOptions = null,
+        long startTick = 0)
     {
         // Do not tear down a running engine's snapshot consumer just because a
         // second Initialize call arrives; the guarded block below returns early.
@@ -310,7 +311,7 @@ private readonly NetworkIdRegistry networkIds = new();
             mapMetrics = new MapMetricsSystem(world, mapContext.Map);
             emittedMapBuildings.Clear();
             emittedMapVersion = mapContext.Version;
-            EmitMapGenerated(0);
+            EmitMapGenerated(startTick);
             lastIntentSequence.Clear();
             metrics = new Metrics();
             appearanceCache.Clear();
@@ -529,7 +530,7 @@ private readonly NetworkIdRegistry networkIds = new();
 
             networkIds.Clear();
             history.Clear();
-            tick = 0;
+            tick = startTick;
             isRunning = true;
         }
     }
@@ -1833,6 +1834,76 @@ private readonly NetworkIdRegistry networkIds = new();
         }
     }
 
+    /// <summary>
+    /// Builds schools, companies, housing and the requested population on the
+    /// current map. Shared by the admin population command and the world reset so
+    /// both paths behave identically.
+    /// </summary>
+    public PopulationGenerationResult GeneratePopulation(
+        int totalSims,
+        int seed = 1,
+        int? adults = null,
+        int? children = null)
+    {
+        using (WriteLock())
+        {
+            if (!isRunning || world is null || economy is null || employmentIndex is null)
+                throw new InvalidOperationException("Simulation is not running.");
+
+            var generator = new PopulationGenerator(
+                world,
+                networkIds,
+                economy,
+                employmentIndex,
+                mapContext,
+                relationshipIndex,
+                relationshipService,
+                relationshipOptions);
+            return generator.Generate(totalSims, seed, adults, children, tick);
+        }
+    }
+
+    /// <summary>
+    /// Drops queued commands and feedback that belong to the world that is being
+    /// replaced. Persistent player profiles and the world itself are left alone;
+    /// Initialize resets those.
+    /// </summary>
+    public void ClearTransientState()
+    {
+        while (queuedCommands.TryDequeue(out _))
+        {
+        }
+
+        commandQueue?.Drain(_ => { });
+
+        while (adminCommands.TryDequeue(out var command))
+        {
+            if (adminWaiters.TryRemove(command.CommandId, out var waiter))
+            {
+                waiter.TrySetResult(new CommandResult(
+                    command.CommandId,
+                    false,
+                    "The world was reset before the command was applied.",
+                    null,
+                    DateTimeOffset.UtcNow));
+            }
+        }
+
+        commandResults.Clear();
+        seenAdminCommands.Clear();
+        while (intentRejections.TryDequeue(out _))
+        {
+        }
+
+        while (playerLifecycleNotices.TryDequeue(out _))
+        {
+        }
+
+        pendingPlayerCommands.Clear();
+        playerCommandResults.Clear();
+        playerCommandAudit.Clear();
+    }
+
     private void RebuildMovementRequests()
     {
         if (world is null || mapContext is null || movementIndex is null)
@@ -2143,22 +2214,11 @@ private readonly NetworkIdRegistry networkIds = new();
 
             case GeneratePopulationCommand generate:
             {
-                var generator = new PopulationGenerator(
-                    world,
-                    networkIds,
-                    economy!,
-                    employmentIndex!,
-                    mapContext,
-                    relationshipIndex,
-                    relationshipService,
-                    relationshipOptions);
-                var result = generator.Generate(
+                return GeneratePopulation(
                     generate.TotalSims,
                     generate.Seed,
                     generate.Adults,
-                    generate.Children,
-                    tick);
-                return result;
+                    generate.Children);
             }
 
             case SetPopulationTargetCommand target:
@@ -2961,8 +3021,11 @@ private readonly NetworkIdRegistry networkIds = new();
             var options = map.Options;
             var result = new MapStatus
             {
+                HasMap = true,
                 MapId = options.MapId,
                 Version = map.Version,
+                LayoutVersion = options.Version,
+                Seed = options.Seed,
                 Width = options.Width,
                 Height = options.Height,
                 TileSize = options.TileSize,
