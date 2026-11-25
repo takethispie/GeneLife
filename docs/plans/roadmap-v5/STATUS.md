@@ -14,12 +14,12 @@
 | Player housing and household | Done (feature 01) | Rent, move, household membership, arrears, eviction, capacity rules |
 | Player consumption and needs | Done (feature 01) | Shopping, wallet debits, needs effects, UBI remains the only recurring mint |
 | Player relationships and family actions | Done (feature 01) | Invitations, consent, partnership, pregnancy/birth paths, NPC consent policy |
-| Player aging, death and heir continuation | Done (feature 01) | Age progression, death, estate, heir selection, automatic heir/new-sim continuation, observer mode and manual respawn |
+| Player aging, death and heir continuation | Done (feature 01) | Age progression, death, estate, heir selection, automatic heir/new-genos continuation, observer mode and manual respawn |
 | Player persistence and admin page | Done (feature 01) | Schema 12, player profile/read model, `/player` admin page, action audit |
 | Player life acceptance | Done (feature 01) | Recorded-command replay from snapshot and a 32-player 100-tick soak are green alongside unit/persistence tests |
 | Appearance descriptor model | Done (feature 02) | `SkinTone`, `FaceShape`, deterministic descriptor from traits/age/sex |
 | Appearance derivation and inheritance | Done (feature 02) | Child resembles parents, bounded variation, replay test |
-| Portrait and sprite composition | Done (feature 02) | Layered atlas, palette/tint, pooled sprites, no per-sim textures |
+| Portrait and sprite composition | Done (feature 02) | Layered atlas, palette/tint, pooled sprites, no per-genos textures |
 | Aging and family resemblance | Done (feature 02) | Age-band visuals, hair change, proportions, family comparison |
 | Client asset pipeline and rendering | Done (feature 02) | Asset manifest, preload, render integration, fallback |
 | Appearance persistence and admin preview | Done (feature 02) | Schema 13, backfill, `/appearance` preview, cache invalidation |
@@ -29,7 +29,7 @@
 | Household utility billing and outages | Done (feature 03) | Metered billing, arrears, outage effects, ledger and events |
 | Grocery catalog, stock and pricing | Done (feature 03) | Catalog, store inventory, restock, deterministic pricing, spoilage |
 | Shopping trips and nutrition | In progress (feature 03) | Player catalog purchase/consume, nutrition state and monthly health modifier are live; NPC shopping trips and meal composition remain |
-| Economy recalibration and cohabitation | In progress (feature 03) | Municipality-funded utility tariffs keep 60/200-sim bands green; seeded-pair cohabitation and the 30-year before/after evidence remain |
+| Economy recalibration and cohabitation | In progress (feature 03) | Municipality-funded utility tariffs keep 60/200-genos bands green; seeded-pair cohabitation and the 30-year before/after evidence remain |
 | Consumption persistence and admin page | Done (feature 03) | Schema 14, `/consumption` page, audited repair/restock and yearly `ConsumptionMetricsRecorded` metrics are live |
 | Consumption acceptance | In progress (feature 03) | Conservation, network, grocery, balance and schema-14 tests green; long outage/30-year scenarios remain |
 | Presence and player directory | Done (feature 04) | Nearby/same-venue scopes, privacy, reconnect, admin list and client directory panel; disconnect filtering is immediate |
@@ -59,7 +59,7 @@
 | `dotnet run --project Genelife.Api.IntegrationTests/Genelife.Api.IntegrationTests.csproj --no-launch-profile` | every API or persistence change |
 | `BalanceScenarioTests` 10-year report | before and after V5 economy/consumption changes |
 | 30-year continuity scenario | after feature 03 and before flipping `CohabitOnPairing` |
-| 2,000-sim decade | after feature 01 and at release |
+| 2,000-genos decade | after feature 01 and at release |
 | 32-player social soak | after feature 04 and at release |
 | Schema 11 → 15 migration, restore and double restore | after feature 05 persistence work |
 | Player-life replay with recorded intent log | after feature 01 |
@@ -74,15 +74,15 @@
 ## Current baseline
 
 - `PersistedWorldState.CurrentSchemaVersion` is 15. Feature 03 adds metric utility networks, links, household meters, service levels, tariff billing, grocery catalog/inventory/pricing/spoilage/nutrition, schema 13→14 migration with conservative bootstrapping, and the `/consumption` admin page. Default tariffs are municipality-subsidised (100%) so the strict rent-burden and unemployment bands stay green; setting `SubsidyBasisPoints = 0` exercises household payment, arrears and cut-off.
-- The player sim is created on connect and still uses `MoveIntent`/`UseBuildingIntent` for movement and building use. Typed `PlayerActionIntent` commands now cover job application/accept/quit, housing request/lease/move, arrears, shopping, consumption, partner invitations and consent, child naming, and heir/new-sim/observer/respawn continuation. The continuation default is `Respawn`: after death the client shows a death prompt whose button calls `POST /api/player/respawn`, the server creates a grown child of the dead sim while the entity still exists, links the parent edge and transfers control. Player sims remain excluded from autonomous decisions, job seeking and work scheduling.
+- The player genos is created on connect and still uses `MoveIntent`/`UseBuildingIntent` for movement and building use. Typed `PlayerActionIntent` commands now cover job application/accept/quit, housing request/lease/move, arrears, shopping, consumption, partner invitations and consent, child naming, and heir/new-genos/observer/respawn continuation. The continuation default is `Respawn`: after death the client shows a death prompt whose button calls `POST /api/player/respawn`, the server creates a grown child of the dead genos while the entity still exists, links the parent edge and transfers control. Player genoses remain excluded from autonomous decisions, job seeking and work scheduling.
 - V4 family systems are complete for NPCs: traits, relationship edges, eligibility, attraction, pairing, pregnancy, birth, childhood, guardianship, inheritance and the admin family page.
-- The browser client renders map, buildings and sims. Sims now compose layered shared-part bodies, heads, eyes, hair and outfit palettes with local/other-player markers; the admin `/appearance` page renders the same layer contract as SVG and compares a family.
+- The browser client renders map, buildings and genoses. Genoses now compose layered shared-part bodies, heads, eyes, hair and outfit palettes with local/other-player markers; the admin `/appearance` page renders the same layer contract as SVG and compares a family.
 - The world supports up to 32 concurrent players with server-authoritative presence, snapshots, deltas, viewport filtering and reconnect. Feature 04 adds privacy-scoped presence, chat/emotes, friendships/blocks/mutes, reports, player partnerships, venues/activities and audited moderation.
 - Utilities have water/electricity networks, meters, tariff billing, arrears and outages. Grocery has a catalog, stock, deterministic pricing, restock, spoilage and nutrition. Default tariffs are municipality-subsidised (100%); setting `SubsidyBasisPoints = 0` exercises household payment and cut-off.
 - The hybrid ECS + Wolverine/Marten architecture is in place. H16 keeps collect→decide→apply and its partial saga scaffolding is removed; H19 migrated the remaining endpoints to Wolverine HTTP; H20 removed all feature flags. MP05 is documented as complete and `DrainPlayerIntents()` is the single intent path.
-- The server suite is 560 domain tests / 0 failed, 69 API integration tests / 0 failed, and 33 performance/release tests / 0 failed (2 skipped manual 10k load tests) plus the 30-year cohabitation comparison; the browser suite is 178 tests green plus fixture, mobile, live and admin Playwright gates. Feature 03 tests cover utility network states/priority shedding, consumption conservation, tariff validation, grocery pricing/stock-out/restock/spoilage, player purchase conservation, nutrition health modifiers, and schema-14 capture/restore/double restore. The 60- and 200-sim ten-year balance bands are green with utility and grocery systems enabled.
-- V1's 1k–2k balance gaps are reported: at 1,000 sims median rent burden is 0.4284 against a 0.40 ceiling; at 2,000 it is 0.3464. Company failures, wage share, vacancy and Gini are inside their reported bands.
-- `CohabitOnPairing` remains opt-in. The 30-year 200-sim comparison is recorded: population 199 → 219 and births 75 → 83, but housing vacancy 17.7% → 26.6% and overcrowded units 3 → 9.
+- The server suite is 560 domain tests / 0 failed, 69 API integration tests / 0 failed, and 33 performance/release tests / 0 failed (2 skipped manual 10k load tests) plus the 30-year cohabitation comparison; the browser suite is 178 tests green plus fixture, mobile, live and admin Playwright gates. Feature 03 tests cover utility network states/priority shedding, consumption conservation, tariff validation, grocery pricing/stock-out/restock/spoilage, player purchase conservation, nutrition health modifiers, and schema-14 capture/restore/double restore. The 60- and 200-genos ten-year balance bands are green with utility and grocery systems enabled.
+- V1's 1k–2k balance gaps are reported: at 1,000 genoses median rent burden is 0.4284 against a 0.40 ceiling; at 2,000 it is 0.3464. Company failures, wage share, vacancy and Gini are inside their reported bands.
+- `CohabitOnPairing` remains opt-in. The 30-year 200-genos comparison is recorded: population 199 → 219 and births 75 → 83, but housing vacancy 17.7% → 26.6% and overcrowded units 3 → 9.
 - The 2k decade has zero health failures but 18 `housing.overcrowded` warnings in the family release run (one per distinct household; down from 45 child-level warnings; 19 overcrowded units in the balance run); this is documented, not treated as a high-severity pass.
 
 ## Decisions to confirm before implementation
@@ -102,7 +102,7 @@
 - **Server authority.** Player actions are the easiest place to accidentally let the client mutate balances, positions or family state. Every action must be a typed intent applied on the tick thread.
 - **Money conservation.** Player jobs, rent, shopping, utilities and inheritance all move money. A single unledgered path breaks the closed loop.
 - **Economy calibration.** Cohabitation and utility/grocery consumption change household budgets at the same time. The strict bands and the 30-year run must stay green before the default flips.
-- **Appearance cost.** A naive per-sim texture or per-trait portrait cache can blow up memory and frame time. Layered atlas composition and pooling are mandatory.
+- **Appearance cost.** A naive per-genos texture or per-trait portrait cache can blow up memory and frame time. Layered atlas composition and pooling are mandatory.
 - **Social abuse.** Chat and player relationships need rate limits, blocks, reports and retention from the first release, not after an incident.
 - **Persistence breadth.** Schema 12–15 adds player, appearance, utility, grocery and social state. Migration and double-restore must be exact, and chat must not make a world snapshot unrestorable.
 - **Scope creep.** Feature 04 can grow into a social platform. V5a keeps text chat, presence, friendships and consensual partnerships; everything else is later.

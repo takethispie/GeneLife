@@ -4,7 +4,7 @@ export interface SceneLayers {
   terrain: Container;
   roads: Container;
   buildings: Container;
-  sims: Container;
+  genoses: Container;
   selection: Container;
   effects: Container;
 }
@@ -14,14 +14,14 @@ export function createLayers(world: Container): SceneLayers {
     terrain: new Container(),
     roads: new Container(),
     buildings: new Container(),
-    sims: new Container(),
+    genoses: new Container(),
     selection: new Container(),
     effects: new Container()
   };
   layers.terrain.label = "terrain";
   layers.roads.label = "roads";
   layers.buildings.label = "buildings";
-  layers.sims.label = "sims";
+  layers.genoses.label = "genoses";
   layers.selection.label = "selection";
   layers.effects.label = "effects";
   for (const layer of Object.values(layers)) world.addChild(layer);

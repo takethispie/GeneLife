@@ -73,7 +73,7 @@ public class AgingSystem : ISimulationSystem
             world.Get<Alive>(update.Entity) = update.Alive;
 
             var networkId = LifeSystemHelpers.NetworkIdOf(world, update.Entity);
-            economy.Emit(new SimAged(networkId, update.Alive.Age, update.Lifecycle.AgeTicks));
+            economy.Emit(new GenosAged(networkId, update.Alive.Age, update.Lifecycle.AgeTicks));
 
             if (update.MaxReached)
                 economy.Emit(new MaxAgeReached(networkId, update.Alive.Age));

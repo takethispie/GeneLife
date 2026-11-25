@@ -4,7 +4,7 @@ using Genelife.Values;
 namespace Genelife.Components.Employment;
 
 /// <summary>
-/// Component representing a Sim looking for work. Skills are stored as a
+/// Component representing a Genos looking for work. Skills are stored as a
 /// bitmask of <see cref="Skill"/> tokens so the component has no list field.
 /// </summary>
 public record struct JobSeeker

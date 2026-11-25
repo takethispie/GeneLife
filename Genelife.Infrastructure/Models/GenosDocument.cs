@@ -2,7 +2,7 @@ using Genelife.Api.DTOs;
 
 namespace Genelife.Api.Models;
 
-public class SimDocument
+public class GenosDocument
 {
     public Guid Id { get; set; }
     public long NetworkId { get; set; }
@@ -37,9 +37,9 @@ public class SimDocument
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 
-    public SimStatus ToSimStatus()
+    public GenosStatus ToGenosStatus()
     {
-        return new SimStatus
+        return new GenosStatus
         {
             NetworkId = (ulong)NetworkId,
             Name = Name,

@@ -10,8 +10,8 @@ public class ReplayTests
     [Fact]
     public void DecadeReplayMatchesTraitsGraphBirthsAndMoney()
     {
-        var first = RunAndCapture(sims: 100, seed: 21, years: 10);
-        var second = RunAndCapture(sims: 100, seed: 21, years: 10);
+        var first = RunAndCapture(genoses: 100, seed: 21, years: 10);
+        var second = RunAndCapture(genoses: 100, seed: 21, years: 10);
 
         AssertSame(first, second);
     }
@@ -19,8 +19,8 @@ public class ReplayTests
     [Fact]
     public void DifferentSeedProducesDifferentFamilyFacts()
     {
-        var first = RunAndCapture(sims: 60, seed: 21, years: 2);
-        var different = RunAndCapture(sims: 60, seed: 22, years: 2);
+        var first = RunAndCapture(genoses: 60, seed: 21, years: 2);
+        var different = RunAndCapture(genoses: 60, seed: 22, years: 2);
 
         Assert.NotEqual(first.Traits, different.Traits);
         Assert.NotEqual(first.Relationships, different.Relationships);
@@ -31,7 +31,7 @@ public class ReplayTests
     {
         foreach (var seed in new[] { 11, 23, 37, 51, 73 })
         {
-            using var engine = Build(sims: 60, seed: seed);
+            using var engine = Build(genoses: 60, seed: seed);
             Run(engine, years: 2);
 
             Assert.True(engine.BuildFamilyStatus().Population > 0, $"seed {seed} collapsed");
@@ -48,7 +48,7 @@ public class ReplayTests
     [Fact]
     public void LegacyMigrationReplayMatchesADoubleRestore()
     {
-        using var source = Build(sims: 60, seed: 21);
+        using var source = Build(genoses: 60, seed: 21);
         var state = source.CaptureState(source.NetworkIds);
         source.Shutdown();
 
@@ -56,8 +56,8 @@ public class ReplayTests
         state.Pregnancies.Clear();
         state.Trusts.Clear();
         state.StateCare.Clear();
-        foreach (var sim in state.Sims)
-            sim.TraitsMigrated = false;
+        foreach (var genos in state.Genoses)
+            genos.TraitsMigrated = false;
         state.SchemaVersion = 5;
         SnapshotMigrations.Upgrade(state, 5);
 
@@ -94,14 +94,14 @@ public class ReplayTests
         }
     }
 
-    private static ReplayCapture RunAndCapture(int sims, int seed, int years)
+    private static ReplayCapture RunAndCapture(int genoses, int seed, int years)
     {
-        using var engine = Build(sims, seed);
+        using var engine = Build(genoses, seed);
         Run(engine, years);
         return ReplayCapture.Capture(engine);
     }
 
-    private static SimulationEngine Build(int sims, int seed)
+    private static SimulationEngine Build(int genoses, int seed)
     {
         var engine = new SimulationEngine();
         engine.Initialize();
@@ -112,7 +112,7 @@ public class ReplayTests
                 relationshipIndex: engine.Relationships,
                 relationshipService: engine.RelationshipService!,
                 relationshipOptions: engine.RelationshipOptions);
-            generator.Generate(sims, seed: seed);
+            generator.Generate(genoses, seed: seed);
             return 0;
         });
         return engine;

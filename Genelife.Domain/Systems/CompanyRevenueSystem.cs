@@ -55,7 +55,7 @@ public class CompanyRevenueSystem : ISimulationSystem
                         spend.Amount,
                         LedgerKind.CompanyRevenue,
                         Guid.NewGuid(),
-                        spend.SimNetworkId,
+                        spend.GenosNetworkId,
                         "company.revenue",
                         tick,
                         spend.Category);
@@ -75,7 +75,7 @@ public class CompanyRevenueSystem : ISimulationSystem
                         Guid.NewGuid(),
                         tick,
                         LedgerKind.CompanyRevenue,
-                        spend.SimNetworkId,
+                        spend.GenosNetworkId,
                         EconomyAccountIds.Government,
                         spend.Amount,
                         "company.revenue.estate",

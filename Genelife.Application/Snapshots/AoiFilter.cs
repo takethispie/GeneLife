@@ -4,17 +4,17 @@ namespace Genelife.Api.Snapshots;
 
 public static class AoiFilter
 {
-    public static List<SimStatus> FilterByRadius(WorldSnapshot snapshot, float centerX, float centerY, float radius)
+    public static List<GenosStatus> FilterByRadius(WorldSnapshot snapshot, float centerX, float centerY, float radius)
     {
         float radiusSq = radius * radius;
-        var results = new List<SimStatus>();
+        var results = new List<GenosStatus>();
 
-        foreach (var sim in snapshot.Sims)
+        foreach (var genos in snapshot.Genoses)
         {
-            float dx = sim.X - centerX;
-            float dy = sim.Y - centerY;
+            float dx = genos.X - centerX;
+            float dy = genos.Y - centerY;
             if (dx * dx + dy * dy <= radiusSq)
-                results.Add(sim);
+                results.Add(genos);
         }
 
         return results;
@@ -29,16 +29,16 @@ public static class AoiFilter
             snapshot.Companies);
     }
 
-    public static List<SimStatus> FilterByViewport(
+    public static List<GenosStatus> FilterByViewport(
         WorldSnapshot snapshot,
         Viewport viewport,
-        ulong? alwaysIncludeSim = null)
+        ulong? alwaysIncludeGenos = null)
     {
-        var results = new List<SimStatus>();
-        foreach (var sim in snapshot.Sims)
+        var results = new List<GenosStatus>();
+        foreach (var genos in snapshot.Genoses)
         {
-            if (sim.NetworkId == alwaysIncludeSim || viewport.Contains(sim.TileX, sim.TileY))
-                results.Add(sim);
+            if (genos.NetworkId == alwaysIncludeGenos || viewport.Contains(genos.TileX, genos.TileY))
+                results.Add(genos);
         }
         return results;
     }
@@ -46,17 +46,17 @@ public static class AoiFilter
     public static WorldSnapshot FilterSnapshotByViewport(
         WorldSnapshot snapshot,
         Viewport viewport,
-        ulong? alwaysIncludeSim = null) =>
+        ulong? alwaysIncludeGenos = null) =>
         new(
             snapshot.Tick,
             snapshot.Version,
-            FilterByViewport(snapshot, viewport, alwaysIncludeSim),
+            FilterByViewport(snapshot, viewport, alwaysIncludeGenos),
             snapshot.Companies);
 
     public static WorldSnapshotDelta FilterDeltaByViewport(
         WorldSnapshotDelta delta,
         Viewport viewport,
-        ulong? alwaysIncludeSim = null)
+        ulong? alwaysIncludeGenos = null)
     {
         return new WorldSnapshotDelta
         {
@@ -64,74 +64,74 @@ public static class AoiFilter
             SinceTick = delta.SinceTick,
             Version = delta.Version,
             Full = delta.Full,
-            Sims = delta.Sims
-                .Where(sim => sim.NetworkId == alwaysIncludeSim || viewport.Contains(sim.TileX, sim.TileY))
+            Genoses = delta.Genoses
+                .Where(genos => genos.NetworkId == alwaysIncludeGenos || viewport.Contains(genos.TileX, genos.TileY))
                 .ToList(),
             Companies = delta.Companies,
-            RemovedSims = delta.RemovedSims,
+            RemovedGenoses = delta.RemovedGenoses,
             RemovedCompanies = delta.RemovedCompanies
         };
     }
 
     /// <summary>
     /// Builds a viewport-filtered delta from two full snapshots. Unlike
-    /// filtering an already-built delta, this includes sims that entered the
-    /// viewport without changing this tick, and sims that left it.
+    /// filtering an already-built delta, this includes genoses that entered the
+    /// viewport without changing this tick, and genoses that left it.
     /// </summary>
     public static WorldSnapshotDelta BuildViewportDelta(
         WorldSnapshot? previous,
         WorldSnapshot current,
         Viewport viewport,
-        ulong? alwaysIncludeSim = null)
+        ulong? alwaysIncludeGenos = null)
     {
         if (previous is null)
         {
-            var full = FilterSnapshotByViewport(current, viewport, alwaysIncludeSim);
+            var full = FilterSnapshotByViewport(current, viewport, alwaysIncludeGenos);
             return new WorldSnapshotDelta
             {
                 Tick = current.Tick,
                 SinceTick = 0,
                 Version = current.Version,
                 Full = true,
-                Sims = full.Sims,
+                Genoses = full.Genoses,
                 Companies = full.Companies
             };
         }
 
-        var previousById = new Dictionary<ulong, SimStatus>(previous.Sims.Count);
-        foreach (var sim in previous.Sims)
-            previousById[sim.NetworkId] = sim;
+        var previousById = new Dictionary<ulong, GenosStatus>(previous.Genoses.Count);
+        foreach (var genos in previous.Genoses)
+            previousById[genos.NetworkId] = genos;
 
         var previouslyVisible = new HashSet<ulong>();
-        foreach (var sim in previous.Sims)
+        foreach (var genos in previous.Genoses)
         {
-            if (sim.NetworkId == alwaysIncludeSim
-                || viewport.ContainsWithMargin(sim.TileX, sim.TileY))
-                previouslyVisible.Add(sim.NetworkId);
+            if (genos.NetworkId == alwaysIncludeGenos
+                || viewport.ContainsWithMargin(genos.TileX, genos.TileY))
+                previouslyVisible.Add(genos.NetworkId);
         }
 
-        var visible = new List<SimStatus>();
+        var visible = new List<GenosStatus>();
         var visibleIds = new HashSet<ulong>();
-        foreach (var sim in current.Sims)
+        foreach (var genos in current.Genoses)
         {
-            var isOwn = sim.NetworkId == alwaysIncludeSim;
-            var entered = viewport.Contains(sim.TileX, sim.TileY);
-            var stays = previouslyVisible.Contains(sim.NetworkId)
-                && viewport.ContainsWithMargin(sim.TileX, sim.TileY);
+            var isOwn = genos.NetworkId == alwaysIncludeGenos;
+            var entered = viewport.Contains(genos.TileX, genos.TileY);
+            var stays = previouslyVisible.Contains(genos.NetworkId)
+                && viewport.ContainsWithMargin(genos.TileX, genos.TileY);
 
             if (!isOwn && !entered && !stays)
                 continue;
 
-            visible.Add(sim);
-            visibleIds.Add(sim.NetworkId);
+            visible.Add(genos);
+            visibleIds.Add(genos.NetworkId);
         }
 
-        var sims = new List<SimStatus>();
-        foreach (var sim in visible)
+        var genoses = new List<GenosStatus>();
+        foreach (var genos in visible)
         {
-            if (!previousById.TryGetValue(sim.NetworkId, out var prior)
-                || !WorldSnapshotDelta.SimsEqual(prior, sim))
-                sims.Add(sim);
+            if (!previousById.TryGetValue(genos.NetworkId, out var prior)
+                || !WorldSnapshotDelta.GenosesEqual(prior, genos))
+                genoses.Add(genos);
         }
 
         var removed = previouslyVisible.Where(id => !visibleIds.Contains(id)).ToList();
@@ -143,9 +143,9 @@ public static class AoiFilter
             SinceTick = previous.Tick,
             Version = current.Version,
             Full = false,
-            Sims = sims,
+            Genoses = genoses,
             Companies = companies,
-            RemovedSims = removed,
+            RemovedGenoses = removed,
             RemovedCompanies = removedCompanies
         };
     }

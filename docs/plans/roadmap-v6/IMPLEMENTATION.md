@@ -16,14 +16,14 @@ default path. Replay, balance, family-release, multiplayer and performance suite
 | 1.2 | Overrun logging throttled to once per 5 s; `OverrunCount` still increments on every overrun | `Genelife.API/Services/SimulationLoop.cs` |
 | 1.3 | Company snapshots build one office-count dictionary per snapshot instead of an Office query per company | `Genelife.API/Services/SimulationEngine.cs` |
 | 1.4 | Appearance descriptor cache keyed by `(traits, age band, version, stable key)`; cleared on `Initialize`/`Shutdown`, so restore rebuilds it | `Genelife.API/Services/SimulationEngine.cs` |
-| 1.5 | Per-tick event list is pooled; sim/map event collection and `TickCompleted` are skipped when no persistence/event consumer is attached | `Genelife.API/Services/SimulationEngine.cs` |
+| 1.5 | Per-tick event list is pooled; genos/map event collection and `TickCompleted` are skipped when no persistence/event consumer is attached | `Genelife.API/Services/SimulationEngine.cs` |
 
 ### Tier 2 — Lock and cadence structure
 
 | Step | Change | Files |
 |---|---|---|
 | 2.1 | `Tick` mutates under the write lock, then releases it and collects events / publishes snapshots under the read lock. Snapshot publication is still `Interlocked.Exchange` + `SnapshotHistory.Record`. | `Genelife.API/Services/SimulationEngine.cs` |
-| 2.2 | Global `lock (@lock)` replaced by `ReaderWriterLockSlim`. Read-only accessors (`World`, `Economy`, `MapVersion`, `CurrentTick`, `EmploymentIndex`, `Relationships`, `GetPlayerSimNetworkId`, `GetPlayerTile`, `TryGetEntity`, `IsAlive`, `GetOwnerPlayerId`, `GetMetricsSnapshot`, `PrepareSave`) take the read lock; mutating paths take the write lock. | `Genelife.API/Services/SimulationEngine.cs` |
+| 2.2 | Global `lock (@lock)` replaced by `ReaderWriterLockSlim`. Read-only accessors (`World`, `Economy`, `MapVersion`, `CurrentTick`, `EmploymentIndex`, `Relationships`, `GetPlayerGenosNetworkId`, `GetPlayerTile`, `TryGetEntity`, `IsAlive`, `GetOwnerPlayerId`, `GetMetricsSnapshot`, `PrepareSave`) take the read lock; mutating paths take the write lock. | `Genelife.API/Services/SimulationEngine.cs` |
 | 2.3 | `Cadence` gained an `Offset`; staggered systems run later but receive the logical boundary tick. Implemented as an opt-in (`SimulationEngine.StaggerCadence`, default off — see below). | `Genelife/Systems/ISimulationSystem.cs`, `SystemRegistry.cs`, family/payroll systems, `SimulationEngine` |
 | 2.4 | `DecisionSystem`, `NeedsDecaySystem` and `ActionSystem` use `TryGet` instead of `Has` + `Get` double lookups. Merging the passes was rejected: `DecisionSystem` sits between decay and action and must observe post-decay needs. | `Genelife/Systems/*` |
 | 2.5 | Per-system timing is sampled every 5 ticks (periodic systems are always timed); `Metrics.RecordSystem` is lock-free (interlocked microsecond counters); pathfinding has a per-tick iteration cap (`MovementOptions.MaxPathIterationsPerTick = 16_384`) charged against actual expansions. | `Genelife/Systems/SystemRegistry.cs`, `Genelife.API/Services/Metrics.cs`, `Genelife/Systems/PathfindingSystem.cs`, `Genelife/Map/TilePathfinder.cs`, `Genelife/Map/MovementOptions.cs` |
@@ -32,8 +32,8 @@ default path. Replay, balance, family-release, multiplayer and performance suite
 
 | Step | Change | Files |
 |---|---|---|
-| 3.1 | The fixed-step loop runs on a dedicated long-running thread instead of a thread-pool continuation. The legacy admin mutations (`AddSim`, `AddCompany`, `DeleteSim`, `SetSimAction`) now enqueue typed admin commands and wait for the tick to apply them, so request threads no longer mutate the world. | `Genelife.API/Services/SimulationLoop.cs`, `SimulationManager.cs`, `SimulationEngine.cs`, `Commands/AdminCommand.cs`, `Genelife.Domain.Tests/Services/AdminCommandQueueTests.cs` |
-| 3.2 | Per-entity parallel passes for needs decay, decision and action using Arch `InlineParallelEntityQuery`, behind `SimulationEngine.ParallelSystems` (default off — see below). A determinism test compares 600 sims serial vs parallel. | `Genelife/Systems/{NeedsDecay,Decision,Action}System.cs`, `SimulationParallelism.cs`, `Genelife.Domain.Tests/Systems/ParallelSystemDeterminismTests.cs` |
+| 3.1 | The fixed-step loop runs on a dedicated long-running thread instead of a thread-pool continuation. The legacy admin mutations (`AddGenos`, `AddCompany`, `DeleteGenos`, `SetGenosAction`) now enqueue typed admin commands and wait for the tick to apply them, so request threads no longer mutate the world. | `Genelife.API/Services/SimulationLoop.cs`, `SimulationManager.cs`, `SimulationEngine.cs`, `Commands/AdminCommand.cs`, `Genelife.Domain.Tests/Services/AdminCommandQueueTests.cs` |
+| 3.2 | Per-entity parallel passes for needs decay, decision and action using Arch `InlineParallelEntityQuery`, behind `SimulationEngine.ParallelSystems` (default off — see below). A determinism test compares 600 genoses serial vs parallel. | `Genelife/Systems/{NeedsDecay,Decision,Action}System.cs`, `SimulationParallelism.cs`, `Genelife.Domain.Tests/Systems/ParallelSystemDeterminismTests.cs` |
 | 3.3 | Snapshot construction moved to a dedicated consumer thread with a coalescing signal. Enabled by the hosted `SimulationLoop` (`AsyncSnapshots = true`); direct `Tick` callers (tests, harness) keep synchronous snapshots. | `Genelife.API/Services/SimulationEngine.cs`, `SimulationLoop.cs`, `Genelife.Domain.Tests/Snapshots/AsyncSnapshotTests.cs` |
 
 ## Opt-in decisions (with evidence)
@@ -69,8 +69,8 @@ breaking determinism or the V5 acceptance runs.
   commands and `ExecuteAdminCommandSync`, which blocks the request thread until the next tick
   applies the command (2 s timeout). The only remaining direct mutation is `RestoreSnapshot`,
   which is explicitly an offline operation and refuses to run while the simulation is running.
-- **Harness fixture coverage.** `SimFixture.PopulateSynthetic/Realistic` creates sims without
-  `NetworkId` or `Traits`, and no companies/offices. That means `CollectSimEvents` matches
+- **Harness fixture coverage.** `GenosFixture.PopulateSynthetic/Realistic` creates genoses without
+  `NetworkId` or `Traits`, and no companies/offices. That means `CollectGenosEvents` matches
   nothing, appearance derivation is skipped, and the company snapshot index has nothing to
   index, so the Tier 1 event/appearance/company wins do not show up in the harness allocation
   numbers even though they remove real work in production. Adding those components to the
@@ -97,7 +97,7 @@ attached. Allocation is dominated by the economy systems (`BasicIncome`, `Consum
 `UtilityConsumption`), not by snapshot construction or event lists, so the Tier 1 allocation
 trims do not move the harness allocation numbers much.
 
-The 5k fixture exceeds the 2,000-sim target by 2.5x and stays far below the 50 ms p95/p99
+The 5k fixture exceeds the 2,000-genos target by 2.5x and stays far below the 50 ms p95/p99
 budget. `MultiplayerAcceptanceTests` (32-player soak) passes.
 
 ## Verification commands

@@ -33,7 +33,7 @@ public sealed class PlayerHouseholdSystem : ISimulationSystem
     public void Update(long tick)
     {
         var query = new QueryDescription().WithAll<PlayerHousing>();
-        world.Query(in query, (Entity sim, ref PlayerHousing lease) =>
+        world.Query(in query, (Entity genos, ref PlayerHousing lease) =>
         {
             var household = lease.Household;
             var unit = household != Entity.Null && world.IsAlive(household) && world.Has<Household>(household)
@@ -46,7 +46,7 @@ public sealed class PlayerHouseholdSystem : ISimulationSystem
             lease.Household = household;
             lease.Unit = unit;
             lease.LeaseActive = household != Entity.Null && unit != Entity.Null;
-            world.Get<PlayerHousing>(sim) = lease;
+            world.Get<PlayerHousing>(genos) = lease;
 
             if (household != Entity.Null && world.IsAlive(household) && !world.Has<HouseholdPantry>(household))
                 world.Add(household, new HouseholdPantry());

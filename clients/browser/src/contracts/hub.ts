@@ -80,7 +80,7 @@ export interface AppearanceStatus {
   appearanceVersion: number;
 }
 
-export interface SimStatus {
+export interface GenosStatus {
   networkId: number;
   name: string;
   age: number;
@@ -130,7 +130,7 @@ export interface CompanyStatus {
 export interface WorldSnapshot {
   tick: number;
   version: number;
-  sims: SimStatus[];
+  genoses: GenosStatus[];
   companies: CompanyStatus[];
 }
 
@@ -139,15 +139,15 @@ export interface WorldSnapshotDelta {
   sinceTick: number;
   version: number;
   full: boolean;
-  sims: SimStatus[];
+  genoses: GenosStatus[];
   companies: CompanyStatus[];
-  removedSims: number[];
+  removedGenoses: number[];
   removedCompanies: number[];
 }
 
 export interface WelcomeMessage {
   playerId: string;
-  simNetworkId: number;
+  genosNetworkId: number;
   mapId: string;
   mapVersion: number;
   tick: number;
@@ -155,8 +155,8 @@ export interface WelcomeMessage {
   snapshotVersion: number;
   protocolVersion: number;
   awaitingRespawn?: boolean;
-  lastSimName?: string | null;
-  lastSimAge?: number;
+  lastGenosName?: string | null;
+  lastGenosAge?: number;
 }
 
 export type PlayerLifecycleKind = "died" | "respawned";
@@ -164,8 +164,8 @@ export type PlayerLifecycleKind = "died" | "respawned";
 export interface PlayerLifecycleNotice {
   playerId: string;
   kind: PlayerLifecycleKind;
-  simNetworkId: number;
-  previousSimNetworkId: number;
+  genosNetworkId: number;
+  previousGenosNetworkId: number;
   name: string | null;
   age: number;
   cause: string | null;
@@ -208,7 +208,7 @@ export interface MoveIntent {
   type: "move";
   playerId: string;
   sequence: number;
-  simNetworkId: number;
+  genosNetworkId: number;
   targetTileX: number;
   targetTileY: number;
 }
@@ -217,7 +217,7 @@ export interface UseBuildingIntent {
   type: "useBuilding";
   playerId: string;
   sequence: number;
-  simNetworkId: number;
+  genosNetworkId: number;
   buildingNetworkId: number;
 }
 
@@ -225,7 +225,7 @@ export interface PlayerActionIntent {
   type: "playerAction";
   playerId: string;
   sequence: number;
-  simNetworkId: number;
+  genosNetworkId: number;
   kind: string;
   payload: Record<string, unknown>;
 }

@@ -1,7 +1,7 @@
 namespace Genelife.Components.Gen;
 
 /// <summary>
-/// Component representing a Sim's basic needs
+/// Component representing a Genos's basic needs
 /// </summary>
 public record struct Needs
 {

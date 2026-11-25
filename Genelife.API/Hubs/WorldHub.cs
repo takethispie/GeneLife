@@ -35,7 +35,7 @@ public sealed class WorldHub : Hub
     private readonly int minViewportRadius;
     private readonly int maxViewportRadius;
     private readonly int tickIntervalMs;
-    private readonly bool autoCreatePlayerSim;
+    private readonly bool autoCreatePlayerGenos;
 
     private static readonly ConcurrentDictionary<string, RateLimitWindow> RateLimits = new();
     private static readonly ConcurrentDictionary<string, RateLimitWindow> SnapshotRateLimits = new();
@@ -69,7 +69,7 @@ public sealed class WorldHub : Hub
         minViewportRadius = Math.Max(1, configuration.GetValue("SignalR:Viewport:MinRadius", 4));
         maxViewportRadius = Math.Max(minViewportRadius, configuration.GetValue("SignalR:Viewport:MaxRadius", 256));
         tickIntervalMs = Math.Max(1, configuration.GetValue("SignalR:TickIntervalMs", 40));
-        autoCreatePlayerSim = configuration.GetValue("SignalR:AutoCreatePlayerSim", true);
+        autoCreatePlayerGenos = configuration.GetValue("SignalR:AutoCreatePlayerGenos", true);
     }
 
     public override async Task OnConnectedAsync()
@@ -85,8 +85,8 @@ public sealed class WorldHub : Hub
         registry.Register(Context.ConnectionId, playerId);
         replicationTracker.RestoreForConnection(Context.ConnectionId, playerId);
         engine.MarkPlayerConnected(playerId);
-        if (autoCreatePlayerSim)
-            engine.EnsurePlayerSim(playerId);
+        if (autoCreatePlayerGenos)
+            engine.EnsurePlayerGenos(playerId);
         engine.EnsurePlayerSpawn(playerId);
 
         if (viewports.TryGetForPlayer(playerId, out var savedViewport))
@@ -107,7 +107,7 @@ public sealed class WorldHub : Hub
 
         var map = engine.BuildMapSnapshot();
         var snapshot = engine.GetLatestSnapshot();
-        var simNetworkId = welcome.SimNetworkId;
+        var genosNetworkId = welcome.GenosNetworkId;
         await Clients.Caller.SendAsync("SendMapSnapshot", map);
         if (snapshot is not null)
         {
@@ -116,7 +116,7 @@ public sealed class WorldHub : Hub
                 snapshot = AoiFilter.FilterSnapshotByViewport(
                     snapshot,
                     initialViewport,
-                    simNetworkId);
+                    genosNetworkId);
             }
 
             replicationMetrics.Record(Context.ConnectionId, full: true, EstimateBytes(snapshot));
@@ -129,7 +129,7 @@ public sealed class WorldHub : Hub
 
     /// <summary>
     /// Resends the Welcome payload. Clients call this after a world reset so
-    /// they learn their freshly created sim network id and the new map version.
+    /// they learn their freshly created genos network id and the new map version.
     /// </summary>
     public async Task RequestWelcome()
     {
@@ -144,19 +144,19 @@ public sealed class WorldHub : Hub
     {
         var snapshot = engine.GetLatestSnapshot();
         var map = engine.BuildMapSnapshot();
-        var simNetworkId = engine.GetPlayerSimNetworkId(playerId);
+        var genosNetworkId = engine.GetPlayerGenosNetworkId(playerId);
         var profile = engine.Players.TryGet(playerId, out var known) ? known : null;
         var awaitingRespawn = profile is
         {
             AwaitingContinuation: true,
             Observer: false,
             ContinuationPolicy: not PlayerContinuationPolicy.Observer
-        } && (profile.LastSimName is not null || profile.LastSimTraits is not null);
+        } && (profile.LastGenosName is not null || profile.LastGenosTraits is not null);
 
         return new WelcomeMessage
         {
             PlayerId = playerId,
-            SimNetworkId = simNetworkId,
+            GenosNetworkId = genosNetworkId,
             MapId = map.MapId,
             MapVersion = map.Version,
             Tick = snapshot?.Tick ?? engine.CurrentTick,
@@ -164,8 +164,8 @@ public sealed class WorldHub : Hub
             SnapshotVersion = snapshot?.Version ?? WorldSnapshot.CurrentVersion,
             ProtocolVersion = WelcomeMessage.CurrentProtocolVersion,
             AwaitingRespawn = awaitingRespawn,
-            LastSimName = profile?.LastSimName,
-            LastSimAge = profile?.LastSimAge ?? 0
+            LastGenosName = profile?.LastGenosName,
+            LastGenosAge = profile?.LastGenosAge ?? 0
         };
     }
 
@@ -212,7 +212,7 @@ public sealed class WorldHub : Hub
             ? 0
             : sinceTick ?? replicationTracker.GetAcknowledgedTick(Context.ConnectionId);
         var viewport = viewports.TryGet(Context.ConnectionId, out var activeViewport) ? activeViewport : (Viewport?)null;
-        var ownSim = engine.GetPlayerSimNetworkId(Context.User?.GetPlayerId() ?? string.Empty);
+        var ownGenos = engine.GetPlayerGenosNetworkId(Context.User?.GetPlayerId() ?? string.Empty);
 
         WorldSnapshotDelta? delta;
         if (forceFull)
@@ -222,7 +222,7 @@ public sealed class WorldHub : Hub
                 return;
 
             var full = viewport is { } forcedViewport
-                ? AoiFilter.FilterSnapshotByViewport(current, forcedViewport, ownSim)
+                ? AoiFilter.FilterSnapshotByViewport(current, forcedViewport, ownGenos)
                 : current;
             delta = new WorldSnapshotDelta
             {
@@ -230,7 +230,7 @@ public sealed class WorldHub : Hub
                 SinceTick = 0,
                 Version = full.Version,
                 Full = true,
-                Sims = full.Sims,
+                Genoses = full.Genoses,
                 Companies = full.Companies
             };
         }
@@ -244,7 +244,7 @@ public sealed class WorldHub : Hub
                 && engine.SnapshotHistory.TryGet(effectiveSince, out var found)
                     ? found
                     : null;
-            delta = AoiFilter.BuildViewportDelta(previous, current, active, ownSim);
+            delta = AoiFilter.BuildViewportDelta(previous, current, active, ownGenos);
         }
         else
         {
@@ -256,7 +256,7 @@ public sealed class WorldHub : Hub
 
         if (delta.Full)
         {
-            var full = new WorldSnapshot(delta.Tick, delta.Version, delta.Sims, delta.Companies);
+            var full = new WorldSnapshot(delta.Tick, delta.Version, delta.Genoses, delta.Companies);
             replicationMetrics.Record(Context.ConnectionId, full: true, EstimateBytes(full));
             await Clients.Caller.SendAsync("SendSnapshot", full);
             replicationTracker.MarkFullSnapshotSent(Context.ConnectionId, full.Tick);

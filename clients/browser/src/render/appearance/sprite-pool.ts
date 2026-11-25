@@ -62,8 +62,8 @@ class AppearanceSprite {
 }
 
 /**
- * Pools layered sim containers by descriptor hash. Shared part textures are
- * tinted from palettes, so no per-sim texture is generated.
+ * Pools layered genos containers by descriptor hash. Shared part textures are
+ * tinted from palettes, so no per-genos texture is generated.
  */
 export class AppearanceSpritePool {
   private readonly pool: DisplayPool<AppearanceSprite>;

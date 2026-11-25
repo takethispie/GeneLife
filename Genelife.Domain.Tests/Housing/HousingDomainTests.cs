@@ -19,26 +19,26 @@ public class HousingDomainTests
         var economy = new EconomyContext(world);
         var registry = economy.Housing;
         var (_, unit) = TestHousing.CreateUnit(world, economy, 10, 11);
-        var sim = TestHousing.Sim(world, 1, 500m);
+        var genos = TestHousing.Genos(world, 1, 500m);
         var household = world.Create(new Household
         {
-            Head = sim,
+            Head = genos,
             Tenure = Tenure.Renter,
             MonthlyRent = Money.FromUnits(120m)
         });
-        world.Add(sim, new HouseholdMember(household, HouseholdRole.Head));
-        registry.AddMember(sim, household);
+        world.Add(genos, new HouseholdMember(household, HouseholdRole.Head));
+        registry.AddMember(genos, household);
 
-        Assert.False(registry.TryGetUnitForSim(sim, out _));
+        Assert.False(registry.TryGetUnitForGenos(genos, out _));
         registry.MoveIn(unit, household);
 
-        Assert.True(registry.TryGetUnitForSim(sim, out var found));
+        Assert.True(registry.TryGetUnitForGenos(genos, out var found));
         Assert.Equal(unit, found);
         Assert.Equal(household, registry.HouseholdIn(unit));
         Assert.Equal(1, registry.MemberCount(household));
         Assert.Empty(registry.Verify());
 
-        var partner = TestHousing.Sim(world, 2, 500m);
+        var partner = TestHousing.Genos(world, 2, 500m);
         world.Add(partner, new HouseholdMember(household, HouseholdRole.Partner));
         registry.AddMember(partner, household);
         Assert.Equal(2, world.Get<HousingUnit>(unit).OccupantCount);
@@ -48,7 +48,7 @@ public class HousingDomainTests
 
         registry.MoveOut(unit, household);
 
-        Assert.False(registry.TryGetUnitForSim(sim, out _));
+        Assert.False(registry.TryGetUnitForGenos(genos, out _));
         Assert.Equal(Entity.Null, world.Get<Household>(household).Unit);
         Assert.True(world.Get<HousingUnit>(unit).IsVacant);
         Assert.Empty(registry.Verify());
@@ -60,9 +60,9 @@ public class HousingDomainTests
         var world = World.Create();
         var economy = new EconomyContext(world);
         var registry = economy.Housing;
-        var head = TestHousing.Sim(world, 1, 50m);
-        var partner = TestHousing.Sim(world, 2, 200m);
-        var child = TestHousing.Sim(world, 3, 500m, age: 10);
+        var head = TestHousing.Genos(world, 1, 50m);
+        var partner = TestHousing.Genos(world, 2, 200m);
+        var child = TestHousing.Genos(world, 3, 500m, age: 10);
         world.Add(head, new SavingsAccount(new Money(100_00)));
         world.Add(partner, new SavingsAccount(new Money(1000_00)));
 
@@ -115,10 +115,10 @@ public class HousingDomainTests
 
 internal static class TestHousing
 {
-    public static Entity Sim(World world, ulong networkId, decimal wallet, int age = 30)
+    public static Entity Genos(World world, ulong networkId, decimal wallet, int age = 30)
     {
         var entity = world.Create(
-            new GenName($"Sim {networkId}"),
+            new GenName($"Genos {networkId}"),
             new Needs(),
             new CurrentAction(ActionType.Idle, 0f),
             new Alive(age),

@@ -2,7 +2,7 @@ namespace Genelife.Messages.Events;
 
 public record WagesPaid(
     ulong CompanyId,
-    ulong SimId,
+    ulong GenosId,
     long GrossCents,
     long NetCents,
     long TaxCents,
@@ -11,7 +11,7 @@ public record WagesPaid(
 
 public record WagesDeferred(
     ulong CompanyId,
-    ulong SimId,
+    ulong GenosId,
     long UnpaidGrossCents,
     long UnpaidNetCents,
     long Tick);
@@ -31,18 +31,18 @@ public record PayrollCycleCompleted(
 
 public record WageArrearsSettled(
     ulong CompanyId,
-    ulong SimId,
+    ulong GenosId,
     long AmountCents,
     long Tick);
 
-public record EmployeeResigned(ulong CompanyId, ulong SimId);
+public record EmployeeResigned(ulong CompanyId, ulong GenosId);
 
 public record BasicIncomeBatchPaid(int Recipients, long TotalCents, long Tick);
 
 public record ConsumerSpendingBatchCompleted(int Households, long SpentCents, long UnmetCents, long Tick);
 
 public record PurchaseBooked(
-    ulong SimId,
+    ulong GenosId,
     ulong CompanyId,
     string Category,
     long AmountCents,
@@ -72,7 +72,7 @@ public record CorporateTaxAssessed(
 
 public record RecruitmentFeeCharged(
     ulong CompanyId,
-    ulong SimId,
+    ulong GenosId,
     long FeeCents,
     long Tick);
 
@@ -85,11 +85,11 @@ public record CompanyLiquidated(
     long TaxArrearsCents,
     long Tick);
 
-public record SavingsDeposited(ulong SimId, long AmountCents, long Tick);
+public record SavingsDeposited(ulong GenosId, long AmountCents, long Tick);
 
-public record SavingsWithdrawn(ulong SimId, long AmountCents, long Tick);
+public record SavingsWithdrawn(ulong GenosId, long AmountCents, long Tick);
 
-public record SavingsInterestPaid(ulong SimId, long AmountCents, long Tick);
+public record SavingsInterestPaid(ulong GenosId, long AmountCents, long Tick);
 
 public record LoanIssued(
     ulong LoanId,

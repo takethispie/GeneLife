@@ -5,7 +5,7 @@ namespace Genelife.Family;
 /// <summary>
 /// A player-keyed consent request. Unlike <see cref="FamilyInvitation"/>, this
 /// record survives heir continuation: acceptance resolves each player's
-/// current controlled sim and revalidates before creating any relationship.
+/// current controlled genos and revalidates before creating any relationship.
 /// </summary>
 public sealed record PlayerRelationshipInvitation
 {
@@ -21,7 +21,7 @@ public sealed record PlayerRelationshipInvitation
 public sealed record PlayerRelationshipStatus(
     string PlayerId,
     string? PartnerPlayerId,
-    ulong? PartnerSimNetworkId,
+    ulong? PartnerGenosNetworkId,
     string? PartnerName,
     bool SharesHousehold,
     bool CanCohabit,

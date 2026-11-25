@@ -124,7 +124,7 @@ public class SeedFamilyTests
         return pairs;
     }
 
-    private static void Generate(SimulationEngine engine, int sims, int seed) =>
+    private static void Generate(SimulationEngine engine, int genoses, int seed) =>
         engine.ExecuteWithWorld(world =>
         {
             var generator = new PopulationGenerator(
@@ -132,7 +132,7 @@ public class SeedFamilyTests
                 relationshipIndex: engine.Relationships,
                 relationshipService: engine.RelationshipService!,
                 relationshipOptions: engine.RelationshipOptions);
-            generator.Generate(sims, seed: seed);
+            generator.Generate(genoses, seed: seed);
             return 0;
         });
 

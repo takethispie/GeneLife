@@ -56,19 +56,19 @@ public sealed class SeedFamilyBuilder
         var paired = new HashSet<Entity>();
         var pairs = new List<SeedPair>(targetPairs);
 
-        foreach (var sim in eligible)
+        foreach (var genos in eligible)
         {
             if (pairs.Count >= targetPairs)
                 break;
-            if (paired.Contains(sim))
+            if (paired.Contains(genos))
                 continue;
 
-            var partner = FindPartner(sim, eligible, paired);
+            var partner = FindPartner(genos, eligible, paired);
             if (partner == Entity.Null)
                 continue;
 
             if (!service.TryCreatePair(
-                    sim,
+                    genos,
                     partner,
                     RelationshipKind.Partner,
                     RelationshipSource.Seed,
@@ -78,9 +78,9 @@ public sealed class SeedFamilyBuilder
                     out _))
                 continue;
 
-            paired.Add(sim);
+            paired.Add(genos);
             paired.Add(partner);
-            pairs.Add(new SeedPair(sim, partner));
+            pairs.Add(new SeedPair(genos, partner));
         }
 
         return pairs;
@@ -109,13 +109,13 @@ public sealed class SeedFamilyBuilder
         return created;
     }
 
-    private Entity FindPartner(Entity sim, IReadOnlyList<Entity> eligible, HashSet<Entity> paired)
+    private Entity FindPartner(Entity genos, IReadOnlyList<Entity> eligible, HashSet<Entity> paired)
     {
-        if (!world.Has<Traits>(sim))
+        if (!world.Has<Traits>(genos))
             return Entity.Null;
 
-        var simAge = world.Get<Alive>(sim).Age;
-        var simTraits = world.Get<Traits>(sim);
+        var genosAge = world.Get<Alive>(genos).Age;
+        var genosTraits = world.Get<Traits>(genos);
 
         Entity best = Entity.Null;
         var bestGap = int.MaxValue;
@@ -124,18 +124,18 @@ public sealed class SeedFamilyBuilder
 
         foreach (var candidate in eligible)
         {
-            if (candidate == sim || paired.Contains(candidate))
+            if (candidate == genos || paired.Contains(candidate))
                 continue;
 
-            var ageGap = Math.Abs(simAge - world.Get<Alive>(candidate).Age);
+            var ageGap = Math.Abs(genosAge - world.Get<Alive>(candidate).Age);
             if (ageGap > options.MaxAgeGap)
                 continue;
 
-            if (!EligibilityPolicy.Evaluate(world, index, sim, candidate, options).Eligible)
+            if (!EligibilityPolicy.Evaluate(world, index, genos, candidate, options).Eligible)
                 continue;
 
             var compatibility = world.Has<Traits>(candidate)
-                ? AttractionScorer.TraitCompatibilityBasisPoints(simTraits, world.Get<Traits>(candidate))
+                ? AttractionScorer.TraitCompatibilityBasisPoints(genosTraits, world.Get<Traits>(candidate))
                 : 0;
             var networkId = NetworkIdOf(candidate);
 

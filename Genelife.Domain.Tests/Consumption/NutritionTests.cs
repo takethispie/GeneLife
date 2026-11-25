@@ -33,11 +33,11 @@ public class NutritionTests
     {
         var world = World.Create();
         var economy = new EconomyContext(world);
-        var sim = world.Create(new Health(80f), new NutritionState { Balance = -100 });
+        var genos = world.Create(new Health(80f), new NutritionState { Balance = -100 });
         var system = new NutritionSystem(world, economy, interval: 1);
         for (var i = 0; i < 10; i++)
             system.Update(100 + i);
-        Assert.True(world.Get<Health>(sim).Value >= 1f);
-        Assert.True(world.Has<Health>(sim));
+        Assert.True(world.Get<Health>(genos).Value >= 1f);
+        Assert.True(world.Has<Health>(genos));
     }
 }

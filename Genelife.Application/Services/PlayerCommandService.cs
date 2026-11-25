@@ -36,7 +36,7 @@ public sealed class PlayerCommandService
     public PlayerCommandAdmission Admit(
         string? playerId,
         PlayerActionKind kind,
-        ulong simNetworkId,
+        ulong genosNetworkId,
         JsonElement payload,
         long sequence,
         Guid? commandId)
@@ -61,12 +61,12 @@ public sealed class PlayerCommandService
             return Reject("rate_limited", "Too many actions are already pending.");
 
         var id = commandId is null || commandId == Guid.Empty ? Guid.NewGuid() : commandId.Value;
-        var resolvedSim = simNetworkId != 0 ? simNetworkId : engine.GetPlayerSimNetworkId(playerId);
+        var resolvedGenos = genosNetworkId != 0 ? genosNetworkId : engine.GetPlayerGenosNetworkId(playerId);
         var intent = new PlayerActionIntent
         {
             PlayerId = playerId,
             Sequence = sequence,
-            SimNetworkId = resolvedSim,
+            GenosNetworkId = resolvedGenos,
             Kind = kind,
             Payload = payload,
             CommandId = id,

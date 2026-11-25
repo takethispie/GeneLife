@@ -151,10 +151,10 @@ public sealed class PregnancySystem : ISimulationSystem
 
 internal static class Parenting
 {
-    public static Entity HouseholdOf(World world, EconomyContext economy, Entity sim)
+    public static Entity HouseholdOf(World world, EconomyContext economy, Entity genos)
     {
-        if (sim == Entity.Null || !world.IsAlive(sim))
+        if (genos == Entity.Null || !world.IsAlive(genos))
             return Entity.Null;
-        return economy.Housing.HouseholdOf(sim);
+        return economy.Housing.HouseholdOf(genos);
     }
 }

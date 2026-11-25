@@ -14,7 +14,7 @@ function controller(overrides: { near?: boolean; useBuilding?: ReturnType<typeof
   const notify = vi.fn();
   const selection = new BuildingSelectionController({
     getMap: () => map,
-    getOwnSimTile: () => (overrides.near === false ? { x: 10, y: 10 } : { x: -6, y: -6 }),
+    getOwnGenosTile: () => (overrides.near === false ? { x: 10, y: 10 } : { x: -6, y: -6 }),
     intent: { useBuilding } as unknown as IntentClient,
     onChanged: changed,
     notify
@@ -62,7 +62,7 @@ describe("BuildingSelectionController", () => {
     gone.delete(building.networkId);
     const removed = new BuildingSelectionController({
       getMap: () => ({ ...map, buildings: gone }),
-      getOwnSimTile: () => null,
+      getOwnGenosTile: () => null,
       intent: { useBuilding: h.useBuilding } as unknown as IntentClient,
       onChanged: h.changed,
       notify: h.notify

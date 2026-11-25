@@ -127,7 +127,7 @@ public sealed class NewbornFactory
 
     /// <summary>
     /// Creates an already-grown child of <paramref name="parent"/>. This backs
-    /// player respawns: the new sim carries the deceased parent's heritable
+    /// player respawns: the new genos carries the deceased parent's heritable
     /// traits and, while the parent entity still exists, a parent edge.
     /// </summary>
     public NewbornResult CreateChild(

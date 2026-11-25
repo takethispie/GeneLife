@@ -31,12 +31,12 @@ describe("contract fixtures", () => {
   it("accepts the recorded world snapshot and delta", () => {
     const snapshot = validateWorldSnapshot(worldSnapshot);
     expect(snapshot.tick).toBe(100);
-    expect(snapshot.sims).toHaveLength(5);
-    expect(snapshot.sims.filter((sim) => sim.isPlayerControlled)).toHaveLength(1);
+    expect(snapshot.genoses).toHaveLength(5);
+    expect(snapshot.genoses.filter((genos) => genos.isPlayerControlled)).toHaveLength(1);
 
     const delta = validateWorldSnapshotDelta(worldDelta);
     expect(delta.sinceTick).toBe(100);
-    expect(delta.removedSims).toEqual([5]);
+    expect(delta.removedGenoses).toEqual([5]);
     expect(delta.full).toBe(false);
   });
 
@@ -44,7 +44,7 @@ describe("contract fixtures", () => {
     const delta = validateMapDelta(mapDelta);
     expect(delta.fromVersion).toBe(3);
     expect(delta.toVersion).toBe(4);
-    expect(validateWelcome(welcome).simNetworkId).toBe(1);
+    expect(validateWelcome(welcome).genosNetworkId).toBe(1);
   });
 
   it("parses both intent discriminators", () => {
@@ -65,8 +65,8 @@ describe("contract fixtures", () => {
     const notice = validatePlayerLifecycleNotice({
       playerId: "p1",
       kind: "died",
-      simNetworkId: 7,
-      previousSimNetworkId: 0,
+      genosNetworkId: 7,
+      previousGenosNetworkId: 0,
       name: "Ada",
       age: 70,
       cause: "Age",
@@ -78,7 +78,7 @@ describe("contract fixtures", () => {
       validatePlayerLifecycleNotice({
         playerId: "p1",
         kind: "gone",
-        simNetworkId: 7,
+        genosNetworkId: 7,
         tick: 1
       })
     ).toThrowError(/unknown lifecycle kind/);

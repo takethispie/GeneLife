@@ -24,7 +24,7 @@ The AppHost launches the browser client on `http://localhost:5173` and injects
 - See [Roadmap V4](docs/plans/roadmap-v4/README.md), [Roadmap V5](docs/plans/roadmap-v5/README.md) and their `STATUS.md` files for evidence and open follow-ups.
 
 ## Active Roadmap
-- [V6 — Tick Performance](docs/plans/roadmap-v6/README.md): reduce dropped ticks at 2,000 sims under 32-player load.
+- [V6 — Tick Performance](docs/plans/roadmap-v6/README.md): reduce dropped ticks at 2,000 genoses under 32-player load.
 
 ## Implemented Feature
 - Very basic human eat-shower-sleep cycle

@@ -2,7 +2,7 @@
 
 **Scope:** backend + admin map console only. No game engine, no 3D client, no rendering pipeline, no gameplay input beyond the existing admin/multiplayer surfaces.
 
-**Target:** every building has one validated footprint on a deterministic tile map; every human-controlled sim has a server-authoritative position, movement target and replication contract; clients receive a static map layout plus dynamic sim positions without turning the tick snapshot into a map dump.
+**Target:** every building has one validated footprint on a deterministic tile map; every human-controlled genos has a server-authoritative position, movement target and replication contract; clients receive a static map layout plus dynamic genos positions without turning the tick snapshot into a map dump.
 
 > Implementation status: V2 is implemented. See [STATUS.md](STATUS.md) for evidence and deferred follow-ups.
 
@@ -15,7 +15,7 @@
 | Folder | Feature | Tech steps |
 |---|---|---|
 | `01-world-map/` | Shared tile map, deterministic generation, building placement and occupancy | 11 |
-| `02-player-movement/` | Player-controlled sims, intent drain, movement, collision and pathfinding | 11 |
+| `02-player-movement/` | Player-controlled genoses, intent drain, movement, collision and pathfinding | 11 |
 | `03-map-replication/` | Static map snapshot, map deltas, AOI, admin map console and observability | 10 |
 
 Feature-level detail was removed after V2 shipped; recover it from git history if needed. See [STATUS.md](STATUS.md) for the delivered state.
@@ -26,18 +26,18 @@ Feature-level detail was removed after V2 shipped; recover it from git history i
 
 | Area | Current implementation |
 |---|---|
-| World | Arch ECS `World`; sims, companies, properties, units, households, offices and schools are entities |
+| World | Arch ECS `World`; genoses, companies, properties, units, households, offices and schools are entities |
 | Tick loop | Fixed-step `SimulationLoop`; systems registered explicitly in `SimulationEngine.Initialize` |
-| Positions | `Location` is a `Vector2` on sims (`Genelife/Components/Gen/Location.cs`) |
-| Spawning | Sim creation paths write `new Location(0f, 0f)`; every sim starts at the same point |
+| Positions | `Location` is a `Vector2` on genoses (`Genelife/Components/Gen/Location.cs`) |
+| Spawning | Genos creation paths write `new Location(0f, 0f)`; every genos starts at the same point |
 | Buildings | `Property`, `Office` and `School` carry `District` but no position or footprint |
 | Spatial index | `SpatialIndex` exists in `Genelife/Systems/SpatialIndex.cs` but is not wired into the tick loop |
 | AOI | `AoiFilter` exists in `Genelife.API/Snapshots/AoiFilter.cs` but is not used by the broadcaster |
 | Player identity | `PlayerControlled { PlayerId }`; ownership is checked by `CommandAuthorizationService` |
 | Player intents | `MoveIntent` and `ICommandQueue` exist; `WorldHub.SubmitIntent` enqueues, but nothing drains the intent queue |
 | Admin commands | Typed `AdminCommand` queue is drained at tick start by `SimulationEngine.DrainAdminCommands` |
-| Snapshots | `WorldSnapshot` carries sims and companies; full and delta replication with reconnect support |
-| Persistence | `PersistedWorldState` schema version 4; `PersistedSim` has `X/Y`; office, property and school records have no position |
+| Snapshots | `WorldSnapshot` carries genoses and companies; full and delta replication with reconnect support |
+| Persistence | `PersistedWorldState` schema version 4; `PersistedGenos` has `X/Y`; office, property and school records have no position |
 | Admin UI | Blazor WebAssembly pages for data, economy, housing and lifecycle; no map page |
 
 All positions are therefore nominal today. The map work is not a rendering feature; it is a domain and consistency feature.
@@ -60,8 +60,8 @@ One map per simulated world, identified by `MapId`, `MapVersion` and `MapSeed`.
 ### Authoritative state
 
 - A building owns exactly one `Placement` (anchor, footprint, entry, kind). Residential units and employees inherit the building position; they never duplicate coordinates.
-- A sim owns exactly one `TilePosition` and one derived `Location`. The tile position is authoritative; the float location is updated in the same apply phase.
-- `PlayerControlled` owns identity, not position. A player is a sim plus a `PlayerId`, not a separate spatial entity.
+- A genos owns exactly one `TilePosition` and one derived `Location`. The tile position is authoritative; the float location is updated in the same apply phase.
+- `PlayerControlled` owns identity, not position. A player is a genos plus a `PlayerId`, not a separate spatial entity.
 
 ### Derived indices
 
@@ -69,14 +69,14 @@ Hot reads use derived indices that are rebuilt on restore and updated only in ap
 
 - `WorldMap` — static occupancy, walkability, lots, districts and building lookup (new).
 - `MovementIndex` — current routes and path-request state (new; paths are not stored in ECS components).
-- `SpatialIndex` — dynamic sim lookup for neighbours and AOI (existing, wired in V2).
+- `SpatialIndex` — dynamic genos lookup for neighbours and AOI (existing, wired in V2).
 
 The occupancy grid is never persisted as authoritative state.
 
 ### Static layout versus dynamic state
 
 - `MapSnapshot` carries the static layout: metadata, roads, zones and building placements.
-- `WorldSnapshot` / `WorldSnapshotDelta` carry dynamic sim state, including positions.
+- `WorldSnapshot` / `WorldSnapshotDelta` carry dynamic genos state, including positions.
 - Building changes are rare and travel as `MapDelta`, not inside every tick snapshot.
 
 ### Command path
@@ -117,7 +117,7 @@ Building placement is not a tick system; it runs inside command application befo
 - `PersistedWorldState.CurrentSchemaVersion` moves from 4 to 5.
 - `PersistedMap` stores `MapId`, `MapVersion`, seed, bounds and tile size.
 - `PersistedPlacement` stores one row per building keyed by network id.
-- `PersistedSim` gains `TileX`, `TileY`, `SubTileX`, `SubTileY`, `MoveTargetX` and `MoveTargetY`.
+- `PersistedGenos` gains `TileX`, `TileY`, `SubTileX`, `SubTileY`, `MoveTargetX` and `MoveTargetY`.
 - V4 snapshots migrate to V5 by deterministically backfilling a placement for every existing building.
 
 ---
@@ -137,7 +137,7 @@ flowchart TD
 ```
 
 1. **World map** — coordinate contract, placement component, occupancy index, deterministic generation, one placement service, persistence and map read model. Nothing else can be reliable until every building has a validated position.
-2. **Player movement** — bind players to sims, drain intents, add movement and pathfinding, spawn at home or a valid fallback, integrate NPC commute with building entries.
+2. **Player movement** — bind players to genoses, drain intents, add movement and pathfinding, spawn at home or a valid fallback, integrate NPC commute with building entries.
 3. **Map replication** — separate static layout from dynamic position deltas, wire AOI behind the existing scaling trigger, ship the admin map console.
 4. **Acceptance** — scale, determinism, restore and multiplayer scenarios.
 
@@ -152,7 +152,7 @@ The admin UI stays a read-mostly operations console:
 | Page | Feature | Main actions |
 |---|---|---|
 | Map | 01, 03 | inspect generated map, building footprints, entries, occupancy and player positions; place or validate a building; filter by kind and district |
-| Data | 02 | show tile position, movement target and current building for each sim |
+| Data | 02 | show tile position, movement target and current building for each genos |
 | Economy | 01, 02 | show office location and entry; link an office to the map |
 | Housing | 01, 02 | show property location and unit inheritance; link a property to the map |
 | Lifecycle | 01, 02 | show school location and commute target |
@@ -179,7 +179,7 @@ All pages follow the existing polling read model, `EmptyState` and command-resul
 - Every property, office and school has one placement with a positive footprint and an in-bounds, walkable entry.
 - No two building footprints overlap; the occupancy grid rebuilt on restore matches component placements exactly.
 - A seeded map regenerates identically, including terrain, roads, lots and initial building positions.
-- Every sim spawns in bounds on a walkable tile; every player-controlled sim spawns at a residence entry or a deterministic fallback.
+- Every genos spawns in bounds on a walkable tile; every player-controlled genos spawns at a residence entry or a deterministic fallback.
 - Player intents are drained each tick, authorised, validated and executed server-side.
 - Movement respects bounds, building footprints and map obstacles; pathfinding is budgeted and deterministic.
 - Save/restore preserves exact tile positions, movement targets and building placements; the movement path cache is rebuilt, not persisted.

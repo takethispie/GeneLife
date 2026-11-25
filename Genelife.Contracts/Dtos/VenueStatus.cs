@@ -3,7 +3,7 @@ namespace Genelife.Api.DTOs;
 public sealed record VenueOccupantDto(
     string PlayerId,
     string? DisplayName,
-    ulong SimNetworkId);
+    ulong GenosNetworkId);
 
 public sealed record VenueActivityNoticeDto(
     string PlayerId,

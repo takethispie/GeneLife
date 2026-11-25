@@ -6,44 +6,44 @@ namespace Genelife.Player;
 public enum PlayerContinuationPolicy : byte
 {
     Heir = 1,
-    NewSim = 2,
+    NewGenos = 2,
     Observer = 3,
     Respawn = 4
 }
 
 /// <summary>
 /// Player identity and continuation state. A profile is keyed by player id and
-/// survives heir continuation; the controlled sim pointer changes, the player
+/// survives heir continuation; the controlled genos pointer changes, the player
 /// identity does not.
 /// </summary>
 public sealed class PlayerProfile
 {
     public required string PlayerId { get; init; }
-    public Entity ControlledSim { get; set; }
+    public Entity ControlledGenos { get; set; }
     public PlayerContinuationPolicy ContinuationPolicy { get; set; } = PlayerContinuationPolicy.Respawn;
     public bool AwaitingContinuation { get; set; }
     public long CreatedTick { get; set; }
     public long LastActionTick { get; set; }
     public long LastSequence { get; set; }
-    public ulong LastSimNetworkId { get; set; }
+    public ulong LastGenosNetworkId { get; set; }
     public bool Observer { get; set; }
 
     /// <summary>
-    /// Snapshot of the last controlled sim captured at death so a child can be
+    /// Snapshot of the last controlled genos captured at death so a child can be
     /// created even after the dead entity has been destroyed.
     /// </summary>
-    public string? LastSimName { get; set; }
-    public int LastSimAge { get; set; }
-    public Traits? LastSimTraits { get; set; }
-    public ulong LastSimHouseholdNetworkId { get; set; }
-    public long LastSimDeathTick { get; set; }
+    public string? LastGenosName { get; set; }
+    public int LastGenosAge { get; set; }
+    public Traits? LastGenosTraits { get; set; }
+    public ulong LastGenosHouseholdNetworkId { get; set; }
+    public long LastGenosDeathTick { get; set; }
 
     /// <summary>
     /// Child created when a Respawn-policy player dies, before the player has
     /// chosen to control it. Keeping it alive preserves the parent edge after
     /// the dead entity is destroyed.
     /// </summary>
-    public ulong PendingRespawnSimNetworkId { get; set; }
+    public ulong PendingRespawnGenosNetworkId { get; set; }
 }
 
 /// <summary>
@@ -54,7 +54,7 @@ public sealed class PlayerProfile
 public sealed class PlayerRegistry
 {
     private readonly Dictionary<string, PlayerProfile> byPlayerId = new(StringComparer.Ordinal);
-    private readonly Dictionary<Entity, PlayerProfile> bySim = new();
+    private readonly Dictionary<Entity, PlayerProfile> byGenos = new();
 
     public IReadOnlyDictionary<string, PlayerProfile> Players => byPlayerId;
 
@@ -75,7 +75,7 @@ public sealed class PlayerRegistry
         return snapshot;
     }
 
-    public PlayerProfile GetOrCreate(string playerId, Entity sim, long tick)
+    public PlayerProfile GetOrCreate(string playerId, Entity genos, long tick)
     {
         if (!byPlayerId.TryGetValue(playerId, out var profile))
         {
@@ -87,8 +87,8 @@ public sealed class PlayerRegistry
             byPlayerId[playerId] = profile;
         }
 
-        if (sim != Entity.Null)
-            AttachSim(profile, sim);
+        if (genos != Entity.Null)
+            AttachGenos(profile, genos);
 
         return profile;
     }
@@ -96,16 +96,16 @@ public sealed class PlayerRegistry
     public bool TryGet(string playerId, out PlayerProfile profile) =>
         byPlayerId.TryGetValue(playerId, out profile!);
 
-    public bool TryGetBySim(Entity sim, out PlayerProfile profile) =>
-        bySim.TryGetValue(sim, out profile!);
+    public bool TryGetByGenos(Entity genos, out PlayerProfile profile) =>
+        byGenos.TryGetValue(genos, out profile!);
 
-    public bool TryGetByLastSimNetworkId(ulong networkId, out PlayerProfile profile)
+    public bool TryGetByLastGenosNetworkId(ulong networkId, out PlayerProfile profile)
     {
         if (networkId != 0)
         {
             foreach (var candidate in byPlayerId.Values)
             {
-                if (candidate.LastSimNetworkId != networkId)
+                if (candidate.LastGenosNetworkId != networkId)
                     continue;
                 profile = candidate;
                 return true;
@@ -116,27 +116,27 @@ public sealed class PlayerRegistry
         return false;
     }
 
-    public void AttachSim(PlayerProfile profile, Entity sim)
+    public void AttachGenos(PlayerProfile profile, Entity genos)
     {
-        if (profile.ControlledSim != Entity.Null && profile.ControlledSim != sim)
-            bySim.Remove(profile.ControlledSim);
+        if (profile.ControlledGenos != Entity.Null && profile.ControlledGenos != genos)
+            byGenos.Remove(profile.ControlledGenos);
 
-        profile.ControlledSim = sim;
+        profile.ControlledGenos = genos;
         profile.AwaitingContinuation = false;
-        if (sim != Entity.Null)
-            bySim[sim] = profile;
+        if (genos != Entity.Null)
+            byGenos[genos] = profile;
     }
 
-    public void DetachSim(PlayerProfile profile)
+    public void DetachGenos(PlayerProfile profile)
     {
-        if (profile.ControlledSim != Entity.Null)
-            bySim.Remove(profile.ControlledSim);
-        profile.ControlledSim = Entity.Null;
+        if (profile.ControlledGenos != Entity.Null)
+            byGenos.Remove(profile.ControlledGenos);
+        profile.ControlledGenos = Entity.Null;
         profile.AwaitingContinuation = true;
     }
 
-    public bool IsControlledByAnotherPlayer(Entity sim, string playerId) =>
-        bySim.TryGetValue(sim, out var profile) &&
+    public bool IsControlledByAnotherPlayer(Entity genos, string playerId) =>
+        byGenos.TryGetValue(genos, out var profile) &&
         !string.Equals(profile.PlayerId, playerId, StringComparison.Ordinal);
 
     public IEnumerable<PlayerProfile> All() => byPlayerId.Values;
@@ -144,6 +144,6 @@ public sealed class PlayerRegistry
     public void Clear()
     {
         byPlayerId.Clear();
-        bySim.Clear();
+        byGenos.Clear();
     }
 }

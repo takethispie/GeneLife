@@ -35,7 +35,7 @@ public class JobSeekerSystemTests
     }
 
     [Fact]
-    public void Update_DoesNotMakeEmployedSimAJobSeeker()
+    public void Update_DoesNotMakeEmployedGenosAJobSeeker()
     {
         var world = World.Create();
         var company = world.Create();
@@ -65,7 +65,7 @@ public class JobSeekerSystemTests
     }
 
     [Fact]
-    public void Update_AddsJobSeekerToAllEligibleSimsAfterQuery()
+    public void Update_AddsJobSeekerToAllEligibleGenosesAfterQuery()
     {
         var world = World.Create();
         var adult = world.Create(new Alive(18));

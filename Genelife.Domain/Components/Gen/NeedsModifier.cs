@@ -1,8 +1,8 @@
 namespace Genelife.Components.Gen;
 
 /// <summary>
-/// Derived per-sim multiplier set written by the housing modifier system.
-/// Neutral defaults mean a sim with no home or no modifier behaves exactly as
+/// Derived per-genos multiplier set written by the housing modifier system.
+/// Neutral defaults mean a genos with no home or no modifier behaves exactly as
 /// before the housing feature.
 /// </summary>
 public record struct NeedsModifier

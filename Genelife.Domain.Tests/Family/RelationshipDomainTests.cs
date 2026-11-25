@@ -88,12 +88,12 @@ public class RelationshipDomainTests
     }
 
     [Fact]
-    public void RemovingSimEdgesRemovesMirrorsAndLeavesNoStaleIndex()
+    public void RemovingGenosEdgesRemovesMirrorsAndLeavesNoStaleIndex()
     {
         var (world, index, service, a, b) = Setup();
         service.CreatePair(a, b, RelationshipKind.Partner, RelationshipSource.Seed, 1);
 
-        Assert.Equal(1, service.RemoveEdgesForSim(a));
+        Assert.Equal(1, service.RemoveEdgesForGenos(a));
 
         Assert.Empty(index.Edges);
         Assert.Equal(0, index.ComponentCount);
@@ -123,9 +123,9 @@ public class RelationshipDomainTests
         var world = World.Create();
         var index = new RelationshipIndex { NetworkIdResolver = entity => world.Get<NetworkId>(entity).Value };
         var service = new RelationshipService(world, index);
-        var parent = CreateSim(world, 1, new NetworkId(100));
-        var older = CreateSim(world, 2, new NetworkId(20));
-        var younger = CreateSim(world, 3, new NetworkId(30));
+        var parent = CreateGenos(world, 1, new NetworkId(100));
+        var older = CreateGenos(world, 2, new NetworkId(20));
+        var younger = CreateGenos(world, 3, new NetworkId(30));
 
         service.CreatePair(parent, younger, RelationshipKind.Parent, RelationshipSource.Seed, 1);
         service.CreatePair(parent, older, RelationshipKind.Parent, RelationshipSource.Seed, 1);
@@ -165,15 +165,15 @@ public class RelationshipDomainTests
         var world = World.Create();
         var index = new RelationshipIndex();
         var service = new RelationshipService(world, index);
-        var a = CreateSim(world, 1, new NetworkId(1));
-        var b = CreateSim(world, 2, new NetworkId(2));
-        var c = CreateSim(world, 3, new NetworkId(3));
+        var a = CreateGenos(world, 1, new NetworkId(1));
+        var b = CreateGenos(world, 2, new NetworkId(2));
+        var c = CreateGenos(world, 3, new NetworkId(3));
         return (world, index, service, a, b, c);
     }
 
-    private static Entity CreateSim(World world, int age, NetworkId networkId) =>
+    private static Entity CreateGenos(World world, int age, NetworkId networkId) =>
         world.Create(
-            new GenName($"Sim {networkId.Value}"),
+            new GenName($"Genos {networkId.Value}"),
             new Alive(age),
             new Traits(),
             networkId);

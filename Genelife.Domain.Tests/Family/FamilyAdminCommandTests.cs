@@ -100,7 +100,7 @@ public class FamilyAdminCommandTests
         ulong guardianId = 0;
         engine.ExecuteWithWorld(world =>
         {
-            var repository = new SimRepository(world, engine.NetworkIds, engine.Economy);
+            var repository = new GenosRepository(world, engine.NetworkIds, engine.Economy);
             childId = repository.Add("Ward", 8).Value;
             guardianId = repository.Add("Guardian", 30).Value;
             Assert.True(engine.NetworkIds.TryGetEntity(new NetworkId(childId), out var child));
@@ -139,7 +139,7 @@ public class FamilyAdminCommandTests
         ulong guardianId = 0;
         engine.ExecuteWithWorld(world =>
         {
-            var repository = new SimRepository(world, engine.NetworkIds, engine.Economy);
+            var repository = new GenosRepository(world, engine.NetworkIds, engine.Economy);
             childId = repository.Add("Ward", 8).Value;
             guardianId = repository.Add("Dead Guardian", 30).Value;
             Assert.True(engine.NetworkIds.TryGetEntity(new NetworkId(guardianId), out var guardian));
@@ -166,7 +166,7 @@ public class FamilyAdminCommandTests
         ulong guardianId = 0;
         engine.ExecuteWithWorld(world =>
         {
-            var repository = new SimRepository(world, engine.NetworkIds, engine.Economy);
+            var repository = new GenosRepository(world, engine.NetworkIds, engine.Economy);
             childId = repository.Add("Ward", 8).Value;
             guardianId = repository.Add("Young Guardian", 10).Value;
             return 0;
@@ -192,7 +192,7 @@ public class FamilyAdminCommandTests
         ulong secondGuardianId = 0;
         engine.ExecuteWithWorld(world =>
         {
-            var repository = new SimRepository(world, engine.NetworkIds, engine.Economy);
+            var repository = new GenosRepository(world, engine.NetworkIds, engine.Economy);
             childId = repository.Add("Ward", 8).Value;
             firstGuardianId = repository.Add("First Guardian", 30).Value;
             secondGuardianId = repository.Add("Second Guardian", 31).Value;
@@ -231,7 +231,7 @@ public class FamilyAdminCommandTests
         ulong trustId = 0;
         engine.ExecuteWithWorld(world =>
         {
-            var repository = new SimRepository(world, engine.NetworkIds, engine.Economy);
+            var repository = new GenosRepository(world, engine.NetworkIds, engine.Economy);
             childId = repository.Add("Heir", 10).Value;
             Assert.True(engine.NetworkIds.TryGetEntity(new NetworkId(childId), out var child));
             var trust = engine.Trusts!.Create(
@@ -276,7 +276,7 @@ public class FamilyAdminCommandTests
         ulong secondId = 0;
         engine.ExecuteWithWorld(world =>
         {
-            var repository = new SimRepository(world, engine.NetworkIds, engine.Economy);
+            var repository = new GenosRepository(world, engine.NetworkIds, engine.Economy);
             firstId = repository.Add("First", 30).Value;
             secondId = repository.Add("Second", 31).Value;
             Assert.True(engine.NetworkIds.TryGetEntity(new NetworkId(firstId), out var first));

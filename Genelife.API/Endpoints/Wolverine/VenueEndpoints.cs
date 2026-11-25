@@ -49,19 +49,19 @@ public static class VenueEndpoints
                 continue;
 
             var name = "Resident";
-            ulong simNetworkId = 0;
+            ulong genosNetworkId = 0;
             if (engine.Players.TryGet(occupant, out var profile))
             {
-                if (profile.ControlledSim != Entity.Null && world.IsAlive(profile.ControlledSim))
+                if (profile.ControlledGenos != Entity.Null && world.IsAlive(profile.ControlledGenos))
                 {
-                    simNetworkId = NetworkIdOf(world, profile.ControlledSim);
-                    if (world.Has<GenName>(profile.ControlledSim) &&
+                    genosNetworkId = NetworkIdOf(world, profile.ControlledGenos);
+                    if (world.Has<GenName>(profile.ControlledGenos) &&
                         privacy.For(occupant).ShowDisplayName)
-                        name = world.Get<GenName>(profile.ControlledSim).Name;
+                        name = world.Get<GenName>(profile.ControlledGenos).Name;
                 }
             }
 
-            occupants.Add(new VenueOccupantDto(occupant, name, simNetworkId));
+            occupants.Add(new VenueOccupantDto(occupant, name, genosNetworkId));
         }
 
         var recent = engine.VenueActivities?.Recent(venue, playerId, engine.CurrentTick)

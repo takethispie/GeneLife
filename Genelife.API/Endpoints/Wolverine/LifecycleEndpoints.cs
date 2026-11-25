@@ -18,9 +18,9 @@ public static class LifecycleEndpoints
     [WolverineGet("/api/lifecycle/overview")]
     public static LifecycleOverviewResponse Overview(SimulationEngine engine) => engine.BuildLifecycleOverview();
 
-    [WolverineGet("/api/lifecycle/sims")]
-    public static List<SimLifecycleStatus> Sims(SimulationEngine engine, int take = 500, int skip = 0, string? stage = null) =>
-        engine.BuildLifecycleSims(take, skip, stage);
+    [WolverineGet("/api/lifecycle/genoses")]
+    public static List<GenosLifecycleStatus> Genoses(SimulationEngine engine, int take = 500, int skip = 0, string? stage = null) =>
+        engine.BuildLifecycleGenoses(take, skip, stage);
 
     [WolverineGet("/api/lifecycle/schools")]
     public static List<SchoolStatus> Schools(SimulationEngine engine) => engine.BuildSchools();
@@ -67,56 +67,56 @@ public static class LifecycleEndpoints
         SimulationEngine engine,
         HttpContext http) => UpdateSchool(schoolId, request, engine, http);
 
-    [WolverinePost("/api/sims/{simId}/stage")]
+    [WolverinePost("/api/genoses/{genosId}/stage")]
     [Authorize(Policy = AuthPolicies.Admin)]
     public static IResult ForceStageAlias(
-        ulong simId,
+        ulong genosId,
         ForceStageRequest request,
         SimulationEngine engine,
-        HttpContext http) => ForceStage(simId, request, engine, http);
+        HttpContext http) => ForceStage(genosId, request, engine, http);
 
-    [WolverinePost("/api/sims/{simId}/graduate")]
+    [WolverinePost("/api/genoses/{genosId}/graduate")]
     [Authorize(Policy = AuthPolicies.Admin)]
-    public static IResult GraduateAlias(ulong simId, SimulationEngine engine, HttpContext http) =>
-        Graduate(simId, engine, http);
+    public static IResult GraduateAlias(ulong genosId, SimulationEngine engine, HttpContext http) =>
+        Graduate(genosId, engine, http);
 
-    [WolverinePost("/api/sims/{simId}/retire")]
+    [WolverinePost("/api/genoses/{genosId}/retire")]
     [Authorize(Policy = AuthPolicies.Admin)]
-    public static IResult RetireAlias(ulong simId, SimulationEngine engine, HttpContext http) =>
-        Retire(simId, engine, http);
+    public static IResult RetireAlias(ulong genosId, SimulationEngine engine, HttpContext http) =>
+        Retire(genosId, engine, http);
 
-    [WolverinePost("/api/sims/{simId}/advance-age")]
+    [WolverinePost("/api/genoses/{genosId}/advance-age")]
     [Authorize(Policy = AuthPolicies.Admin)]
     public static IResult AdvanceAge(
-        ulong simId,
+        ulong genosId,
         AdvanceAgeRequest request,
         SimulationEngine engine,
         HttpContext http) =>
         Enqueue(engine, new AdvanceAgeCommand(
             Guid.NewGuid(),
             http.User.Identity?.Name ?? "admin",
-            simId,
+            genosId,
             Math.Max(1, request.Years)));
 
-    [WolverinePost("/api/employment/{simId}/promote")]
+    [WolverinePost("/api/employment/{genosId}/promote")]
     [Authorize(Policy = AuthPolicies.Admin)]
-    public static IResult Promote(ulong simId, SimulationEngine engine, HttpContext http) =>
-        Enqueue(engine, new PromoteSimCommand(
+    public static IResult Promote(ulong genosId, SimulationEngine engine, HttpContext http) =>
+        Enqueue(engine, new PromoteGenosCommand(
             Guid.NewGuid(),
             http.User.Identity?.Name ?? "admin",
-            simId));
+            genosId));
 
-    [WolverinePost("/api/lifecycle/unemployment/{simId}/eligibility")]
+    [WolverinePost("/api/lifecycle/unemployment/{genosId}/eligibility")]
     [Authorize(Policy = AuthPolicies.Admin)]
     public static IResult SetBenefitEligibility(
-        ulong simId,
+        ulong genosId,
         BenefitEligibilityRequest request,
         SimulationEngine engine,
         HttpContext http) =>
         Enqueue(engine, new SetBenefitEligibilityCommand(
             Guid.NewGuid(),
             http.User.Identity?.Name ?? "admin",
-            simId,
+            genosId,
             request.Eligible));
 
     [WolverinePost("/api/lifecycle/pensions/top-up")]
@@ -134,10 +134,10 @@ public static class LifecycleEndpoints
             Money.FromUnits(request.Amount)));
     }
 
-    [WolverinePost("/api/lifecycle/sims/{simId}/death")]
+    [WolverinePost("/api/lifecycle/genoses/{genosId}/death")]
     [Authorize(Policy = AuthPolicies.Admin)]
     public static IResult ForceDeath(
-        ulong simId,
+        ulong genosId,
         ForceDeathRequest request,
         SimulationEngine engine,
         HttpContext http)
@@ -147,7 +147,7 @@ public static class LifecycleEndpoints
         return Enqueue(engine, new ForceDeathCommand(
             Guid.NewGuid(),
             http.User.Identity?.Name ?? "admin",
-            simId,
+            genosId,
             cause));
     }
 
@@ -234,30 +234,30 @@ public static class LifecycleEndpoints
             request.MonthlyCost is null ? null : Money.FromUnits(request.MonthlyCost.Value)));
     }
 
-    [WolverinePost("/api/schools/{schoolId}/enroll/{simId}")]
+    [WolverinePost("/api/schools/{schoolId}/enroll/{genosId}")]
     [Authorize(Policy = AuthPolicies.Admin)]
-    public static IResult Enroll(ulong schoolId, ulong simId, SimulationEngine engine, HttpContext http) =>
+    public static IResult Enroll(ulong schoolId, ulong genosId, SimulationEngine engine, HttpContext http) =>
         Enqueue(engine, new SetEnrollmentCommand(
             Guid.NewGuid(),
             http.User.Identity?.Name ?? "admin",
-            simId,
+            genosId,
             schoolId,
             true));
 
-    [WolverineDelete("/api/schools/{schoolId}/enroll/{simId}")]
+    [WolverineDelete("/api/schools/{schoolId}/enroll/{genosId}")]
     [Authorize(Policy = AuthPolicies.Admin)]
-    public static IResult Unenroll(ulong schoolId, ulong simId, SimulationEngine engine, HttpContext http) =>
+    public static IResult Unenroll(ulong schoolId, ulong genosId, SimulationEngine engine, HttpContext http) =>
         Enqueue(engine, new SetEnrollmentCommand(
             Guid.NewGuid(),
             http.User.Identity?.Name ?? "admin",
-            simId,
+            genosId,
             schoolId,
             false));
 
-    [WolverinePost("/api/lifecycle/sims/{simId}/stage")]
+    [WolverinePost("/api/lifecycle/genoses/{genosId}/stage")]
     [Authorize(Policy = AuthPolicies.Admin)]
     public static IResult ForceStage(
-        ulong simId,
+        ulong genosId,
         ForceStageRequest request,
         SimulationEngine engine,
         HttpContext http)
@@ -268,37 +268,37 @@ public static class LifecycleEndpoints
         return Enqueue(engine, new ForceStageCommand(
             Guid.NewGuid(),
             http.User.Identity?.Name ?? "admin",
-            simId,
+            genosId,
             stage));
     }
 
-    [WolverinePost("/api/lifecycle/sims/{simId}/graduate")]
+    [WolverinePost("/api/lifecycle/genoses/{genosId}/graduate")]
     [Authorize(Policy = AuthPolicies.Admin)]
-    public static IResult Graduate(ulong simId, SimulationEngine engine, HttpContext http) =>
-        Enqueue(engine, new GraduateSimCommand(
+    public static IResult Graduate(ulong genosId, SimulationEngine engine, HttpContext http) =>
+        Enqueue(engine, new GraduateGenosCommand(
             Guid.NewGuid(),
             http.User.Identity?.Name ?? "admin",
-            simId));
+            genosId));
 
-    [WolverinePost("/api/lifecycle/sims/{simId}/retire")]
+    [WolverinePost("/api/lifecycle/genoses/{genosId}/retire")]
     [Authorize(Policy = AuthPolicies.Admin)]
-    public static IResult Retire(ulong simId, SimulationEngine engine, HttpContext http) =>
-        Enqueue(engine, new RetireSimCommand(
+    public static IResult Retire(ulong genosId, SimulationEngine engine, HttpContext http) =>
+        Enqueue(engine, new RetireGenosCommand(
             Guid.NewGuid(),
             http.User.Identity?.Name ?? "admin",
-            simId));
+            genosId));
 
-    [WolverinePost("/api/lifecycle/sims/{simId}/care")]
+    [WolverinePost("/api/lifecycle/genoses/{genosId}/care")]
     [Authorize(Policy = AuthPolicies.Admin)]
     public static IResult GrantCare(
-        ulong simId,
+        ulong genosId,
         GrantCareRequest request,
         SimulationEngine engine,
         HttpContext http) =>
         Enqueue(engine, new GrantCareCommand(
             Guid.NewGuid(),
             http.User.Identity?.Name ?? "admin",
-            simId,
+            genosId,
             Math.Clamp(request.HealthGain, 1f, 100f)));
 
     [WolverinePost("/api/population/generate")]
@@ -315,13 +315,13 @@ public static class LifecycleEndpoints
         SimulationEngine engine,
         HttpContext http)
     {
-        if (request.TotalSims <= 0)
-            return Results.BadRequest(new { message = "TotalSims must be positive." });
+        if (request.TotalGenoses <= 0)
+            return Results.BadRequest(new { message = "TotalGenoses must be positive." });
 
         return Enqueue(engine, new GeneratePopulationCommand(
             Guid.NewGuid(),
             http.User.Identity?.Name ?? "admin",
-            request.TotalSims,
+            request.TotalGenoses,
             request.Seed,
             request.Adults,
             request.Children));
@@ -382,7 +382,7 @@ public sealed record ForceStageRequest(string Stage);
 public sealed record GrantCareRequest(float HealthGain = 25f);
 
 public sealed record GeneratePopulationRequest(
-    int TotalSims,
+    int TotalGenoses,
     int Seed = 1,
     int? Adults = null,
     int? Children = null);

@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 namespace Genelife.Api.Services;
 
 /// <summary>
-/// Marten-backed implementation of the sim/company read model. Returns null when
+/// Marten-backed implementation of the genos/company read model. Returns null when
 /// the document store is missing or a query fails, so the caller can fall back
 /// to live simulation state.
 /// </summary>
@@ -21,7 +21,7 @@ public sealed class MartenReadModelStore : IReadModelStore
         this.logger = logger;
     }
 
-    public async Task<IReadOnlyList<SimStatus>?> TryGetAllSimsAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<GenosStatus>?> TryGetAllGenosesAsync(CancellationToken cancellationToken = default)
     {
         if (documentStore == null)
             return null;
@@ -29,17 +29,17 @@ public sealed class MartenReadModelStore : IReadModelStore
         try
         {
             await using var session = documentStore.LightweightSession();
-            var docs = await session.Query<SimDocument>().ToListAsync(cancellationToken);
+            var docs = await session.Query<GenosDocument>().ToListAsync(cancellationToken);
             return docs
                 .GroupBy(d => d.NetworkId)
                 .Select(group => group.MaxBy(d => d.UpdatedAt)!)
-                .Select(d => d.ToSimStatus())
-                .OrderBy(sim => sim.NetworkId)
+                .Select(d => d.ToGenosStatus())
+                .OrderBy(genos => genos.NetworkId)
                 .ToList();
         }
         catch (Exception ex)
         {
-            logger?.LogWarning(ex, "Marten query for GetAllSims failed; falling back to snapshot");
+            logger?.LogWarning(ex, "Marten query for GetAllGenoses failed; falling back to snapshot");
             return null;
         }
     }

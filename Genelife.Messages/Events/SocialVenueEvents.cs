@@ -2,12 +2,12 @@ namespace Genelife.Messages.Events;
 
 public sealed record VenueEntered(
     ulong VenueNetworkId,
-    ulong SimNetworkId,
+    ulong GenosNetworkId,
     long Tick);
 
 public sealed record VenueLeft(
     ulong VenueNetworkId,
-    ulong SimNetworkId,
+    ulong GenosNetworkId,
     long Tick);
 
 public sealed record VenueEntryRejected(
@@ -28,6 +28,6 @@ public sealed record VenueOccupantRemoved(
 
 public sealed record VenueActivityPerformed(
     ulong VenueNetworkId,
-    ulong SimNetworkId,
+    ulong GenosNetworkId,
     string Activity,
     long Tick);

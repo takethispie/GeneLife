@@ -9,7 +9,7 @@ namespace Genelife.UnitTests.Family;
 public class TraitAcceptanceTests
 {
     [Fact]
-    public void GeneratedPopulationHasOneValidTraitSetPerLivingSim()
+    public void GeneratedPopulationHasOneValidTraitSetPerLivingGenos()
     {
         using var engine = new SimulationEngine();
         engine.Initialize();
@@ -39,14 +39,14 @@ public class TraitAcceptanceTests
     [Fact]
     public void SameSeedProducesIdenticalTraitsForIdenticalNetworkIds()
     {
-        var first = GenerateTraits(seed: 99, sims: 60);
-        var second = GenerateTraits(seed: 99, sims: 60);
+        var first = GenerateTraits(seed: 99, genoses: 60);
+        var second = GenerateTraits(seed: 99, genoses: 60);
 
         Assert.Equal(first.Count, second.Count);
         foreach (var (networkId, expected) in first)
             Assert.Equal(expected, second[networkId]);
 
-        var different = GenerateTraits(seed: 100, sims: 60);
+        var different = GenerateTraits(seed: 100, genoses: 60);
         Assert.Contains(first, pair => different[pair.Key] != pair.Value);
     }
 
@@ -56,13 +56,13 @@ public class TraitAcceptanceTests
         using var engine = new SimulationEngine();
         engine.Initialize();
 
-        var playerId = engine.EnsurePlayerSim("alice");
+        var playerId = engine.EnsurePlayerGenos("alice");
         Assert.NotEqual(0UL, playerId);
 
         var adminId = engine.ExecuteWithWorld(world =>
         {
-            var repository = new SimRepository(world, engine.NetworkIds, engine.Economy, engine.MapContext);
-            return repository.Add("Admin Sim", 30).Value;
+            var repository = new GenosRepository(world, engine.NetworkIds, engine.Economy, engine.MapContext);
+            return repository.Add("Admin Genos", 30).Value;
         });
 
         foreach (var id in new[] { playerId, adminId })
@@ -73,7 +73,7 @@ public class TraitAcceptanceTests
         }
     }
 
-    private static Dictionary<ulong, Traits> GenerateTraits(int seed, int sims)
+    private static Dictionary<ulong, Traits> GenerateTraits(int seed, int genoses)
     {
         using var engine = new SimulationEngine();
         engine.Initialize();
@@ -85,7 +85,7 @@ public class TraitAcceptanceTests
                 relationshipIndex: engine.Relationships,
                 relationshipService: engine.RelationshipService!,
                 relationshipOptions: engine.RelationshipOptions);
-            generator.Generate(sims, seed: seed);
+            generator.Generate(genoses, seed: seed);
             return 0;
         });
 

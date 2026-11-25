@@ -54,13 +54,13 @@ public sealed class WolverineEndpointsTests : IClassFixture<TestApplicationFacto
     }
 
     [Fact]
-    public async Task Wolverine_post_sims_returns_202_with_networkId()
+    public async Task Wolverine_post_genoses_returns_202_with_networkId()
     {
         var client = CreateClient(AdminToken());
         await EnsureSimulationRunning(client);
 
-        var payload = new CreateSim("WolverineTest", 25);
-        var response = await client.PostAsJsonAsync("/api/sims", payload, CancellationToken);
+        var payload = new CreateGenos("WolverineTest", 25);
+        var response = await client.PostAsJsonAsync("/api/genoses", payload, CancellationToken);
 
         Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
 
@@ -70,24 +70,24 @@ public sealed class WolverineEndpointsTests : IClassFixture<TestApplicationFacto
     }
 
     [Fact]
-    public async Task Wolverine_get_sims_returns_list()
+    public async Task Wolverine_get_genoses_returns_list()
     {
         var client = CreateClient(AdminToken());
         await EnsureSimulationRunning(client);
 
-        var response = await client.GetAsync("/api/sims", CancellationToken);
+        var response = await client.GetAsync("/api/genoses", CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var sims = await response.Content.ReadFromJsonAsync<List<object>>(cancellationToken: CancellationToken);
-        Assert.NotNull(sims);
+        var genoses = await response.Content.ReadFromJsonAsync<List<object>>(cancellationToken: CancellationToken);
+        Assert.NotNull(genoses);
     }
 
     [Fact]
-    public async Task Wolverine_sim_endpoints_require_auth()
+    public async Task Wolverine_genos_endpoints_require_auth()
     {
         var anonymous = CreateClient();
 
-        var response = await anonymous.PostAsJsonAsync("/api/sims", new CreateSim("Test", 20), CancellationToken);
+        var response = await anonymous.PostAsJsonAsync("/api/genoses", new CreateGenos("Test", 20), CancellationToken);
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 

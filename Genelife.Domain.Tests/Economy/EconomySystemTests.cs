@@ -66,7 +66,7 @@ public class EconomySystemTests
     }
 
     [Fact]
-    public void BasicIncome_PaysEverySimRegardlessOfEmployment()
+    public void BasicIncome_PaysEveryGenosRegardlessOfEmployment()
     {
         var world = World.Create();
         var economy = new EconomyContext(world);
@@ -90,13 +90,13 @@ public class EconomySystemTests
         var economy = new EconomyContext(world);
         var company = world.Create(new CompanyName("Shop"), CompanyAccount.Create(Money.Zero, 0));
         world.Create(new Office("HQ", company, 10));
-        var sim = world.Create(new GenName("Buyer"), new Wallet(Money.FromUnits(100m)));
+        var genos = world.Create(new GenName("Buyer"), new Wallet(Money.FromUnits(100m)));
 
         var before = economy.TotalMoneySupply();
         var spending = new ConsumerSpendingSystem(world, economy, interval: 1);
         spending.Update(100);
 
-        Assert.Equal(Money.Zero, world.Get<Wallet>(sim).Balance);
+        Assert.Equal(Money.Zero, world.Get<Wallet>(genos).Balance);
         Assert.True(economy.PendingRevenue.ContainsKey(company));
         Assert.Equal(before, economy.TotalMoneySupply());
 

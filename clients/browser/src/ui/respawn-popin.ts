@@ -16,7 +16,7 @@ export interface RespawnPopinOptions {
 
 /**
  * Blocking death prompt. It stays open until the respawn call succeeds so a
- * dropped request cannot strand the player without a controlled sim.
+ * dropped request cannot strand the player without a controlled genos.
  */
 export class RespawnPopin {
   private readonly overlay: HTMLElement;
@@ -44,7 +44,7 @@ export class RespawnPopin {
     const title = document.createElement("h2");
     title.id = "respawn-title";
     title.className = "respawn-title";
-    title.textContent = "Your sim has died";
+    title.textContent = "Your genos has died";
 
     this.detail = document.createElement("p");
     this.detail.className = "respawn-detail";

@@ -35,17 +35,17 @@ public class TraitPersistenceTests
         var (state, ids, _) = CreateCapturedState(options);
 
         state.SchemaVersion = 5;
-        foreach (var sim in state.Sims)
+        foreach (var genos in state.Genoses)
         {
-            sim.TraitsMigrated = false;
-            sim.EyeColor = 0;
-            sim.HairColor = 0;
-            sim.Handedness = 0;
-            sim.Morphotype = 0;
-            sim.Aptitude = 0;
-            sim.HeightPotential = 0;
-            sim.Sex = 0;
-            sim.Temperament = 0;
+            genos.TraitsMigrated = false;
+            genos.EyeColor = 0;
+            genos.HairColor = 0;
+            genos.Handedness = 0;
+            genos.Morphotype = 0;
+            genos.Aptitude = 0;
+            genos.HeightPotential = 0;
+            genos.Sex = 0;
+            genos.Temperament = 0;
         }
 
         SnapshotMigrations.Upgrade(state, 5);
@@ -54,15 +54,15 @@ public class TraitPersistenceTests
         first.Restore(state, first.NetworkIds);
 
         var migrated = new Dictionary<ulong, Traits>();
-        foreach (var sim in state.Sims)
+        foreach (var genos in state.Genoses)
         {
-            Assert.True(first.NetworkIds.TryGetEntity(new NetworkId(sim.NetworkId), out var entity));
+            Assert.True(first.NetworkIds.TryGetEntity(new NetworkId(genos.NetworkId), out var entity));
             var traits = first.World!.Get<Traits>(entity);
-            TraitValidation.EnsureValid(traits, sim.NetworkId);
-            migrated[sim.NetworkId] = traits;
+            TraitValidation.EnsureValid(traits, genos.NetworkId);
+            migrated[genos.NetworkId] = traits;
 
             var expected = TraitsGenerator.Create(
-                state.RandomSeed, sim.NetworkId, TraitSource.Migration, first.Economy!.Genetics);
+                state.RandomSeed, genos.NetworkId, TraitSource.Migration, first.Economy!.Genetics);
             Assert.Equal(expected, traits);
         }
 
@@ -83,13 +83,13 @@ public class TraitPersistenceTests
     public void UndefinedStoredTraitFailsRestoreWithDescriptiveError()
     {
         var (state, _, _) = CreateCapturedState(new GeneticsOptions());
-        state.Sims[0].EyeColor = 200;
+        state.Genoses[0].EyeColor = 200;
 
         using var restored = new SimulationEngine();
         var error = Assert.Throws<InvalidOperationException>(
             () => restored.Restore(state, restored.NetworkIds));
 
-        Assert.Contains(state.Sims[0].NetworkId.ToString(), error.Message);
+        Assert.Contains(state.Genoses[0].NetworkId.ToString(), error.Message);
         Assert.Contains("EyeColor", error.Message);
     }
 
@@ -99,7 +99,7 @@ public class TraitPersistenceTests
         var engine = new SimulationEngine();
         engine.Initialize(geneticsOptions: options);
         var world = engine.World!;
-        var repository = new SimRepository(world, engine.NetworkIds, engine.Economy);
+        var repository = new GenosRepository(world, engine.NetworkIds, engine.Economy);
 
         var ids = new List<ulong>
         {

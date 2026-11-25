@@ -166,15 +166,15 @@ public sealed class HouseholdFinanceService
         return !remaining.IsPositive;
     }
 
-    public void Credit(Entity sim, Money amount, LedgerKind kind, long tick, ulong? fromNetworkId, string reference)
+    public void Credit(Entity genos, Money amount, LedgerKind kind, long tick, ulong? fromNetworkId, string reference)
     {
-        if (!amount.IsPositive || !world.IsAlive(sim))
+        if (!amount.IsPositive || !world.IsAlive(genos))
             return;
 
-        if (!world.Has<Wallet>(sim))
-            world.Add(sim, new Wallet(Money.Zero));
+        if (!world.Has<Wallet>(genos))
+            world.Add(genos, new Wallet(Money.Zero));
 
-        ref var wallet = ref world.Get<Wallet>(sim);
+        ref var wallet = ref world.Get<Wallet>(genos);
         wallet.Balance += amount;
 
         economy.Ledger.Record(
@@ -182,7 +182,7 @@ public sealed class HouseholdFinanceService
             tick,
             kind,
             fromNetworkId,
-            CompanyAccountService.NetworkIdOf(world, sim),
+            CompanyAccountService.NetworkIdOf(world, genos),
             amount,
             reference);
     }
@@ -219,11 +219,11 @@ public sealed class HouseholdFinanceService
         return Entity.Null;
     }
 
-    public bool IsAdult(Entity sim)
+    public bool IsAdult(Entity genos)
     {
-        if (!world.IsAlive(sim))
+        if (!world.IsAlive(genos))
             return false;
-        return !world.Has<Alive>(sim) || world.Get<Alive>(sim).Age >= 18;
+        return !world.Has<Alive>(genos) || world.Get<Alive>(genos).Age >= 18;
     }
 
     private int ComparePaymentOrder(Entity household, Entity a, Entity b)
@@ -243,7 +243,7 @@ public sealed class HouseholdFinanceService
     }
 
     private void RecordDebit(
-        Entity sim,
+        Entity genos,
         Money amount,
         LedgerKind kind,
         long tick,
@@ -254,7 +254,7 @@ public sealed class HouseholdFinanceService
             Guid.NewGuid(),
             tick,
             kind,
-            CompanyAccountService.NetworkIdOf(world, sim),
+            CompanyAccountService.NetworkIdOf(world, genos),
             toNetworkId,
             amount,
             reference);

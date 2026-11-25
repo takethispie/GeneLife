@@ -6,7 +6,7 @@ using Genelife.Economy;
 namespace Genelife.Systems;
 
 /// <summary>
-/// Projects household pantry supplies into the per-sim consumption flags used
+/// Projects household pantry supplies into the per-genos consumption flags used
 /// by <see cref="ActionSystem"/>, so a player who has bought food can eat the
 /// same way an NPC household can.
 /// </summary>
@@ -35,15 +35,15 @@ public sealed class PlayerConsumptionSystem : ISimulationSystem
             .WithAll<PlayerControlled>()
             .WithNone<Dead>();
 
-        world.Query(in query, (Entity sim, ref PlayerControlled _) =>
+        world.Query(in query, (Entity genos, ref PlayerControlled _) =>
         {
-            var household = LifeSystemHelpers.HouseholdOf(world, economy, sim);
+            var household = LifeSystemHelpers.HouseholdOf(world, economy, genos);
             if (household == Entity.Null || !world.Has<HouseholdPantry>(household))
                 return;
 
             var pantry = world.Get<HouseholdPantry>(household);
-            var state = world.Has<ConsumptionState>(sim)
-                ? world.Get<ConsumptionState>(sim)
+            var state = world.Has<ConsumptionState>(genos)
+                ? world.Get<ConsumptionState>(genos)
                 : new ConsumptionState();
 
             if (pantry.FoodUnits > 0)
@@ -51,10 +51,10 @@ public sealed class PlayerConsumptionSystem : ISimulationSystem
             if (pantry.HouseholdGoods > 0)
                 state.HygienePurchased = true;
 
-            if (world.Has<ConsumptionState>(sim))
-                world.Get<ConsumptionState>(sim) = state;
+            if (world.Has<ConsumptionState>(genos))
+                world.Get<ConsumptionState>(genos) = state;
             else
-                world.Add(sim, state);
+                world.Add(genos, state);
         });
     }
 }

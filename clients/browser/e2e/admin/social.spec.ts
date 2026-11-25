@@ -18,7 +18,7 @@ const overview = {
     {
       playerId: "alice",
       displayName: "Alice",
-      simNetworkId: 101,
+      genosNetworkId: 101,
       tileX: 10,
       tileY: 10,
       buildingNetworkId: 900,

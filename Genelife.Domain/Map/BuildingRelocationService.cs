@@ -94,10 +94,10 @@ public sealed class BuildingRelocationService
         }
 
         var dependents = residents.Concat(employees).Concat(students).Distinct().ToArray();
-        foreach (var sim in dependents)
+        foreach (var genos in dependents)
         {
-            if (world.IsAlive(sim) && world.Has<PlayerControlled>(sim) &&
-                world.Has<MoveTarget>(sim) && world.Get<MoveTarget>(sim).HasTarget)
+            if (world.IsAlive(genos) && world.Has<PlayerControlled>(genos) &&
+                world.Has<MoveTarget>(genos) && world.Get<MoveTarget>(genos).HasTarget)
                 return BuildingRelocationResult.Fail(
                     PlacementError.EntryBlocked,
                     "A player move depends on this building; retry after it completes.");
@@ -140,12 +140,12 @@ public sealed class BuildingRelocationService
         if (!world.IsAlive(building))
             return residents;
 
-        world.Query(in new QueryDescription().WithAll<Residence>(), (Entity sim, ref Residence residence) =>
+        world.Query(in new QueryDescription().WithAll<Residence>(), (Entity genos, ref Residence residence) =>
         {
             if (!world.IsAlive(residence.Unit) || !world.Has<HousingUnit>(residence.Unit))
                 return;
             if (world.Get<HousingUnit>(residence.Unit).Property == building)
-                residents.Add(sim);
+                residents.Add(genos);
         });
         return residents;
     }
@@ -156,10 +156,10 @@ public sealed class BuildingRelocationService
         if (!world.IsAlive(building))
             return employees;
 
-        world.Query(in new QueryDescription().WithAll<Employee>(), (Entity sim, ref Employee employee) =>
+        world.Query(in new QueryDescription().WithAll<Employee>(), (Entity genos, ref Employee employee) =>
         {
             if (employee.Office == building)
-                employees.Add(sim);
+                employees.Add(genos);
         });
         return employees;
     }
@@ -170,10 +170,10 @@ public sealed class BuildingRelocationService
         if (!world.IsAlive(building))
             return students;
 
-        world.Query(in new QueryDescription().WithAll<Enrollment>(), (Entity sim, ref Enrollment enrollment) =>
+        world.Query(in new QueryDescription().WithAll<Enrollment>(), (Entity genos, ref Enrollment enrollment) =>
         {
             if (!enrollment.IsUnenrolled && enrollment.School == building)
-                students.Add(sim);
+                students.Add(genos);
         });
         return students;
     }
@@ -195,18 +195,18 @@ public sealed class BuildingRelocationService
 
     private void RetargetReaders(IReadOnlyList<Entity> dependents, TileCoord oldEntry, TileCoord newEntry)
     {
-        foreach (var sim in dependents)
+        foreach (var genos in dependents)
         {
-            if (!world.IsAlive(sim) || !world.Has<MoveTarget>(sim))
+            if (!world.IsAlive(genos) || !world.Has<MoveTarget>(genos))
                 continue;
 
-            var target = world.Get<MoveTarget>(sim);
+            var target = world.Get<MoveTarget>(genos);
             if (!target.HasTarget || target.Tile != oldEntry)
                 continue;
 
             target.Tile = newEntry;
             target.PathVersion = movementIndex?.PathVersion ?? target.PathVersion;
-            world.Get<MoveTarget>(sim) = target;
+            world.Get<MoveTarget>(genos) = target;
         }
     }
 }

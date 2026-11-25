@@ -13,7 +13,7 @@ test.describe("fixture-mode browser smoke", () => {
 
     await expect(hudField(page, "connection")).toHaveText("Connected");
     await expect(hudField(page, "player")).toHaveText("e2e-fixture");
-    await expect(hudField(page, "sim")).toHaveText("1");
+    await expect(hudField(page, "genos")).toHaveText("1");
     await expect(hudField(page, "map")).toHaveText("world");
     await expect(hudField(page, "version")).toHaveText("3");
     await expect(hudField(page, "tick")).toHaveText("100");

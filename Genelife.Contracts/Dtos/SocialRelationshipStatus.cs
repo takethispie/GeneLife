@@ -12,7 +12,7 @@ public sealed record PlayerRelationshipInvitationStatus(
 public sealed record PlayerRelationshipStatusDto(
     string PlayerId,
     string? PartnerPlayerId,
-    ulong? PartnerSimNetworkId,
+    ulong? PartnerGenosNetworkId,
     string? PartnerName,
     bool SharesHousehold,
     bool CanCohabit,

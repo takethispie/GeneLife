@@ -36,8 +36,8 @@ public sealed class SocialAcceptanceTests : IDisposable
     [Fact]
     public void PresenceVisibilityFollowsProximityDisconnectAndReconnect()
     {
-        var aliceId = engine.EnsurePlayerSim("alice");
-        var bobId = engine.EnsurePlayerSim("bob");
+        var aliceId = engine.EnsurePlayerGenos("alice");
+        var bobId = engine.EnsurePlayerGenos("bob");
         engine.ExecuteWithWorld(world =>
         {
             Place(world, aliceId, new TileCoord(10, 10));
@@ -134,11 +134,11 @@ public sealed class SocialAcceptanceTests : IDisposable
         restored.Shutdown();
     }
 
-    private void Place(Arch.Core.World world, ulong simNetworkId, TileCoord tile)
+    private void Place(Arch.Core.World world, ulong genosNetworkId, TileCoord tile)
     {
-        if (!engine.NetworkIds.TryGetEntity(new NetworkId(simNetworkId), out var sim))
-            throw new InvalidOperationException($"Missing sim {simNetworkId}");
-        world.Get<TilePosition>(sim) = new TilePosition(tile);
+        if (!engine.NetworkIds.TryGetEntity(new NetworkId(genosNetworkId), out var genos))
+            throw new InvalidOperationException($"Missing genos {genosNetworkId}");
+        world.Get<TilePosition>(genos) = new TilePosition(tile);
     }
 
     public void Dispose()

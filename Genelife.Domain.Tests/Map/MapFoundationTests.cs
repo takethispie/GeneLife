@@ -98,22 +98,22 @@ public class MapFoundationTests
     }
 
     [Fact]
-    public void Aoi_keeps_the_players_own_sim_outside_the_viewport()
+    public void Aoi_keeps_the_players_own_genos_outside_the_viewport()
     {
         var snapshot = new WorldSnapshot(
             10,
             2,
-            new List<SimStatus>
+            new List<GenosStatus>
             {
                 new() { NetworkId = 1, TileX = 0, TileY = 0 },
                 new() { NetworkId = 2, TileX = 100, TileY = 100 }
             },
             new List<CompanyStatus>());
 
-        var filtered = AoiFilter.FilterSnapshotByViewport(snapshot, new Viewport(0, 0, 5), alwaysIncludeSim: 2);
+        var filtered = AoiFilter.FilterSnapshotByViewport(snapshot, new Viewport(0, 0, 5), alwaysIncludeGenos: 2);
 
-        Assert.Equal(2, filtered.Sims.Count);
-        Assert.Contains(filtered.Sims, sim => sim.NetworkId == 2);
+        Assert.Equal(2, filtered.Genoses.Count);
+        Assert.Contains(filtered.Genoses, genos => genos.NetworkId == 2);
     }
 
     [Fact]

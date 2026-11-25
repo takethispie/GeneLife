@@ -65,10 +65,10 @@ public sealed class RelationshipExposureSystem : ISimulationSystem
                 students.Add(entity);
             });
 
-        var sims = new List<Entity>();
+        var genoses = new List<Entity>();
         world.Query(in new QueryDescription().WithAll<Alive, Traits, NetworkId>().WithNone<Dead>(),
-            (Entity entity, ref Alive _, ref Traits _, ref NetworkId _) => sims.Add(entity));
-        sims.Sort((a, b) =>
+            (Entity entity, ref Alive _, ref Traits _, ref NetworkId _) => genoses.Add(entity));
+        genoses.Sort((a, b) =>
         {
             var byNetworkId = NetworkIdOf(a).CompareTo(NetworkIdOf(b));
             return byNetworkId != 0 ? byNetworkId : a.Id.CompareTo(b.Id);
@@ -78,15 +78,15 @@ public sealed class RelationshipExposureSystem : ISimulationSystem
         cache.Rejections.Clear();
         cache.Scored.Clear();
 
-        foreach (var sim in sims)
+        foreach (var genos in genoses)
         {
-            if (!world.IsAlive(sim) || relationships.HasPartner(sim))
+            if (!world.IsAlive(genos) || relationships.HasPartner(genos))
                 continue;
 
-            var result = generator.Generate(sim, spatial, studentsBySchool, cache, tick);
-            cache.Candidates[sim] = result.Candidates.ToList();
+            var result = generator.Generate(genos, spatial, studentsBySchool, cache, tick);
+            cache.Candidates[genos] = result.Candidates.ToList();
             if (result.Rejections.Count > 0)
-                cache.Rejections[sim] = result.Rejections.ToList();
+                cache.Rejections[genos] = result.Rejections.ToList();
         }
     }
 

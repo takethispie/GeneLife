@@ -2,7 +2,7 @@ import type {
   CompanyStatus,
   MapDelta,
   MapSnapshot,
-  SimStatus,
+  GenosStatus,
   WorldSnapshot,
   WorldSnapshotDelta
 } from "../contracts/hub";
@@ -16,9 +16,9 @@ import {
   latestFrame,
   pickFrames,
   type InterpolationOptions,
-  type RenderSim,
-  type SimFrame,
-  type SimPosition
+  type RenderGenos,
+  type GenosFrame,
+  type GenosPosition
 } from "./interpolation";
 
 export type ApplyStatus = "applied" | "stale" | "gap" | "map-stale";
@@ -42,14 +42,14 @@ export interface SimulationMetrics {
   lastTick: number;
   lastMapVersion: number;
   frames: number;
-  sims: number;
+  genoses: number;
   companies: number;
 }
 
 export interface RenderState {
   tick: number;
   targetTick: number;
-  sims: Map<number, RenderSim>;
+  genoses: Map<number, RenderGenos>;
   frameCount: number;
   interpolationDelayMs: number;
 }
@@ -65,11 +65,11 @@ const FRAME_LIMIT = 64;
 export class SimulationStore {
   readonly mapCache = new MapCache();
 
-  private simsById = new Map<number, SimStatus>();
+  private genosesById = new Map<number, GenosStatus>();
   private companiesById = new Map<number, CompanyStatus>();
-  private frames: SimFrame[] = [];
+  private frames: GenosFrame[] = [];
   private lastAppliedTick = 0;
-  private ownSimNetworkId = 0;
+  private ownGenosNetworkId = 0;
   private mapGap = false;
   private metrics: SimulationMetrics = {
     appliedTicks: 0,
@@ -82,7 +82,7 @@ export class SimulationStore {
     lastTick: 0,
     lastMapVersion: 0,
     frames: 0,
-    sims: 0,
+    genoses: 0,
     companies: 0
   };
 
@@ -90,8 +90,8 @@ export class SimulationStore {
     return this.mapCache.current;
   }
 
-  get sims(): ReadonlyMap<number, SimStatus> {
-    return this.simsById;
+  get genoses(): ReadonlyMap<number, GenosStatus> {
+    return this.genosesById;
   }
 
   get companies(): ReadonlyMap<number, CompanyStatus> {
@@ -102,16 +102,16 @@ export class SimulationStore {
     return this.lastAppliedTick;
   }
 
-  get ownSimId(): number {
-    return this.ownSimNetworkId;
+  get ownGenosId(): number {
+    return this.ownGenosNetworkId;
   }
 
   get isMapStale(): boolean {
     return this.mapGap;
   }
 
-  setOwnSim(networkId: number): void {
-    this.ownSimNetworkId = networkId;
+  setOwnGenos(networkId: number): void {
+    this.ownGenosNetworkId = networkId;
   }
 
   getStats(): SimulationMetrics {
@@ -120,7 +120,7 @@ export class SimulationStore {
       lastTick: this.lastAppliedTick,
       lastMapVersion: this.map?.version ?? 0,
       frames: this.frames.length,
-      sims: this.simsById.size,
+      genoses: this.genosesById.size,
       companies: this.companiesById.size
     };
   }
@@ -163,12 +163,12 @@ export class SimulationStore {
       return { status: "stale", tick: snapshot.tick, reason: "snapshot older than applied tick" };
     }
 
-    const nextSims = new Map<number, SimStatus>();
-    for (const sim of snapshot.sims) nextSims.set(sim.networkId, sim);
+    const nextGenoses = new Map<number, GenosStatus>();
+    for (const genos of snapshot.genoses) nextGenoses.set(genos.networkId, genos);
     const nextCompanies = new Map<number, CompanyStatus>();
     for (const company of snapshot.companies) nextCompanies.set(company.networkId, company);
 
-    this.simsById = nextSims;
+    this.genosesById = nextGenoses;
     this.companiesById = nextCompanies;
     this.setAppliedTick(snapshot.tick, now);
     this.metrics.fullSnapshots++;
@@ -190,7 +190,7 @@ export class SimulationStore {
         {
           tick: delta.tick,
           version: delta.version,
-          sims: delta.sims,
+          genoses: delta.genoses,
           companies: delta.companies
         },
         now
@@ -212,9 +212,9 @@ export class SimulationStore {
       };
     }
 
-    for (const sim of delta.sims) this.simsById.set(sim.networkId, sim);
+    for (const genos of delta.genoses) this.genosesById.set(genos.networkId, genos);
     for (const company of delta.companies) this.companiesById.set(company.networkId, company);
-    for (const id of delta.removedSims) this.simsById.delete(id);
+    for (const id of delta.removedGenoses) this.genosesById.delete(id);
     for (const id of delta.removedCompanies) this.companiesById.delete(id);
 
     this.setAppliedTick(delta.tick, now);
@@ -240,26 +240,26 @@ export class SimulationStore {
     return {
       tick: latest.tick,
       targetTick,
-      sims: interpolateFrames(pair, opts),
+      genoses: interpolateFrames(pair, opts),
       frameCount: this.frames.length,
       interpolationDelayMs: opts.interpolationDelayMs
     };
   }
 
-  positionOf(networkId: number): SimPosition | null {
-    const sim = this.simsById.get(networkId);
-    return sim === undefined
+  positionOf(networkId: number): GenosPosition | null {
+    const genos = this.genosesById.get(networkId);
+    return genos === undefined
       ? null
-      : { x: sim.x, y: sim.y, tileX: sim.tileX, tileY: sim.tileY };
+      : { x: genos.x, y: genos.y, tileX: genos.tileX, tileY: genos.tileY };
   }
 
   reset(): void {
     this.mapCache.clear();
-    this.simsById = new Map();
+    this.genosesById = new Map();
     this.companiesById = new Map();
     this.frames = [];
     this.lastAppliedTick = 0;
-    this.ownSimNetworkId = 0;
+    this.ownGenosNetworkId = 0;
     this.mapGap = false;
     this.metrics = {
       appliedTicks: 0,
@@ -272,7 +272,7 @@ export class SimulationStore {
       lastTick: 0,
       lastMapVersion: 0,
       frames: 0,
-      sims: 0,
+      genoses: 0,
       companies: 0
     };
   }
@@ -297,16 +297,16 @@ export class SimulationStore {
     }
   }
 
-  private copyPositions(): Map<number, SimPosition> {
-    const positions = new Map<number, SimPosition>();
-    for (const sim of this.simsById.values()) {
-      positions.set(sim.networkId, {
-        x: sim.x,
-        y: sim.y,
-        tileX: sim.tileX,
-        tileY: sim.tileY,
-        appearance: sim.appearance,
-        isPlayerControlled: sim.isPlayerControlled
+  private copyPositions(): Map<number, GenosPosition> {
+    const positions = new Map<number, GenosPosition>();
+    for (const genos of this.genosesById.values()) {
+      positions.set(genos.networkId, {
+        x: genos.x,
+        y: genos.y,
+        tileX: genos.tileX,
+        tileY: genos.tileY,
+        appearance: genos.appearance,
+        isPlayerControlled: genos.isPlayerControlled
       });
     }
     return positions;

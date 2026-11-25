@@ -13,8 +13,8 @@ public class AppearancePersistenceTests
         using var engine = new SimulationEngine();
         engine.Initialize();
         var playerId = "appearance-player";
-        var simNetworkId = engine.EnsurePlayerSim(playerId);
-        Assert.NotEqual(0UL, simNetworkId);
+        var genosNetworkId = engine.EnsurePlayerGenos(playerId);
+        Assert.NotEqual(0UL, genosNetworkId);
 
         ulong eye = 0;
         ulong hair = 0;
@@ -22,8 +22,8 @@ public class AppearancePersistenceTests
         ulong face = 0;
         engine.ExecuteWithWorld(world =>
         {
-            Assert.True(engine.NetworkIds.TryGetEntity(new NetworkId(simNetworkId), out var sim));
-            var traits = world.Get<Traits>(sim);
+            Assert.True(engine.NetworkIds.TryGetEntity(new NetworkId(genosNetworkId), out var genos));
+            var traits = world.Get<Traits>(genos);
             eye = (ulong)traits.EyeColor;
             hair = (ulong)traits.HairColor;
             skin = (ulong)traits.SkinTone;
@@ -33,7 +33,7 @@ public class AppearancePersistenceTests
 
         var state = engine.CaptureState(engine.NetworkIds);
         Assert.Equal(15, PersistedWorldState.CurrentSchemaVersion);
-        var saved = state.Sims.Single(sim => sim.NetworkId == simNetworkId);
+        var saved = state.Genoses.Single(genos => genos.NetworkId == genosNetworkId);
         Assert.True(saved.AppearanceMigrated);
         Assert.Equal((int)skin, saved.SkinTone);
         Assert.Equal((int)face, saved.FaceShape);
@@ -42,8 +42,8 @@ public class AppearancePersistenceTests
         AppearanceDescriptor before = default;
         engine.ExecuteWithWorld(world =>
         {
-            Assert.True(engine.NetworkIds.TryGetEntity(new NetworkId(simNetworkId), out var sim));
-            before = AppearanceDerivation.Derive(world.Get<Traits>(sim), world.Get<Alive>(sim).Age, simNetworkId);
+            Assert.True(engine.NetworkIds.TryGetEntity(new NetworkId(genosNetworkId), out var genos));
+            before = AppearanceDerivation.Derive(world.Get<Traits>(genos), world.Get<Alive>(genos).Age, genosNetworkId);
             return 0;
         });
 
@@ -54,19 +54,19 @@ public class AppearancePersistenceTests
         AppearanceDescriptor after = default;
         restored.ExecuteWithWorld(world =>
         {
-            Assert.True(restored.NetworkIds.TryGetEntity(new NetworkId(simNetworkId), out var sim));
-            after = AppearanceDerivation.Derive(world.Get<Traits>(sim), world.Get<Alive>(sim).Age, simNetworkId);
-            Assert.Equal((EyeColor)eye, world.Get<Traits>(sim).EyeColor);
-            Assert.Equal((HairColor)hair, world.Get<Traits>(sim).HairColor);
-            Assert.Equal((SkinTone)skin, world.Get<Traits>(sim).SkinTone);
-            Assert.Equal((FaceShape)face, world.Get<Traits>(sim).FaceShape);
+            Assert.True(restored.NetworkIds.TryGetEntity(new NetworkId(genosNetworkId), out var genos));
+            after = AppearanceDerivation.Derive(world.Get<Traits>(genos), world.Get<Alive>(genos).Age, genosNetworkId);
+            Assert.Equal((EyeColor)eye, world.Get<Traits>(genos).EyeColor);
+            Assert.Equal((HairColor)hair, world.Get<Traits>(genos).HairColor);
+            Assert.Equal((SkinTone)skin, world.Get<Traits>(genos).SkinTone);
+            Assert.Equal((FaceShape)face, world.Get<Traits>(genos).FaceShape);
             return 0;
         });
         Assert.Equal(before, after);
 
         var second = restored.CaptureState(restored.NetworkIds);
         restored.Shutdown();
-        var secondSaved = second.Sims.Single(sim => sim.NetworkId == simNetworkId);
+        var secondSaved = second.Genoses.Single(genos => genos.NetworkId == genosNetworkId);
         Assert.Equal(saved.SkinTone, secondSaved.SkinTone);
         Assert.Equal(saved.FaceShape, secondSaved.FaceShape);
         Assert.Equal(saved.AppearanceVersion, secondSaved.AppearanceVersion);
@@ -77,12 +77,12 @@ public class AppearancePersistenceTests
     {
         using var engine = new SimulationEngine();
         engine.Initialize();
-        var simNetworkId = engine.EnsurePlayerSim("legacy-appearance");
+        var genosNetworkId = engine.EnsurePlayerGenos("legacy-appearance");
         var state = engine.CaptureState(engine.NetworkIds);
         engine.Shutdown();
 
         state.SchemaVersion = 12;
-        var saved = state.Sims.Single(sim => sim.NetworkId == simNetworkId);
+        var saved = state.Genoses.Single(genos => genos.NetworkId == genosNetworkId);
         var eye = saved.EyeColor;
         var hair = saved.HairColor;
         saved.AppearanceMigrated = false;
@@ -98,11 +98,11 @@ public class AppearancePersistenceTests
         AppearanceDescriptor firstDescriptor = default;
         first.ExecuteWithWorld(world =>
         {
-            Assert.True(first.NetworkIds.TryGetEntity(new NetworkId(simNetworkId), out var sim));
-            var traits = world.Get<Traits>(sim);
+            Assert.True(first.NetworkIds.TryGetEntity(new NetworkId(genosNetworkId), out var genos));
+            var traits = world.Get<Traits>(genos);
             Assert.Equal(eye, (int)traits.EyeColor);
             Assert.Equal(hair, (int)traits.HairColor);
-            firstDescriptor = AppearanceDerivation.Derive(traits, world.Get<Alive>(sim).Age, simNetworkId);
+            firstDescriptor = AppearanceDerivation.Derive(traits, world.Get<Alive>(genos).Age, genosNetworkId);
             return 0;
         });
         var firstState = first.CaptureState(first.NetworkIds);
@@ -113,9 +113,9 @@ public class AppearancePersistenceTests
         AppearanceDescriptor secondDescriptor = default;
         second.ExecuteWithWorld(world =>
         {
-            Assert.True(second.NetworkIds.TryGetEntity(new NetworkId(simNetworkId), out var sim));
+            Assert.True(second.NetworkIds.TryGetEntity(new NetworkId(genosNetworkId), out var genos));
             secondDescriptor = AppearanceDerivation.Derive(
-                world.Get<Traits>(sim), world.Get<Alive>(sim).Age, simNetworkId);
+                world.Get<Traits>(genos), world.Get<Alive>(genos).Age, genosNetworkId);
             return 0;
         });
         second.Shutdown();
@@ -128,11 +128,11 @@ public class AppearancePersistenceTests
     {
         using var engine = new SimulationEngine();
         engine.Initialize();
-        var simNetworkId = engine.EnsurePlayerSim("future-appearance");
+        var genosNetworkId = engine.EnsurePlayerGenos("future-appearance");
         var state = engine.CaptureState(engine.NetworkIds);
         engine.Shutdown();
 
-        state.Sims.Single(sim => sim.NetworkId == simNetworkId).AppearanceVersion =
+        state.Genoses.Single(genos => genos.NetworkId == genosNetworkId).AppearanceVersion =
             AppearanceDescriptor.CurrentVersion + 1;
 
         using var restored = new SimulationEngine();

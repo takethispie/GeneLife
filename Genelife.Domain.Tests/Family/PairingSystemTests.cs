@@ -12,8 +12,8 @@ public class PairingSystemTests
     public void MutualTopCandidatesFormMirroredPartnerships()
     {
         var context = new Context();
-        var a = context.Sim(30, Sex.Female, 1);
-        var b = context.Sim(31, Sex.Male, 2);
+        var a = context.Genos(30, Sex.Female, 1);
+        var b = context.Genos(31, Sex.Male, 2);
         context.Score(a, b, 9_000);
         context.Score(b, a, 9_000);
 
@@ -32,8 +32,8 @@ public class PairingSystemTests
             PairingAcceptanceChance = 0m,
             RejectionCooldownMonths = 6
         });
-        var a = context.Sim(30, Sex.Female, 1);
-        var b = context.Sim(31, Sex.Male, 2);
+        var a = context.Genos(30, Sex.Female, 1);
+        var b = context.Genos(31, Sex.Male, 2);
         context.Score(a, b, 9_000);
         context.Score(b, a, 9_000);
 
@@ -45,12 +45,12 @@ public class PairingSystemTests
     }
 
     [Fact]
-    public void APairedSimCannotBePairedAgainInTheSamePass()
+    public void APairedGenosCannotBePairedAgainInTheSamePass()
     {
         var context = new Context(new RelationshipOptions { PairingAcceptanceChance = 1m });
-        var a = context.Sim(30, Sex.Female, 1);
-        var b = context.Sim(31, Sex.Male, 2);
-        var c = context.Sim(32, Sex.Male, 3);
+        var a = context.Genos(30, Sex.Female, 1);
+        var b = context.Genos(31, Sex.Male, 2);
+        var c = context.Genos(32, Sex.Male, 3);
         context.Score(a, b, 9_000, c, 8_000);
         context.Score(b, a, 9_000);
         context.Score(c, a, 8_000);
@@ -68,8 +68,8 @@ public class PairingSystemTests
         static (ulong A, ulong B) RunScenario()
         {
             var context = new Context(new RelationshipOptions { PairingAcceptanceChance = 1m });
-            var a = context.Sim(30, Sex.Female, 10);
-            var b = context.Sim(31, Sex.Male, 20);
+            var a = context.Genos(30, Sex.Female, 10);
+            var b = context.Genos(31, Sex.Male, 20);
             context.Score(a, b, 7_500);
             context.Score(b, a, 7_500);
             context.Run(tick: 500);
@@ -155,18 +155,18 @@ public class PairingSystemTests
         public RelationshipCache Cache { get; }
         public RelationshipOptions Options { get; }
 
-        public Entity Sim(int age, Sex sex, ulong networkId) =>
+        public Entity Genos(int age, Sex sex, ulong networkId) =>
             World.Create(
                 new Alive(age),
                 new Traits { Sex = sex },
                 new NetworkId(networkId),
-                new GenName($"Sim {networkId}"));
+                new GenName($"Genos {networkId}"));
 
-        public void Score(Entity sim, Entity candidate, int score) =>
-            Cache.Scored[sim] = [new ScoredCandidate(candidate, score)];
+        public void Score(Entity genos, Entity candidate, int score) =>
+            Cache.Scored[genos] = [new ScoredCandidate(candidate, score)];
 
-        public void Score(Entity sim, Entity first, int firstScore, Entity second, int secondScore) =>
-            Cache.Scored[sim] =
+        public void Score(Entity genos, Entity first, int firstScore, Entity second, int secondScore) =>
+            Cache.Scored[genos] =
             [
                 new ScoredCandidate(first, firstScore),
                 new ScoredCandidate(second, secondScore)

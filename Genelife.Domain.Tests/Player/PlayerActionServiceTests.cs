@@ -33,7 +33,7 @@ public sealed class PlayerActionServiceTests : IDisposable
     private readonly SocialGraphService socialGraph = new();
     private readonly PlayerRelationshipService playerRelationships;
 
-    private readonly Entity sim;
+    private readonly Entity genos;
     private readonly Entity company;
     private readonly Entity office;
     private readonly Entity posting;
@@ -57,7 +57,7 @@ public sealed class PlayerActionServiceTests : IDisposable
             NetworkIdRemover = entity => networkIds.Remove(entity)
         };
 
-        sim = world.Create(
+        genos = world.Create(
             new GenName("Player One"),
             new Needs { Hunger = 10f, Energy = 50f, Hygiene = 50f, Bladder = 50f },
             new CurrentAction(ActionType.Idle, 0f),
@@ -68,7 +68,7 @@ public sealed class PlayerActionServiceTests : IDisposable
             new PlayerControlled("p1"),
             new Lifecycle(LifeStage.Work, 0, 0),
             new Traits { Sex = Sex.Male });
-        Register(sim, 100);
+        Register(genos, 100);
 
         company = world.Create(
             new CompanyName("Acme"),
@@ -101,7 +101,7 @@ public sealed class PlayerActionServiceTests : IDisposable
         Register(unit, 501);
         economy.Housing.AddUnit(unit, property);
 
-        players.GetOrCreate("p1", sim, 0);
+        players.GetOrCreate("p1", genos, 0);
         playerRelationships = new PlayerRelationshipService(
             world,
             economy,
@@ -135,62 +135,62 @@ public sealed class PlayerActionServiceTests : IDisposable
     [Fact]
     public void ApplyForJob_CreatesOffer_ThenAcceptHiresThroughNormalPath()
     {
-        var applied = actions.Apply("p1", sim, PlayerActionKind.ApplyForJob,
+        var applied = actions.Apply("p1", genos, PlayerActionKind.ApplyForJob,
             Payload(new { postingNetworkId = 400UL, officeNetworkId = 300UL }), tick: 10);
 
         Assert.True(applied.Applied, applied.Code);
-        Assert.True(world.Has<PlayerJobOffer>(sim));
-        var offer = world.Get<PlayerJobOffer>(sim);
+        Assert.True(world.Has<PlayerJobOffer>(genos));
+        var offer = world.Get<PlayerJobOffer>(genos);
 
-        var accepted = actions.Apply("p1", sim, PlayerActionKind.AcceptJobOffer,
+        var accepted = actions.Apply("p1", genos, PlayerActionKind.AcceptJobOffer,
             Payload(new { offerId = offer.OfferId }), tick: 11);
 
         Assert.True(accepted.Applied, accepted.Code);
-        Assert.True(world.Has<Employee>(sim));
-        Assert.True(world.Has<PlayerEmployment>(sim));
-        Assert.False(world.Has<PlayerJobOffer>(sim));
-        Assert.Equal(Money.FromUnits(1_200m), world.Get<Employee>(sim).SalaryPerCycle);
+        Assert.True(world.Has<Employee>(genos));
+        Assert.True(world.Has<PlayerEmployment>(genos));
+        Assert.False(world.Has<PlayerJobOffer>(genos));
+        Assert.Equal(Money.FromUnits(1_200m), world.Get<Employee>(genos).SalaryPerCycle);
         Assert.True(world.Get<JobPosting>(posting).IsClosed);
     }
 
     [Fact]
     public void BuyThenConsume_MovesMoneyAndFood_NoMoneyCreation()
     {
-        var walletBefore = world.Get<Wallet>(sim).Balance;
+        var walletBefore = world.Get<Wallet>(genos).Balance;
         var supplyBefore = economy.TotalMoneySupply();
 
-        var bought = actions.Apply("p1", sim, PlayerActionKind.BuyItem,
+        var bought = actions.Apply("p1", genos, PlayerActionKind.BuyItem,
             Payload(new { storeNetworkId = 300UL, catalogItemId = "food", quantity = 2 }), tick: 12);
 
         Assert.True(bought.Applied, bought.Code);
-        Assert.Equal(walletBefore - Money.FromUnits(50m), world.Get<Wallet>(sim).Balance);
+        Assert.Equal(walletBefore - Money.FromUnits(50m), world.Get<Wallet>(genos).Balance);
         Assert.Equal(supplyBefore, economy.TotalMoneySupply());
-        Assert.Equal(2, world.Get<HouseholdPantry>(sim).FoodUnits);
+        Assert.Equal(2, world.Get<HouseholdPantry>(genos).FoodUnits);
 
-        var hungerBefore = world.Get<Needs>(sim).Hunger;
-        var consumed = actions.Apply("p1", sim, PlayerActionKind.ConsumeItem,
+        var hungerBefore = world.Get<Needs>(genos).Hunger;
+        var consumed = actions.Apply("p1", genos, PlayerActionKind.ConsumeItem,
             Payload(new { catalogItemId = "food", quantity = 1 }), tick: 13);
 
         Assert.True(consumed.Applied, consumed.Code);
-        Assert.True(world.Get<Needs>(sim).Hunger > hungerBefore);
-        Assert.Equal(1, world.Get<HouseholdPantry>(sim).FoodUnits);
+        Assert.True(world.Get<Needs>(genos).Hunger > hungerBefore);
+        Assert.Equal(1, world.Get<HouseholdPantry>(genos).FoodUnits);
     }
 
     [Fact]
     public void RequestThenAcceptLease_CreatesHouseholdAndLease()
     {
-        var requested = actions.Apply("p1", sim, PlayerActionKind.RequestHousing,
+        var requested = actions.Apply("p1", genos, PlayerActionKind.RequestHousing,
             Payload(new { unitNetworkId = 501UL, propertyNetworkId = 0UL }), tick: 20);
 
         Assert.True(requested.Applied, requested.Code);
-        var offer = world.Get<PlayerLeaseOffer>(sim);
+        var offer = world.Get<PlayerLeaseOffer>(genos);
 
-        var accepted = actions.Apply("p1", sim, PlayerActionKind.AcceptLease,
+        var accepted = actions.Apply("p1", genos, PlayerActionKind.AcceptLease,
             Payload(new { offerId = offer.OfferId }), tick: 21);
 
         Assert.True(accepted.Applied, accepted.Code);
-        Assert.True(world.Has<PlayerHousing>(sim));
-        var lease = world.Get<PlayerHousing>(sim);
+        Assert.True(world.Has<PlayerHousing>(genos));
+        var lease = world.Get<PlayerHousing>(genos);
         Assert.Equal(unit, lease.Unit);
         Assert.NotEqual(Entity.Null, lease.Household);
         Assert.Equal(unit, economy.Housing.UnitOf(lease.Household));
@@ -213,8 +213,8 @@ public sealed class PlayerActionServiceTests : IDisposable
         Register(partner, 700);
         players.GetOrCreate("p2", partner, 0);
 
-        var invited = actions.Apply("p1", sim, PlayerActionKind.InvitePartner,
-            Payload(new { targetSimNetworkId = 700UL }), tick: 30);
+        var invited = actions.Apply("p1", genos, PlayerActionKind.InvitePartner,
+            Payload(new { targetGenosNetworkId = 700UL }), tick: 30);
 
         Assert.True(invited.Applied, invited.Code);
         var invitation = Assert.Single(playerRelationships.PendingInvitations("p2", 30));
@@ -223,16 +223,16 @@ public sealed class PlayerActionServiceTests : IDisposable
             Payload(new { invitationId = invitation.Id, accept = true }), tick: 31);
 
         Assert.True(responded.Applied, responded.Code);
-        Assert.Contains(partner, relationships.PartnersOf(sim));
-        Assert.Contains(sim, relationships.PartnersOf(partner));
+        Assert.Contains(partner, relationships.PartnersOf(genos));
+        Assert.Contains(genos, relationships.PartnersOf(partner));
 
-        var ended = actions.Apply("p1", sim, PlayerActionKind.EndPartnership,
+        var ended = actions.Apply("p1", genos, PlayerActionKind.EndPartnership,
             Payload(new { partnerPlayerId = "p2", splitHousehold = false }), tick: 32);
 
         Assert.True(ended.Applied, ended.Code);
-        Assert.Contains(partner, relationships.ExPartnersOf(sim));
-        Assert.Contains(sim, relationships.ExPartnersOf(partner));
-        Assert.Empty(relationships.PartnersOf(sim));
+        Assert.Contains(partner, relationships.ExPartnersOf(genos));
+        Assert.Contains(genos, relationships.ExPartnersOf(partner));
+        Assert.Empty(relationships.PartnersOf(genos));
     }
 
     [Fact]
@@ -241,7 +241,7 @@ public sealed class PlayerActionServiceTests : IDisposable
         var other = world.Create(new GenName("Other"), new PlayerControlled("p2"), new Alive(30));
         Register(other, 800);
 
-        var result = actions.Apply("p2", sim, PlayerActionKind.BuyItem,
+        var result = actions.Apply("p2", genos, PlayerActionKind.BuyItem,
             Payload(new { storeNetworkId = 300UL, catalogItemId = "food", quantity = 1 }), tick: 40);
 
         Assert.False(result.Applied);

@@ -286,13 +286,13 @@ public sealed class GameDataService
             ?? new LifecycleData();
     }
 
-    public async Task<List<SimLifecycleData>> GetLifecycleSimsAsync(CancellationToken cancellationToken = default)
+    public async Task<List<GenosLifecycleData>> GetLifecycleGenosesAsync(CancellationToken cancellationToken = default)
     {
         using var response = await SendWithAuthRetryAsync(
-            () => http.GetAsync("api/lifecycle/sims", cancellationToken), cancellationToken);
+            () => http.GetAsync("api/lifecycle/genoses", cancellationToken), cancellationToken);
         response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<List<SimLifecycleData>>(cancellationToken: cancellationToken)
-            ?? new List<SimLifecycleData>();
+        return await response.Content.ReadFromJsonAsync<List<GenosLifecycleData>>(cancellationToken: cancellationToken)
+            ?? new List<GenosLifecycleData>();
     }
 
     public Task CreateSchoolAsync(
@@ -308,23 +308,23 @@ public sealed class GameDataService
             new { name, district, capacity, quality = 0.65f, emphasis, monthlyCost },
             cancellationToken);
 
-    public Task GraduateAsync(ulong simId, CancellationToken cancellationToken = default) =>
-        SendAdminJsonAsync(HttpMethod.Post, $"api/lifecycle/sims/{simId}/graduate", null, cancellationToken);
+    public Task GraduateAsync(ulong genosId, CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(HttpMethod.Post, $"api/lifecycle/genoses/{genosId}/graduate", null, cancellationToken);
 
-    public Task RetireAsync(ulong simId, CancellationToken cancellationToken = default) =>
-        SendAdminJsonAsync(HttpMethod.Post, $"api/lifecycle/sims/{simId}/retire", null, cancellationToken);
+    public Task RetireAsync(ulong genosId, CancellationToken cancellationToken = default) =>
+        SendAdminJsonAsync(HttpMethod.Post, $"api/lifecycle/genoses/{genosId}/retire", null, cancellationToken);
 
-    public Task ForceStageAsync(ulong simId, string stage, CancellationToken cancellationToken = default) =>
+    public Task ForceStageAsync(ulong genosId, string stage, CancellationToken cancellationToken = default) =>
         SendAdminJsonAsync(
             HttpMethod.Post,
-            $"api/lifecycle/sims/{simId}/stage",
+            $"api/lifecycle/genoses/{genosId}/stage",
             new { stage },
             cancellationToken);
 
-    public Task GrantCareAsync(ulong simId, float healthGain = 25f, CancellationToken cancellationToken = default) =>
+    public Task GrantCareAsync(ulong genosId, float healthGain = 25f, CancellationToken cancellationToken = default) =>
         SendAdminJsonAsync(
             HttpMethod.Post,
-            $"api/lifecycle/sims/{simId}/care",
+            $"api/lifecycle/genoses/{genosId}/care",
             new { healthGain },
             cancellationToken);
 
@@ -341,44 +341,44 @@ public sealed class GameDataService
             new { capacity, quality, monthlyCost, emphasis },
             cancellationToken);
 
-    public Task EnrollAsync(ulong schoolId, ulong simId, CancellationToken cancellationToken = default) =>
+    public Task EnrollAsync(ulong schoolId, ulong genosId, CancellationToken cancellationToken = default) =>
         SendAdminJsonAsync(
             HttpMethod.Post,
-            $"api/schools/{schoolId}/enroll/{simId}",
+            $"api/schools/{schoolId}/enroll/{genosId}",
             null,
             cancellationToken);
 
-    public Task UnenrollAsync(ulong schoolId, ulong simId, CancellationToken cancellationToken = default) =>
+    public Task UnenrollAsync(ulong schoolId, ulong genosId, CancellationToken cancellationToken = default) =>
         SendAdminJsonAsync(
             HttpMethod.Delete,
-            $"api/schools/{schoolId}/enroll/{simId}",
+            $"api/schools/{schoolId}/enroll/{genosId}",
             null,
             cancellationToken);
 
-    public Task PromoteAsync(ulong simId, CancellationToken cancellationToken = default) =>
+    public Task PromoteAsync(ulong genosId, CancellationToken cancellationToken = default) =>
         SendAdminJsonAsync(
             HttpMethod.Post,
-            $"api/employment/{simId}/promote",
+            $"api/employment/{genosId}/promote",
             null,
             cancellationToken);
 
     public Task ForceDeathAsync(
-        ulong simId,
+        ulong genosId,
         string cause = "Other",
         CancellationToken cancellationToken = default) =>
         SendAdminJsonAsync(
             HttpMethod.Post,
-            $"api/lifecycle/sims/{simId}/death",
+            $"api/lifecycle/genoses/{genosId}/death",
             new { cause },
             cancellationToken);
 
     public Task SetBenefitEligibilityAsync(
-        ulong simId,
+        ulong genosId,
         bool eligible,
         CancellationToken cancellationToken = default) =>
         SendAdminJsonAsync(
             HttpMethod.Post,
-            $"api/lifecycle/unemployment/{simId}/eligibility",
+            $"api/lifecycle/unemployment/{genosId}/eligibility",
             new { eligible },
             cancellationToken);
 
@@ -389,10 +389,10 @@ public sealed class GameDataService
             new { amount },
             cancellationToken);
 
-    public Task AdvanceAgeAsync(ulong simId, int years = 5, CancellationToken cancellationToken = default) =>
+    public Task AdvanceAgeAsync(ulong genosId, int years = 5, CancellationToken cancellationToken = default) =>
         SendAdminJsonAsync(
             HttpMethod.Post,
-            $"api/sims/{simId}/advance-age",
+            $"api/genoses/{genosId}/advance-age",
             new { years },
             cancellationToken);
 
@@ -412,7 +412,7 @@ public sealed class GameDataService
             cancellationToken);
 
     public Task GeneratePopulationAsync(
-        int totalSims,
+        int totalGenoses,
         int seed = 1,
         int? adults = null,
         int? children = null,
@@ -420,7 +420,7 @@ public sealed class GameDataService
         SendAdminJsonAsync(
             HttpMethod.Post,
             "api/lifecycle/generate",
-            new { totalSims, seed, adults, children },
+            new { totalGenoses, seed, adults, children },
             cancellationToken);
 
     public Task SetPopulationTargetAsync(
@@ -515,15 +515,15 @@ public sealed class GameDataService
         return GetAdminAsync<AppearancePageData>(query, cancellationToken);
     }
 
-    public Task<AppearanceSimData> GetAppearanceAsync(
-        ulong simNetworkId,
+    public Task<AppearanceGenosData> GetAppearanceAsync(
+        ulong genosNetworkId,
         CancellationToken cancellationToken = default) =>
-        GetAdminAsync<AppearanceSimData>($"api/appearance/{simNetworkId}", cancellationToken);
+        GetAdminAsync<AppearanceGenosData>($"api/appearance/{genosNetworkId}", cancellationToken);
 
     public Task<AppearanceFamilyData> GetAppearanceFamilyAsync(
-        ulong simNetworkId,
+        ulong genosNetworkId,
         CancellationToken cancellationToken = default) =>
-        GetAdminAsync<AppearanceFamilyData>($"api/appearance/{simNetworkId}/family", cancellationToken);
+        GetAdminAsync<AppearanceFamilyData>($"api/appearance/{genosNetworkId}/family", cancellationToken);
 
     public Task<PlayerOverviewData> GetPlayerOverviewAsync(CancellationToken cancellationToken = default) =>
         GetAdminAsync<PlayerOverviewData>("api/player", cancellationToken);
@@ -575,7 +575,7 @@ public sealed class GameDataService
     public Task<FamilyData> GetFamilyAsync(CancellationToken cancellationToken = default) =>
         GetAdminAsync<FamilyData>("api/family", cancellationToken);
 
-    public Task<FamilySimPageData> GetFamilySimsAsync(
+    public Task<FamilyGenosPageData> GetFamilyGenosesAsync(
         int take = 100,
         int skip = 0,
         string? stage = null,
@@ -585,7 +585,7 @@ public sealed class GameDataService
         string? name = null,
         CancellationToken cancellationToken = default)
     {
-        var query = $"api/family/sims?take={take}&skip={skip}";
+        var query = $"api/family/genoses?take={take}&skip={skip}";
         if (!string.IsNullOrWhiteSpace(stage))
             query += $"&stage={Uri.EscapeDataString(stage)}";
         if (partnered is not null)
@@ -596,14 +596,14 @@ public sealed class GameDataService
             query += $"&householdId={householdId.Value}";
         if (!string.IsNullOrWhiteSpace(name))
             query += $"&name={Uri.EscapeDataString(name)}";
-        return GetAdminAsync<FamilySimPageData>(query, cancellationToken);
+        return GetAdminAsync<FamilyGenosPageData>(query, cancellationToken);
     }
 
-    public Task<FamilySimDetailData> GetFamilySimAsync(ulong simId, CancellationToken cancellationToken = default) =>
-        GetAdminAsync<FamilySimDetailData>($"api/family/sims/{simId}", cancellationToken);
+    public Task<FamilyGenosDetailData> GetFamilyGenosAsync(ulong genosId, CancellationToken cancellationToken = default) =>
+        GetAdminAsync<FamilyGenosDetailData>($"api/family/genoses/{genosId}", cancellationToken);
 
     public Task<FamilyRelationshipPageData> GetFamilyRelationshipsAsync(
-        ulong? simId = null,
+        ulong? genosId = null,
         string? kind = null,
         string? source = null,
         int take = 200,
@@ -611,8 +611,8 @@ public sealed class GameDataService
         CancellationToken cancellationToken = default)
     {
         var query = $"api/family/relationships?take={take}&skip={skip}";
-        if (simId is not null)
-            query += $"&simId={simId.Value}";
+        if (genosId is not null)
+            query += $"&genosId={genosId.Value}";
         if (!string.IsNullOrWhiteSpace(kind))
             query += $"&kind={Uri.EscapeDataString(kind)}";
         if (!string.IsNullOrWhiteSpace(source))
@@ -649,34 +649,34 @@ public sealed class GameDataService
         GetAdminAsync<List<FamilyGuardianshipData>>("api/family/guardianships", cancellationToken);
 
     public Task<FamilyAttractionData> GetFamilyAttractionAsync(
-        ulong simId,
+        ulong genosId,
         ulong candidateId,
         CancellationToken cancellationToken = default) =>
         GetAdminAsync<FamilyAttractionData>(
-            $"api/family/attraction?simId={simId}&candidateId={candidateId}",
+            $"api/family/attraction?genosId={genosId}&candidateId={candidateId}",
             cancellationToken);
 
     public Task ForcePartnershipAsync(
-        ulong simAId,
-        ulong simBId,
+        ulong genosAId,
+        ulong genosBId,
         string reason,
         bool overrideEligibility = false,
         CancellationToken cancellationToken = default) =>
         SendAdminJsonAsync(
             HttpMethod.Post,
             "api/family/partnerships/force",
-            new { simAId, simBId, reason, overrideEligibility },
+            new { genosAId, genosBId, reason, overrideEligibility },
             cancellationToken);
 
     public Task EndPartnershipAsync(
-        ulong simAId,
-        ulong simBId,
+        ulong genosAId,
+        ulong genosBId,
         string reason,
         CancellationToken cancellationToken = default) =>
         SendAdminJsonAsync(
             HttpMethod.Post,
             "api/family/partnerships/end",
-            new { simAId, simBId, reason },
+            new { genosAId, genosBId, reason },
             cancellationToken);
 
     public Task StartPregnancyAsync(

@@ -24,20 +24,20 @@ public class EconomyPersistenceTests
         var companyRepository = new CompanyRepository(world, economy.Employment, registry, economy);
         var officeRepository = new OfficeRepository(world, registry, economy);
         var postingRepository = new JobPostingRepository(world, registry, economy);
-        var simRepository = new SimRepository(world, registry);
+        var genosRepository = new GenosRepository(world, registry);
 
         var companyId = companyRepository.Add("Acme");
         var officeId = officeRepository.Add(companyId, "Main", 5, Money.FromUnits(50m));
         var postingId = postingRepository.Open(companyId, officeId, "Dev", Money.FromUnits(1000m), Skill.Programming, 1);
-        var simId = simRepository.Add("Alice", 30);
+        var genosId = genosRepository.Add("Alice", 30);
 
         registry.TryGetEntity(companyId, out var company);
         registry.TryGetEntity(officeId, out var office);
-        registry.TryGetEntity(simId, out var sim);
+        registry.TryGetEntity(genosId, out var genos);
 
-        world.Add(sim, new Employee(company, office, "Dev", Money.FromUnits(1000m)));
-        world.Add(sim, new SavingsAccount(Money.FromUnits(250m)));
-        economy.Employment.Add(company, sim);
+        world.Add(genos, new Employee(company, office, "Dev", Money.FromUnits(1000m)));
+        world.Add(genos, new SavingsAccount(Money.FromUnits(250m)));
+        economy.Employment.Add(company, genos);
 
         var account = world.Get<CompanyAccount>(company);
         account.Balance = Money.FromUnits(7_500m);
@@ -54,13 +54,13 @@ public class EconomyPersistenceTests
         var restoredEconomy = restored.Economy!;
 
         Assert.True(restored.NetworkIds.TryGetEntity(companyId, out var restoredCompany));
-        Assert.True(restored.NetworkIds.TryGetEntity(simId, out var restoredSim));
+        Assert.True(restored.NetworkIds.TryGetEntity(genosId, out var restoredGenos));
         Assert.True(restoredEconomy.Accounts.TryGet(restoredCompany, out var restoredAccount));
         Assert.Equal(Money.FromUnits(7_500m), restoredAccount.Balance);
         Assert.Equal(Money.FromUnits(25m), restoredAccount.Arrears);
         Assert.Equal(CompanySolvency.Arrears, restoredAccount.State);
-        Assert.Equal(Money.FromUnits(250m), restoredWorld.Get<SavingsAccount>(restoredSim).Balance);
-        Assert.True(restoredWorld.Has<Employee>(restoredSim));
+        Assert.Equal(Money.FromUnits(250m), restoredWorld.Get<SavingsAccount>(restoredGenos).Balance);
+        Assert.True(restoredWorld.Has<Employee>(restoredGenos));
         Assert.Equal(1, restoredEconomy.Employment.CountEmployees(restoredCompany));
         Assert.True(restored.NetworkIds.TryGetEntity(postingId, out var restoredPosting));
         Assert.Equal(1, restoredWorld.Get<JobPosting>(restoredPosting).TotalSeats);
@@ -77,12 +77,12 @@ public class EconomyPersistenceTests
         var registry = engine.NetworkIds;
 
         var companyRepository = new CompanyRepository(world, economy.Employment, registry, economy);
-        var simRepository = new SimRepository(world, registry);
+        var genosRepository = new GenosRepository(world, registry);
         var companyId = companyRepository.Add("Shop");
-        var simId = simRepository.Add("Buyer", 30);
+        var genosId = genosRepository.Add("Buyer", 30);
         registry.TryGetEntity(companyId, out var company);
 
-        economy.BookRevenue(company, "Food", simId.Value, Money.FromUnits(40m), 100);
+        economy.BookRevenue(company, "Food", genosId.Value, Money.FromUnits(40m), 100);
         var before = economy.TotalMoneySupply();
 
         var state = engine.CaptureState(registry);

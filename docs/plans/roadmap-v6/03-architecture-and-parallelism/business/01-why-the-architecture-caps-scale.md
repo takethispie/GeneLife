@@ -5,9 +5,9 @@ After tiers 1 and 2, two limits remain. The tick runs on a thread shared with we
 Tier 3 changes those choices:
 
 - The simulation gets its own thread, so request load cannot delay the tick.
-- Independent systems run in parallel, so more sims fit in the same tick budget.
+- Independent systems run in parallel, so more genoses fit in the same tick budget.
 - Snapshots are built off the tick thread, so reporting does not compete with simulation.
 
 This is the highest-risk tier. Parallelism can break determinism, and moving the tick off the thread pool changes timing. Every step must be proven on the replay suite before it is kept.
 
-The payoff is headroom beyond 2,000 sims without dropping ticks or cutting the world's depth.
+The payoff is headroom beyond 2,000 genoses without dropping ticks or cutting the world's depth.

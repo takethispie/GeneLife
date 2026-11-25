@@ -11,7 +11,7 @@ public sealed record AppearanceLayersDto(
     float HeightScale,
     int LayerOrderVersion);
 
-public sealed record AppearanceSimStatus(
+public sealed record AppearanceGenosStatus(
     ulong NetworkId,
     string Name,
     int Age,
@@ -23,7 +23,7 @@ public sealed record AppearanceSimStatus(
 
 public sealed record AppearanceFamilyMemberStatus(
     string Relation,
-    AppearanceSimStatus Sim,
+    AppearanceGenosStatus Genos,
     bool SharesSkinTone,
     bool SharesFaceShape,
     bool SharesHairColor,
@@ -32,9 +32,9 @@ public sealed record AppearanceFamilyMemberStatus(
     decimal ResemblanceScore);
 
 public sealed record AppearanceFamilyStatus(
-    AppearanceSimStatus Focal,
+    AppearanceGenosStatus Focal,
     IReadOnlyList<AppearanceFamilyMemberStatus> Members);
 
 public sealed record AppearancePage(
-    IReadOnlyList<AppearanceSimStatus> Items,
+    IReadOnlyList<AppearanceGenosStatus> Items,
     int Total);

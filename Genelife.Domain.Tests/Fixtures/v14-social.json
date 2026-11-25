@@ -3,7 +3,7 @@
   "PlayerProfiles": [
     {
       "PlayerId": "fixture-player",
-      "SimNetworkId": 0,
+      "GenosNetworkId": 0,
       "ContinuationPolicy": "Heir",
       "AwaitingContinuation": false,
       "Observer": false

@@ -20,7 +20,7 @@ public class WorldRestoreService
         this.logger = logger;
     }
 
-    public async Task<(List<EntityBlueprint> entities, int simCount, int companyCount)> RestoreAsync(
+    public async Task<(List<EntityBlueprint> entities, int genosCount, int companyCount)> RestoreAsync(
         NetworkIdRegistry networkIds,
         EmploymentIndex employmentIndex)
     {
@@ -36,24 +36,24 @@ public class WorldRestoreService
         {
             await using var session = documentStore.LightweightSession();
 
-            var simDocs = await session.Query<SimDocument>().ToListAsync();
+            var genosDocs = await session.Query<GenosDocument>().ToListAsync();
             var companyDocs = await session.Query<CompanyDocument>().ToListAsync();
 
-            foreach (var sim in simDocs)
+            foreach (var genos in genosDocs)
             {
                 blueprints.Add(new EntityBlueprint(
-                    EntityType.Sim,
-                    (ulong)sim.NetworkId,
-                    sim.Name,
-                    sim.Age,
-                    sim.Hunger,
-                    sim.Energy,
-                    sim.Hygiene,
-                    sim.Bladder,
-                    sim.CurrentAction,
-                    sim.ActionTimeRemaining,
-                    sim.IsPlayerControlled,
-                    sim.PlayerId
+                    EntityType.Genos,
+                    (ulong)genos.NetworkId,
+                    genos.Name,
+                    genos.Age,
+                    genos.Hunger,
+                    genos.Energy,
+                    genos.Hygiene,
+                    genos.Bladder,
+                    genos.CurrentAction,
+                    genos.ActionTimeRemaining,
+                    genos.IsPlayerControlled,
+                    genos.PlayerId
                 ));
             }
 
@@ -67,10 +67,10 @@ public class WorldRestoreService
                 ));
             }
 
-            logger?.LogInformation("Restored {SimCount} sims and {CompanyCount} companies from Marten",
-                simDocs.Count, companyDocs.Count);
+            logger?.LogInformation("Restored {GenosCount} genoses and {CompanyCount} companies from Marten",
+                genosDocs.Count, companyDocs.Count);
 
-            return (blueprints, simDocs.Count, companyDocs.Count);
+            return (blueprints, genosDocs.Count, companyDocs.Count);
         }
         catch (Exception ex)
         {
@@ -95,4 +95,4 @@ public record EntityBlueprint(
     string? PlayerId
 );
 
-public enum EntityType { Sim, Company }
+public enum EntityType { Genos, Company }

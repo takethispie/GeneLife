@@ -15,7 +15,7 @@ public abstract record Intent
 
 public sealed record MoveIntent : Intent
 {
-    public ulong SimNetworkId { get; init; }
+    public ulong GenosNetworkId { get; init; }
     public int? TargetTileX { get; init; }
     public int? TargetTileY { get; init; }
 
@@ -26,6 +26,6 @@ public sealed record MoveIntent : Intent
 
 public sealed record UseBuildingIntent : Intent
 {
-    public ulong SimNetworkId { get; init; }
+    public ulong GenosNetworkId { get; init; }
     public ulong BuildingNetworkId { get; init; }
 }

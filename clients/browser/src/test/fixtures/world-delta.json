@@ -3,7 +3,7 @@
   "sinceTick": 100,
   "version": 2,
   "full": false,
-  "sims": [
+  "genoses": [
     {
       "networkId": 1,
       "name": "Ada",
@@ -70,7 +70,7 @@
     }
   ],
   "companies": [],
-  "removedSims": [
+  "removedGenoses": [
     5
   ],
   "removedCompanies": []

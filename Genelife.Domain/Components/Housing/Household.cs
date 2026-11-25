@@ -7,7 +7,7 @@ namespace Genelife.Components.Housing;
 /// <summary>
 /// The cost-sharing unit. The household is the source of truth for tenancy,
 /// rent, arrears and the eviction ladder; <see cref="Residence"/> is a derived
-/// per-sim cache.
+/// per-genos cache.
 /// </summary>
 public record struct Household
 {

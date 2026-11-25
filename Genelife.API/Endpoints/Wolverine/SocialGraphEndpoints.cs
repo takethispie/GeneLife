@@ -30,7 +30,7 @@ public static class SocialGraphEndpoints
         return new PlayerRelationshipStatusDto(
             status.PlayerId,
             status.PartnerPlayerId,
-            status.PartnerSimNetworkId,
+            status.PartnerGenosNetworkId,
             status.PartnerName,
             status.SharesHousehold,
             status.CanCohabit,

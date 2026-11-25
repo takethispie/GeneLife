@@ -111,12 +111,12 @@ public sealed class VenueTests : IDisposable
         Assert.False(venues.TryEnter("alice", venue, tick: 10, out var code, out _));
         Assert.Equal("removed_from_venue", code);
 
-        world.Get<TilePosition>(players.GetOrCreate("alice", Entity.Null, 0).ControlledSim) =
+        world.Get<TilePosition>(players.GetOrCreate("alice", Entity.Null, 0).ControlledGenos) =
             new TilePosition(new TileCoord(0, 0));
         venues.RefreshPresence(tick: 11);
         Assert.False(venues.IsOccupant("alice", venue));
 
-        world.Get<TilePosition>(players.GetOrCreate("alice", Entity.Null, 0).ControlledSim) =
+        world.Get<TilePosition>(players.GetOrCreate("alice", Entity.Null, 0).ControlledGenos) =
             new TilePosition(new TileCoord(9, 10));
         venues.RefreshPresence(tick: 12);
         Assert.True(venues.IsOccupant("alice", venue));
@@ -227,23 +227,23 @@ public sealed class VenueTests : IDisposable
 
     private Entity CreatePlayer(string playerId, string name, ulong networkId, int x, int y)
     {
-        var sim = world.Create(
+        var genos = world.Create(
             new GenName(name),
             new PlayerControlled(playerId),
             new TilePosition(new TileCoord(x, y)),
             new Needs());
-        world.Add(sim, new NetworkId(networkId));
-        networkIds.AllocateWithValue(sim, new NetworkId(networkId));
-        players.GetOrCreate(playerId, sim, 0);
-        return sim;
+        world.Add(genos, new NetworkId(networkId));
+        networkIds.AllocateWithValue(genos, new NetworkId(networkId));
+        players.GetOrCreate(playerId, genos, 0);
+        return genos;
     }
 
-    private Entity AddPantry(Entity sim, int units)
+    private Entity AddPantry(Entity genos, int units)
     {
-        var household = world.Create(new Household { Head = sim, MemberCount = 1 });
+        var household = world.Create(new Household { Head = genos, MemberCount = 1 });
         world.Add(household, new HouseholdPantry { FoodUnits = units });
-        world.Add(sim, new HouseholdMember(household, HouseholdRole.Head));
-        economy.Housing.AddMember(sim, household);
+        world.Add(genos, new HouseholdMember(household, HouseholdRole.Head));
+        economy.Housing.AddMember(genos, household);
         return household;
     }
 
@@ -263,17 +263,17 @@ public sealed class VenueTests : IDisposable
         public ChatPlayerContext? Describe(string playerId)
         {
             if (!players.TryGet(playerId, out var profile) ||
-                profile.ControlledSim == Entity.Null ||
-                !world.IsAlive(profile.ControlledSim))
+                profile.ControlledGenos == Entity.Null ||
+                !world.IsAlive(profile.ControlledGenos))
                 return null;
 
-            var sim = profile.ControlledSim;
-            var tile = world.Has<TilePosition>(sim) ? world.Get<TilePosition>(sim).Tile : default;
+            var genos = profile.ControlledGenos;
+            var tile = world.Has<TilePosition>(genos) ? world.Get<TilePosition>(genos).Tile : default;
             var venue = venues.VenueOf(playerId);
             var inVenue = venue != Entity.Null && venues.IsOccupant(playerId, venue);
             return new ChatPlayerContext(
                 playerId,
-                world.Has<GenName>(sim) ? world.Get<GenName>(sim).Name : null,
+                world.Has<GenName>(genos) ? world.Get<GenName>(genos).Name : null,
                 tile.X,
                 tile.Y,
                 inVenue ? NetworkIdOf(venue) : null,

@@ -8,7 +8,7 @@ using Genelife.Enums;
 namespace Genelife.Systems;
 
 /// <summary>
-/// Death from sustained critical need depletion. Debounces so a sim eating or
+/// Death from sustained critical need depletion. Debounces so a genos eating or
 /// waiting for a purchase is not killed, and requires no household funds.
 /// </summary>
 public class NeedsDeathSystem : ISimulationSystem

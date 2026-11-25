@@ -24,7 +24,7 @@
 | Family read model and admin page | Done (feature 05) | Family/pregnancy/child/guardian/trait/household/attraction reads, paging and filters, `Family.razor` |
 | Events and Marten projections | Done (feature 05) | Family/relationship/pregnancy/child/household/estate events and idempotent projections |
 | Persistence and schema 5 → 11 | Done (features 01–05) | Traits (v6), relationships (v7), pregnancies/births (v8), trusts/inheritance (v9), state care and ended edges (v10), `HasWallet` (v11), restore tests |
-| Determinism and scale | Done (features 01–05) | Decade replay, seed sweep, legacy migration replay, 200-sim decade, 2,000-sim 1-year budget, 5,000-sim smoke, 2,000-sim ten-year run (p95 ~3.1 ms) and 30-year continuity |
+| Determinism and scale | Done (features 01–05) | Decade replay, seed sweep, legacy migration replay, 200-genos decade, 2,000-genos 1-year budget, 5,000-genos smoke, 2,000-genos ten-year run (p95 ~3.1 ms) and 30-year continuity |
 | Release acceptance | Done (feature 05) | Full PostgreSQL suite 531/0/2, both release scenarios and admin HTTP smoke recorded in release evidence; admin `/family` browser E2E covers tabs, confirmations and command results |
 
 ## Verification plan
@@ -36,28 +36,28 @@
 | `BalanceScenarioTests` 10-year report | before and after V4 continuity changes |
 | Family acceptance suite | after feature 03 |
 | Schema 5 → 11 migration and restore tests | after feature 05 persistence step |
-| 2,000-sim family performance scenario | done (release evidence) |
+| 2,000-genos family performance scenario | done (release evidence) |
 | Admin family page smoke test | done at HTTP level and with Playwright coverage of `/family` tabs, confirmations and command results (`clients/browser/e2e/admin/family.spec.ts`) |
 | Full integration suite with PostgreSQL (`docker compose up -d postgres`) | done (531 total, 0 failed, 2 skipped) |
 
 Feature 01 verification (2026-11-23): `dotnet build GeneLife.sln` succeeds; `Genelife.UnitTests.Family`, `Persistence`, and the core simulation namespaces pass.
 
-Feature 02 verification (2026-11-23): relationship domain/index/eligibility/scorer/candidate/merge/persistence/admin tests pass; the 60- and 200-sim balance scenarios pass with `CohabitOnPairing = false`.
+Feature 02 verification (2026-11-23): relationship domain/index/eligibility/scorer/candidate/merge/persistence/admin tests pass; the 60- and 200-genos balance scenarios pass with `CohabitOnPairing = false`.
 
-Feature 03 verification (2026-11-23): pregnancy domain, conception rate/replay, prenatal care/risk/loss, birth/newborn, childhood gates, guardian-paid child consumption, pregnancy restore and reproduction invariants pass. The 200-sim decade remains green with births enabled.
+Feature 03 verification (2026-11-23): pregnancy domain, conception rate/replay, prenatal care/risk/loss, birth/newborn, childhood gates, guardian-paid child consumption, pregnancy restore and reproduction invariants pass. The 200-genos decade remains green with births enabled.
 
-Feature 04 verification (2026-11-23): heir order/shares, minor trusts/release/escheat, widowhood head/guardian transition, relative/state care, trust restore and continuity invariants pass. Births are counted in the population snapshot, immigration pauses with `TargetReached`, and the 200-sim decade remains green. Marten/integration namespaces still require PostgreSQL.
+Feature 04 verification (2026-11-23): heir order/shares, minor trusts/release/escheat, widowhood head/guardian transition, relative/state care, trust restore and continuity invariants pass. Births are counted in the population snapshot, immigration pauses with `TargetReached`, and the 200-genos decade remains green. Marten/integration namespaces still require PostgreSQL.
 
-Feature 05 verification (2026-11-23): family read model, paged/filtered admin routes, typed audited operations, `Family.razor`, Marten family projections, schema 11 persistence (state care, ended edges, `HasWallet`), decade replay, seed sweep, legacy migration replay, dangling-edge detection and projection coverage pass. Full PostgreSQL suite is 531 total / 0 failed / 2 skipped (~73 s); the 2,000-sim ten-year run holds p95 ~3.1 ms with a clean restore and no health `Fail`, and the 30-year continuity run records zero continuity/reproduction failures. Admin family reads and mutations pass at HTTP level (unauthorized read 401, web `/family` 200); the Playwright admin suite now covers the `/family` overview, all seven tabs, sim detail, empty states, destructive confirmation gating and command success/failure results. See release evidence and release checklist.
+Feature 05 verification (2026-11-23): family read model, paged/filtered admin routes, typed audited operations, `Family.razor`, Marten family projections, schema 11 persistence (state care, ended edges, `HasWallet`), decade replay, seed sweep, legacy migration replay, dangling-edge detection and projection coverage pass. Full PostgreSQL suite is 531 total / 0 failed / 2 skipped (~73 s); the 2,000-genos ten-year run holds p95 ~3.1 ms with a clean restore and no health `Fail`, and the 30-year continuity run records zero continuity/reproduction failures. Admin family reads and mutations pass at HTTP level (unauthorized read 401, web `/family` 200); the Playwright admin suite now covers the `/family` overview, all seven tabs, genos detail, empty states, destructive confirmation gating and command success/failure results. See release evidence and release checklist.
 
 ## Current baseline
 
-- `PersistedWorldState.CurrentSchemaVersion` is 11, with persisted family/inheritance/guardianship policies, relationship edges (including ended tick), pregnancy/birth history, minor trusts, state care, a `PersistedSim.HasWallet` flag, yearly birth/continuity metrics, the `BalanceBackfilled` migration, deterministic trait backfill from schema 5, `HasWallet` backfill from schema ≤ 10 and relationship/pregnancy/trust/state-care restore from schemas 6–9.
+- `PersistedWorldState.CurrentSchemaVersion` is 11, with persisted family/inheritance/guardianship policies, relationship edges (including ended tick), pregnancy/birth history, minor trusts, state care, a `PersistedGenos.HasWallet` flag, yearly birth/continuity metrics, the `BalanceBackfilled` migration, deterministic trait backfill from schema 5, `HasWallet` backfill from schema ≤ 10 and relationship/pregnancy/trust/state-care restore from schemas 6–9.
 - Family read model is live-state authoritative; Marten `FamilyDocument`, `RelationshipDocument`, `PregnancyDocument`, `ChildDocument`, `HouseholdCompositionDocument` and `EstateDocument` are rebuildable history and are registered inline.
 - The admin family page is admin-only and exposes traits, relationships, attraction, pregnancies, children, guardianship, household composition, health, projection staleness and tick/candidate budgets. Auto-refresh reloads only the active tab every ten seconds.
 - Every production creation path (seed, immigrant, player, admin) writes a `Traits` component; inheritance and mutation helpers exist for feature 03 births.
 - Seeded worlds create opposite-sex partner edges and parent edges. Partnered adults can conceive, carry pregnancies through prenatal care and give birth to complete newborns with inherited traits and parent edges.
-- `CohabitOnPairing` still defaults to false. The V5 30-year comparison (200 sims, seed 21) records population 199 → 219 and births 75 → 83, but housing vacancy 17.7% → 26.6% and overcrowded units 3 → 9, with money supply and rent burden otherwise close. It stays opt-in until feature 03 housing/consumption tuning makes the comparison green.
+- `CohabitOnPairing` still defaults to false. The V5 30-year comparison (200 genoses, seed 21) records population 199 → 219 and births 75 → 83, but housing vacancy 17.7% → 26.6% and overcrowded units 3 → 9, with money supply and rent burden otherwise close. It stays opt-in until feature 03 housing/consumption tuning makes the comparison green.
 - `HouseholdRole.Child` is tied to parent edges for seeded and born children; a `DependentChild` marker identifies dependants. `Tenure.Dependent` remains unused for adult-headed households.
 - `HousingUnit.Capacity` and `OccupantCount` already exist; the generator still creates one household per adult and releases adult children monthly under policy.
 - `DeathProcessingSystem` inherits through current household membership, not relationships.
@@ -86,6 +86,6 @@ Feature 05 verification (2026-11-23): family read model, paged/filtered admin ro
 ## Next
 
 1. Recalibrate economy/consumption and add seeded-pair cohabitation so `CohabitOnPairing` can default to true without breaking the strict balance bands; re-run the 30-year continuity scenario before flipping the default.
-2. Carried-forward Warnings (non-blocking): 61 health warnings in the 2,000-sim ten-year run and four reproduction `Warn` levels in the 30-year run are documented signals, not Failures.
+2. Carried-forward Warnings (non-blocking): 61 health warnings in the 2,000-genos ten-year run and four reproduction `Warn` levels in the 30-year run are documented signals, not Failures.
 
 V4 is otherwise release-ready. See release evidence.

@@ -1,6 +1,6 @@
 namespace Genelife.Api.DTOs;
 
-public class SimStatus
+public class GenosStatus
 {
     public ulong NetworkId { get; set; }
     public string Name { get; set; } = string.Empty;

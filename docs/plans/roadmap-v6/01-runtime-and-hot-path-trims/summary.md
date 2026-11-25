@@ -9,7 +9,7 @@
 
 ## Objective
 
-Cut per-tick cost without changing behavior. Enable the runtime settings the API should already have, stop logging work that makes overruns worse, and remove the two clear hot-path inefficiencies: the O(companies × offices) company snapshot and the per-sim appearance derivation on every tick.
+Cut per-tick cost without changing behavior. Enable the runtime settings the API should already have, stop logging work that makes overruns worse, and remove the two clear hot-path inefficiencies: the O(companies × offices) company snapshot and the per-genos appearance derivation on every tick.
 
 This feature is the first pass. It should be shippable in one change set with no tick-ordering changes.
 
@@ -18,7 +18,7 @@ This feature is the first pass. It should be shippable in one change set with no
 - `Genelife.API.csproj` has no GC, PGO or globalization settings. The API runs with workstation GC defaults.
 - `SimulationLoop.LogOverrun` calls `engine.GetMetricsSnapshot()` on every overrun tick (`Genelife.API/Services/SimulationLoop.cs:102-116`). During a sustained overrun this takes the metrics lock, sorts systems and builds strings every tick.
 - `BuildCompanySnapshots` runs an `Office` query inside the per-company loop (`Genelife.API/Services/SimulationEngine.cs:5897-5905`), so its cost is O(companies × offices).
-- `BuildSimSnapshots` calls `AppearanceMapper.TryDerive` for every sim every tick (`Genelife.API/Services/SimulationEngine.cs:5854`).
+- `BuildGenosSnapshots` calls `AppearanceMapper.TryDerive` for every genos every tick (`Genelife.API/Services/SimulationEngine.cs:5854`).
 - `Tick` allocates `List<object> events = new()` every tick and builds `TickCompleted` even when no consumer exists (`Genelife.API/Services/SimulationEngine.cs:520`).
 
 ## Deliverables
@@ -36,7 +36,7 @@ flowchart LR
     B[Build settings] --> GC[Server GC + PGO]
     L[LogOverrun] --> TH[5 s throttle]
     C[BuildCompanySnapshots] --> IDX[Office count index]
-    A[BuildSimSnapshots] --> CACHE[Appearance cache]
+    A[BuildGenosSnapshots] --> CACHE[Appearance cache]
     T[Tick] --> POOL[Pooled events]
     GC --> M[Cheaper tick]
     TH --> M
@@ -67,5 +67,5 @@ No tick ordering changes. The only structural change is the office index, which 
 - The 1k and 5k `LoadHarness` runs show lower allocation per tick and no p95 regression.
 - Overrun bursts no longer produce one metrics snapshot per tick.
 - `BuildCompanySnapshots` cost scales with companies plus offices, not their product.
-- Appearance derivation runs only for sims whose appearance inputs changed.
+- Appearance derivation runs only for genoses whose appearance inputs changed.
 - Replay and determinism tests pass unchanged.

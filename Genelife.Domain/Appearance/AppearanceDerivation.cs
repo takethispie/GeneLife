@@ -3,7 +3,7 @@ using Genelife.Components.Gen;
 namespace Genelife.Appearance;
 
 /// <summary>
-/// Pure appearance derivation. The stable key is normally the sim network id;
+/// Pure appearance derivation. The stable key is normally the genos network id;
 /// the RNG is simulated with a stable hash so the result does not depend on
 /// creation order, query order or Random.Shared.
 /// </summary>
@@ -39,7 +39,7 @@ public static class AppearanceDerivation
     }
 
     /// <summary>
-    /// Deterministic gene backfill for legacy sims. Existing traits are never
+    /// Deterministic gene backfill for legacy genoses. Existing traits are never
     /// read or changed; only the two new appearance genes are generated.
     /// </summary>
     public static (SkinTone SkinTone, FaceShape FaceShape) BackfillGenes(

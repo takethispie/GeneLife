@@ -19,7 +19,7 @@ public sealed class PlayerLifecycleSystem : ISimulationSystem
     private readonly PlayerRegistry players;
     private readonly RelationshipIndex? relationships;
     private readonly InheritanceOptions inheritanceOptions;
-    private readonly Func<string, Entity?>? newSimFactory;
+    private readonly Func<string, Entity?>? newGenosFactory;
     private readonly int interval;
 
     public PlayerLifecycleSystem(
@@ -28,7 +28,7 @@ public sealed class PlayerLifecycleSystem : ISimulationSystem
         PlayerRegistry players,
         RelationshipIndex? relationships = null,
         InheritanceOptions? inheritanceOptions = null,
-        Func<string, Entity?>? newSimFactory = null,
+        Func<string, Entity?>? newGenosFactory = null,
         int interval = 100)
     {
         this.world = world;
@@ -36,7 +36,7 @@ public sealed class PlayerLifecycleSystem : ISimulationSystem
         this.players = players;
         this.relationships = relationships;
         this.inheritanceOptions = inheritanceOptions ?? InheritanceOptions.Default;
-        this.newSimFactory = newSimFactory;
+        this.newGenosFactory = newGenosFactory;
         this.interval = Math.Max(1, interval);
     }
 
@@ -54,25 +54,25 @@ public sealed class PlayerLifecycleSystem : ISimulationSystem
 
         foreach (var profile in profiles)
         {
-            var sim = profile.ControlledSim;
-            var simAlive = sim != Entity.Null && world.IsAlive(sim);
+            var genos = profile.ControlledGenos;
+            var genosAlive = genos != Entity.Null && world.IsAlive(genos);
 
-            if (simAlive && world.Has<Dead>(sim))
+            if (genosAlive && world.Has<Dead>(genos))
             {
-                if (world.Has<PlayerControlled>(sim))
-                    world.Remove<PlayerControlled>(sim);
+                if (world.Has<PlayerControlled>(genos))
+                    world.Remove<PlayerControlled>(genos);
 
-                CaptureDeath(profile, sim, tick);
-                profile.LastSimNetworkId = NetworkIdOf(sim);
-                players.DetachSim(profile);
+                CaptureDeath(profile, genos, tick);
+                profile.LastGenosNetworkId = NetworkIdOf(genos);
+                players.DetachGenos(profile);
                 players.RecordDeath();
                 economy.Emit(new PlayerAwaitingContinuation(
-                    profile.LastSimNetworkId,
+                    profile.LastGenosNetworkId,
                     profile.PlayerId,
                     tick,
-                    profile.LastSimName,
-                    profile.LastSimAge,
-                    world.Has<Dead>(sim) ? world.Get<Dead>(sim).Cause.ToString() : null,
+                    profile.LastGenosName,
+                    profile.LastGenosAge,
+                    world.Has<Dead>(genos) ? world.Get<Dead>(genos).Cause.ToString() : null,
                     CanRespawn: profile.ContinuationPolicy != PlayerContinuationPolicy.Observer));
                 continue;
             }
@@ -91,59 +91,59 @@ public sealed class PlayerLifecycleSystem : ISimulationSystem
             if (profile.ContinuationPolicy == PlayerContinuationPolicy.Respawn)
                 continue;
 
-            var previousSimId = profile.LastSimNetworkId;
+            var previousGenosId = profile.LastGenosNetworkId;
 
             if (profile.ContinuationPolicy == PlayerContinuationPolicy.Heir)
             {
-                var heir = ResolveHeir(profile, sim);
+                var heir = ResolveHeir(profile, genos);
                 if (heir != Entity.Null)
                 {
-                    Attach(profile, heir, previousSimId, "heir", tick);
+                    Attach(profile, heir, previousGenosId, "heir", tick);
                     continue;
                 }
             }
 
-            var created = newSimFactory?.Invoke(profile.PlayerId);
-            if (created is { } newSim && newSim != Entity.Null && world.IsAlive(newSim))
+            var created = newGenosFactory?.Invoke(profile.PlayerId);
+            if (created is { } newGenos && newGenos != Entity.Null && world.IsAlive(newGenos))
             {
-                Attach(profile, newSim, previousSimId, "new-sim", tick);
+                Attach(profile, newGenos, previousGenosId, "new-genos", tick);
                 continue;
             }
 
-            // No heir and the world could not create a new sim: keep the
-            // profile awaiting rather than handing the player a dead sim.
+            // No heir and the world could not create a new genos: keep the
+            // profile awaiting rather than handing the player a dead genos.
         }
     }
 
-    private void CaptureDeath(PlayerProfile profile, Entity sim, long tick)
+    private void CaptureDeath(PlayerProfile profile, Entity genos, long tick)
     {
-        if (profile.LastSimDeathTick != 0)
+        if (profile.LastGenosDeathTick != 0)
             return;
 
-        profile.LastSimName = world.Has<GenName>(sim) ? world.Get<GenName>(sim).Name : null;
-        profile.LastSimAge = world.Has<Alive>(sim) ? world.Get<Alive>(sim).Age : 0;
-        profile.LastSimTraits = world.Has<Traits>(sim) ? world.Get<Traits>(sim) : null;
-        var household = LifeSystemHelpers.HouseholdOf(world, economy, sim);
-        profile.LastSimHouseholdNetworkId = household != Entity.Null ? NetworkIdOf(household) : 0;
-        profile.LastSimDeathTick = tick;
+        profile.LastGenosName = world.Has<GenName>(genos) ? world.Get<GenName>(genos).Name : null;
+        profile.LastGenosAge = world.Has<Alive>(genos) ? world.Get<Alive>(genos).Age : 0;
+        profile.LastGenosTraits = world.Has<Traits>(genos) ? world.Get<Traits>(genos) : null;
+        var household = LifeSystemHelpers.HouseholdOf(world, economy, genos);
+        profile.LastGenosHouseholdNetworkId = household != Entity.Null ? NetworkIdOf(household) : 0;
+        profile.LastGenosDeathTick = tick;
     }
 
-    private Entity ResolveHeir(PlayerProfile profile, Entity previousSim)
+    private Entity ResolveHeir(PlayerProfile profile, Entity previousGenos)
     {
-        if (relationships is null || previousSim == Entity.Null || !world.IsAlive(previousSim))
+        if (relationships is null || previousGenos == Entity.Null || !world.IsAlive(previousGenos))
             return Entity.Null;
 
         var plan = HeirResolver.Resolve(
             world,
             relationships,
-            previousSim,
+            previousGenos,
             inheritanceOptions,
             economy.Life.Policy);
 
         foreach (var allocation in plan.Allocations)
         {
             var heir = allocation.Heir;
-            if (heir == Entity.Null || heir == previousSim || !world.IsAlive(heir))
+            if (heir == Entity.Null || heir == previousGenos || !world.IsAlive(heir))
                 continue;
             if (world.Has<Dead>(heir))
                 continue;
@@ -160,26 +160,26 @@ public sealed class PlayerLifecycleSystem : ISimulationSystem
         return Entity.Null;
     }
 
-    private void Attach(PlayerProfile profile, Entity sim, ulong previousSimId, string policy, long tick)
+    private void Attach(PlayerProfile profile, Entity genos, ulong previousGenosId, string policy, long tick)
     {
-        if (world.Has<PlayerControlled>(sim))
-            world.Get<PlayerControlled>(sim) = new PlayerControlled(profile.PlayerId);
+        if (world.Has<PlayerControlled>(genos))
+            world.Get<PlayerControlled>(genos) = new PlayerControlled(profile.PlayerId);
         else
-            world.Add(sim, new PlayerControlled(profile.PlayerId));
+            world.Add(genos, new PlayerControlled(profile.PlayerId));
 
         profile.Observer = false;
-        players.AttachSim(profile, sim);
-        profile.LastSimNetworkId = NetworkIdOf(sim);
+        players.AttachGenos(profile, genos);
+        profile.LastGenosNetworkId = NetworkIdOf(genos);
         players.RecordContinuation();
 
         economy.Emit(new PlayerContinuationApplied(
             profile.PlayerId,
-            previousSimId,
-            NetworkIdOf(sim),
+            previousGenosId,
+            NetworkIdOf(genos),
             policy,
             null,
             tick,
-            world.Has<GenName>(sim) ? world.Get<GenName>(sim).Name : null));
+            world.Has<GenName>(genos) ? world.Get<GenName>(genos).Name : null));
     }
 
     private ulong NetworkIdOf(Entity entity) =>

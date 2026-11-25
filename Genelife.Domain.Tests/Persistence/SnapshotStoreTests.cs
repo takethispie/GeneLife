@@ -54,9 +54,9 @@ public class SnapshotStoreTests : IDisposable
         {
             SchemaVersion = PersistedWorldState.CurrentSchemaVersion,
             Tick = 42,
-            Sims =
+            Genoses =
             [
-                new PersistedSim
+                new PersistedGenos
                 {
                     Name = "Alice", Age = 30, NetworkId = 1,
                     Hunger = 80, Energy = 90, Hygiene = 85, Bladder = 75,
@@ -93,7 +93,7 @@ public class SnapshotStoreTests : IDisposable
         {
             SchemaVersion = PersistedWorldState.CurrentSchemaVersion,
             Tick = 99,
-            Sims = [new PersistedSim { Name = "Bob", Age = 25, NetworkId = 5, ActionType = "Sleeping" }],
+            Genoses = [new PersistedGenos { Name = "Bob", Age = 25, NetworkId = 5, ActionType = "Sleeping" }],
             Companies = [new PersistedCompany { Name = "GlobalCorp", NetworkId = 20 }]
         };
 
@@ -103,11 +103,11 @@ public class SnapshotStoreTests : IDisposable
         Assert.NotNull(loaded);
         Assert.Equal(99, loaded!.Tick);
         Assert.Equal(PersistedWorldState.CurrentSchemaVersion, loaded.SchemaVersion);
-        Assert.Single(loaded.Sims);
-        Assert.Equal("Bob", loaded.Sims[0].Name);
-        Assert.Equal(25, loaded.Sims[0].Age);
-        Assert.Equal((ulong)5, loaded.Sims[0].NetworkId);
-        Assert.Equal("Sleeping", loaded.Sims[0].ActionType);
+        Assert.Single(loaded.Genoses);
+        Assert.Equal("Bob", loaded.Genoses[0].Name);
+        Assert.Equal(25, loaded.Genoses[0].Age);
+        Assert.Equal((ulong)5, loaded.Genoses[0].NetworkId);
+        Assert.Equal("Sleeping", loaded.Genoses[0].ActionType);
         Assert.Single(loaded.Companies);
         Assert.Equal("GlobalCorp", loaded.Companies[0].Name);
         Assert.Equal((ulong)20, loaded.Companies[0].NetworkId);
@@ -163,27 +163,27 @@ public class SnapshotStoreTests : IDisposable
         {
             SchemaVersion = PersistedWorldState.CurrentSchemaVersion,
             Tick = 10,
-            Sims = [new PersistedSim { Name = "Early" }]
+            Genoses = [new PersistedGenos { Name = "Early" }]
         });
 
         store.Save(new PersistedWorldState
         {
             SchemaVersion = PersistedWorldState.CurrentSchemaVersion,
             Tick = 50,
-            Sims = [new PersistedSim { Name = "Late" }]
+            Genoses = [new PersistedGenos { Name = "Late" }]
         });
 
         store.Save(new PersistedWorldState
         {
             SchemaVersion = PersistedWorldState.CurrentSchemaVersion,
             Tick = 30,
-            Sims = [new PersistedSim { Name = "Middle" }]
+            Genoses = [new PersistedGenos { Name = "Middle" }]
         });
 
         var loaded = store.LoadLatest();
         Assert.NotNull(loaded);
         Assert.Equal(50, loaded!.Tick);
-        Assert.Equal("Late", loaded.Sims[0].Name);
+        Assert.Equal("Late", loaded.Genoses[0].Name);
 
         return Task.CompletedTask;
     }
@@ -211,9 +211,9 @@ public class SnapshotStoreTests : IDisposable
             SchemaVersion = 3,
             Tick = 123,
             HousingMigrated = true,
-            Sims =
+            Genoses =
             [
-                new PersistedSim
+                new PersistedGenos
                 {
                     Name = "Legacy", Age = 72, NetworkId = 7,
                     ActionType = "Idle", Stage = string.Empty
@@ -225,8 +225,8 @@ public class SnapshotStoreTests : IDisposable
         Assert.NotNull(loaded);
         Assert.Equal(PersistedWorldState.CurrentSchemaVersion, loaded!.SchemaVersion);
         Assert.False(loaded.LifecycleMigrated);
-        Assert.Single(loaded.Sims);
-        Assert.Equal(72, loaded.Sims[0].Age);
+        Assert.Single(loaded.Genoses);
+        Assert.Equal(72, loaded.Genoses[0].Age);
         return Task.CompletedTask;
     }
 
@@ -240,7 +240,7 @@ public class SnapshotStoreTests : IDisposable
         {
             SchemaVersion = 999,
             Tick = 1,
-            Sims = [new PersistedSim { Name = "Future" }]
+            Genoses = [new PersistedGenos { Name = "Future" }]
         };
 
         store.Save(futureState);
@@ -261,7 +261,7 @@ public class SnapshotStoreTests : IDisposable
         {
             SchemaVersion = 0,
             Tick = 1,
-            Sims = [new PersistedSim { Name = "Old" }]
+            Genoses = [new PersistedGenos { Name = "Old" }]
         };
 
         store.Save(oldState);
@@ -284,7 +284,7 @@ public class SnapshotStoreTests : IDisposable
             {
                 SchemaVersion = PersistedWorldState.CurrentSchemaVersion,
                 Tick = i,
-                Sims = [new PersistedSim { Name = $"Sim_{i}" }]
+                Genoses = [new PersistedGenos { Name = $"Genos_{i}" }]
             });
         }
 
@@ -300,7 +300,7 @@ public class SnapshotStoreTests : IDisposable
     }
 
     [Fact]
-    public Task CaptureState_RoundTripsSimComponents()
+    public Task CaptureState_RoundTripsGenosComponents()
     {
         var registry = new NetworkIdRegistry();
         using var engine = new SimulationEngine();
@@ -310,7 +310,7 @@ public class SnapshotStoreTests : IDisposable
             engine.ExecuteWithWorld(world =>
             {
                 var entity = world.Create(
-                    new GenName("TestSim"),
+                    new GenName("TestGenos"),
                     new Needs { Hunger = 70, Energy = 60, Hygiene = 50, Bladder = 40 },
                     new CurrentAction(ActionType.Eating, 3.5f),
                     new Alive(30)
@@ -322,19 +322,19 @@ public class SnapshotStoreTests : IDisposable
             });
 
             var state = engine.CaptureState(registry);
-            Assert.Single(state.Sims);
-            var sim = state.Sims[0];
-            Assert.Equal("TestSim", sim.Name);
-            Assert.Equal(30, sim.Age);
-            Assert.Equal(70, sim.Hunger);
-            Assert.Equal(60, sim.Energy);
-            Assert.Equal(50, sim.Hygiene);
-            Assert.Equal(40, sim.Bladder);
-            Assert.Equal("Eating", sim.ActionType);
-            Assert.Equal(3.5f, sim.TimeRemaining);
-            Assert.Equal((ulong)1, sim.NetworkId);
-            Assert.False(sim.IsLookingForWork);
-            Assert.Null(sim.PlayerId);
+            Assert.Single(state.Genoses);
+            var genos = state.Genoses[0];
+            Assert.Equal("TestGenos", genos.Name);
+            Assert.Equal(30, genos.Age);
+            Assert.Equal(70, genos.Hunger);
+            Assert.Equal(60, genos.Energy);
+            Assert.Equal(50, genos.Hygiene);
+            Assert.Equal(40, genos.Bladder);
+            Assert.Equal("Eating", genos.ActionType);
+            Assert.Equal(3.5f, genos.TimeRemaining);
+            Assert.Equal((ulong)1, genos.NetworkId);
+            Assert.False(genos.IsLookingForWork);
+            Assert.Null(genos.PlayerId);
         }
         finally { engine.Shutdown(); }
         return Task.CompletedTask;
@@ -391,8 +391,8 @@ public class SnapshotStoreTests : IDisposable
             });
 
             var state = engine.CaptureState(registry);
-            Assert.Single(state.Sims);
-            Assert.Equal("p42", state.Sims[0].PlayerId);
+            Assert.Single(state.Genoses);
+            Assert.Equal("p42", state.Genoses[0].PlayerId);
         }
         finally { engine.Shutdown(); }
         return Task.CompletedTask;
@@ -422,15 +422,15 @@ public class SnapshotStoreTests : IDisposable
             });
 
             var state = engine.CaptureState(registry);
-            Assert.Single(state.Sims);
-            Assert.True(state.Sims[0].IsLookingForWork);
+            Assert.Single(state.Genoses);
+            Assert.True(state.Genoses[0].IsLookingForWork);
         }
         finally { engine.Shutdown(); }
         return Task.CompletedTask;
     }
 
     [Fact]
-    public Task Restore_RecreatesSimEntities()
+    public Task Restore_RecreatesGenosEntities()
     {
         var registry = new NetworkIdRegistry();
         using var engine = new SimulationEngine();
@@ -439,9 +439,9 @@ public class SnapshotStoreTests : IDisposable
         {
             SchemaVersion = PersistedWorldState.CurrentSchemaVersion,
             Tick = 42,
-            Sims =
+            Genoses =
             [
-                new PersistedSim
+                new PersistedGenos
                 {
                     Name = "Alice", Age = 30, NetworkId = 1,
                     Hunger = 80, Energy = 90, Hygiene = 85, Bladder = 75,
@@ -460,7 +460,7 @@ public class SnapshotStoreTests : IDisposable
         {
             Assert.True(engine.IsRunning);
 
-            var sim = engine.ExecuteWithWorld(world =>
+            var genos = engine.ExecuteWithWorld(world =>
             {
                 var query = new Arch.Core.QueryDescription().WithAll<GenName>();
                 var result = new List<(string Name, float TimeRemaining, string ActionType)>();
@@ -471,18 +471,18 @@ public class SnapshotStoreTests : IDisposable
                 return result;
             });
 
-            Assert.Single(sim);
-            Assert.Equal("Alice", sim[0].Name);
-            Assert.Equal("Sleeping", sim[0].ActionType);
-            Assert.Equal(4.2f, sim[0].TimeRemaining);
+            Assert.Single(genos);
+            Assert.Equal("Alice", genos[0].Name);
+            Assert.Equal("Sleeping", genos[0].ActionType);
+            Assert.Equal(4.2f, genos[0].TimeRemaining);
 
             engine.Tick(1f / 20f);
             var snapshot = engine.GetLatestSnapshot();
             Assert.NotNull(snapshot);
             Assert.Equal(43, snapshot!.Tick);
 
-            var snapSim = snapshot.Sims.Find(s => s.Name == "Alice");
-            Assert.NotNull(snapSim);
+            var snapGenos = snapshot.Genoses.Find(s => s.Name == "Alice");
+            Assert.NotNull(snapGenos);
 
             var company = snapshot.Companies.Find(c => c.Name == "Acme");
             Assert.NotNull(company);
@@ -502,7 +502,7 @@ public class SnapshotStoreTests : IDisposable
         {
             SchemaVersion = PersistedWorldState.CurrentSchemaVersion,
             Tick = 999,
-            Sims = []
+            Genoses = []
         };
 
         engine.Restore(state, registry);
@@ -527,10 +527,10 @@ public class SnapshotStoreTests : IDisposable
         {
             SchemaVersion = PersistedWorldState.CurrentSchemaVersion,
             Tick = 0,
-            Sims =
+            Genoses =
             [
-                new PersistedSim { Name = "S1", NetworkId = 5 },
-                new PersistedSim { Name = "S2", NetworkId = 10 }
+                new PersistedGenos { Name = "S1", NetworkId = 5 },
+                new PersistedGenos { Name = "S2", NetworkId = 10 }
             ]
         };
 
@@ -582,10 +582,10 @@ public class SnapshotStoreTests : IDisposable
         {
             SchemaVersion = PersistedWorldState.CurrentSchemaVersion,
             Tick = 100,
-            Sims =
+            Genoses =
             [
-                new PersistedSim { Name = "A", NetworkId = 1, ActionType = "Idle" },
-                new PersistedSim { Name = "B", NetworkId = 2, ActionType = "Idle" }
+                new PersistedGenos { Name = "A", NetworkId = 1, ActionType = "Idle" },
+                new PersistedGenos { Name = "B", NetworkId = 2, ActionType = "Idle" }
             ],
             Companies =
             [
@@ -601,7 +601,7 @@ public class SnapshotStoreTests : IDisposable
             var snapshot = engine.GetLatestSnapshot();
             Assert.NotNull(snapshot);
             Assert.True(snapshot!.Tick >= 101, $"Expected tick >= 101, got {snapshot.Tick}");
-            Assert.True(snapshot.Sims.Count >= 2, $"Expected at least 2 sims in snapshot, got {snapshot.Sims.Count}");
+            Assert.True(snapshot.Genoses.Count >= 2, $"Expected at least 2 genoses in snapshot, got {snapshot.Genoses.Count}");
         }
         finally { engine.Shutdown(); }
         return Task.CompletedTask;

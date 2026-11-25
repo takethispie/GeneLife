@@ -27,24 +27,24 @@ Consolidated summary of the roadmaps in this folder. Each roadmap has its own `R
 ## V2 — Spatial World, Buildings and Player Presence
 
 **Scope:** backend + admin map console. No rendering pipeline.
-**Target:** every building has a validated footprint on a deterministic tile map; every human-controlled sim has a server-authoritative position and replication contract.
+**Target:** every building has a validated footprint on a deterministic tile map; every human-controlled genos has a server-authoritative position and replication contract.
 
 - **Features:** world map (coordinates, generation, placement, occupancy), player movement (spawn, intent drain, movement, pathfinding), map replication (static map, deltas, AOI, admin console).
 - **Key decisions:** integer tile coordinates centred on origin (256×256 default); `TilePosition` authoritative, `Location` derived; `WorldMap`/`MovementIndex` derived indices; static layout vs dynamic state split; schema 4 → 5.
 - **Delivered:** deterministic generation, occupancy/placement service, building bootstrap, admin placement, persistence/restore + V4 migration, map read API, admin map console, player spawn/intent drain, movement/pathfinding, NPC commute presence, building interactions, map events/projections, AOI/viewport.
 - **Verification:** 341 passed / 2 skipped; V1 suite green.
-- **Deferred:** occupied-building relocation (`RelocateBuildingCommand`); `CommuteMode.Animate` default-on with a 2,000-sim budget test; small map history retention.
+- **Deferred:** occupied-building relocation (`RelocateBuildingCommand`); `CommuteMode.Animate` default-on with a 2,000-genos budget test; small map history retention.
 
 ## V3 — Browser Game Client
 
 **Scope:** browser-only 2D client on the V2 server. No Godot/native client.
-**Target:** a playable browser client — deterministic map, nearby sims/buildings, server-authoritative movement, reconnects, HUD.
+**Target:** a playable browser client — deterministic map, nearby genoses/buildings, server-authoritative movement, reconnects, HUD.
 
 - **Features:** client foundation, world rendering (PixiJS), realtime presence (SignalR, interpolation, viewport, reconnect), input and HUD, hardening and release.
 - **Key decisions:** TypeScript + Vite + PixiJS + SignalR + DOM HUD; three stores (simulation 25 Hz / session / UI); RLE map decoding; 120 ms interpolation delay; viewport debounce 200 ms; no client authority.
 - **Delivered:** full client in `clients/browser` — auth, config, RLE decoder, map cache, Pixi scene, camera, replication store, interpolation, viewport sync, input/intents, DOM HUD, notifications, settings, debug overlay, 25 Vitest files (148 tests), Playwright fixture/live suites, CI, soak script, Aspire AppHost.
 - **Verification:** 358 server tests / 0 failed; 148 client tests; fixture Playwright 3/3; live Playwright passing.
-- **Known gaps:** no own-player prediction (V5 measured p95 51 ms, no-go); touch/audio/chat/social/accounts UI exist but matchmaking out of scope; silent network loss detected by server ping timeout (tens of seconds); full 2,000-sim GPU frame rate environment-dependent.
+- **Known gaps:** no own-player prediction (V5 measured p95 51 ms, no-go); touch/audio/chat/social/accounts UI exist but matchmaking out of scope; silent network loss detected by server ping timeout (tens of seconds); full 2,000-genos GPU frame rate environment-dependent.
 
 ## V4 — Relationships, Attraction and Reproduction
 
@@ -53,28 +53,28 @@ Consolidated summary of the roadmaps in this folder. Each roadmap has its own `R
 
 - **Features:** traits/genetics, relationships/attraction, reproduction/family, continuity/inheritance, admin/observability/hardening.
 - **Key decisions:** `Traits` record struct (byte-backed enums); directed relationship edges (Parent/Child/Partner/ExPartner/Guardian/Ward); integer basis-point attraction score; opposite-sex pairing only; births supplement immigration; schema 5 → 11.
-- **Delivered:** traits + inheritance/mutation; relationship edges/index, eligibility, scorer, pairing, capacity-aware merge; pregnancy/birth/newborn factory, childhood gates, guardian-paid child consumption; widowhood/guardianship, relationship-based inheritance with minor trusts, housing transfer; family read model, `Family.razor`, Marten projections, schema 11 persistence, decade replay, seed sweep, 2,000-sim ten-year run (p95 ~3.1 ms), 30-year continuity.
+- **Delivered:** traits + inheritance/mutation; relationship edges/index, eligibility, scorer, pairing, capacity-aware merge; pregnancy/birth/newborn factory, childhood gates, guardian-paid child consumption; widowhood/guardianship, relationship-based inheritance with minor trusts, housing transfer; family read model, `Family.razor`, Marten projections, schema 11 persistence, decade replay, seed sweep, 2,000-genos ten-year run (p95 ~3.1 ms), 30-year continuity.
 - **Verification:** full PostgreSQL suite 531 / 0 failed / 2 skipped; admin `/family` Playwright coverage.
-- **Open:** `CohabitOnPairing` stays opt-in — 30-year comparison (200 sims, seed 21): population 199→219, births 75→83, but vacancy 17.7%→26.6% and overcrowded units 3→9. Pending economy/consumption recalibration. Non-blocking warnings: 61 health warnings (2k ten-year), 4 reproduction `Warn` levels (30-year).
+- **Open:** `CohabitOnPairing` stays opt-in — 30-year comparison (200 genoses, seed 21): population 199→219, births 75→83, but vacancy 17.7%→26.6% and overcrowded units 3→9. Pending economy/consumption recalibration. Non-blocking warnings: 61 health warnings (2k ten-year), 4 reproduction `Warn` levels (30-year).
 
 ## V5 — Playable Society
 
 **Scope:** server simulation, player-facing browser client, persistence, read models, admin surfaces. No native client, no real-money economy.
-**Target:** a player lives a full life in the town — job, money, home, family, appearance, water/electricity/grocery constraints — while the economy stays stable at 1k–2k sims and 32 players stay server-authoritative.
+**Target:** a player lives a full life in the town — job, money, home, family, appearance, water/electricity/grocery constraints — while the economy stays stable at 1k–2k genoses and 32 players stay server-authoritative.
 
 - **Features:** player life/household, appearance/visual identity, consumption/utilities, social/multiplayer, live operations/scale.
 - **Key decisions:** player actions as typed intents drained at tick start; appearance derived from traits/age/sex (`SkinTone`, `FaceShape`); utility networks + grocery catalog/stock/nutrition; text chat + presence + friendships + consensual partnerships; schema 11 → 15.
 - **Delivered:** player agency (jobs, housing, consumption, family actions, aging/death/heir continuation, schema 12, `/player` admin page); appearance (descriptor model, inheritance, layered sprites, `/appearance` preview, schema 13); consumption (networks, meters, tariffs, grocery, nutrition, schema 14, `/consumption` page); social (presence, chat/emotes, friendships/blocks/reports, player partnerships, venues, moderation, schema 15, `/social` page); live ops (Wolverine cleanup H16/H19/H20, relocation, live preview, audio/touch, prediction no-go, balance).
-- **Verification:** 560 domain + 69 API integration + 33 performance/release tests green; 178 browser tests; 2k decade p95 35.6 ms; 32-player p95 0.88 ms; 60/200-sim ten-year bands green.
+- **Verification:** 560 domain + 69 API integration + 33 performance/release tests green; 178 browser tests; 2k decade p95 35.6 ms; 32-player p95 0.88 ms; 60/200-genos ten-year bands green.
 - **Open / pending sign-off:** 30-minute live soak; schema 11→15 migration/rollback rehearsal; feature 02 Playwright visual smoke + hardware frame-budget report; feature 03 NPC shopping trips/meals + cohabitation comparison; 1k rent burden 0.4284 vs 0.40 ceiling (documented miss); `CohabitOnPairing` still opt-in.
 
 ## V6 — Tick Performance
 
 **Scope:** server simulation loop only. No gameplay/client/persistence changes.
-**Target:** eliminate dropped ticks by cutting per-tick cost and lock contention; 20 Hz loop inside its 50 ms budget at 2,000 sims and under 32-player load.
+**Target:** eliminate dropped ticks by cutting per-tick cost and lock contention; 20 Hz loop inside its 50 ms budget at 2,000 genoses and under 32-player load.
 
 - **Features:** runtime/hot-path trims (Tier 1), lock/cadence structure (Tier 2), architecture/parallelism (Tier 3).
-- **Key decisions:** server GC/concurrent GC/tiered PGO/R2R; throttled overrun logging; indexed company snapshots; appearance cache; pooled event lists; `ReaderWriterLockSlim` replacing global lock; cadence `Offset` (opt-in); `TryGet` dedupe; sampled per-system timing; pathfinding iteration cap; dedicated sim thread; parallel per-entity passes (opt-in); async snapshot build.
+- **Key decisions:** server GC/concurrent GC/tiered PGO/R2R; throttled overrun logging; indexed company snapshots; appearance cache; pooled event lists; `ReaderWriterLockSlim` replacing global lock; cadence `Offset` (opt-in); `TryGet` dedupe; sampled per-system timing; pathfinding iteration cap; dedicated simulation thread; parallel per-entity passes (opt-in); async snapshot build.
 - **Delivered:** all Tier 1–3 changes landed. Two deliberately opt-in: cadence staggering (breaks balance bands — 0.4369 vs 0.40 rent burden) and parallel per-entity passes (5k p95 6.4→11 ms in Debug). Merged entity passes rejected (DecisionSystem ordering). Legacy admin mutations now go through typed admin commands.
 - **Measurements:** 1k p95 2.74→0.20 ms; 5k p95 6.43→5.95 ms; allocation roughly flat (dominated by economy systems). 32-player soak passes.
 - **Open:** re-measure opt-ins in Release build; legacy admin endpoints wait up to 50 ms for the next tick (could move to 202 + command-id pattern).

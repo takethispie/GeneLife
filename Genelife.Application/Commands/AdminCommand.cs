@@ -9,7 +9,7 @@ namespace Genelife.Api.Commands;
 /// </summary>
 public abstract record AdminCommand(Guid CommandId, string IssuedBy);
 
-public sealed record CreateSimCommand(
+public sealed record CreateGenosCommand(
     Guid CommandId,
     string IssuedBy,
     string Name,
@@ -20,15 +20,15 @@ public sealed record CreateCompanyCommand(
     string IssuedBy,
     string Name) : AdminCommand(CommandId, IssuedBy);
 
-public sealed record DeleteSimCommand(
+public sealed record DeleteGenosCommand(
     Guid CommandId,
     string IssuedBy,
-    ulong SimNetworkId) : AdminCommand(CommandId, IssuedBy);
+    ulong GenosNetworkId) : AdminCommand(CommandId, IssuedBy);
 
-public sealed record SetSimActionCommand(
+public sealed record SetGenosActionCommand(
     Guid CommandId,
     string IssuedBy,
-    ulong SimNetworkId,
+    ulong GenosNetworkId,
     string ActionType) : AdminCommand(CommandId, IssuedBy);
 
 public sealed record CreateOfficeCommand(
@@ -88,12 +88,12 @@ public sealed record InjectCapitalCommand(
 public sealed record FireEmployeeCommand(
     Guid CommandId,
     string IssuedBy,
-    ulong SimNetworkId) : AdminCommand(CommandId, IssuedBy);
+    ulong GenosNetworkId) : AdminCommand(CommandId, IssuedBy);
 
 public sealed record ResignEmployeeCommand(
     Guid CommandId,
     string IssuedBy,
-    ulong SimNetworkId) : AdminCommand(CommandId, IssuedBy);
+    ulong GenosNetworkId) : AdminCommand(CommandId, IssuedBy);
 
 public sealed record IssueLoanCommand(
     Guid CommandId,
@@ -211,20 +211,20 @@ public sealed record SpawnPopulationCommand(
 public sealed record CreateHouseholdCommand(
     Guid CommandId,
     string IssuedBy,
-    ulong HeadSimId) : AdminCommand(CommandId, IssuedBy);
+    ulong HeadGenosId) : AdminCommand(CommandId, IssuedBy);
 
 public sealed record AddHouseholdMemberCommand(
     Guid CommandId,
     string IssuedBy,
     ulong HouseholdId,
-    ulong SimId,
+    ulong GenosId,
     HouseholdRole Role) : AdminCommand(CommandId, IssuedBy);
 
 public sealed record RemoveHouseholdMemberCommand(
     Guid CommandId,
     string IssuedBy,
     ulong HouseholdId,
-    ulong SimId) : AdminCommand(CommandId, IssuedBy);
+    ulong GenosId) : AdminCommand(CommandId, IssuedBy);
 
 public sealed record PurchaseHomeCommand(
     Guid CommandId,
@@ -263,29 +263,29 @@ public sealed record UpdateSchoolCommand(
 public sealed record ForceStageCommand(
     Guid CommandId,
     string IssuedBy,
-    ulong SimId,
+    ulong GenosId,
     LifeStage Stage) : AdminCommand(CommandId, IssuedBy);
 
-public sealed record GraduateSimCommand(
+public sealed record GraduateGenosCommand(
     Guid CommandId,
     string IssuedBy,
-    ulong SimId) : AdminCommand(CommandId, IssuedBy);
+    ulong GenosId) : AdminCommand(CommandId, IssuedBy);
 
-public sealed record RetireSimCommand(
+public sealed record RetireGenosCommand(
     Guid CommandId,
     string IssuedBy,
-    ulong SimId) : AdminCommand(CommandId, IssuedBy);
+    ulong GenosId) : AdminCommand(CommandId, IssuedBy);
 
 public sealed record GrantCareCommand(
     Guid CommandId,
     string IssuedBy,
-    ulong SimId,
+    ulong GenosId,
     float HealthGain) : AdminCommand(CommandId, IssuedBy);
 
 public sealed record GeneratePopulationCommand(
     Guid CommandId,
     string IssuedBy,
-    int TotalSims,
+    int TotalGenoses,
     int Seed,
     int? Adults,
     int? Children) : AdminCommand(CommandId, IssuedBy);
@@ -296,15 +296,15 @@ public sealed record SetPopulationTargetCommand(
     int TargetPopulation,
     bool Enabled) : AdminCommand(CommandId, IssuedBy);
 
-public sealed record PromoteSimCommand(
+public sealed record PromoteGenosCommand(
     Guid CommandId,
     string IssuedBy,
-    ulong SimId) : AdminCommand(CommandId, IssuedBy);
+    ulong GenosId) : AdminCommand(CommandId, IssuedBy);
 
 public sealed record SetBenefitEligibilityCommand(
     Guid CommandId,
     string IssuedBy,
-    ulong SimId,
+    ulong GenosId,
     bool Eligible) : AdminCommand(CommandId, IssuedBy);
 
 public sealed record TopUpPensionFundCommand(
@@ -315,13 +315,13 @@ public sealed record TopUpPensionFundCommand(
 public sealed record ForceDeathCommand(
     Guid CommandId,
     string IssuedBy,
-    ulong SimId,
+    ulong GenosId,
     DeathCause Cause) : AdminCommand(CommandId, IssuedBy);
 
 public sealed record AdvanceAgeCommand(
     Guid CommandId,
     string IssuedBy,
-    ulong SimId,
+    ulong GenosId,
     int Years) : AdminCommand(CommandId, IssuedBy);
 
 public sealed record PauseImmigrationCommand(
@@ -337,23 +337,23 @@ public sealed record TriggerImmigrationWaveCommand(
 public sealed record SetEnrollmentCommand(
     Guid CommandId,
     string IssuedBy,
-    ulong SimId,
+    ulong GenosId,
     ulong SchoolId,
     bool Enrolled) : AdminCommand(CommandId, IssuedBy);
 
 public sealed record ForcePartnershipCommand(
     Guid CommandId,
     string IssuedBy,
-    ulong SimAId,
-    ulong SimBId,
+    ulong GenosAId,
+    ulong GenosBId,
     bool OverrideEligibility,
     string Reason) : AdminCommand(CommandId, IssuedBy);
 
 public sealed record EndPartnershipCommand(
     Guid CommandId,
     string IssuedBy,
-    ulong SimAId,
-    ulong SimBId,
+    ulong GenosAId,
+    ulong GenosBId,
     string Reason) : AdminCommand(CommandId, IssuedBy);
 
 public sealed record StartPregnancyCommand(
@@ -396,7 +396,7 @@ public sealed record SetPlayerContinuationCommand(
     string Policy,
     string Reason) : AdminCommand(CommandId, IssuedBy);
 
-public sealed record DetachPlayerSimCommand(
+public sealed record DetachPlayerGenosCommand(
     Guid CommandId,
     string IssuedBy,
     string PlayerId,

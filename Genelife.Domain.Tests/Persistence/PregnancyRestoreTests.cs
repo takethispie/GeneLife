@@ -22,7 +22,7 @@ public class PregnancyRestoreTests
 
         engine.ExecuteWithWorld(world =>
         {
-            var repository = new SimRepository(world, engine.NetworkIds, engine.Economy);
+            var repository = new GenosRepository(world, engine.NetworkIds, engine.Economy);
             firstId = repository.Add("Carrying", 30).Value;
             secondId = repository.Add("Other", 31).Value;
             Assert.True(engine.NetworkIds.TryGetEntity(new NetworkId(firstId), out var first));
@@ -66,7 +66,7 @@ public class PregnancyRestoreTests
         var before = Money.Zero;
         engine.ExecuteWithWorld(world =>
         {
-            var repository = new SimRepository(world, engine.NetworkIds, engine.Economy);
+            var repository = new GenosRepository(world, engine.NetworkIds, engine.Economy);
             childId = repository.Add("Child", 8).Value;
             Assert.True(engine.NetworkIds.TryGetEntity(new NetworkId(childId), out var child));
             Assert.NotEqual(Entity.Null, engine.Trusts!.Create(

@@ -1,7 +1,7 @@
-/** Authoritative position for one sim at one server tick. */
+/** Authoritative position for one genos at one server tick. */
 import type { AppearanceStatus } from "../contracts/hub";
 
-export interface SimPosition {
+export interface GenosPosition {
   x: number;
   y: number;
   tileX: number;
@@ -10,14 +10,14 @@ export interface SimPosition {
   isPlayerControlled?: boolean;
 }
 
-export interface SimFrame {
+export interface GenosFrame {
   tick: number;
   /** Client receive time in milliseconds (`performance.now()` domain). */
   arrivedAt: number;
-  positions: Map<number, SimPosition>;
+  positions: Map<number, GenosPosition>;
 }
 
-export interface RenderSim extends SimPosition {
+export interface RenderGenos extends GenosPosition {
   networkId: number;
   /** True when the position came from interpolation between two frames. */
   interpolated: boolean;
@@ -43,7 +43,7 @@ export const DEFAULT_INTERPOLATION_OPTIONS: InterpolationOptions = {
   reducedMotion: false
 };
 
-export function latestFrame(frames: readonly SimFrame[]): SimFrame | null {
+export function latestFrame(frames: readonly GenosFrame[]): GenosFrame | null {
   return frames.length === 0 ? null : (frames[frames.length - 1] ?? null);
 }
 
@@ -53,7 +53,7 @@ export function latestFrame(frames: readonly SimFrame[]): SimFrame | null {
  * interpolation delay. It never renders past the newest frame (no extrapolation).
  */
 export function computeRenderTick(
-  frames: readonly SimFrame[],
+  frames: readonly GenosFrame[],
   now: number,
   options: Pick<InterpolationOptions, "tickIntervalMs" | "interpolationDelayMs"> & {
     reducedMotion?: boolean;
@@ -72,13 +72,13 @@ export function computeRenderTick(
 }
 
 export interface FramePair {
-  lower: SimFrame;
-  upper: SimFrame;
+  lower: GenosFrame;
+  upper: GenosFrame;
   /** 0..1 position between the two frames. */
   alpha: number;
 }
 
-export function pickFrames(frames: readonly SimFrame[], targetTick: number): FramePair | null {
+export function pickFrames(frames: readonly GenosFrame[], targetTick: number): FramePair | null {
   if (frames.length === 0) return null;
   if (frames.length === 1) {
     const only = frames[0];
@@ -110,14 +110,14 @@ export function pickFrames(frames: readonly SimFrame[], targetTick: number): Fra
 }
 
 /**
- * Builds render positions for every sim present in the newer frame. Removed
- * sims disappear immediately because only the newer frame's ids are iterated.
+ * Builds render positions for every genos present in the newer frame. Removed
+ * genoses disappear immediately because only the newer frame's ids are iterated.
  */
 export function interpolateFrames(
   pair: FramePair,
   options: Pick<InterpolationOptions, "snapDistance" | "maxFrameGapTicks">
-): Map<number, RenderSim> {
-  const result = new Map<number, RenderSim>();
+): Map<number, RenderGenos> {
+  const result = new Map<number, RenderGenos>();
   const { lower, upper, alpha } = pair;
 
   for (const [networkId, newer] of upper.positions) {

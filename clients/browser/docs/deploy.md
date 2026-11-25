@@ -32,7 +32,7 @@ Vite inlines `VITE_*` values at build time, so build one artifact per environmen
 - Keep `AllowCredentials()` with the explicit origin list for SignalR.
 - Expose the API over HTTPS/WSS.
 - Start the simulation and seed a world before announcing the client; a stopped
-  simulation produces a visible "sim not ready" error.
+  simulation produces a visible "genos not ready" error.
 
 ## Build diagnostics
 
@@ -40,7 +40,7 @@ Vite inlines `VITE_*` values at build time, so build one artifact per environmen
 It is shown in the HUD and debug overlay so a screenshot identifies the bundle.
 
 The HUD reports connection state, map id/version, tick, FPS, frame time, visible
-sims, viewport radius, buffer depth, interpolation delay, receive rate, reconnect
+genoses, viewport radius, buffer depth, interpolation delay, receive rate, reconnect
 count and the last error. No token or player record is included.
 
 ## Rollback
@@ -55,12 +55,12 @@ count and the last error. No token or player record is included.
 ## Smoke checklist after deploy
 
 - Load the site; the loading screen reaches "World scene".
-- Connection shows `Connected`; the player's own sim is visible and ringed.
+- Connection shows `Connected`; the player's own genos is visible and ringed.
 - Map id/version and tick are non-zero and the tick advances.
 - Pan and zoom; after stopping, the viewport radius row updates.
-- Click a walkable tile; the target marker appears and the server moves the sim.
+- Click a walkable tile; the target marker appears and the server moves the genos.
 - Click a building; the selection panel opens and `Interact` reports the server's
   answer.
 - Force a bad target (blocked/out of range) and confirm a typed notification.
-- Reload the page; the same player and sim resume.
+- Reload the page; the same player and genos resume.
 - F3 shows the debug overlay with no errors.

@@ -67,9 +67,9 @@ public class LoadHarness
         var startEntityCount = engine.ExecuteWithWorld(world =>
         {
             if (synthetic)
-                SimFixture.PopulateSynthetic(world, count);
+                GenosFixture.PopulateSynthetic(world, count);
             else
-                SimFixture.PopulateRealistic(world, count);
+                GenosFixture.PopulateRealistic(world, count);
 
             return world.Size;
         });

@@ -16,7 +16,7 @@ using Genelife.Values;
 namespace Genelife.Systems;
 
 /// <summary>
-/// Yearly population snapshot and balance checks. Aggregation is O(sims) once
+/// Yearly population snapshot and balance checks. Aggregation is O(genoses) once
 /// per simulated year and never per tick.
 /// </summary>
 public class PopulationMetricsSystem : ISimulationSystem

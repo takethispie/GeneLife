@@ -28,7 +28,7 @@ public sealed class NetworkIdRegistry
     /// Allocates a high-range id for infrastructure children (utility networks,
     /// links, stock rows). These ids are persistable but never consume the
     /// normal id sequence, so adding infrastructure does not shift existing
-    /// deterministic sim/household ids.
+    /// deterministic genos/household ids.
     /// </summary>
     public NetworkId AllocateInfrastructure(Entity entity)
     {

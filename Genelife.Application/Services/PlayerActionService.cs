@@ -120,41 +120,41 @@ public sealed class PlayerActionService
 
     public PlayerActionResult Apply(
         string playerId,
-        Entity sim,
+        Entity genos,
         PlayerActionKind kind,
         JsonElement payload,
         long tick)
     {
-        if (world is null || !world.IsAlive(sim))
-            return PlayerActionResult.Reject("sim_not_found", "Your sim is not available.");
-        if (world.Has<Dead>(sim))
-            return PlayerActionResult.Reject("sim_not_found", "Your sim is dead.");
+        if (world is null || !world.IsAlive(genos))
+            return PlayerActionResult.Reject("genos_not_found", "Your genos is not available.");
+        if (world.Has<Dead>(genos))
+            return PlayerActionResult.Reject("genos_not_found", "Your genos is dead.");
 
-        var owner = world.Has<PlayerControlled>(sim)
-            ? world.Get<PlayerControlled>(sim).PlayerId
+        var owner = world.Has<PlayerControlled>(genos)
+            ? world.Get<PlayerControlled>(genos).PlayerId
             : null;
         if (!string.Equals(owner, playerId, StringComparison.Ordinal))
-            return PlayerActionResult.Reject("not_owner", "You do not control that sim.");
+            return PlayerActionResult.Reject("not_owner", "You do not control that genos.");
 
         return kind switch
         {
-            PlayerActionKind.ApplyForJob => ApplyForJob(sim, payload, tick),
-            PlayerActionKind.AcceptJobOffer => AcceptJobOffer(sim, payload, tick),
-            PlayerActionKind.QuitJob => QuitJob(sim, payload, tick),
-            PlayerActionKind.RequestHousing => RequestHousing(sim, payload, tick),
-            PlayerActionKind.AcceptLease => AcceptLease(playerId, sim, payload, tick),
-            PlayerActionKind.MoveOut => MoveOut(sim, payload, tick),
-            PlayerActionKind.PayArrears => PayArrears(sim, payload, tick),
-            PlayerActionKind.BuyItem => BuyItem(sim, payload, tick),
-            PlayerActionKind.ConsumeItem => ConsumeItem(sim, payload, tick),
-            PlayerActionKind.InvitePartner => InvitePartner(playerId, sim, payload, tick),
-            PlayerActionKind.InviteCohabit => InviteCohabit(playerId, sim, payload, tick),
-            PlayerActionKind.EndPartnership => EndPartnership(playerId, sim, payload, tick),
-            PlayerActionKind.PerformVenueActivity => PerformVenueActivity(playerId, sim, payload, tick),
-            PlayerActionKind.RespondToInvitation => RespondToInvitation(playerId, sim, payload, tick),
-            PlayerActionKind.TryForChild => TryForChild(playerId, sim, payload, tick),
-            PlayerActionKind.NameChild => NameChild(sim, payload, tick),
-            PlayerActionKind.ChooseContinuation => ChooseContinuation(playerId, sim, payload, tick),
+            PlayerActionKind.ApplyForJob => ApplyForJob(genos, payload, tick),
+            PlayerActionKind.AcceptJobOffer => AcceptJobOffer(genos, payload, tick),
+            PlayerActionKind.QuitJob => QuitJob(genos, payload, tick),
+            PlayerActionKind.RequestHousing => RequestHousing(genos, payload, tick),
+            PlayerActionKind.AcceptLease => AcceptLease(playerId, genos, payload, tick),
+            PlayerActionKind.MoveOut => MoveOut(genos, payload, tick),
+            PlayerActionKind.PayArrears => PayArrears(genos, payload, tick),
+            PlayerActionKind.BuyItem => BuyItem(genos, payload, tick),
+            PlayerActionKind.ConsumeItem => ConsumeItem(genos, payload, tick),
+            PlayerActionKind.InvitePartner => InvitePartner(playerId, genos, payload, tick),
+            PlayerActionKind.InviteCohabit => InviteCohabit(playerId, genos, payload, tick),
+            PlayerActionKind.EndPartnership => EndPartnership(playerId, genos, payload, tick),
+            PlayerActionKind.PerformVenueActivity => PerformVenueActivity(playerId, genos, payload, tick),
+            PlayerActionKind.RespondToInvitation => RespondToInvitation(playerId, genos, payload, tick),
+            PlayerActionKind.TryForChild => TryForChild(playerId, genos, payload, tick),
+            PlayerActionKind.NameChild => NameChild(genos, payload, tick),
+            PlayerActionKind.ChooseContinuation => ChooseContinuation(playerId, genos, payload, tick),
             _ => PlayerActionResult.Reject("invalid_state", "Unknown player action.")
         };
     }
@@ -164,34 +164,34 @@ public sealed class PlayerActionService
     /// employment reconciliation system converts this signal into payroll-shift
     /// counters at the month boundary.
     /// </summary>
-    public void RecordWorkPresence(Entity sim, long tick)
+    public void RecordWorkPresence(Entity genos, long tick)
     {
-        if (!world.IsAlive(sim) || !world.Has<PlayerEmployment>(sim) || !world.Has<Employee>(sim))
+        if (!world.IsAlive(genos) || !world.Has<PlayerEmployment>(genos) || !world.Has<Employee>(genos))
             return;
 
-        if (!world.Has<CurrentAction>(sim) || world.Get<CurrentAction>(sim).Type != ActionType.Working)
+        if (!world.Has<CurrentAction>(genos) || world.Get<CurrentAction>(genos).Type != ActionType.Working)
             return;
 
-        var employment = world.Get<PlayerEmployment>(sim);
-        var employee = world.Get<Employee>(sim);
+        var employment = world.Get<PlayerEmployment>(genos);
+        var employee = world.Get<Employee>(genos);
         if (employment.Office != employee.Office)
             return;
 
         employment.AttendedThisMonth = true;
         employment.LastAttendedTick = tick;
-        world.Get<PlayerEmployment>(sim) = employment;
+        world.Get<PlayerEmployment>(genos) = employment;
     }
 
-    private PlayerActionResult ApplyForJob(Entity sim, JsonElement payload, long tick)
+    private PlayerActionResult ApplyForJob(Entity genos, JsonElement payload, long tick)
     {
         if (!PlayerActionPayloads.TryParse<PlayerActionPayloads.ApplyForJob>(payload, out var request, out var error))
             return Malformed(error);
 
         if (!TryEntity(request!.OfficeNetworkId, out var office) || !world.Has<Office>(office))
             return PlayerActionResult.Reject("not_available", "That office is not available.");
-        if (!Near(sim, office))
+        if (!Near(genos, office))
             return PlayerActionResult.Reject("out_of_range", "Walk to the office entrance first.");
-        if (world.Has<Employee>(sim))
+        if (world.Has<Employee>(genos))
             return PlayerActionResult.Reject("already_employed", "You already have a job.");
 
         Entity postingEntity;
@@ -209,9 +209,9 @@ public sealed class PlayerActionService
         var posting = world.Get<JobPosting>(postingEntity);
         if (posting.Office != office || posting.IsClosed || posting.OpenSeats <= 0)
             return PlayerActionResult.Reject("not_available", "That posting is not open.");
-        if (world.Has<Lifecycle>(sim) && world.Get<Lifecycle>(sim).Stage != LifeStage.Work)
-            return PlayerActionResult.Reject("invalid_state", "Only working-age sims can apply.");
-        if (!MeetsRequirements(sim, posting))
+        if (world.Has<Lifecycle>(genos) && world.Get<Lifecycle>(genos).Stage != LifeStage.Work)
+            return PlayerActionResult.Reject("invalid_state", "Only working-age genoses can apply.");
+        if (!MeetsRequirements(genos, posting))
             return PlayerActionResult.Reject("not_available", "You do not meet the posting requirements.");
         if (!CompanyHiringAllowed(posting.Company, out var hiringError))
             return PlayerActionResult.Reject("not_available", hiringError);
@@ -227,10 +227,10 @@ public sealed class PlayerActionService
             ExpiresTick = tick + OfferLifetimeTicks
         };
 
-        if (world.Has<PlayerJobOffer>(sim))
-            world.Get<PlayerJobOffer>(sim) = offer;
+        if (world.Has<PlayerJobOffer>(genos))
+            world.Get<PlayerJobOffer>(genos) = offer;
         else
-            world.Add(sim, offer);
+            world.Add(genos, offer);
 
         return PlayerActionResult.Success("Job offer created.", new
         {
@@ -241,37 +241,37 @@ public sealed class PlayerActionService
         });
     }
 
-    private PlayerActionResult AcceptJobOffer(Entity sim, JsonElement payload, long tick)
+    private PlayerActionResult AcceptJobOffer(Entity genos, JsonElement payload, long tick)
     {
         if (!PlayerActionPayloads.TryParse<PlayerActionPayloads.AcceptJobOffer>(payload, out var request, out var error))
             return Malformed(error);
-        if (!world.Has<PlayerJobOffer>(sim))
+        if (!world.Has<PlayerJobOffer>(genos))
             return PlayerActionResult.Reject("offer_not_found", "There is no job offer to accept.");
 
-        var offer = world.Get<PlayerJobOffer>(sim);
+        var offer = world.Get<PlayerJobOffer>(genos);
         if (request!.OfferId != Guid.Empty && request.OfferId != offer.OfferId)
             return PlayerActionResult.Reject("offer_not_found", "That job offer is not yours.");
         if (tick > offer.ExpiresTick)
         {
-            world.Remove<PlayerJobOffer>(sim);
+            world.Remove<PlayerJobOffer>(genos);
             return PlayerActionResult.Reject("offer_expired", "The job offer has expired.");
         }
 
-        if (!hiring.TryHireApplicant(sim, offer.Posting, tick, out var hireError))
+        if (!hiring.TryHireApplicant(genos, offer.Posting, tick, out var hireError))
             return PlayerActionResult.Reject("not_available", hireError ?? "The posting is no longer available.");
 
-        world.Remove<PlayerJobOffer>(sim);
-        if (!world.Has<PlayerEmployment>(sim))
-            world.Add(sim, new PlayerEmployment(offer.Office, tick, PlayerEmploymentSource.PlayerAcceptedOffer));
+        world.Remove<PlayerJobOffer>(genos);
+        if (!world.Has<PlayerEmployment>(genos))
+            world.Add(genos, new PlayerEmployment(offer.Office, tick, PlayerEmploymentSource.PlayerAcceptedOffer));
         else
-            world.Get<PlayerEmployment>(sim) = new PlayerEmployment(offer.Office, tick, PlayerEmploymentSource.PlayerAcceptedOffer);
+            world.Get<PlayerEmployment>(genos) = new PlayerEmployment(offer.Office, tick, PlayerEmploymentSource.PlayerAcceptedOffer);
 
-        LifeSystemHelpers.EnsureWallet(world, sim);
+        LifeSystemHelpers.EnsureWallet(world, genos);
 
         economy.Emit(new PlayerHired(
-            PlayerIdOf(sim),
-            NetworkIdOf(sim),
-            NetworkIdOf(world.Get<Employee>(sim).Company),
+            PlayerIdOf(genos),
+            NetworkIdOf(genos),
+            NetworkIdOf(world.Get<Employee>(genos).Company),
             NetworkIdOf(offer.Office),
             offer.Position,
             offer.SalaryPerCycle.Cents,
@@ -284,30 +284,30 @@ public sealed class PlayerActionService
         });
     }
 
-    private PlayerActionResult QuitJob(Entity sim, JsonElement payload, long tick)
+    private PlayerActionResult QuitJob(Entity genos, JsonElement payload, long tick)
     {
         if (!PlayerActionPayloads.TryParse<PlayerActionPayloads.QuitJob>(payload, out var request, out var error))
             return Malformed(error);
-        if (!world.Has<Employee>(sim))
+        if (!world.Has<Employee>(genos))
             return PlayerActionResult.Reject("not_employed", "You do not have a job.");
 
-        var employee = world.Get<Employee>(sim);
+        var employee = world.Get<Employee>(genos);
         var reason = string.IsNullOrWhiteSpace(request!.Reason) ? "player.quit" : request.Reason!.Trim();
-        LifeSystemHelpers.RemoveEmployment(world, economy.Employment, economy, sim, tick);
-        if (world.Has<PlayerEmployment>(sim))
-            world.Remove<PlayerEmployment>(sim);
-        if (world.Has<PlayerJobOffer>(sim))
-            world.Remove<PlayerJobOffer>(sim);
+        LifeSystemHelpers.RemoveEmployment(world, economy.Employment, economy, genos, tick);
+        if (world.Has<PlayerEmployment>(genos))
+            world.Remove<PlayerEmployment>(genos);
+        if (world.Has<PlayerJobOffer>(genos))
+            world.Remove<PlayerJobOffer>(genos);
 
-        economy.Emit(new PlayerQuitJob(PlayerIdOf(sim), NetworkIdOf(sim), NetworkIdOf(employee.Company), reason, tick));
+        economy.Emit(new PlayerQuitJob(PlayerIdOf(genos), NetworkIdOf(genos), NetworkIdOf(employee.Company), reason, tick));
         return PlayerActionResult.Success("You quit your job.");
     }
 
-    private PlayerActionResult RequestHousing(Entity sim, JsonElement payload, long tick)
+    private PlayerActionResult RequestHousing(Entity genos, JsonElement payload, long tick)
     {
         if (!PlayerActionPayloads.TryParse<PlayerActionPayloads.RequestHousing>(payload, out var request, out var error))
             return Malformed(error);
-        if (LifeSystemHelpers.HouseholdOf(world, economy, sim) is { } existing &&
+        if (LifeSystemHelpers.HouseholdOf(world, economy, genos) is { } existing &&
             existing != Entity.Null &&
             economy.Housing.UnitOf(existing) != Entity.Null)
             return PlayerActionResult.Reject("invalid_state", "You already have a home. Move out first.");
@@ -317,13 +317,13 @@ public sealed class PlayerActionService
 
         var data = world.Get<HousingUnit>(unit);
         var property = data.Property;
-        if (!Near(sim, property))
+        if (!Near(genos, property))
             return PlayerActionResult.Reject("out_of_range", "Walk to the property entrance first.");
         if (data.Condition < HousingCostPolicy.UninhabitableThreshold)
             return PlayerActionResult.Reject("not_available", "That unit is uninhabitable.");
 
         var rent = allocator.MarketRent(unit);
-        var wallet = world.Has<Wallet>(sim) ? world.Get<Wallet>(sim).Balance : Money.Zero;
+        var wallet = world.Has<Wallet>(genos) ? world.Get<Wallet>(genos).Balance : Money.Zero;
         if (wallet < rent)
             return PlayerActionResult.Reject("insufficient_funds", "You need at least one month's rent.");
 
@@ -336,10 +336,10 @@ public sealed class PlayerActionService
             CreatedTick = tick,
             ExpiresTick = tick + OfferLifetimeTicks
         };
-        if (world.Has<PlayerLeaseOffer>(sim))
-            world.Get<PlayerLeaseOffer>(sim) = offer;
+        if (world.Has<PlayerLeaseOffer>(genos))
+            world.Get<PlayerLeaseOffer>(genos) = offer;
         else
-            world.Add(sim, offer);
+            world.Add(genos, offer);
 
         return PlayerActionResult.Success("Lease offer created.", new
         {
@@ -350,19 +350,19 @@ public sealed class PlayerActionService
         });
     }
 
-    private PlayerActionResult AcceptLease(string playerId, Entity sim, JsonElement payload, long tick)
+    private PlayerActionResult AcceptLease(string playerId, Entity genos, JsonElement payload, long tick)
     {
         if (!PlayerActionPayloads.TryParse<PlayerActionPayloads.AcceptLease>(payload, out var request, out var error))
             return Malformed(error);
-        if (!world.Has<PlayerLeaseOffer>(sim))
+        if (!world.Has<PlayerLeaseOffer>(genos))
             return PlayerActionResult.Reject("offer_not_found", "There is no lease offer to accept.");
 
-        var offer = world.Get<PlayerLeaseOffer>(sim);
+        var offer = world.Get<PlayerLeaseOffer>(genos);
         if (request!.OfferId != Guid.Empty && request.OfferId != offer.OfferId)
             return PlayerActionResult.Reject("offer_not_found", "That lease offer is not yours.");
         if (tick > offer.ExpiresTick)
         {
-            world.Remove<PlayerLeaseOffer>(sim);
+            world.Remove<PlayerLeaseOffer>(genos);
             return PlayerActionResult.Reject("offer_expired", "The lease offer has expired.");
         }
 
@@ -371,7 +371,7 @@ public sealed class PlayerActionService
             return PlayerActionResult.Reject("not_available", "That unit is no longer available.");
         var unit = offer.Unit;
 
-        var household = LifeSystemHelpers.HouseholdOf(world, economy, sim);
+        var household = LifeSystemHelpers.HouseholdOf(world, economy, genos);
         if (household != Entity.Null && economy.Housing.UnitOf(household) != Entity.Null)
             return PlayerActionResult.Reject("invalid_state", "Your household already has a home.");
         if (household != Entity.Null && economy.Housing.MemberCount(household) > 1)
@@ -379,7 +379,7 @@ public sealed class PlayerActionService
 
         if (household == Entity.Null)
         {
-            var householdId = households.Create(NetworkIdOf(sim), tick);
+            var householdId = households.Create(NetworkIdOf(genos), tick);
             if (!households.TryGet(householdId, out household))
                 return PlayerActionResult.Reject("invalid_state", "A household could not be created.");
         }
@@ -387,17 +387,17 @@ public sealed class PlayerActionService
         if (!allocator.TryAssign(household, unit, Tenure.Renter, tick, rentOverride: offer.MonthlyRent))
             return PlayerActionResult.Reject("not_available", "The unit could not be assigned.");
 
-        world.Remove<PlayerLeaseOffer>(sim);
+        world.Remove<PlayerLeaseOffer>(genos);
         var lease = new PlayerHousing(household, unit, tick, Money.Zero);
-        if (world.Has<PlayerHousing>(sim))
-            world.Get<PlayerHousing>(sim) = lease;
+        if (world.Has<PlayerHousing>(genos))
+            world.Get<PlayerHousing>(genos) = lease;
         else
-            world.Add(sim, lease);
+            world.Add(genos, lease);
 
         EnsurePantry(household);
         economy.Emit(new PlayerLeaseStarted(
             playerId,
-            NetworkIdOf(sim),
+            NetworkIdOf(genos),
             NetworkIdOf(household),
             NetworkIdOf(unit),
             offer.MonthlyRent.Cents,
@@ -411,12 +411,12 @@ public sealed class PlayerActionService
         });
     }
 
-    private PlayerActionResult MoveOut(Entity sim, JsonElement payload, long tick)
+    private PlayerActionResult MoveOut(Entity genos, JsonElement payload, long tick)
     {
         if (!PlayerActionPayloads.TryParse<PlayerActionPayloads.MoveOut>(payload, out var request, out var error))
             return Malformed(error);
 
-        var household = LifeSystemHelpers.HouseholdOf(world, economy, sim);
+        var household = LifeSystemHelpers.HouseholdOf(world, economy, genos);
         if (household == Entity.Null)
             return PlayerActionResult.Reject("no_household", "You do not have a home to leave.");
 
@@ -430,7 +430,7 @@ public sealed class PlayerActionService
                 !world.Has<HousingUnit>(destination) ||
                 !world.Get<HousingUnit>(destination).IsVacant)
                 return PlayerActionResult.Reject("not_available", "That destination unit is not available.");
-            if (!Near(sim, world.Get<HousingUnit>(destination).Property))
+            if (!Near(genos, world.Get<HousingUnit>(destination).Property))
                 return PlayerActionResult.Reject("out_of_range", "Walk to the destination first.");
         }
         else if (!allocator.TryFindBest(household, out destination, out sheltered, excludeUnit: current))
@@ -445,19 +445,19 @@ public sealed class PlayerActionService
         if (!allocator.TryAssign(household, destination, tenure, tick, reference: "housing.move"))
             return PlayerActionResult.Reject("not_available", "The move could not be completed.");
 
-        if (world.Has<PlayerHousing>(sim))
+        if (world.Has<PlayerHousing>(genos))
         {
-            var lease = world.Get<PlayerHousing>(sim);
+            var lease = world.Get<PlayerHousing>(genos);
             lease.Household = household;
             lease.Unit = destination;
             lease.LeaseStartTick = tick;
             lease.LeaseActive = true;
-            world.Get<PlayerHousing>(sim) = lease;
+            world.Get<PlayerHousing>(genos) = lease;
         }
 
         economy.Emit(new PlayerMoved(
-            PlayerIdOf(sim),
-            NetworkIdOf(sim),
+            PlayerIdOf(genos),
+            NetworkIdOf(genos),
             NetworkIdOf(household),
             NetworkIdOf(current),
             NetworkIdOf(destination),
@@ -469,12 +469,12 @@ public sealed class PlayerActionService
         });
     }
 
-    private PlayerActionResult PayArrears(Entity sim, JsonElement payload, long tick)
+    private PlayerActionResult PayArrears(Entity genos, JsonElement payload, long tick)
     {
         if (!PlayerActionPayloads.TryParse<PlayerActionPayloads.PayArrears>(payload, out var request, out var error))
             return Malformed(error);
 
-        var household = LifeSystemHelpers.HouseholdOf(world, economy, sim);
+        var household = LifeSystemHelpers.HouseholdOf(world, economy, genos);
         if (household == Entity.Null)
             return PlayerActionResult.Reject("no_household", "You do not have a home.");
 
@@ -492,7 +492,7 @@ public sealed class PlayerActionService
         if (!amount.IsPositive)
             return PlayerActionResult.Reject("invalid_state", "There are no rent arrears to pay.");
 
-        if (!TryDebitPlayer(sim, amount, LedgerKind.RentArrears, tick, "player.arrears"))
+        if (!TryDebitPlayer(genos, amount, LedgerKind.RentArrears, tick, "player.arrears"))
             return PlayerActionResult.Reject("insufficient_funds", "You cannot afford that payment.");
 
         var rentPaid = amount.Min(data.RentArrears);
@@ -512,38 +512,38 @@ public sealed class PlayerActionService
         CreditLandlord(household, rentPaid, tick);
         economy.Government.Balance += utilityPaid;
 
-        economy.Emit(new PlayerArrearsPaid(NetworkIdOf(sim), NetworkIdOf(household), amount.Cents, tick));
+        economy.Emit(new PlayerArrearsPaid(NetworkIdOf(genos), NetworkIdOf(household), amount.Cents, tick));
         return PlayerActionResult.Success("Arrears paid.", new { AmountCents = amount.Cents });
     }
 
-    private PlayerActionResult BuyItem(Entity sim, JsonElement payload, long tick)
+    private PlayerActionResult BuyItem(Entity genos, JsonElement payload, long tick)
     {
         if (!PlayerActionPayloads.TryParse<PlayerActionPayloads.BuyItem>(payload, out var request, out var error))
             return Malformed(error);
         if (request!.Quantity <= 0)
             return PlayerActionResult.Reject("invalid_state", "Quantity must be positive.");
 
-        if (!TryResolveStore(request.StoreNetworkId, sim, out var store, out var seller))
+        if (!TryResolveStore(request.StoreNetworkId, genos, out var store, out var seller))
             return PlayerActionResult.Reject("not_available", "There is no store in reach.");
-        if (!Near(sim, store))
+        if (!Near(genos, store))
             return PlayerActionResult.Reject("out_of_range", "Walk to the store entrance first.");
 
         if (!PlayerCatalog.TryGet(request.CatalogItemId, out var item))
-            return BuyGroceryItem(sim, request.CatalogItemId, request.Quantity, store, seller, tick);
+            return BuyGroceryItem(genos, request.CatalogItemId, request.Quantity, store, seller, tick);
 
         if (request.Quantity > item.MaxQuantity)
             return PlayerActionResult.Reject("invalid_state", $"Quantity must be between 1 and {item.MaxQuantity}.");
 
         var total = item.Price * request.Quantity;
-        if (!world.Has<Wallet>(sim) || world.Get<Wallet>(sim).Balance < total)
+        if (!world.Has<Wallet>(genos) || world.Get<Wallet>(genos).Balance < total)
             return PlayerActionResult.Reject("insufficient_funds", "You cannot afford that purchase.");
 
-        if (!TryDebitPlayer(sim, total, LedgerKind.ConsumerSpending, tick, "player.shop"))
+        if (!TryDebitPlayer(genos, total, LedgerKind.ConsumerSpending, tick, "player.shop"))
             return PlayerActionResult.Reject("insufficient_funds", "You cannot afford that purchase.");
 
         CreditSeller(seller, store, total, "Grocery", tick);
 
-        var pantryOwner = PantryOwner(sim);
+        var pantryOwner = PantryOwner(genos);
         var pantry = world.Has<HouseholdPantry>(pantryOwner)
             ? world.Get<HouseholdPantry>(pantryOwner)
             : new HouseholdPantry();
@@ -552,18 +552,18 @@ public sealed class PlayerActionService
         pantry.LastPurchaseTick = tick;
         StorePantry(pantryOwner, pantry);
 
-        var state = world.Has<ConsumptionState>(sim) ? world.Get<ConsumptionState>(sim) : new ConsumptionState();
+        var state = world.Has<ConsumptionState>(genos) ? world.Get<ConsumptionState>(genos) : new ConsumptionState();
         if (item.FoodUnits > 0)
             state.FoodPurchased = true;
         if (item.HouseholdGoods > 0)
             state.HygienePurchased = true;
-        if (world.Has<ConsumptionState>(sim))
-            world.Get<ConsumptionState>(sim) = state;
+        if (world.Has<ConsumptionState>(genos))
+            world.Get<ConsumptionState>(genos) = state;
         else
-            world.Add(sim, state);
+            world.Add(genos, state);
 
         economy.Emit(new PlayerBoughtItem(
-            NetworkIdOf(sim),
+            NetworkIdOf(genos),
             NetworkIdOf(store),
             item.Id,
             request.Quantity,
@@ -581,7 +581,7 @@ public sealed class PlayerActionService
     }
 
     private PlayerActionResult BuyGroceryItem(
-        Entity sim,
+        Entity genos,
         string itemId,
         int quantity,
         Entity store,
@@ -598,12 +598,12 @@ public sealed class PlayerActionService
         if (!groceryStores.TrySell(store, index, quantity, out var total))
             return PlayerActionResult.Reject("out_of_stock", "There is not enough stock of that item.");
 
-        if (!TryDebitPlayer(sim, total, LedgerKind.ConsumerSpending, tick, "player.grocery", NetworkIdOf(store)))
+        if (!TryDebitPlayer(genos, total, LedgerKind.ConsumerSpending, tick, "player.grocery", NetworkIdOf(store)))
             return PlayerActionResult.Reject("insufficient_funds", "You cannot afford that purchase.");
 
         CreditSeller(seller, store, total, "Grocery", tick);
 
-        var pantryOwner = PantryOwner(sim);
+        var pantryOwner = PantryOwner(genos);
         var pantry = world.Has<HouseholdPantry>(pantryOwner)
             ? world.Get<HouseholdPantry>(pantryOwner)
             : new HouseholdPantry();
@@ -611,30 +611,30 @@ public sealed class PlayerActionService
         pantry.LastPurchaseTick = tick;
         StorePantry(pantryOwner, pantry);
 
-        var state = world.Has<ConsumptionState>(sim) ? world.Get<ConsumptionState>(sim) : new ConsumptionState();
+        var state = world.Has<ConsumptionState>(genos) ? world.Get<ConsumptionState>(genos) : new ConsumptionState();
         state.FoodPurchased = true;
-        if (world.Has<ConsumptionState>(sim))
-            world.Get<ConsumptionState>(sim) = state;
+        if (world.Has<ConsumptionState>(genos))
+            world.Get<ConsumptionState>(genos) = state;
         else
-            world.Add(sim, state);
+            world.Add(genos, state);
 
-        var nutrition = world.Has<NutritionState>(sim) ? world.Get<NutritionState>(sim) : new NutritionState();
+        var nutrition = world.Has<NutritionState>(genos) ? world.Get<NutritionState>(genos) : new NutritionState();
         nutrition.Balance = Math.Clamp(nutrition.Balance + item.Nutrition * quantity * 2, -100, 100);
         nutrition.LastMealTick = tick;
-        if (world.Has<NutritionState>(sim))
-            world.Get<NutritionState>(sim) = nutrition;
+        if (world.Has<NutritionState>(genos))
+            world.Get<NutritionState>(genos) = nutrition;
         else
-            world.Add(sim, nutrition);
+            world.Add(genos, nutrition);
 
         economy.Emit(new PlayerBoughtItem(
-            NetworkIdOf(sim),
+            NetworkIdOf(genos),
             NetworkIdOf(store),
             item.Id,
             quantity,
             total.Cents,
             tick));
         economy.Emit(new GroceryPurchase(
-            NetworkIdOf(PantryOwner(sim)),
+            NetworkIdOf(PantryOwner(genos)),
             NetworkIdOf(store),
             item.Id,
             quantity,
@@ -650,16 +650,16 @@ public sealed class PlayerActionService
         });
     }
 
-    private PlayerActionResult ConsumeItem(Entity sim, JsonElement payload, long tick)
+    private PlayerActionResult ConsumeItem(Entity genos, JsonElement payload, long tick)
     {
         if (!PlayerActionPayloads.TryParse<PlayerActionPayloads.ConsumeItem>(payload, out var request, out var error))
             return Malformed(error);
         if (!PlayerCatalog.TryGet(request!.CatalogItemId, out var item))
-            return ConsumeGroceryItem(sim, request.CatalogItemId, request.Quantity, tick);
+            return ConsumeGroceryItem(genos, request.CatalogItemId, request.Quantity, tick);
         if (request.Quantity <= 0)
             return PlayerActionResult.Reject("invalid_state", "Quantity must be positive.");
 
-        var pantryOwner = PantryOwner(sim);
+        var pantryOwner = PantryOwner(genos);
         if (!world.Has<HouseholdPantry>(pantryOwner))
             return PlayerActionResult.Reject("pantry_empty", "The pantry is empty.");
 
@@ -673,26 +673,26 @@ public sealed class PlayerActionService
         pantry.HouseholdGoods = Math.Max(0, pantry.HouseholdGoods - item.HouseholdGoods * request.Quantity);
         StorePantry(pantryOwner, pantry);
 
-        if (world.Has<Needs>(sim))
+        if (world.Has<Needs>(genos))
         {
-            var needs = world.Get<Needs>(sim);
+            var needs = world.Get<Needs>(genos);
             needs.Hunger = Math.Min(100f, needs.Hunger + item.Hunger * request.Quantity);
             needs.Hygiene = Math.Min(100f, needs.Hygiene + item.Hygiene * request.Quantity);
-            world.Get<Needs>(sim) = needs;
+            world.Get<Needs>(genos) = needs;
         }
 
-        economy.Emit(new PlayerConsumedItem(NetworkIdOf(sim), item.Id, request.Quantity, tick));
+        economy.Emit(new PlayerConsumedItem(NetworkIdOf(genos), item.Id, request.Quantity, tick));
         return PlayerActionResult.Success("Item consumed.", new { item.Id, request.Quantity });
     }
 
-    private PlayerActionResult ConsumeGroceryItem(Entity sim, string itemId, int quantity, long tick)
+    private PlayerActionResult ConsumeGroceryItem(Entity genos, string itemId, int quantity, long tick)
     {
         if (!GroceryCatalog.TryGet(itemId, out var item))
             return PlayerActionResult.Reject("not_available", "That item is not in the pantry.");
         if (quantity <= 0)
             return PlayerActionResult.Reject("invalid_state", "Quantity must be positive.");
 
-        var pantryOwner = PantryOwner(sim);
+        var pantryOwner = PantryOwner(genos);
         if (!world.Has<HouseholdPantry>(pantryOwner))
             return PlayerActionResult.Reject("pantry_empty", "The pantry is empty.");
 
@@ -705,31 +705,31 @@ public sealed class PlayerActionService
             pantry.FoodUnits = Math.Max(0, pantry.FoodUnits - required);
         StorePantry(pantryOwner, pantry);
 
-        if (world.Has<Needs>(sim))
+        if (world.Has<Needs>(genos))
         {
-            var needs = world.Get<Needs>(sim);
+            var needs = world.Get<Needs>(genos);
             needs.Hunger = Math.Min(100f, needs.Hunger + item.Nutrition * 8f * quantity);
             if (item.Category == GroceryCategory.Household)
                 needs.Hygiene = Math.Min(100f, needs.Hygiene + 25f * quantity);
-            world.Get<Needs>(sim) = needs;
+            world.Get<Needs>(genos) = needs;
         }
 
-        var nutrition = world.Has<NutritionState>(sim) ? world.Get<NutritionState>(sim) : new NutritionState();
+        var nutrition = world.Has<NutritionState>(genos) ? world.Get<NutritionState>(genos) : new NutritionState();
         var balanced = item.Category is GroceryCategory.Staple or GroceryCategory.Produce or GroceryCategory.Protein;
         nutrition.Balance = Math.Clamp(nutrition.Balance + (balanced ? 8 : 2) * quantity, -100, 100);
         nutrition.LastMealTick = tick;
         if (nutrition.Balance < 0) nutrition.ConsecutivePoorDays++;
         else nutrition.ConsecutivePoorDays = 0;
-        if (world.Has<NutritionState>(sim))
-            world.Get<NutritionState>(sim) = nutrition;
+        if (world.Has<NutritionState>(genos))
+            world.Get<NutritionState>(genos) = nutrition;
         else
-            world.Add(sim, nutrition);
+            world.Add(genos, nutrition);
 
-        economy.Emit(new PlayerConsumedItem(NetworkIdOf(sim), item.Id, quantity, tick));
+        economy.Emit(new PlayerConsumedItem(NetworkIdOf(genos), item.Id, quantity, tick));
         return PlayerActionResult.Success("Item consumed.", new { item.Id, quantity });
     }
 
-    private PlayerActionResult InvitePartner(string playerId, Entity sim, JsonElement payload, long tick)
+    private PlayerActionResult InvitePartner(string playerId, Entity genos, JsonElement payload, long tick)
     {
         if (!PlayerActionPayloads.TryParse<PlayerActionPayloads.InvitePartner>(payload, out var request, out var error))
             return Malformed(error);
@@ -738,21 +738,21 @@ public sealed class PlayerActionService
         if (!string.IsNullOrWhiteSpace(request!.TargetPlayerId))
         {
             if (!players.TryGet(request.TargetPlayerId, out var requestedProfile) ||
-                requestedProfile.ControlledSim == Entity.Null ||
-                !world.IsAlive(requestedProfile.ControlledSim))
+                requestedProfile.ControlledGenos == Entity.Null ||
+                !world.IsAlive(requestedProfile.ControlledGenos))
                 return PlayerActionResult.Reject("target_not_found", "That player is not available.");
-            target = requestedProfile.ControlledSim;
+            target = requestedProfile.ControlledGenos;
         }
-        else if (!TryEntity(request.TargetSimNetworkId, out target))
+        else if (!TryEntity(request.TargetGenosNetworkId, out target))
         {
-            return PlayerActionResult.Reject("target_not_found", "That sim is not available.");
+            return PlayerActionResult.Reject("target_not_found", "That genos is not available.");
         }
-        if (target == sim)
+        if (target == genos)
             return PlayerActionResult.Reject("invalid_state", "You cannot invite yourself.");
         if (world.Has<Dead>(target))
-            return PlayerActionResult.Reject("not_available", "That sim is not available.");
+            return PlayerActionResult.Reject("not_available", "That genos is not available.");
 
-        if (players.TryGetBySim(target, out var targetProfile) &&
+        if (players.TryGetByGenos(target, out var targetProfile) &&
             !string.Equals(targetProfile.PlayerId, playerId, StringComparison.Ordinal))
         {
             var playerInvite = playerRelationships.InvitePartner(playerId, targetProfile.PlayerId, tick);
@@ -762,49 +762,49 @@ public sealed class PlayerActionService
         var eligibility = EligibilityPolicy.Evaluate(
             world,
             relationships,
-            sim,
+            genos,
             target,
             relationshipOptions,
             (first, second) => InConsentCooldown(second, first, tick));
         if (!eligibility.Eligible)
             return PlayerActionResult.Reject(eligibility.Code ?? "invalid_state", eligibility.Reason ?? "Not eligible.");
 
-        if (HasPendingInvitation(sim, target))
+        if (HasPendingInvitation(genos, target))
             return PlayerActionResult.Reject("invalid_state", "An invitation is already pending.");
 
-        var invitation = CreateInvitation(sim, target, FamilyInvitationKind.Partnership, tick);
+        var invitation = CreateInvitation(genos, target, FamilyInvitationKind.Partnership, tick);
         var invitationId = world.Get<FamilyInvitation>(invitation).Id;
         economy.Emit(new PlayerInvited(
-            NetworkIdOf(sim),
+            NetworkIdOf(genos),
             NetworkIdOf(target),
             invitationId,
             FamilyInvitationKind.Partnership.ToString(),
             world.Get<FamilyInvitation>(invitation).ExpiresTick,
             tick));
 
-        var consent = EvaluateNpcConsent(sim, target, tick);
+        var consent = EvaluateNpcConsent(genos, target, tick);
         var data = world.Get<FamilyInvitation>(invitation);
         if (consent.Accepted)
         {
             data.Status = FamilyInvitationStatus.Accepted;
             world.Get<FamilyInvitation>(invitation) = data;
-            AcceptPartnership(sim, target, tick, consent.Score);
+            AcceptPartnership(genos, target, tick, consent.Score);
             economy.Emit(new PlayerInvitationResponded(
-                NetworkIdOf(sim), NetworkIdOf(target), invitationId,
+                NetworkIdOf(genos), NetworkIdOf(target), invitationId,
                 FamilyInvitationKind.Partnership.ToString(), true, null, tick));
             return PlayerActionResult.Success("Your invitation was accepted.", new { invitationId, accepted = true });
         }
 
         data.Status = FamilyInvitationStatus.Declined;
         world.Get<FamilyInvitation>(invitation) = data;
-        SetConsentCooldown(target, sim, tick);
+        SetConsentCooldown(target, genos, tick);
         economy.Emit(new PlayerInvitationResponded(
-            NetworkIdOf(sim), NetworkIdOf(target), invitationId,
+            NetworkIdOf(genos), NetworkIdOf(target), invitationId,
             FamilyInvitationKind.Partnership.ToString(), false, consent.Code, tick));
         return PlayerActionResult.Reject("declined", consent.Message);
     }
 
-    private PlayerActionResult InviteCohabit(string playerId, Entity sim, JsonElement payload, long tick)
+    private PlayerActionResult InviteCohabit(string playerId, Entity genos, JsonElement payload, long tick)
     {
         if (!PlayerActionPayloads.TryParse<PlayerActionPayloads.InviteCohabit>(payload, out var request, out var error))
             return Malformed(error);
@@ -818,7 +818,7 @@ public sealed class PlayerActionService
         return MapRelationshipResult(playerRelationships.InviteCohabit(playerId, targetPlayerId, tick));
     }
 
-    private PlayerActionResult EndPartnership(string playerId, Entity sim, JsonElement payload, long tick)
+    private PlayerActionResult EndPartnership(string playerId, Entity genos, JsonElement payload, long tick)
     {
         if (!PlayerActionPayloads.TryParse<PlayerActionPayloads.EndPartnership>(payload, out var request, out var error))
             return Malformed(error);
@@ -834,7 +834,7 @@ public sealed class PlayerActionService
             request.SplitHousehold));
     }
 
-    private PlayerActionResult PerformVenueActivity(string playerId, Entity sim, JsonElement payload, long tick)
+    private PlayerActionResult PerformVenueActivity(string playerId, Entity genos, JsonElement payload, long tick)
     {
         if (!PlayerActionPayloads.TryParse<PlayerActionPayloads.PerformVenueActivity>(payload, out var request, out var error))
             return Malformed(error);
@@ -872,7 +872,7 @@ public sealed class PlayerActionService
         return PlayerActionResult.Success(result.Message, data);
     }
 
-    private PlayerActionResult RespondToInvitation(string playerId, Entity sim, JsonElement payload, long tick)
+    private PlayerActionResult RespondToInvitation(string playerId, Entity genos, JsonElement payload, long tick)
     {
         if (!PlayerActionPayloads.TryParse<PlayerActionPayloads.RespondToInvitation>(payload, out var request, out var error))
             return Malformed(error);
@@ -889,7 +889,7 @@ public sealed class PlayerActionService
         }
 
         var invitation = world.Get<FamilyInvitation>(entity);
-        if (invitation.To != sim)
+        if (invitation.To != genos)
             return PlayerActionResult.Reject("not_target", "That invitation was not sent to you.");
         if (invitation.Status != FamilyInvitationStatus.Pending)
             return PlayerActionResult.Reject("invalid_state", "That invitation is no longer pending.");
@@ -939,26 +939,26 @@ public sealed class PlayerActionService
         return PlayerActionResult.Success("Invitation accepted.");
     }
 
-    private PlayerActionResult TryForChild(string playerId, Entity sim, JsonElement payload, long tick)
+    private PlayerActionResult TryForChild(string playerId, Entity genos, JsonElement payload, long tick)
     {
         if (!PlayerActionPayloads.TryParse<PlayerActionPayloads.TryForChild>(payload, out var request, out var error))
             return Malformed(error);
-        if (!TryEntity(request!.PartnerSimNetworkId, out var partner))
-            return PlayerActionResult.Reject("target_not_found", "That sim is not available.");
-        if (!relationships.PartnersOf(sim).Contains(partner) || !relationships.PartnersOf(partner).Contains(sim))
+        if (!TryEntity(request!.PartnerGenosNetworkId, out var partner))
+            return PlayerActionResult.Reject("target_not_found", "That genos is not available.");
+        if (!relationships.PartnersOf(genos).Contains(partner) || !relationships.PartnersOf(partner).Contains(genos))
             return PlayerActionResult.Reject("not_partner", "You need an active partnership first.");
 
-        var partnerIsOtherPlayer = players.TryGetBySim(partner, out var partnerProfile) &&
+        var partnerIsOtherPlayer = players.TryGetByGenos(partner, out var partnerProfile) &&
                                    !string.Equals(partnerProfile.PlayerId, playerId, StringComparison.Ordinal);
         if (partnerIsOtherPlayer)
         {
-            if (HasPendingInvitation(sim, partner, FamilyInvitationKind.Conception))
+            if (HasPendingInvitation(genos, partner, FamilyInvitationKind.Conception))
                 return PlayerActionResult.Reject("invalid_state", "A conception invitation is already pending.");
 
-            var invitation = CreateInvitation(sim, partner, FamilyInvitationKind.Conception, tick);
+            var invitation = CreateInvitation(genos, partner, FamilyInvitationKind.Conception, tick);
             var id = world.Get<FamilyInvitation>(invitation).Id;
             economy.Emit(new PlayerInvited(
-                NetworkIdOf(sim),
+                NetworkIdOf(genos),
                 NetworkIdOf(partner),
                 id,
                 FamilyInvitationKind.Conception.ToString(),
@@ -967,10 +967,10 @@ public sealed class PlayerActionService
             return PlayerActionResult.Success("Consent requested.", new { invitationId = id, pendingConsent = true });
         }
 
-        return TryConceive(sim, partner, tick);
+        return TryConceive(genos, partner, tick);
     }
 
-    private PlayerActionResult NameChild(Entity sim, JsonElement payload, long tick)
+    private PlayerActionResult NameChild(Entity genos, JsonElement payload, long tick)
     {
         if (!PlayerActionPayloads.TryParse<PlayerActionPayloads.NameChild>(payload, out var request, out var error))
             return Malformed(error);
@@ -983,26 +983,26 @@ public sealed class PlayerActionService
         if (string.IsNullOrWhiteSpace(name) || name.Length > 40)
             return PlayerActionResult.Reject("invalid_state", "A name between 1 and 40 characters is required.");
 
-        var isParent = relationships.IsParentOf(sim, child);
+        var isParent = relationships.IsParentOf(genos, child);
         var household = LifeSystemHelpers.HouseholdOf(world, economy, child);
         var sameHousehold = household != Entity.Null &&
-                            LifeSystemHelpers.HouseholdOf(world, economy, sim) == household;
+                            LifeSystemHelpers.HouseholdOf(world, economy, genos) == household;
         if (!isParent && !sameHousehold)
             return PlayerActionResult.Reject("invalid_state", "You can only name your own child.");
 
         world.Get<GenName>(child) = new GenName(name);
-        economy.Emit(new PlayerChildNamed(NetworkIdOf(sim), NetworkIdOf(child), name, tick));
+        economy.Emit(new PlayerChildNamed(NetworkIdOf(genos), NetworkIdOf(child), name, tick));
         return PlayerActionResult.Success("Child named.", new { name });
     }
 
-    private PlayerActionResult ChooseContinuation(string playerId, Entity sim, JsonElement payload, long tick)
+    private PlayerActionResult ChooseContinuation(string playerId, Entity genos, JsonElement payload, long tick)
     {
         if (!PlayerActionPayloads.TryParse<PlayerActionPayloads.ChooseContinuation>(payload, out var request, out var error))
             return Malformed(error);
         if (!Enum.TryParse<PlayerContinuationPolicy>(request!.Policy, ignoreCase: true, out var policy))
             return PlayerActionResult.Reject("invalid_state", "Unknown continuation policy.");
 
-        var profile = players.GetOrCreate(playerId, sim, tick);
+        var profile = players.GetOrCreate(playerId, genos, tick);
         profile.ContinuationPolicy = policy;
         profile.LastActionTick = tick;
         return PlayerActionResult.Success("Continuation preference saved.", new { policy = policy.ToString() });
@@ -1154,7 +1154,7 @@ public sealed class PlayerActionService
     private ConsentResult EvaluateNpcConsent(Entity from, Entity target, long tick)
     {
         if (!world.Has<Traits>(from) || !world.Has<Traits>(target))
-            return new ConsentResult(false, 0, "missing-traits", "Both sims need a trait set.");
+            return new ConsentResult(false, 0, "missing-traits", "Both genoses need a trait set.");
 
         var health = world.Has<Health>(target)
             ? (int)Math.Clamp(world.Get<Health>(target).Value * 100f, 0f, 10_000f)
@@ -1255,9 +1255,9 @@ public sealed class PlayerActionService
                world.IsAlive(entity);
     }
 
-    private string PlayerIdOf(Entity sim) =>
-        world.IsAlive(sim) && world.Has<PlayerControlled>(sim)
-            ? world.Get<PlayerControlled>(sim).PlayerId
+    private string PlayerIdOf(Entity genos) =>
+        world.IsAlive(genos) && world.Has<PlayerControlled>(genos)
+            ? world.Get<PlayerControlled>(genos).PlayerId
             : string.Empty;
 
     private ulong NetworkIdOf(Entity entity) =>
@@ -1265,13 +1265,13 @@ public sealed class PlayerActionService
             ? world.Get<NetworkId>(entity).Value
             : 0UL;
 
-    private bool Near(Entity sim, Entity building)
+    private bool Near(Entity genos, Entity building)
     {
-        if (!world.IsAlive(sim) || !world.Has<TilePosition>(sim) || !world.Has<Placement>(building))
+        if (!world.IsAlive(genos) || !world.Has<TilePosition>(genos) || !world.Has<Placement>(building))
             return true;
 
         var entry = world.Get<Placement>(building).Entry;
-        return world.Get<TilePosition>(sim).Tile.ChebyshevDistanceTo(entry) <= 1;
+        return world.Get<TilePosition>(genos).Tile.ChebyshevDistanceTo(entry) <= 1;
     }
 
     private bool TryFirstOpenPosting(Entity office, out Entity postingEntity)
@@ -1288,11 +1288,11 @@ public sealed class PlayerActionService
         return postingEntity != Entity.Null;
     }
 
-    private bool MeetsRequirements(Entity sim, in JobPosting posting)
+    private bool MeetsRequirements(Entity genos, in JobPosting posting)
     {
         if (posting.Requirements == Skill.None)
             return true;
-        var profile = world.Has<SkillProfile>(sim) ? world.Get<SkillProfile>(sim) : new SkillProfile();
+        var profile = world.Has<SkillProfile>(genos) ? world.Get<SkillProfile>(genos) : new SkillProfile();
         return (profile.ToMask() & posting.Requirements) != Skill.None;
     }
 
@@ -1352,19 +1352,19 @@ public sealed class PlayerActionService
     }
 
     private bool TryDebitPlayer(
-        Entity sim,
+        Entity genos,
         Money amount,
         LedgerKind kind,
         long tick,
         string reference,
         ulong? payee = null)
     {
-        if (!world.IsAlive(sim) || !amount.IsPositive)
+        if (!world.IsAlive(genos) || !amount.IsPositive)
             return false;
 
-        var walletBalance = world.Has<Wallet>(sim) ? world.Get<Wallet>(sim).Balance : Money.Zero;
-        var savingsBalance = world.Has<SavingsAccount>(sim)
-            ? world.Get<SavingsAccount>(sim).Balance
+        var walletBalance = world.Has<Wallet>(genos) ? world.Get<Wallet>(genos).Balance : Money.Zero;
+        var savingsBalance = world.Has<SavingsAccount>(genos)
+            ? world.Get<SavingsAccount>(genos).Balance
             : Money.Zero;
         if (walletBalance + savingsBalance < amount)
             return false;
@@ -1372,14 +1372,14 @@ public sealed class PlayerActionService
         var remaining = amount;
         if (walletBalance.IsPositive)
         {
-            ref var wallet = ref world.Get<Wallet>(sim);
+            ref var wallet = ref world.Get<Wallet>(genos);
             var take = wallet.Balance.Min(remaining);
             wallet.Balance -= take;
             remaining -= take;
         }
         if (remaining.IsPositive && savingsBalance.IsPositive)
         {
-            ref var savings = ref world.Get<SavingsAccount>(sim);
+            ref var savings = ref world.Get<SavingsAccount>(genos);
             var take = savings.Balance.Min(remaining);
             savings.Balance -= take;
             savings.LifetimeWithdrawn += take;
@@ -1390,7 +1390,7 @@ public sealed class PlayerActionService
             Guid.NewGuid(),
             tick,
             kind,
-            NetworkIdOf(sim),
+            NetworkIdOf(genos),
             payee,
             amount,
             reference);
@@ -1420,7 +1420,7 @@ public sealed class PlayerActionService
         economy.Government.Balance += amount;
     }
 
-    private bool TryResolveStore(ulong preferred, Entity sim, out Entity store, out Entity seller)
+    private bool TryResolveStore(ulong preferred, Entity genos, out Entity store, out Entity seller)
     {
         store = Entity.Null;
         seller = Entity.Null;
@@ -1437,8 +1437,8 @@ public sealed class PlayerActionService
                 (Entity entity, ref Office _) => candidates.Add(entity));
             candidates.Sort((a, b) =>
             {
-                var aNear = Near(sim, a) ? 0 : 1;
-                var bNear = Near(sim, b) ? 0 : 1;
+                var aNear = Near(genos, a) ? 0 : 1;
+                var bNear = Near(genos, b) ? 0 : 1;
                 var byNear = aNear.CompareTo(bNear);
                 return byNear != 0 ? byNear : NetworkIdOf(a).CompareTo(NetworkIdOf(b));
             });
@@ -1469,10 +1469,10 @@ public sealed class PlayerActionService
         economy.Government.Balance += amount;
     }
 
-    private Entity PantryOwner(Entity sim) =>
-        LifeSystemHelpers.HouseholdOf(world, economy, sim) is { } household && household != Entity.Null
+    private Entity PantryOwner(Entity genos) =>
+        LifeSystemHelpers.HouseholdOf(world, economy, genos) is { } household && household != Entity.Null
             ? household
-            : sim;
+            : genos;
 
     private void EnsurePantry(Entity owner)
     {

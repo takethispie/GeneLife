@@ -8,14 +8,14 @@ public sealed class WorldSnapshot
 
     public long Tick { get; }
     public int Version { get; }
-    public List<SimStatus> Sims { get; }
+    public List<GenosStatus> Genoses { get; }
     public List<CompanyStatus> Companies { get; }
 
-    public WorldSnapshot(long tick, int version, List<SimStatus> sims, List<CompanyStatus> companies)
+    public WorldSnapshot(long tick, int version, List<GenosStatus> genoses, List<CompanyStatus> companies)
     {
         Tick = tick;
         Version = version;
-        Sims = sims;
+        Genoses = genoses;
         Companies = companies;
     }
 }

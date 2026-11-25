@@ -88,8 +88,8 @@ public class InheritanceTrustTests
         {
             Economy.Life.EstateQueue.Add(new EstateRequest
             {
-                Sim = Deceased,
-                SimNetworkId = 1,
+                Genos = Deceased,
+                GenosNetworkId = 1,
                 Name = "Deceased",
                 Age = 60,
                 Tick = 1

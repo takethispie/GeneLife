@@ -35,13 +35,13 @@ public class AdminCommandQueueTests
 
         try
         {
-            var simId = manager.AddSim("QueuedSim", 30);
-            Assert.NotEqual(0ul, simId);
-            Assert.True(engine.TryGetEntity(new NetworkId(simId), out _));
+            var genosId = manager.AddGenos("QueuedGenos", 30);
+            Assert.NotEqual(0ul, genosId);
+            Assert.True(engine.TryGetEntity(new NetworkId(genosId), out _));
 
-            manager.SetSimAction(simId, "Idle");
-            Assert.True(manager.DeleteSim(simId));
-            Assert.False(engine.TryGetEntity(new NetworkId(simId), out _));
+            manager.SetGenosAction(genosId, "Idle");
+            Assert.True(manager.DeleteGenos(genosId));
+            Assert.False(engine.TryGetEntity(new NetworkId(genosId), out _));
 
             var companyId = manager.AddCompany("QueuedCo");
             Assert.NotEqual(0ul, companyId);

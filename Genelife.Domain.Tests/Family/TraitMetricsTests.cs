@@ -7,7 +7,7 @@ namespace Genelife.UnitTests.Family;
 public class TraitMetricsTests
 {
     [Fact]
-    public void MissingTraitsOnLivingSimIsAFailure()
+    public void MissingTraitsOnLivingGenosIsAFailure()
     {
         var world = World.Create();
         world.Create(new Alive(30));
@@ -69,7 +69,7 @@ public class TraitMetricsTests
     }
 
     [Fact]
-    public void DeadSimsAreExcludedFromTheLivingPopulation()
+    public void DeadGenosesAreExcludedFromTheLivingPopulation()
     {
         var world = World.Create();
         world.Create(new Alive(30), new Traits());

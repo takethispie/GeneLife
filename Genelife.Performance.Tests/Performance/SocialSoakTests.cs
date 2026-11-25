@@ -40,11 +40,11 @@ public sealed class SocialSoakTests
             },
             TimeProvider.System);
 
-        var simIds = new List<ulong>();
+        var genosIds = new List<ulong>();
         for (var i = 0; i < 32; i++)
         {
             var playerId = $"soak-{i}";
-            simIds.Add(engine.EnsurePlayerSim(playerId));
+            genosIds.Add(engine.EnsurePlayerGenos(playerId));
             connections.Register($"soak-conn-{i}", playerId);
         }
 
@@ -70,8 +70,8 @@ public sealed class SocialSoakTests
 
             for (var i = 0; i < 8; i++)
             {
-                if (engine.NetworkIds.TryGetEntity(new NetworkId(simIds[i]), out var sim))
-                    world.Get<TilePosition>(sim) = new TilePosition(new TileCoord(9, 10));
+                if (engine.NetworkIds.TryGetEntity(new NetworkId(genosIds[i]), out var genos))
+                    world.Get<TilePosition>(genos) = new TilePosition(new TileCoord(9, 10));
             }
             return 0;
         });

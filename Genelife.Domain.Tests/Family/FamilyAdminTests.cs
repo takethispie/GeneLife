@@ -19,7 +19,7 @@ public class FamilyAdminTests
 
         engine.ExecuteWithWorld(world =>
         {
-            var repository = new SimRepository(world, engine.NetworkIds, engine.Economy);
+            var repository = new GenosRepository(world, engine.NetworkIds, engine.Economy);
             firstId = repository.Add("First", 30).Value;
             secondId = repository.Add("Second", 31).Value;
             thirdId = repository.Add("Third", 29).Value;
@@ -43,16 +43,16 @@ public class FamilyAdminTests
         var status = engine.BuildFamilyStatus();
         Assert.Equal(4, status.Population);
         Assert.Equal(4, status.Adults);
-        Assert.Equal(2, status.PairedSims);
+        Assert.Equal(2, status.PairedGenoses);
         Assert.Equal(1, status.Partnerships);
         Assert.False(status.SameSexPairingAllowed);
         Assert.DoesNotContain(status.Health, check => check.Level == "Fail");
         Assert.Contains(status.Health, check => check.Name == "relationships" && check.Level == "Pass");
 
-        var relationships = engine.BuildFamilyRelationships(simId: firstId);
+        var relationships = engine.BuildFamilyRelationships(genosId: firstId);
         Assert.Equal(2, relationships.Total);
         Assert.All(relationships.Relationships, relationship =>
-            Assert.True(relationship.FromSimId == firstId || relationship.ToSimId == firstId));
+            Assert.True(relationship.FromGenosId == firstId || relationship.ToGenosId == firstId));
 
         var paired = engine.BuildAttractionExplanation(firstId, secondId);
         Assert.False(paired.Eligible);
@@ -94,28 +94,28 @@ public class FamilyAdminTests
         Assert.True(status.Performance.CandidateCap > 0);
         Assert.DoesNotContain(status.Health, check => check.Level == "Fail");
 
-        var all = engine.BuildFamilySims(take: 200);
+        var all = engine.BuildFamilyGenoses(take: 200);
         Assert.Equal(status.Population, all.Total);
-        Assert.True(all.Sims.Count <= 200);
+        Assert.True(all.Genoses.Count <= 200);
 
-        var page = engine.BuildFamilySims(take: 10, skip: 5);
-        Assert.Equal(10, page.Sims.Count);
-        Assert.Equal(all.Sims.Skip(5).Take(10).Select(sim => sim.NetworkId), page.Sims.Select(sim => sim.NetworkId));
+        var page = engine.BuildFamilyGenoses(take: 10, skip: 5);
+        Assert.Equal(10, page.Genoses.Count);
+        Assert.Equal(all.Genoses.Skip(5).Take(10).Select(genos => genos.NetworkId), page.Genoses.Select(genos => genos.NetworkId));
 
-        var partnered = engine.BuildFamilySims(take: 200, partnered: true);
-        Assert.All(partnered.Sims, sim => Assert.True(sim.IsPaired));
+        var partnered = engine.BuildFamilyGenoses(take: 200, partnered: true);
+        Assert.All(partnered.Genoses, genos => Assert.True(genos.IsPaired));
         Assert.True(partnered.Total > 0);
 
-        var withChildren = engine.BuildFamilySims(take: 200, hasChildren: true);
-        Assert.All(withChildren.Sims, sim => Assert.True(sim.HasChildren));
+        var withChildren = engine.BuildFamilyGenoses(take: 200, hasChildren: true);
+        Assert.All(withChildren.Genoses, genos => Assert.True(genos.HasChildren));
 
         var householdId = status.Households[0].NetworkId;
-        var householdSims = engine.BuildFamilySims(take: 200, householdId: householdId);
-        Assert.All(householdSims.Sims, sim => Assert.Equal(householdId, sim.HouseholdNetworkId));
+        var householdGenoses = engine.BuildFamilyGenoses(take: 200, householdId: householdId);
+        Assert.All(householdGenoses.Genoses, genos => Assert.Equal(householdId, genos.HouseholdNetworkId));
 
-        var detail = engine.BuildFamilySim(partnered.Sims[0].NetworkId);
+        var detail = engine.BuildFamilyGenos(partnered.Genoses[0].NetworkId);
         Assert.NotNull(detail);
-        Assert.Equal(partnered.Sims[0].NetworkId, detail!.Sim.NetworkId);
+        Assert.Equal(partnered.Genoses[0].NetworkId, detail!.Genos.NetworkId);
         Assert.NotEmpty(detail.Relationships);
         Assert.NotNull(detail.Household);
 

@@ -12,7 +12,7 @@ using Genelife.Messages.Events;
 namespace Genelife.Systems;
 
 /// <summary>
-/// Monthly curriculum gain for education-stage sims. Gains depend on school
+/// Monthly curriculum gain for education-stage genoses. Gains depend on school
 /// quality, attendance, emphasis and household background, and are deterministic
 /// (no Random.Shared).
 /// </summary>
@@ -115,9 +115,9 @@ public class EducationSystem : ISimulationSystem
         }
     }
 
-    private float Background(Entity sim)
+    private float Background(Entity genos)
     {
-        var household = LifeSystemHelpers.HouseholdOf(world, economy, sim);
+        var household = LifeSystemHelpers.HouseholdOf(world, economy, genos);
         if (household == Entity.Null)
             return 0.9f;
 

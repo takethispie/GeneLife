@@ -22,16 +22,16 @@ public sealed class EconomyOptions
     public Money SeededCompanyCapital { get; set; } = Money.FromUnits(1_200_000m);
 
     /// <summary>
-    /// Government endowment per seeded sim. This is the buffer that funds
+    /// Government endowment per seeded genos. This is the buffer that funds
     /// pensions, benefits and municipal services before tax revenue arrives.
     /// </summary>
-    public Money SeededGovernmentFundPerSim { get; set; } = Money.FromUnits(10_000m);
+    public Money SeededGovernmentFundPerGenos { get; set; } = Money.FromUnits(10_000m);
 
     /// <summary>
-    /// Pre-funded pension balance per seeded sim, transferred from the
+    /// Pre-funded pension balance per seeded genos, transferred from the
     /// government endowment so the fund starts inside the funding-ratio band.
     /// </summary>
-    public Money SeededPensionFundPerSim { get; set; } = Money.FromUnits(6_000m);
+    public Money SeededPensionFundPerGenos { get; set; } = Money.FromUnits(6_000m);
 
     /// <summary>
     /// Share of working-stage adults deliberately left without a seat at seed

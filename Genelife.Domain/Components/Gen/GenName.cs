@@ -1,7 +1,7 @@
 namespace Genelife.Components.Gen;
 
 /// <summary>
-/// Component for identifying a Sim
+/// Component for identifying a Genos
 /// </summary>
 public record struct GenName
 {

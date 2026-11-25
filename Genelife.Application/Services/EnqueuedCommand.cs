@@ -2,8 +2,8 @@ namespace Genelife.Api.Services;
 
 public enum CommandType
 {
-    CreateSim,
-    DeleteSim,
+    CreateGenos,
+    DeleteGenos,
     SetAction,
     CreateCompany,
     DeleteCompany,

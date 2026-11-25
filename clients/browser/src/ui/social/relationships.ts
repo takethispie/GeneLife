@@ -13,7 +13,7 @@ export interface RelationshipInvitationStatus {
 export interface PlayerRelationshipStatus {
   playerId: string;
   partnerPlayerId: string | null;
-  partnerSimNetworkId: number | null;
+  partnerGenosNetworkId: number | null;
   partnerName: string | null;
   sharesHousehold: boolean;
   canCohabit: boolean;

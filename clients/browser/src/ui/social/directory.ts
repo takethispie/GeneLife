@@ -3,7 +3,7 @@ import type { HudDock } from "../hud-dock";
 export interface DirectoryPresence {
   playerId: string;
   displayName: string | null;
-  simNetworkId: number;
+  genosNetworkId: number;
   tileX: number;
   tileY: number;
   buildingNetworkId: number | null;
@@ -30,7 +30,7 @@ export interface PlayerDirectoryOptions {
 
 /**
  * Low-frequency DOM player directory. It is outside the Pixi render loop and
- * only reads the bounded nearby scope; it never receives private sim state.
+ * only reads the bounded nearby scope; it never receives private genos state.
  */
 export class PlayerDirectoryPanel {
   private readonly root: HTMLElement;

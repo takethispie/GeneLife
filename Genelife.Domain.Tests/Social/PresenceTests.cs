@@ -19,9 +19,9 @@ public class PresenceTests
         var privacy = new SocialPrivacyRegistry();
         using var engine = new SimulationEngine();
         engine.Initialize();
-        var p1 = engine.EnsurePlayerSim("alice");
-        var p2 = engine.EnsurePlayerSim("bob");
-        var p3 = engine.EnsurePlayerSim("carol");
+        var p1 = engine.EnsurePlayerGenos("alice");
+        var p2 = engine.EnsurePlayerGenos("bob");
+        var p3 = engine.EnsurePlayerGenos("carol");
         Assert.NotEqual(0UL, p1);
         Assert.NotEqual(0UL, p2);
         Assert.NotEqual(0UL, p3);
@@ -104,12 +104,12 @@ public class PresenceTests
         var connections = new ConnectionRegistry();
         using var engine = new SimulationEngine();
         engine.Initialize();
-        var aliceSim = engine.EnsurePlayerSim("alice");
-        var bobSim = engine.EnsurePlayerSim("bob");
+        var aliceGenos = engine.EnsurePlayerGenos("alice");
+        var bobGenos = engine.EnsurePlayerGenos("bob");
         engine.ExecuteWithWorld(world =>
         {
-            Place(world, engine, aliceSim, new TileCoord(10, 10));
-            Place(world, engine, bobSim, new TileCoord(11, 10));
+            Place(world, engine, aliceGenos, new TileCoord(10, 10));
+            Place(world, engine, bobGenos, new TileCoord(11, 10));
             return 0;
         });
 
@@ -143,8 +143,8 @@ public class PresenceTests
         var connections = new ConnectionRegistry();
         using var engine = new SimulationEngine();
         engine.Initialize();
-        var alice = engine.EnsurePlayerSim("alice");
-        var bob = engine.EnsurePlayerSim("bob");
+        var alice = engine.EnsurePlayerGenos("alice");
+        var bob = engine.EnsurePlayerGenos("bob");
         engine.ExecuteWithWorld(world =>
         {
             Place(world, engine, alice, new TileCoord(10, 10));
@@ -180,13 +180,13 @@ public class PresenceTests
         Assert.Contains(recovered.Items, item => item.PlayerId == "bob");
     }
 
-    private static void Place(World world, SimulationEngine engine, ulong simNetworkId, TileCoord tile)
+    private static void Place(World world, SimulationEngine engine, ulong genosNetworkId, TileCoord tile)
     {
-        Assert.True(engine.NetworkIds.TryGetEntity(new NetworkId(simNetworkId), out var sim));
-        if (world.Has<TilePosition>(sim))
-            world.Get<TilePosition>(sim) = new TilePosition(tile);
+        Assert.True(engine.NetworkIds.TryGetEntity(new NetworkId(genosNetworkId), out var genos));
+        if (world.Has<TilePosition>(genos))
+            world.Get<TilePosition>(genos) = new TilePosition(tile);
         else
-            world.Add(sim, new TilePosition(tile));
+            world.Add(genos, new TilePosition(tile));
     }
 
     private sealed class MutableTimeProvider(DateTimeOffset now) : TimeProvider

@@ -330,12 +330,12 @@ public class HiringSystem : ISimulationSystem
 
         if (!world.IsAlive(applicant) || world.Has<Components.Gen.Dead>(applicant))
         {
-            error = "That sim is not available.";
+            error = "That genos is not available.";
             return false;
         }
         if (world.Has<Employee>(applicant))
         {
-            error = "That sim is already employed.";
+            error = "That genos is already employed.";
             return false;
         }
         if (!world.IsAlive(postingEntity) || !world.Has<JobPosting>(postingEntity))

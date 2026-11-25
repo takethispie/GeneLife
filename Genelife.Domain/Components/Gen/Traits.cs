@@ -12,7 +12,7 @@ public enum Sex : byte { Female, Male }
 public enum Temperament : byte { Peaceful, Neutral, Violent }
 
 /// <summary>
-/// Heritable trait set created with a sim and restored from snapshots. Age is
+/// Heritable trait set created with a genos and restored from snapshots. Age is
 /// never stored here; it remains <see cref="Genelife.Components.Gen.Alive.Age"/> and
 /// <see cref="Genelife.Components.Life.Lifecycle.AgeTicks"/>.
 /// </summary>

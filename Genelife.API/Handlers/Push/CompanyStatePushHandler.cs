@@ -27,7 +27,7 @@ public class CompanyStatePushHandler
         await hubContext.Clients.Group($"company:{@event.CompanyId}").SendAsync("EmployeeHired", new
         {
             @event.CompanyId,
-            @event.SimId,
+            @event.GenosId,
             @event.Position,
             @event.SalaryCents
         });
@@ -38,7 +38,7 @@ public class CompanyStatePushHandler
         await hubContext.Clients.Group($"company:{@event.CompanyId}").SendAsync("EmployeeFired", new
         {
             @event.CompanyId,
-            @event.SimId
+            @event.GenosId
         });
     }
 

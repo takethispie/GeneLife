@@ -16,7 +16,7 @@ public sealed record CandidateGenerationResult(
 
 /// <summary>
 /// Local candidate generation from household, workplace, school and spatial
-/// neighbours. It never scans the full population per sim.
+/// neighbours. It never scans the full population per genos.
 /// </summary>
 public sealed class CandidateGenerator
 {
@@ -38,7 +38,7 @@ public sealed class CandidateGenerator
     }
 
     public CandidateGenerationResult Generate(
-        Entity sim,
+        Entity genos,
         SpatialIndex spatial,
         IReadOnlyDictionary<Entity, List<Entity>> studentsBySchool,
         RelationshipCache? cache = null,
@@ -46,15 +46,15 @@ public sealed class CandidateGenerator
     {
         var raw = new HashSet<Entity>();
 
-        if (economy.Housing.HouseholdBySim.TryGetValue(sim, out var household))
+        if (economy.Housing.HouseholdByGenos.TryGetValue(genos, out var household))
         {
             foreach (var member in economy.Housing.GetMembers(household))
                 raw.Add(member);
         }
 
-        if (world.Has<Employee>(sim))
+        if (world.Has<Employee>(genos))
         {
-            var company = world.Get<Employee>(sim).Company;
+            var company = world.Get<Employee>(genos).Company;
             if (economy.Employment.EmployeesByCompany.TryGetValue(company, out var employees))
             {
                 foreach (var employee in employees)
@@ -62,9 +62,9 @@ public sealed class CandidateGenerator
             }
         }
 
-        if (world.Has<Enrollment>(sim))
+        if (world.Has<Enrollment>(genos))
         {
-            var school = world.Get<Enrollment>(sim).School;
+            var school = world.Get<Enrollment>(genos).School;
             if (studentsBySchool.TryGetValue(school, out var students))
             {
                 foreach (var student in students)
@@ -72,9 +72,9 @@ public sealed class CandidateGenerator
             }
         }
 
-        if (world.Has<Location>(sim))
+        if (world.Has<Location>(genos))
         {
-            var position = world.Get<Location>(sim).Position;
+            var position = world.Get<Location>(genos).Position;
             foreach (var (entity, _) in spatial.GetNeighbors(
                          position,
                          options.NeighbourRadiusTiles,
@@ -84,7 +84,7 @@ public sealed class CandidateGenerator
             }
         }
 
-        raw.Remove(sim);
+        raw.Remove(genos);
 
         var candidates = new List<Entity>(raw.Count);
         var rejections = new List<RejectedCandidate>();
@@ -93,7 +93,7 @@ public sealed class CandidateGenerator
             var eligibility = EligibilityPolicy.Evaluate(
                 world,
                 relationships,
-                sim,
+                genos,
                 candidate,
                 options,
                 (first, second) => cache?.InCooldown(first, second, tick) == true);
@@ -112,8 +112,8 @@ public sealed class CandidateGenerator
             return byNetworkId != 0 ? byNetworkId : a.Id.CompareTo(b.Id);
         });
 
-        if (candidates.Count > options.MaxCandidatesPerSim)
-            candidates.RemoveRange(options.MaxCandidatesPerSim, candidates.Count - options.MaxCandidatesPerSim);
+        if (candidates.Count > options.MaxCandidatesPerGenos)
+            candidates.RemoveRange(options.MaxCandidatesPerGenos, candidates.Count - options.MaxCandidatesPerGenos);
 
         return new CandidateGenerationResult(candidates, rejections, raw.Count);
     }

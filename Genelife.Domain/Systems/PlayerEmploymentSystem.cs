@@ -34,17 +34,17 @@ public sealed class PlayerEmploymentSystem : ISimulationSystem
 
     public void Update(long tick)
     {
-        var terminated = new List<(Entity Sim, Entity Company, string Reason)>();
+        var terminated = new List<(Entity Genos, Entity Company, string Reason)>();
         var query = new QueryDescription()
             .WithAll<PlayerEmployment, Employee>()
             .WithNone<Dead>();
 
-        world.Query(in query, (Entity sim, ref PlayerEmployment player, ref Employee employee) =>
+        world.Query(in query, (Entity genos, ref PlayerEmployment player, ref Employee employee) =>
         {
-            if (!world.Has<EmploymentRecord>(sim))
-                world.Add(sim, new EmploymentRecord(employee.HiredAtTick));
+            if (!world.Has<EmploymentRecord>(genos))
+                world.Add(genos, new EmploymentRecord(employee.HiredAtTick));
 
-            var record = world.Get<EmploymentRecord>(sim);
+            var record = world.Get<EmploymentRecord>(genos);
             record.ShiftsExpected++;
 
             if (player.AttendedThisMonth)
@@ -59,31 +59,31 @@ public sealed class PlayerEmploymentSystem : ISimulationSystem
             }
 
             player.AttendedThisMonth = false;
-            world.Get<EmploymentRecord>(sim) = record;
-            world.Get<PlayerEmployment>(sim) = player;
+            world.Get<EmploymentRecord>(genos) = record;
+            world.Get<PlayerEmployment>(genos) = player;
 
             if (player.ConsecutiveMissedShifts >= 3)
-                terminated.Add((sim, employee.Company, "attendance"));
+                terminated.Add((genos, employee.Company, "attendance"));
         });
 
-        foreach (var (sim, company, reason) in terminated)
+        foreach (var (genos, company, reason) in terminated)
         {
-            var playerId = PlayerIdOf(world, sim);
-            if (!world.IsAlive(sim) || !world.Has<Employee>(sim))
+            var playerId = PlayerIdOf(world, genos);
+            if (!world.IsAlive(genos) || !world.Has<Employee>(genos))
                 continue;
 
-            var networkId = NetworkIdOf(sim);
+            var networkId = NetworkIdOf(genos);
             var companyNetworkId = NetworkIdOf(company);
-            LifeSystemHelpers.RemoveEmployment(world, economy.Employment, economy, sim, tick);
-            if (world.Has<PlayerEmployment>(sim))
-                world.Remove<PlayerEmployment>(sim);
+            LifeSystemHelpers.RemoveEmployment(world, economy.Employment, economy, genos, tick);
+            if (world.Has<PlayerEmployment>(genos))
+                world.Remove<PlayerEmployment>(genos);
             economy.Emit(new PlayerTerminated(playerId, networkId, companyNetworkId, reason, tick));
         }
     }
 
-    private static string PlayerIdOf(World world, Entity sim) =>
-        world.Has<Components.Gen.PlayerControlled>(sim)
-            ? world.Get<Components.Gen.PlayerControlled>(sim).PlayerId
+    private static string PlayerIdOf(World world, Entity genos) =>
+        world.Has<Components.Gen.PlayerControlled>(genos)
+            ? world.Get<Components.Gen.PlayerControlled>(genos).PlayerId
             : string.Empty;
 
     private ulong NetworkIdOf(Entity entity) =>

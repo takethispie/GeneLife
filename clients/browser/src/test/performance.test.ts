@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 import { validateMapSnapshot } from "../contracts/validate";
 import { TileVisualCache } from "../render/map/tile-visual-cache";
 import { decodeMap as decode } from "../simulation/map/rle-decoder";
-import { interpolateFrames, pickFrames, type SimFrame } from "../simulation/interpolation";
+import { interpolateFrames, pickFrames, type GenosFrame } from "../simulation/interpolation";
 import largeMapFixture from "./fixtures/map-snapshot-large.json";
 
 describe("client performance budgets", () => {
-  it("interpolates 2,000 sims inside the frame budget", () => {
+  it("interpolates 2,000 genoses inside the frame budget", () => {
     const older = new Map<number, { x: number; y: number; tileX: number; tileY: number }>();
     const newer = new Map<number, { x: number; y: number; tileX: number; tileY: number }>();
     for (let i = 0; i < 2_000; i++) {
@@ -19,7 +19,7 @@ describe("client performance budgets", () => {
       });
     }
 
-    const frames: SimFrame[] = [
+    const frames: GenosFrame[] = [
       { tick: 1, arrivedAt: 0, positions: older },
       { tick: 2, arrivedAt: 40, positions: newer }
     ];

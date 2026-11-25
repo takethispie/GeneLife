@@ -53,8 +53,8 @@ public sealed record PlayerLeaseOfferStatus(
 
 public sealed record PlayerInvitationStatus(
     Guid Id,
-    ulong FromSimId,
-    ulong ToSimId,
+    ulong FromGenosId,
+    ulong ToGenosId,
     string Kind,
     string Status,
     long ExpiresTick,
@@ -69,7 +69,7 @@ public sealed record PlayerActionAuditStatus(
 
 public sealed record PlayerLifeStatus(
     string PlayerId,
-    ulong SimNetworkId,
+    ulong GenosNetworkId,
     string? Name,
     int Age,
     float Health,
@@ -85,7 +85,7 @@ public sealed record PlayerLifeStatus(
     bool Observer,
     int NutritionBalance,
     int ConsecutivePoorDays,
-    ulong? PartnerSimId,
+    ulong? PartnerGenosId,
     string? PartnerName,
     int Children,
     PlayerEmploymentStatus Employment,
@@ -108,7 +108,7 @@ public sealed record PlayerRespawnStatus(
     bool Success,
     string? Code,
     string? Message,
-    ulong SimNetworkId,
-    ulong ParentSimNetworkId,
+    ulong GenosNetworkId,
+    ulong ParentGenosNetworkId,
     string? Name,
     int Age);

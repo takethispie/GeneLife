@@ -7,7 +7,7 @@ using Genelife.Enums;
 namespace Genelife.Systems;
 
 /// <summary>
-/// Picks a critical-need action for idle sims. Per-entity only: it writes
+/// Picks a critical-need action for idle genoses. Per-entity only: it writes
 /// <see cref="CurrentAction"/> and reads <see cref="Needs"/>, work schedule and
 /// lifecycle, so it can run across Arch chunks in parallel. Small worlds keep
 /// the serial query.

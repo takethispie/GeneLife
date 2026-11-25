@@ -1,6 +1,6 @@
 /**
  * Minimal display-object pool. Objects are hidden rather than destroyed so
- * panning does not allocate a new sprite per tile or sim.
+ * panning does not allocate a new sprite per tile or genos.
  */
 export class DisplayPool<T extends { visible: boolean; destroy(options?: unknown): void }> {
   private readonly items: T[] = [];

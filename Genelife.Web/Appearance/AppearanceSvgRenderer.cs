@@ -49,9 +49,9 @@ public static class AppearanceSvgRenderer
         ["outfit-fallback"] = "#8a8f96"
     };
 
-    public static string Render(AppearanceSimStatus sim, int width = 120, int height = 160)
+    public static string Render(AppearanceGenosStatus genos, int width = 120, int height = 160)
     {
-        var layers = sim.Layers;
+        var layers = genos.Layers;
         var skin = Resolve(SkinColors, layers.SkinPalette, SkinColors["skin-neutral"]);
         var hairColor = HairColorFor(layers.HairPart);
         var eye = Resolve(EyeColors, layers.EyePart, EyeColors["brown"]);
@@ -62,10 +62,10 @@ public static class AppearanceSvgRenderer
 
         var sb = new StringBuilder(2048);
         sb.Append(CultureInfo.InvariantCulture,
-            $"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 {width} {height}\" width=\"{width}\" height=\"{height}\" role=\"img\" aria-label=\"Portrait of {Escape(sim.Name)}\">");
+            $"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 {width} {height}\" width=\"{width}\" height=\"{height}\" role=\"img\" aria-label=\"Portrait of {Escape(genos.Name)}\">");
         sb.Append("<rect width=\"120\" height=\"160\" fill=\"#0b1520\"/>");
 
-        if (sim.IsPlayerControlled)
+        if (genos.IsPlayerControlled)
             sb.Append("<circle cx=\"60\" cy=\"82\" r=\"54\" fill=\"none\" stroke=\"#67e8f9\" stroke-width=\"3\" stroke-dasharray=\"6 4\"/>");
 
         sb.Append(CultureInfo.InvariantCulture,
@@ -97,7 +97,7 @@ public static class AppearanceSvgRenderer
 
         sb.Append("</g>");
 
-        if (sim.IsPlayerControlled)
+        if (genos.IsPlayerControlled)
             sb.Append("<rect x=\"6\" y=\"6\" width=\"12\" height=\"12\" fill=\"#67e8f9\" transform=\"rotate(45 12 12)\"/>");
 
         sb.Append("</svg>");

@@ -6,12 +6,12 @@ namespace Genelife.UnitTests.Appearance;
 public class AppearancePayloadTests
 {
     [Fact]
-    public void TwoThousandSimStatusesWithAppearanceStayWithinPayloadBudget()
+    public void TwoThousandGenosStatusesWithAppearanceStayWithinPayloadBudget()
     {
-        var sims = Enumerable.Range(1, 2_000).Select(index => new SimStatus
+        var genoses = Enumerable.Range(1, 2_000).Select(index => new GenosStatus
         {
             NetworkId = (ulong)index,
-            Name = $"Sim {index}",
+            Name = $"Genos {index}",
             Age = 20 + index % 50,
             X = index % 100,
             Y = index / 100,
@@ -33,12 +33,12 @@ public class AppearancePayloadTests
             }
         }).ToList();
 
-        var full = JsonSerializer.SerializeToUtf8Bytes(sims);
-        var oneSimDelta = JsonSerializer.SerializeToUtf8Bytes(new[] { sims[0] });
+        var full = JsonSerializer.SerializeToUtf8Bytes(genoses);
+        var oneGenosDelta = JsonSerializer.SerializeToUtf8Bytes(new[] { genoses[0] });
 
         Assert.True(full.Length < 2_000_000, $"full={full.Length} bytes");
-        Assert.True(oneSimDelta.Length * 100 < full.Length,
-            $"delta={oneSimDelta.Length} full={full.Length}");
-        Assert.True(JsonSerializer.SerializeToUtf8Bytes(sims[0].Appearance).Length < 240);
+        Assert.True(oneGenosDelta.Length * 100 < full.Length,
+            $"delta={oneGenosDelta.Length} full={full.Length}");
+        Assert.True(JsonSerializer.SerializeToUtf8Bytes(genoses[0].Appearance).Length < 240);
     }
 }

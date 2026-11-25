@@ -4,13 +4,13 @@ using Microsoft.AspNetCore.Http;
 
 namespace Genelife.Api.Handlers;
 
-public static class DeleteSimHandler
+public static class DeleteGenosHandler
 {
-    public static IResult Handle(DeleteSim command, SimulationManager simulationManager)
+    public static IResult Handle(DeleteGenos command, SimulationManager simulationManager)
     {
         try
         {
-            simulationManager.DeleteSim(command.NetworkId);
+            simulationManager.DeleteGenos(command.NetworkId);
             return Results.Accepted();
         }
         catch (InvalidOperationException ex)

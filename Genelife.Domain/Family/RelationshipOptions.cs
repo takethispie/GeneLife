@@ -12,7 +12,7 @@ public sealed class RelationshipOptions
     public bool AllowSameSexPairing { get; set; }
     public decimal SeedPartnershipShare { get; set; } = 0.60m;
     public int PairingThreshold { get; set; } = 5_500;
-    public int MaxCandidatesPerSim { get; set; } = 24;
+    public int MaxCandidatesPerGenos { get; set; } = 24;
     public int RejectionCooldownMonths { get; set; } = 6;
     public int NeighbourRadiusTiles { get; set; } = 8;
     public decimal PairingAcceptanceChance { get; set; } = 0.75m;
@@ -34,8 +34,8 @@ public sealed class RelationshipOptions
             throw new ArgumentOutOfRangeException(nameof(SeedPartnershipShare), "SeedPartnershipShare must be between 0 and 1.");
         if (PairingThreshold < 0 || PairingThreshold > 10_000)
             throw new ArgumentOutOfRangeException(nameof(PairingThreshold), "PairingThreshold must be within 0..10000.");
-        if (MaxCandidatesPerSim < 1)
-            throw new ArgumentOutOfRangeException(nameof(MaxCandidatesPerSim), "MaxCandidatesPerSim must be positive.");
+        if (MaxCandidatesPerGenos < 1)
+            throw new ArgumentOutOfRangeException(nameof(MaxCandidatesPerGenos), "MaxCandidatesPerGenos must be positive.");
         if (RejectionCooldownMonths < 0)
             throw new ArgumentOutOfRangeException(nameof(RejectionCooldownMonths), "RejectionCooldownMonths must be non-negative.");
         if (NeighbourRadiusTiles < 0)

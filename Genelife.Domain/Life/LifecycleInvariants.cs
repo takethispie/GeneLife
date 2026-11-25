@@ -23,25 +23,25 @@ public static class LifecycleInvariants
             {
                 if (!world.Has<Lifecycle>(entity))
                 {
-                    issues.Add($"Sim {NetworkIdOf(world, entity)} is living without a Lifecycle.");
+                    issues.Add($"Genos {NetworkIdOf(world, entity)} is living without a Lifecycle.");
                     return;
                 }
 
                 var lifecycle = world.Get<Lifecycle>(entity);
                 if (lifecycle.Stage != policy.StageFor(alive.Age))
-                    issues.Add($"Sim {NetworkIdOf(world, entity)} is {lifecycle.Stage} at age {alive.Age}.");
+                    issues.Add($"Genos {NetworkIdOf(world, entity)} is {lifecycle.Stage} at age {alive.Age}.");
 
                 if (lifecycle.Stage != LifeStage.Education && world.Has<Enrollment>(entity))
-                    issues.Add($"Sim {NetworkIdOf(world, entity)} has an Enrollment outside Education.");
+                    issues.Add($"Genos {NetworkIdOf(world, entity)} has an Enrollment outside Education.");
 
                 if (lifecycle.Stage != LifeStage.Work)
                 {
                     if (world.Has<Employee>(entity))
-                        issues.Add($"Sim {NetworkIdOf(world, entity)} is employed outside Work.");
+                        issues.Add($"Genos {NetworkIdOf(world, entity)} is employed outside Work.");
                     if (world.Has<JobSeeker>(entity))
-                        issues.Add($"Sim {NetworkIdOf(world, entity)} is job seeking outside Work.");
+                        issues.Add($"Genos {NetworkIdOf(world, entity)} is job seeking outside Work.");
                     if (world.Has<WorkSchedule>(entity))
-                        issues.Add($"Sim {NetworkIdOf(world, entity)} has a schedule outside Work.");
+                        issues.Add($"Genos {NetworkIdOf(world, entity)} has a schedule outside Work.");
                 }
 
                 if (lifecycle.Stage == LifeStage.Education && world.Has<Employee>(entity))

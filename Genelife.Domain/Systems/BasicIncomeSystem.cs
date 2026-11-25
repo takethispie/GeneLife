@@ -17,7 +17,7 @@ public class BasicIncomeSystem : ISimulationSystem
 {
     private readonly World world;
     private readonly EconomyContext economy;
-    private readonly QueryDescription simQuery;
+    private readonly QueryDescription genosQuery;
     private readonly int interval;
 
     public BasicIncomeSystem(World world, EconomyContext economy, int? interval = null)
@@ -25,7 +25,7 @@ public class BasicIncomeSystem : ISimulationSystem
         this.world = world;
         this.economy = economy;
         this.interval = interval ?? economy.Options.BasicIncomeIntervalTicks;
-        simQuery = new QueryDescription().WithAll<GenName>().WithNone<Components.Gen.Dead>();
+        genosQuery = new QueryDescription().WithAll<GenName>().WithNone<Components.Gen.Dead>();
     }
 
     public string Name => "BasicIncome";
@@ -41,7 +41,7 @@ public class BasicIncomeSystem : ISimulationSystem
             return;
 
         var recipients = new List<Entity>();
-        world.Query(in simQuery, (Entity entity, ref GenName _) => recipients.Add(entity));
+        world.Query(in genosQuery, (Entity entity, ref GenName _) => recipients.Add(entity));
 
         var totalPaid = Money.Zero;
         foreach (var entity in recipients)

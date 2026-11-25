@@ -3,8 +3,8 @@ using Arch.Core;
 namespace Genelife.Components.Housing;
 
 /// <summary>
-/// Derived sim to home cache, maintained by the housing registry in apply
-/// phases. Sims without a residence are homeless.
+/// Derived genos to home cache, maintained by the housing registry in apply
+/// phases. Genoses without a residence are homeless.
 /// </summary>
 public record struct Residence
 {

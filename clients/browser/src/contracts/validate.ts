@@ -8,7 +8,7 @@ import type {
   MapSnapshot,
   MapTileRun,
   PlayerLifecycleNotice,
-  SimStatus,
+  GenosStatus,
   WelcomeMessage,
   WorldResetMessage,
   WorldSnapshot,
@@ -185,7 +185,7 @@ export function validateMapSnapshot(value: unknown, path = "mapSnapshot"): MapSn
   return snapshot;
 }
 
-export function validateSim(value: unknown, path = "sim"): SimStatus {
+export function validateGenos(value: unknown, path = "genos"): GenosStatus {
   const record = asRecord(value, path);
   return {
     networkId: requireInteger(record, "networkId", path),
@@ -266,8 +266,8 @@ export function validateWorldSnapshot(value: unknown, path = "worldSnapshot"): W
   return {
     tick: requireInteger(record, "tick", path),
     version: requireInteger(record, "version", path),
-    sims: requireArray(record, "sims", path).map((sim, index) =>
-      validateSim(sim, `${path}.sims[${index}]`)
+    genoses: requireArray(record, "genoses", path).map((genos, index) =>
+      validateGenos(genos, `${path}.genoses[${index}]`)
     ),
     companies: requireArray(record, "companies", path).map((company, index) =>
       validateCompany(company, `${path}.companies[${index}]`)
@@ -285,15 +285,15 @@ export function validateWorldSnapshotDelta(
     sinceTick: requireInteger(record, "sinceTick", path),
     version: requireInteger(record, "version", path),
     full: requireBoolean(record, "full", path),
-    sims: requireArray(record, "sims", path).map((sim, index) =>
-      validateSim(sim, `${path}.sims[${index}]`)
+    genoses: requireArray(record, "genoses", path).map((genos, index) =>
+      validateGenos(genos, `${path}.genoses[${index}]`)
     ),
     companies: optionalArray(record, "companies", path).map((company, index) =>
       validateCompany(company, `${path}.companies[${index}]`)
     ),
-    removedSims: optionalArray(record, "removedSims", path).map((id, index) => {
+    removedGenoses: optionalArray(record, "removedGenoses", path).map((id, index) => {
       if (typeof id !== "number" || !Number.isFinite(id)) {
-        throw new ContractError("expected numeric ids", `${path}.removedSims[${index}]`);
+        throw new ContractError("expected numeric ids", `${path}.removedGenoses[${index}]`);
       }
       return id;
     }),
@@ -348,7 +348,7 @@ export function validateWelcome(value: unknown, path = "welcome"): WelcomeMessag
   const record = asRecord(value, path);
   const welcome: WelcomeMessage = {
     playerId: requireString(record, "playerId", path),
-    simNetworkId: requireInteger(record, "simNetworkId", path),
+    genosNetworkId: requireInteger(record, "genosNetworkId", path),
     mapId: requireString(record, "mapId", path),
     mapVersion: requireInteger(record, "mapVersion", path),
     tick: requireInteger(record, "tick", path),
@@ -356,8 +356,8 @@ export function validateWelcome(value: unknown, path = "welcome"): WelcomeMessag
     snapshotVersion: requireInteger(record, "snapshotVersion", path),
     protocolVersion: requireInteger(record, "protocolVersion", path),
     awaitingRespawn: optionalBoolean(record, "awaitingRespawn", path),
-    lastSimName: optionalString(record, "lastSimName", path) || null,
-    lastSimAge: optionalNumber(record, "lastSimAge", path)
+    lastGenosName: optionalString(record, "lastGenosName", path) || null,
+    lastGenosAge: optionalNumber(record, "lastGenosAge", path)
   };
 
   if (welcome.protocolVersion < 1) {
@@ -383,8 +383,8 @@ export function validatePlayerLifecycleNotice(
   return {
     playerId: requireString(record, "playerId", path),
     kind,
-    simNetworkId: requireInteger(record, "simNetworkId", path),
-    previousSimNetworkId: optionalNumber(record, "previousSimNetworkId", path),
+    genosNetworkId: requireInteger(record, "genosNetworkId", path),
+    previousGenosNetworkId: optionalNumber(record, "previousGenosNetworkId", path),
     name: optionalString(record, "name", path) || null,
     age: optionalNumber(record, "age", path),
     cause: optionalString(record, "cause", path) || null,
@@ -418,7 +418,7 @@ export function parseIntent(value: unknown, path = "intent"): Intent {
       type,
       playerId,
       sequence,
-      simNetworkId: optionalNumber(record, "simNetworkId", path),
+      genosNetworkId: optionalNumber(record, "genosNetworkId", path),
       targetTileX: requireInteger(record, "targetTileX", path),
       targetTileY: requireInteger(record, "targetTileY", path)
     };
@@ -429,7 +429,7 @@ export function parseIntent(value: unknown, path = "intent"): Intent {
       type,
       playerId,
       sequence,
-      simNetworkId: optionalNumber(record, "simNetworkId", path),
+      genosNetworkId: optionalNumber(record, "genosNetworkId", path),
       buildingNetworkId: requireInteger(record, "buildingNetworkId", path)
     };
   }

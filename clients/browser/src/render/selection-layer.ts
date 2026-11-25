@@ -7,7 +7,7 @@ export interface TilePoint {
   y: number;
 }
 
-/** Hover, target and building highlights. Always above sims. */
+/** Hover, target and building highlights. Always above genoses. */
 export class SelectionLayer {
   private readonly hover = new Graphics();
   private readonly target = new Graphics();

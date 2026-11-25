@@ -11,7 +11,7 @@ public enum PregnancyError
 {
     None,
     SelfParent,
-    MissingSim,
+    MissingGenos,
     NotAdult,
     Dependent,
     ActivePregnancy,
@@ -62,7 +62,7 @@ public sealed class PregnancyService
         if (!world.IsAlive(carryingParent) || !world.IsAlive(otherParent) ||
             world.Has<Dead>(carryingParent) || world.Has<Dead>(otherParent))
         {
-            error = PregnancyError.MissingSim;
+            error = PregnancyError.MissingGenos;
             return false;
         }
 
@@ -203,7 +203,7 @@ public sealed class PregnancyService
         return true;
     }
 
-    public static bool IsDependent(World world, Entity sim) =>
-        world.Has<DependentChild>(sim) ||
-        (world.Has<HouseholdMember>(sim) && world.Get<HouseholdMember>(sim).Role == HouseholdRole.Child);
+    public static bool IsDependent(World world, Entity genos) =>
+        world.Has<DependentChild>(genos) ||
+        (world.Has<HouseholdMember>(genos) && world.Get<HouseholdMember>(genos).Role == HouseholdRole.Child);
 }

@@ -13,14 +13,14 @@ using Genelife.Map;
 
 namespace Genelife.Api.Repositories;
 
-public class SimRepository
+public class GenosRepository
 {
     private readonly World world;
     private readonly NetworkIdRegistry networkIds;
     private readonly EconomyContext? economy;
     private readonly MapContext? map;
 
-    public SimRepository(World world, NetworkIdRegistry networkIds, EconomyContext? economy = null, MapContext? map = null)
+    public GenosRepository(World world, NetworkIdRegistry networkIds, EconomyContext? economy = null, MapContext? map = null)
     {
         this.world = world;
         this.networkIds = networkIds;
@@ -45,7 +45,7 @@ public class SimRepository
         world.Add(entity, networkId);
         AddTraits(entity, networkId, TraitSource.Admin);
         if (map is not null)
-            MapSpawner.PlaceSim(world, entity, map, networkId.Value);
+            MapSpawner.PlaceGenos(world, entity, map, networkId.Value);
         economy?.Life.Index.OnBorn((economy?.Life.Policy ?? LifeStagePolicy.Default).StageFor(age));
         return networkId;
     }
@@ -68,7 +68,7 @@ public class SimRepository
         world.Add(entity, networkId);
         AddTraits(entity, networkId, TraitSource.Player);
         if (map is not null)
-            MapSpawner.PlaceSim(world, entity, map, networkId.Value);
+            MapSpawner.PlaceGenos(world, entity, map, networkId.Value);
         economy?.Life.Index.OnBorn((economy?.Life.Policy ?? LifeStagePolicy.Default).StageFor(age));
         return networkId;
     }
@@ -109,10 +109,10 @@ public class SimRepository
     public bool SetAction(ulong networkId, string actionType)
     {
         if (!networkIds.TryGetEntity(new NetworkId(networkId), out var entity))
-            throw new InvalidOperationException($"Sim with NetworkId {networkId} not found");
+            throw new InvalidOperationException($"Genos with NetworkId {networkId} not found");
 
         if (!world.IsAlive(entity))
-            throw new InvalidOperationException($"Sim with NetworkId {networkId} is no longer alive");
+            throw new InvalidOperationException($"Genos with NetworkId {networkId} is no longer alive");
 
         if (!Enum.TryParse<ActionType>(actionType, ignoreCase: true, out var action))
             throw new InvalidOperationException($"Unknown action type: {actionType}");
@@ -130,15 +130,15 @@ public class SimRepository
         return true;
     }
 
-    public List<SimStatus> GetAll()
+    public List<GenosStatus> GetAll()
     {
-        var sims = new List<SimStatus>();
+        var genoses = new List<GenosStatus>();
         var query = new QueryDescription().WithAll<GenName, Needs, CurrentAction, NetworkId>();
 
         world.Query(in query, (Entity entity, ref GenName name, ref Needs needs, ref CurrentAction action, ref NetworkId networkId) =>
         {
             var isPlayerControlled = world.Has<PlayerControlled>(entity);
-            sims.Add(new SimStatus
+            genoses.Add(new GenosStatus
             {
                 NetworkId = networkId.Value,
                 Name = name.Name,
@@ -163,7 +163,7 @@ public class SimRepository
             });
         });
 
-        return sims;
+        return genoses;
     }
 
     private static string TopSkill(SkillProfile profile)

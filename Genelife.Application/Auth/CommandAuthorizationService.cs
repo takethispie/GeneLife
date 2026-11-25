@@ -15,7 +15,7 @@ public sealed class CommandAuthorizationService
         this.logger = logger;
     }
 
-    public AuthorizationResult Authorize(string playerId, SimCommand command, bool isAdmin = false)
+    public AuthorizationResult Authorize(string playerId, GenosCommand command, bool isAdmin = false)
     {
         if (isAdmin)
         {

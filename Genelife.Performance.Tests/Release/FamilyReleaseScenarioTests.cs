@@ -15,10 +15,10 @@ public class FamilyReleaseScenarioTests
     private const double P95TickBudgetMilliseconds = 100;
 
     [Fact]
-    public void TwoThousandSimsForTenYears()
+    public void TwoThousandGenosesForTenYears()
     {
         var elapsed = Stopwatch.StartNew();
-        using var engine = Build(sims: 2_000, seed: Seed);
+        using var engine = Build(genoses: 2_000, seed: Seed);
 
         var progress = new List<object>();
         var status = engine.BuildFamilyStatus();
@@ -38,18 +38,18 @@ public class FamilyReleaseScenarioTests
                 candidateP95 = status.Performance.CandidateP95,
                 candidateMax = status.Performance.CandidateMax,
                 candidateCap = status.Performance.CandidateCap,
-                candidateSims = status.Performance.CandidateSims,
+                candidateGenoses = status.Performance.CandidateGenoses,
                 birthsThisYear = yearLatest?.BirthsThisYear ?? 0,
                 deathsThisYear = yearLatest?.DeathsThisYear ?? 0,
                 orphans = status.Orphans,
                 stateCareChildren = status.StateCareChildren,
                 moneySupplyCents = engine.Economy.TotalMoneySupply().Cents
             });
-            WriteReport("two-thousand-sims-10-years-progress", new
+            WriteReport("two-thousand-genoses-10-years-progress", new
             {
-                scenario = nameof(TwoThousandSimsForTenYears),
+                scenario = nameof(TwoThousandGenosesForTenYears),
                 seed = Seed,
-                sims = 2_000,
+                genoses = 2_000,
                 completedYears = year,
                 years = progress
             });
@@ -69,11 +69,11 @@ public class FamilyReleaseScenarioTests
 
         elapsed.Stop();
         var latest = history.Count > 0 ? history[^1] : null;
-        WriteReport("two-thousand-sims-10-years", new
+        WriteReport("two-thousand-genoses-10-years", new
         {
-            scenario = nameof(TwoThousandSimsForTenYears),
+            scenario = nameof(TwoThousandGenosesForTenYears),
             seed = Seed,
-            sims = 2_000,
+            genoses = 2_000,
             years = 10,
             elapsedMilliseconds = elapsed.Elapsed.TotalMilliseconds,
             population = status.Population,
@@ -83,7 +83,7 @@ public class FamilyReleaseScenarioTests
             candidateP95 = status.Performance.CandidateP95,
             candidateMax = status.Performance.CandidateMax,
             candidateCap = status.Performance.CandidateCap,
-            candidateSims = status.Performance.CandidateSims,
+            candidateGenoses = status.Performance.CandidateGenoses,
             birthsThisYear = latest?.BirthsThisYear ?? 0,
             deathsThisYear = latest?.DeathsThisYear ?? 0,
             birthsRecorded = history.Sum(snapshot => snapshot.BirthsThisYear),
@@ -113,7 +113,7 @@ public class FamilyReleaseScenarioTests
             $"candidate average {status.Performance.CandidateAverage} exceeds cap {status.Performance.CandidateCap}");
         Assert.True(supply.IsPositive, $"money supply is not positive: {supply.Cents} cents");
         Assert.True(metrics.P95TickMilliseconds <= P95TickBudgetMilliseconds,
-            $"tick p95 {metrics.P95TickMilliseconds:F2}ms exceeds generous budget {P95TickBudgetMilliseconds:F0}ms at 2,000 sims");
+            $"tick p95 {metrics.P95TickMilliseconds:F2}ms exceeds generous budget {P95TickBudgetMilliseconds:F0}ms at 2,000 genoses");
         Assert.Null(restoreError);
         Assert.InRange(restoredPopulation, capturedPopulation / 2, capturedPopulation * 2);
     }
@@ -122,7 +122,7 @@ public class FamilyReleaseScenarioTests
     public void ThirtyYearContinuity()
     {
         var elapsed = Stopwatch.StartNew();
-        using var engine = Build(sims: 200, seed: Seed);
+        using var engine = Build(genoses: 200, seed: Seed);
         Run(engine, years: 30);
 
         var status = engine.BuildFamilyStatus();
@@ -140,7 +140,7 @@ public class FamilyReleaseScenarioTests
         {
             scenario = nameof(ThirtyYearContinuity),
             seed = Seed,
-            sims = 200,
+            genoses = 200,
             years = 30,
             elapsedMilliseconds = elapsed.Elapsed.TotalMilliseconds,
             population = status.Population,
@@ -172,7 +172,7 @@ public class FamilyReleaseScenarioTests
         Assert.True(deaths > 0, "no deaths were recorded across the 30-year metric history");
     }
 
-    private static SimulationEngine Build(int sims, int seed)
+    private static SimulationEngine Build(int genoses, int seed)
     {
         var engine = new SimulationEngine();
         engine.Initialize();
@@ -184,7 +184,7 @@ public class FamilyReleaseScenarioTests
                 relationshipIndex: engine.Relationships,
                 relationshipService: engine.RelationshipService!,
                 relationshipOptions: engine.RelationshipOptions);
-            generator.Generate(sims, seed: seed);
+            generator.Generate(genoses, seed: seed);
             return 0;
         });
         return engine;

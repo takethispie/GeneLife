@@ -4,7 +4,7 @@ using Genelife.Enums;
 
 namespace Genelife.UnitTests.Performance;
 
-public static class SimFixture
+public static class GenosFixture
 {
     public static void PopulateSynthetic(World world, int count, int seed = 42)
     {
@@ -14,7 +14,7 @@ public static class SimFixture
         for (int i = 0; i < count; i++)
         {
             world.Create(
-                new GenName($"Sim_{i}"),
+                new GenName($"Genos_{i}"),
                 CreateNeeds(rng, needsValues),
                 new CurrentAction(ActionType.Idle, 0f),
                 new Alive(rng.Next(18, 80))
@@ -36,7 +36,7 @@ public static class SimFixture
         {
             var actionIdx = rng.Next(actions.Length);
             world.Create(
-                new GenName($"Sim_{i}"),
+                new GenName($"Genos_{i}"),
                 CreateRealisticNeeds(rng, count),
                 new CurrentAction(actions[actionIdx], durations[actionIdx]),
                 new Alive(rng.Next(18, 80))

@@ -18,12 +18,12 @@ public sealed class RelationshipIndex
         NetworkIdResolver = entity => 0;
     }
 
-    public Dictionary<Entity, List<Entity>> PartnersBySim { get; } = new();
-    public Dictionary<Entity, List<Entity>> ParentsBySim { get; } = new();
-    public Dictionary<Entity, List<Entity>> ChildrenBySim { get; } = new();
-    public Dictionary<Entity, List<Entity>> GuardiansBySim { get; } = new();
-    public Dictionary<Entity, List<Entity>> WardsBySim { get; } = new();
-    public Dictionary<Entity, List<Entity>> ExPartnersBySim { get; } = new();
+    public Dictionary<Entity, List<Entity>> PartnersByGenos { get; } = new();
+    public Dictionary<Entity, List<Entity>> ParentsByGenos { get; } = new();
+    public Dictionary<Entity, List<Entity>> ChildrenByGenos { get; } = new();
+    public Dictionary<Entity, List<Entity>> GuardiansByGenos { get; } = new();
+    public Dictionary<Entity, List<Entity>> WardsByGenos { get; } = new();
+    public Dictionary<Entity, List<Entity>> ExPartnersByGenos { get; } = new();
 
     /// <summary>Stable ordering source for all lists. Set by the engine on restore.</summary>
     public Func<Entity, ulong> NetworkIdResolver { get; set; }
@@ -34,12 +34,12 @@ public sealed class RelationshipIndex
 
     public void Clear()
     {
-        PartnersBySim.Clear();
-        ParentsBySim.Clear();
-        ChildrenBySim.Clear();
-        GuardiansBySim.Clear();
-        WardsBySim.Clear();
-        ExPartnersBySim.Clear();
+        PartnersByGenos.Clear();
+        ParentsByGenos.Clear();
+        ChildrenByGenos.Clear();
+        GuardiansByGenos.Clear();
+        WardsByGenos.Clear();
+        ExPartnersByGenos.Clear();
         edgeByKey.Clear();
         edgeEntities.Clear();
     }
@@ -81,26 +81,26 @@ public sealed class RelationshipIndex
         switch (relationship.Kind)
         {
             case RelationshipKind.Partner:
-                AddSorted(PartnersBySim, relationship.From, relationship.To);
+                AddSorted(PartnersByGenos, relationship.From, relationship.To);
                 break;
             case RelationshipKind.ExPartner:
-                AddSorted(ExPartnersBySim, relationship.From, relationship.To);
+                AddSorted(ExPartnersByGenos, relationship.From, relationship.To);
                 break;
             case RelationshipKind.Parent:
-                AddSorted(ChildrenBySim, relationship.From, relationship.To);
-                AddSorted(ParentsBySim, relationship.To, relationship.From);
+                AddSorted(ChildrenByGenos, relationship.From, relationship.To);
+                AddSorted(ParentsByGenos, relationship.To, relationship.From);
                 break;
             case RelationshipKind.Child:
-                AddSorted(ParentsBySim, relationship.From, relationship.To);
-                AddSorted(ChildrenBySim, relationship.To, relationship.From);
+                AddSorted(ParentsByGenos, relationship.From, relationship.To);
+                AddSorted(ChildrenByGenos, relationship.To, relationship.From);
                 break;
             case RelationshipKind.Guardian:
-                AddSorted(WardsBySim, relationship.From, relationship.To);
-                AddSorted(GuardiansBySim, relationship.To, relationship.From);
+                AddSorted(WardsByGenos, relationship.From, relationship.To);
+                AddSorted(GuardiansByGenos, relationship.To, relationship.From);
                 break;
             case RelationshipKind.Ward:
-                AddSorted(GuardiansBySim, relationship.From, relationship.To);
-                AddSorted(WardsBySim, relationship.To, relationship.From);
+                AddSorted(GuardiansByGenos, relationship.From, relationship.To);
+                AddSorted(WardsByGenos, relationship.To, relationship.From);
                 break;
         }
     }
@@ -113,26 +113,26 @@ public sealed class RelationshipIndex
         switch (relationship.Kind)
         {
             case RelationshipKind.Partner:
-                Remove(PartnersBySim, relationship.From, relationship.To);
+                Remove(PartnersByGenos, relationship.From, relationship.To);
                 break;
             case RelationshipKind.ExPartner:
-                Remove(ExPartnersBySim, relationship.From, relationship.To);
+                Remove(ExPartnersByGenos, relationship.From, relationship.To);
                 break;
             case RelationshipKind.Parent:
-                Remove(ChildrenBySim, relationship.From, relationship.To);
-                Remove(ParentsBySim, relationship.To, relationship.From);
+                Remove(ChildrenByGenos, relationship.From, relationship.To);
+                Remove(ParentsByGenos, relationship.To, relationship.From);
                 break;
             case RelationshipKind.Child:
-                Remove(ParentsBySim, relationship.From, relationship.To);
-                Remove(ChildrenBySim, relationship.To, relationship.From);
+                Remove(ParentsByGenos, relationship.From, relationship.To);
+                Remove(ChildrenByGenos, relationship.To, relationship.From);
                 break;
             case RelationshipKind.Guardian:
-                Remove(WardsBySim, relationship.From, relationship.To);
-                Remove(GuardiansBySim, relationship.To, relationship.From);
+                Remove(WardsByGenos, relationship.From, relationship.To);
+                Remove(GuardiansByGenos, relationship.To, relationship.From);
                 break;
             case RelationshipKind.Ward:
-                Remove(GuardiansBySim, relationship.From, relationship.To);
-                Remove(WardsBySim, relationship.To, relationship.From);
+                Remove(GuardiansByGenos, relationship.From, relationship.To);
+                Remove(WardsByGenos, relationship.To, relationship.From);
                 break;
         }
     }
@@ -140,14 +140,14 @@ public sealed class RelationshipIndex
     public bool TryGetEdge(Entity from, Entity to, RelationshipKind kind, out Entity edge) =>
         edgeByKey.TryGetValue((from, to, kind), out edge);
 
-    public IReadOnlyList<Entity> PartnersOf(Entity sim) => Get(PartnersBySim, sim);
-    public IReadOnlyList<Entity> ParentsOf(Entity sim) => Get(ParentsBySim, sim);
-    public IReadOnlyList<Entity> ChildrenOf(Entity sim) => Get(ChildrenBySim, sim);
-    public IReadOnlyList<Entity> GuardiansOf(Entity sim) => Get(GuardiansBySim, sim);
-    public IReadOnlyList<Entity> WardsOf(Entity sim) => Get(WardsBySim, sim);
-    public IReadOnlyList<Entity> ExPartnersOf(Entity sim) => Get(ExPartnersBySim, sim);
+    public IReadOnlyList<Entity> PartnersOf(Entity genos) => Get(PartnersByGenos, genos);
+    public IReadOnlyList<Entity> ParentsOf(Entity genos) => Get(ParentsByGenos, genos);
+    public IReadOnlyList<Entity> ChildrenOf(Entity genos) => Get(ChildrenByGenos, genos);
+    public IReadOnlyList<Entity> GuardiansOf(Entity genos) => Get(GuardiansByGenos, genos);
+    public IReadOnlyList<Entity> WardsOf(Entity genos) => Get(WardsByGenos, genos);
+    public IReadOnlyList<Entity> ExPartnersOf(Entity genos) => Get(ExPartnersByGenos, genos);
 
-    public bool HasPartner(Entity sim) => PartnersOf(sim).Count > 0;
+    public bool HasPartner(Entity genos) => PartnersOf(genos).Count > 0;
 
     public bool IsParentOf(Entity parent, Entity child) =>
         ChildrenOf(parent).Contains(child);
@@ -168,13 +168,13 @@ public sealed class RelationshipIndex
         return false;
     }
 
-    public HashSet<Entity> AncestorsOf(Entity sim, int maxDepth)
+    public HashSet<Entity> AncestorsOf(Entity genos, int maxDepth)
     {
         var result = new HashSet<Entity>();
         if (maxDepth <= 0)
             return result;
 
-        var frontier = new List<Entity> { sim };
+        var frontier = new List<Entity> { genos };
         for (var depth = 0; depth < maxDepth && frontier.Count > 0; depth++)
         {
             var next = new List<Entity>();
@@ -182,7 +182,7 @@ public sealed class RelationshipIndex
             {
                 foreach (var parent in ParentsOf(current))
                 {
-                    if (parent == sim || !result.Add(parent))
+                    if (parent == genos || !result.Add(parent))
                         continue;
                     next.Add(parent);
                 }
@@ -239,8 +239,8 @@ public sealed class RelationshipIndex
         return false;
     }
 
-    private static IReadOnlyList<Entity> Get(Dictionary<Entity, List<Entity>> map, Entity sim) =>
-        map.TryGetValue(sim, out var list) ? list : Array.Empty<Entity>();
+    private static IReadOnlyList<Entity> Get(Dictionary<Entity, List<Entity>> map, Entity genos) =>
+        map.TryGetValue(genos, out var list) ? list : Array.Empty<Entity>();
 
     private void AddSorted(Dictionary<Entity, List<Entity>> map, Entity from, Entity to)
     {

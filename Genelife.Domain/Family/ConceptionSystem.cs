@@ -51,33 +51,33 @@ public sealed class ConceptionSystem : ISimulationSystem
     {
         options.Validate();
 
-        var sims = new List<Entity>();
+        var genoses = new List<Entity>();
         world.Query(in new QueryDescription().WithAll<Alive, Traits, NetworkId>().WithNone<Dead>(),
-            (Entity entity, ref Alive _, ref Traits _, ref NetworkId _) => sims.Add(entity));
-        sims.Sort((a, b) =>
+            (Entity entity, ref Alive _, ref Traits _, ref NetworkId _) => genoses.Add(entity));
+        genoses.Sort((a, b) =>
         {
             var byNetworkId = NetworkIdOf(a).CompareTo(NetworkIdOf(b));
             return byNetworkId != 0 ? byNetworkId : a.Id.CompareTo(b.Id);
         });
 
         var seenPairs = new HashSet<(ulong First, ulong Second)>();
-        foreach (var sim in sims)
+        foreach (var genos in genoses)
         {
-            foreach (var partner in relationships.PartnersOf(sim))
+            foreach (var partner in relationships.PartnersOf(genos))
             {
                 if (!world.IsAlive(partner) || world.Has<Dead>(partner))
                     continue;
 
-                var firstId = NetworkIdOf(sim);
+                var firstId = NetworkIdOf(genos);
                 var secondId = NetworkIdOf(partner);
                 var key = firstId <= secondId ? (firstId, secondId) : (secondId, firstId);
                 if (!seenPairs.Add(key))
                     continue;
 
-                var carrying = ChooseCarryingParent(sim, partner);
+                var carrying = ChooseCarryingParent(genos, partner);
                 if (carrying == Entity.Null)
                     continue;
-                var other = carrying == sim ? partner : sim;
+                var other = carrying == genos ? partner : genos;
 
                 if (!Eligible(carrying, other, tick))
                     continue;

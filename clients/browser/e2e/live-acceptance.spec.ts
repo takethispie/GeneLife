@@ -39,10 +39,10 @@ test.describe("live stack acceptance", () => {
 
     await expect(hudField(page, "connection")).toHaveText("Connected", { timeout: 20_000 });
     await expect(hudField(page, "player")).toHaveText(playerId);
-    await expect(hudField(page, "sim")).not.toHaveText("—");
+    await expect(hudField(page, "genos")).not.toHaveText("—");
     await expect(hudField(page, "map")).toHaveText("world");
 
-    const simId = await hudField(page, "sim").textContent();
+    const genosId = await hudField(page, "genos").textContent();
     await expect
       .poll(async () => Number(await hudField(page, "tick").textContent()), { timeout: 15_000 })
       .toBeGreaterThan(0);
@@ -55,25 +55,25 @@ test.describe("live stack acceptance", () => {
     await page.reload();
     await expect(page.locator("#loading")).toBeHidden({ timeout: 20_000 });
     await expect(hudField(page, "connection")).toHaveText("Connected", { timeout: 20_000 });
-    await expect(hudField(page, "sim")).toHaveText(simId ?? "");
+    await expect(hudField(page, "genos")).toHaveText(genosId ?? "");
   });
 
-  test("two tabs own different sims in the same world", async ({ page, context }) => {
+  test("two tabs own different genoses in the same world", async ({ page, context }) => {
     const first = `e2e-a-${Date.now()}`;
     const second = `e2e-b-${Date.now()}`;
 
     await openWorld(page, liveUrl(first));
     await expect(hudField(page, "connection")).toHaveText("Connected", { timeout: 20_000 });
-    await expect(hudField(page, "sim")).not.toHaveText("—");
+    await expect(hudField(page, "genos")).not.toHaveText("—");
 
     const other = await context.newPage();
     await openWorld(other, liveUrl(second));
     await expect(hudField(other, "connection")).toHaveText("Connected", { timeout: 20_000 });
-    await expect(hudField(other, "sim")).not.toHaveText("—");
+    await expect(hudField(other, "genos")).not.toHaveText("—");
 
-    const firstSim = await hudField(page, "sim").textContent();
-    const secondSim = await hudField(other, "sim").textContent();
-    expect(firstSim).not.toBe(secondSim);
+    const firstGenos = await hudField(page, "genos").textContent();
+    const secondGenos = await hudField(other, "genos").textContent();
+    expect(firstGenos).not.toBe(secondGenos);
 
     await other.close();
   });

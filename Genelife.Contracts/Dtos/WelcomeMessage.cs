@@ -3,8 +3,8 @@ namespace Genelife.Api.DTOs;
 /// <summary>
 /// Sent to a client immediately after the hub connection is admitted, before
 /// the initial map and world snapshots. It gives the client the identity of its
-/// own sim and the timing/protocol information it needs to interpolate without
-/// guessing which <see cref="SimStatus.IsPlayerControlled"/> sim belongs to the
+/// own genos and the timing/protocol information it needs to interpolate without
+/// guessing which <see cref="GenosStatus.IsPlayerControlled"/> genos belongs to the
 /// player.
 /// </summary>
 public sealed class WelcomeMessage
@@ -13,7 +13,7 @@ public sealed class WelcomeMessage
     public const int CurrentProtocolVersion = 1;
 
     public string PlayerId { get; set; } = string.Empty;
-    public ulong SimNetworkId { get; set; }
+    public ulong GenosNetworkId { get; set; }
     public string MapId { get; set; } = string.Empty;
     public int MapVersion { get; set; }
     public long Tick { get; set; }
@@ -22,10 +22,10 @@ public sealed class WelcomeMessage
     public int ProtocolVersion { get; set; } = CurrentProtocolVersion;
 
     /// <summary>
-    /// True when the player has no controlled sim and can create a child of
-    /// their last sim. The client shows the respawn prompt while this is set.
+    /// True when the player has no controlled genos and can create a child of
+    /// their last genos. The client shows the respawn prompt while this is set.
     /// </summary>
     public bool AwaitingRespawn { get; set; }
-    public string? LastSimName { get; set; }
-    public int LastSimAge { get; set; }
+    public string? LastGenosName { get; set; }
+    public int LastGenosAge { get; set; }
 }

@@ -39,9 +39,9 @@ public sealed class PersistenceTests : IClassFixture<TestApplicationFactory>
         var start = await client.PostAsync("/api/simulation/start", null, CancellationToken);
         Assert.True(start.IsSuccessStatusCode || start.StatusCode == System.Net.HttpStatusCode.BadRequest);
 
-        var name = $"PersistedSim_{Guid.NewGuid():N}";
+        var name = $"PersistedGenos_{Guid.NewGuid():N}";
         var add = await client.PostAsJsonAsync(
-            "/api/simulation/sims",
+            "/api/simulation/genoses",
             new { name, age = 31 },
             CancellationToken);
         add.EnsureSuccessStatusCode();
@@ -49,7 +49,7 @@ public sealed class PersistenceTests : IClassFixture<TestApplicationFactory>
         await saveService.SaveAsync(engine.World!, engine.EmploymentIndex!);
 
         await using var session = store.LightweightSession();
-        var docs = await session.Query<SimDocument>().ToListAsync(CancellationToken);
+        var docs = await session.Query<GenosDocument>().ToListAsync(CancellationToken);
         Assert.Contains(docs, doc => doc.Name == name);
 
         var stop = await client.PostAsync("/api/simulation/stop", null, CancellationToken);
@@ -64,7 +64,7 @@ public sealed class PersistenceTests : IClassFixture<TestApplicationFactory>
         var store = factory.Services.GetRequiredService<IDocumentStore>();
         await using var session = store.LightweightSession();
 
-        session.Store(new SimDocument
+        session.Store(new GenosDocument
         {
             Id = Guid.NewGuid(),
             NetworkId = 999,
@@ -76,7 +76,7 @@ public sealed class PersistenceTests : IClassFixture<TestApplicationFactory>
 
         await session.SaveChangesAsync(CancellationToken);
 
-        var docs = await session.Query<SimDocument>().ToListAsync(CancellationToken);
+        var docs = await session.Query<GenosDocument>().ToListAsync(CancellationToken);
         Assert.Contains(docs, d => d.Name == "DirectStore");
     }
 }

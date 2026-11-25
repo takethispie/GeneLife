@@ -7,14 +7,14 @@ using Genelife.Enums;
 namespace Genelife.Systems;
 
 /// <summary>
-/// Recomputes the per-sim housing modifier once per month. The system only
+/// Recomputes the per-genos housing modifier once per month. The system only
 /// writes when values change, so a stable population does not allocate.
 /// </summary>
 public class HousingModifierSystem : ISimulationSystem
 {
     private readonly World world;
     private readonly Components.Housing.HousingRegistry registry;
-    private readonly QueryDescription simQuery;
+    private readonly QueryDescription genosQuery;
     private readonly List<(Entity Entity, NeedsModifier Modifier)> pending = new(256);
     private readonly int interval;
 
@@ -23,7 +23,7 @@ public class HousingModifierSystem : ISimulationSystem
         this.world = world;
         this.registry = registry;
         this.interval = interval ?? 100;
-        simQuery = new QueryDescription().WithAll<Needs>().WithNone<Components.Gen.Dead>();
+        genosQuery = new QueryDescription().WithAll<Needs>().WithNone<Components.Gen.Dead>();
     }
 
     public string Name => "HousingModifier";
@@ -39,9 +39,9 @@ public class HousingModifierSystem : ISimulationSystem
 
         pending.Clear();
 
-        world.Query(in simQuery, (Entity entity, ref Needs _) =>
+        world.Query(in genosQuery, (Entity entity, ref Needs _) =>
         {
-            var modifier = registry.TryGetUnitForSim(entity, out var unit)
+            var modifier = registry.TryGetUnitForGenos(entity, out var unit)
                 ? ForResident(entity, unit)
                 : ForHomeless();
 
@@ -63,7 +63,7 @@ public class HousingModifierSystem : ISimulationSystem
         }
     }
 
-    private NeedsModifier ForResident(Entity sim, Entity unit)
+    private NeedsModifier ForResident(Entity genos, Entity unit)
     {
         if (!world.IsAlive(unit) || !world.Has<HousingUnit>(unit))
             return ForHomeless();
@@ -88,7 +88,7 @@ public class HousingModifierSystem : ISimulationSystem
             modifier.NoUtilities = true;
         }
 
-        var occupants = registry.MemberCount(registry.HouseholdOf(sim));
+        var occupants = registry.MemberCount(registry.HouseholdOf(genos));
         if (occupants > data.Capacity)
         {
             modifier.SleepRecovery *= 0.8f;

@@ -23,7 +23,7 @@ public class ConsumerSpendingSystem : ISimulationSystem
 {
     private readonly World world;
     private readonly EconomyContext economy;
-    private readonly QueryDescription simQuery;
+    private readonly QueryDescription genosQuery;
     private readonly int interval;
 
     public ConsumerSpendingSystem(World world, EconomyContext economy, int? interval = null)
@@ -31,7 +31,7 @@ public class ConsumerSpendingSystem : ISimulationSystem
         this.world = world;
         this.economy = economy;
         this.interval = interval ?? economy.Clock.TicksPerMonth;
-        simQuery = new QueryDescription().WithAll<GenName, Wallet>().WithNone<Components.Gen.Dead>();
+        genosQuery = new QueryDescription().WithAll<GenName, Wallet>().WithNone<Components.Gen.Dead>();
     }
 
     public string Name => "ConsumerSpending";
@@ -51,7 +51,7 @@ public class ConsumerSpendingSystem : ISimulationSystem
 
         var random = economy.Random.For("revenue.attribution");
         var spenders = new List<Entity>();
-        world.Query(in simQuery, (Entity entity, ref GenName _, ref Wallet _) => spenders.Add(entity));
+        world.Query(in genosQuery, (Entity entity, ref GenName _, ref Wallet _) => spenders.Add(entity));
 
         var totalSpent = Money.Zero;
         var totalUnmet = Money.Zero;
@@ -77,12 +77,12 @@ public class ConsumerSpendingSystem : ISimulationSystem
         }
     }
 
-    private (Money Spent, Money Unmet) Spend(long tick, Entity sim, List<Supplier> suppliers, Random random)
+    private (Money Spent, Money Unmet) Spend(long tick, Entity genos, List<Supplier> suppliers, Random random)
     {
-        var payer = PayerFor(sim);
+        var payer = PayerFor(genos);
         ref var wallet = ref world.Get<Wallet>(payer);
-        var state = world.Has<ConsumptionState>(sim)
-            ? world.Get<ConsumptionState>(sim)
+        var state = world.Has<ConsumptionState>(genos)
+            ? world.Get<ConsumptionState>(genos)
             : new ConsumptionState();
 
         state.StartMonth();
@@ -106,22 +106,22 @@ public class ConsumerSpendingSystem : ISimulationSystem
         var foodBudget = requiredBudget.Min(budget.Multiply(options.FoodShare));
         var hygieneBudget = (requiredBudget - foodBudget).Min(budget.Multiply(options.HygieneShare));
 
-        spent += Buy("Food", foodBudget, sim, payer, suppliers, random, ref state, ref unmet, tick);
-        spent += Buy("Hygiene", hygieneBudget, sim, payer, suppliers, random, ref state, ref unmet, tick);
+        spent += Buy("Food", foodBudget, genos, payer, suppliers, random, ref state, ref unmet, tick);
+        spent += Buy("Hygiene", hygieneBudget, genos, payer, suppliers, random, ref state, ref unmet, tick);
 
         var remaining = available - requiredBudget;
         if (remaining.IsPositive)
         {
             var leisureBudget = remaining.Min(budget.Multiply(options.LeisureShare));
-            spent += Buy("Leisure", leisureBudget, sim, payer, suppliers, random, ref state, ref unmet, tick);
+            spent += Buy("Leisure", leisureBudget, genos, payer, suppliers, random, ref state, ref unmet, tick);
             remaining -= leisureBudget;
 
             var healthBudget = remaining.Min(budget.Multiply(options.HealthShare));
-            spent += Buy("Health", healthBudget, sim, payer, suppliers, random, ref state, ref unmet, tick);
+            spent += Buy("Health", healthBudget, genos, payer, suppliers, random, ref state, ref unmet, tick);
             remaining -= healthBudget;
 
             var durableBudget = remaining;
-            spent += Buy("Durable", durableBudget, sim, payer, suppliers, random, ref state, ref unmet, tick);
+            spent += Buy("Durable", durableBudget, genos, payer, suppliers, random, ref state, ref unmet, tick);
         }
 
         if (available < budget)
@@ -134,33 +134,33 @@ public class ConsumerSpendingSystem : ISimulationSystem
         state.UnmetDemand += unmet;
         state.LastSpendTick = tick;
 
-        if (world.Has<ConsumptionState>(sim))
-            world.Get<ConsumptionState>(sim) = state;
+        if (world.Has<ConsumptionState>(genos))
+            world.Get<ConsumptionState>(genos) = state;
         else
-            world.Add(sim, state);
+            world.Add(genos, state);
 
         return (spent, unmet);
     }
 
-    private Entity PayerFor(Entity sim)
+    private Entity PayerFor(Entity genos)
     {
-        if (!ChildhoodPolicy.IsDependentChild(world, sim, economy.Life.Policy))
-            return sim;
+        if (!ChildhoodPolicy.IsDependentChild(world, genos, economy.Life.Policy))
+            return genos;
 
-        var guardian = ChildhoodPolicy.GuardianOf(world, economy, sim);
-        return guardian != Entity.Null && world.IsAlive(guardian) && world.Has<Wallet>(guardian) ? guardian : sim;
+        var guardian = ChildhoodPolicy.GuardianOf(world, economy, genos);
+        return guardian != Entity.Null && world.IsAlive(guardian) && world.Has<Wallet>(guardian) ? guardian : genos;
     }
 
-    private void ExplicitlyWithdrawForConsumption(long tick, Entity sim, Money budget)
+    private void ExplicitlyWithdrawForConsumption(long tick, Entity genos, Money budget)
     {
-        if (!world.Has<SavingsAccount>(sim))
+        if (!world.Has<SavingsAccount>(genos))
             return;
 
-        ref var wallet = ref world.Get<Wallet>(sim);
+        ref var wallet = ref world.Get<Wallet>(genos);
         if (wallet.Balance >= budget)
             return;
 
-        ref var savings = ref world.Get<SavingsAccount>(sim);
+        ref var savings = ref world.Get<SavingsAccount>(genos);
         var floor = economy.Options.SavingsBuffer;
         var drawable = savings.Balance - floor;
         if (!drawable.IsPositive)
@@ -173,7 +173,7 @@ public class ConsumerSpendingSystem : ISimulationSystem
         savings.Balance -= withdraw;
         savings.LifetimeWithdrawn += withdraw;
         wallet.Balance += withdraw;
-        var networkId = CompanyAccountService.NetworkIdOf(world, sim);
+        var networkId = CompanyAccountService.NetworkIdOf(world, genos);
         economy.Ledger.Record(
             Guid.NewGuid(),
             tick,
@@ -188,7 +188,7 @@ public class ConsumerSpendingSystem : ISimulationSystem
     private Money Buy(
         string category,
         Money budget,
-        Entity sim,
+        Entity genos,
         Entity payer,
         List<Supplier> suppliers,
         Random random,
@@ -234,11 +234,11 @@ public class ConsumerSpendingSystem : ISimulationSystem
     private void RecordUnmetForEveryone(long tick)
     {
         var budget = economy.Options.MonthlyConsumptionBudget;
-        var sims = new List<Entity>();
-        world.Query(in simQuery, (Entity entity, ref GenName _, ref Wallet _) => sims.Add(entity));
+        var genoses = new List<Entity>();
+        world.Query(in genosQuery, (Entity entity, ref GenName _, ref Wallet _) => genoses.Add(entity));
 
         var total = Money.Zero;
-        foreach (var entity in sims)
+        foreach (var entity in genoses)
         {
             if (!world.IsAlive(entity))
                 continue;
@@ -259,10 +259,10 @@ public class ConsumerSpendingSystem : ISimulationSystem
             total += budget;
         }
 
-        if (sims.Count > 0)
+        if (genoses.Count > 0)
         {
             economy.Emit(new UnmetDemandRecorded(
-                sims.Count,
+                genoses.Count,
                 total.Cents,
                 tick));
         }

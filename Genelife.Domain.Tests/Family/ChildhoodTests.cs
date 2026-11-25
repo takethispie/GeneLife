@@ -25,13 +25,13 @@ public class ChildhoodTests
     public void AgeGatesMatchThePolicy(int age, bool dependent, bool schoolAge)
     {
         var world = World.Create();
-        var sim = world.Create(new Alive(age));
+        var genos = world.Create(new Alive(age));
         if (age < 18)
-            world.Add(sim, new DependentChild());
+            world.Add(genos, new DependentChild());
         var policy = LifeStagePolicy.Default;
 
-        Assert.Equal(dependent, ChildhoodPolicy.IsDependentChild(world, sim, policy));
-        Assert.Equal(schoolAge, ChildhoodPolicy.IsSchoolAge(world, sim, policy));
+        Assert.Equal(dependent, ChildhoodPolicy.IsDependentChild(world, genos, policy));
+        Assert.Equal(schoolAge, ChildhoodPolicy.IsSchoolAge(world, genos, policy));
     }
 
     [Fact]
@@ -39,7 +39,7 @@ public class ChildhoodTests
     {
         var world = World.Create();
         var economy = new EconomyContext(world);
-        var sim = world.Create(
+        var genos = world.Create(
             new GenName("Graduate"),
             new Alive(18),
             new SkillProfile(),
@@ -51,9 +51,9 @@ public class ChildhoodTests
 
         new StageProgressionSystem(world, economy).Update(100);
 
-        Assert.False(world.Has<DependentChild>(sim));
-        Assert.Equal(LifeStage.Work, world.Get<Lifecycle>(sim).Stage);
-        Assert.True(world.Has<JobSeeker>(sim));
+        Assert.False(world.Has<DependentChild>(genos));
+        Assert.Equal(LifeStage.Work, world.Get<Lifecycle>(genos).Stage);
+        Assert.True(world.Has<JobSeeker>(genos));
     }
 
     [Fact]

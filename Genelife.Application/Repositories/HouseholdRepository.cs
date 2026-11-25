@@ -28,19 +28,19 @@ public sealed class HouseholdRepository
         this.economy = economy;
     }
 
-    public NetworkId Create(ulong headSimId, long tick = 0, Tenure tenure = Tenure.Renter)
+    public NetworkId Create(ulong headGenosId, long tick = 0, Tenure tenure = Tenure.Renter)
     {
-        if (!networkIds.TryGetEntity(new NetworkId(headSimId), out var head) ||
+        if (!networkIds.TryGetEntity(new NetworkId(headGenosId), out var head) ||
             !world.IsAlive(head) ||
             !world.Has<GenName>(head))
-            throw new InvalidOperationException("Head sim not found.");
+            throw new InvalidOperationException("Head genos not found.");
 
         if (!IsAdult(head))
             throw new InvalidOperationException("A household head must be an adult.");
-        if (economy.Housing.HouseholdBySim.ContainsKey(head))
-            throw new InvalidOperationException("The sim already belongs to a household.");
+        if (economy.Housing.HouseholdByGenos.ContainsKey(head))
+            throw new InvalidOperationException("The genos already belongs to a household.");
         if (world.Has<HouseholdMember>(head))
-            throw new InvalidOperationException("The sim already has a household membership.");
+            throw new InvalidOperationException("The genos already has a household membership.");
 
         var entity = world.Create(new Household
         {
@@ -56,55 +56,55 @@ public sealed class HouseholdRepository
         world.Add(head, new HouseholdMember(entity, HouseholdRole.Head));
         economy.Housing.AddMember(head, entity);
 
-        economy.Emit(new HouseholdFormed(id.Value, headSimId, tick));
+        economy.Emit(new HouseholdFormed(id.Value, headGenosId, tick));
         return id;
     }
 
-    public bool AddMember(NetworkId householdId, ulong simId, HouseholdRole role, long tick = 0)
+    public bool AddMember(NetworkId householdId, ulong genosId, HouseholdRole role, long tick = 0)
     {
         if (!TryGet(householdId, out var household))
             return false;
-        if (!networkIds.TryGetEntity(new NetworkId(simId), out var sim) ||
-            !world.IsAlive(sim) ||
-            !world.Has<GenName>(sim))
-            throw new InvalidOperationException("Sim not found.");
-        if (economy.Housing.HouseholdBySim.TryGetValue(sim, out var existing))
+        if (!networkIds.TryGetEntity(new NetworkId(genosId), out var genos) ||
+            !world.IsAlive(genos) ||
+            !world.Has<GenName>(genos))
+            throw new InvalidOperationException("Genos not found.");
+        if (economy.Housing.HouseholdByGenos.TryGetValue(genos, out var existing))
         {
             if (existing == household)
                 return true;
-            throw new InvalidOperationException("The sim already belongs to a different household.");
+            throw new InvalidOperationException("The genos already belongs to a different household.");
         }
 
         if (role == HouseholdRole.Head && world.Get<Household>(household).Head != Entity.Null)
             throw new InvalidOperationException("The household already has a head.");
 
-        if (!IsAdult(sim) && role is HouseholdRole.Head or HouseholdRole.Partner)
+        if (!IsAdult(genos) && role is HouseholdRole.Head or HouseholdRole.Partner)
             throw new InvalidOperationException("A child cannot be the household head or partner.");
 
-        world.Add(sim, new HouseholdMember(household, role));
-        economy.Housing.AddMember(sim, household);
+        world.Add(genos, new HouseholdMember(household, role));
+        economy.Housing.AddMember(genos, household);
 
         ref var data = ref world.Get<Household>(household);
         if (role == HouseholdRole.Head || data.Head == Entity.Null)
-            data.Head = sim;
+            data.Head = genos;
         data.MemberCount = economy.Housing.MemberCount(household);
 
-        economy.Emit(new HouseholdMemberJoined(householdId.Value, simId, role.ToString(), tick));
+        economy.Emit(new HouseholdMemberJoined(householdId.Value, genosId, role.ToString(), tick));
         return true;
     }
 
-    public bool RemoveMember(NetworkId householdId, ulong simId, long tick = 0)
+    public bool RemoveMember(NetworkId householdId, ulong genosId, long tick = 0)
     {
         if (!TryGet(householdId, out var household))
             return false;
-        if (!networkIds.TryGetEntity(new NetworkId(simId), out var sim) || !world.IsAlive(sim))
+        if (!networkIds.TryGetEntity(new NetworkId(genosId), out var genos) || !world.IsAlive(genos))
             return false;
-        if (!world.Has<HouseholdMember>(sim) || world.Get<HouseholdMember>(sim).Household != household)
+        if (!world.Has<HouseholdMember>(genos) || world.Get<HouseholdMember>(genos).Household != household)
             return false;
 
-        world.Remove<HouseholdMember>(sim);
-        economy.Housing.RemoveMember(sim);
-        economy.Emit(new HouseholdMemberLeft(householdId.Value, simId, tick));
+        world.Remove<HouseholdMember>(genos);
+        economy.Housing.RemoveMember(genos);
+        economy.Emit(new HouseholdMemberLeft(householdId.Value, genosId, tick));
 
         var members = economy.Housing.GetMembers(household).ToList();
         if (members.Count == 0)
@@ -115,7 +115,7 @@ public sealed class HouseholdRepository
 
         ref var data = ref world.Get<Household>(household);
         data.MemberCount = members.Count;
-        if (data.Head == sim)
+        if (data.Head == genos)
         {
             var newHead = SelectHead(household, members);
             data.Head = newHead;
@@ -201,8 +201,8 @@ public sealed class HouseholdRepository
         return best;
     }
 
-    private bool IsAdult(Entity sim) =>
-        !world.Has<Alive>(sim) || world.Get<Alive>(sim).Age >= 18;
+    private bool IsAdult(Entity genos) =>
+        !world.Has<Alive>(genos) || world.Get<Alive>(genos).Age >= 18;
 
     private ulong NetworkIdOf(Entity entity) =>
         world.IsAlive(entity) && world.Has<NetworkId>(entity)

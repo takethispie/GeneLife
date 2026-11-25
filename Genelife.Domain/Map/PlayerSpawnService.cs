@@ -8,12 +8,12 @@ public static class PlayerSpawnService
 {
     public static TileCoord ResolveSpawn(
         World world,
-        Entity sim,
+        Entity genos,
         HousingRegistry housing,
         MapContext map,
         ulong sequence)
     {
-        if (housing.TryGetUnitForSim(sim, out var unit) &&
+        if (housing.TryGetUnitForGenos(genos, out var unit) &&
             world.IsAlive(unit) &&
             world.Has<HousingUnit>(unit))
         {
@@ -31,13 +31,13 @@ public static class PlayerSpawnService
 
     public static TileCoord PlaceAt(
         World world,
-        Entity sim,
+        Entity genos,
         HousingRegistry housing,
         MapContext map,
         ulong sequence)
     {
-        var tile = ResolveSpawn(world, sim, housing, map, sequence);
-        MapSpawner.PlaceSimAt(world, sim, map, tile);
+        var tile = ResolveSpawn(world, genos, housing, map, sequence);
+        MapSpawner.PlaceGenosAt(world, genos, map, tile);
         return tile;
     }
 }

@@ -45,7 +45,7 @@ public record struct Pregnancy
     public long ResolvedTick;
 }
 
-/// <summary>Marker on a sim that is still a dependent child.</summary>
+/// <summary>Marker on a genos that is still a dependent child.</summary>
 public record struct DependentChild;
 
 /// <summary>Birth history attached to the child.</summary>

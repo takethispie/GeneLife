@@ -7,7 +7,7 @@ import type { DebugMetrics } from "./debug-overlay";
 import type { PixiScene } from "./pixi-app";
 import { TileLayer } from "./map/tile-layer";
 import { BuildingLayer } from "./map/building-layer";
-import { SimLayer } from "./sim-layer";
+import { GenosLayer } from "./genos-layer";
 import { SelectionLayer } from "./selection-layer";
 import { createSceneTextures, destroyTextures, type SceneTextures } from "./textures";
 
@@ -36,7 +36,7 @@ export class SceneRenderer {
   private textures: SceneTextures | null = null;
   private tiles: TileLayer | null = null;
   private buildings: BuildingLayer | null = null;
-  private sims: SimLayer | null = null;
+  private genoses: GenosLayer | null = null;
   private selection: SelectionLayer | null = null;
   private lastMapKey = "";
   private lastScreenWidth = -1;
@@ -60,7 +60,7 @@ export class SceneRenderer {
     this.textures = createSceneTextures(pixi.app.renderer);
     this.tiles = new TileLayer(pixi.layers.terrain, pixi.layers.roads, this.textures.white);
     this.buildings = new BuildingLayer(pixi.layers.buildings, pixi.layers.effects, this.textures);
-    this.sims = new SimLayer(pixi.layers.sims, this.textures);
+    this.genoses = new GenosLayer(pixi.layers.genoses, this.textures);
     this.selection = new SelectionLayer(pixi.layers.selection);
     pixi.onFrame((deltaMs) => this.frame(deltaMs));
   }
@@ -88,12 +88,12 @@ export class SceneRenderer {
   dispose(): void {
     this.tiles?.destroy();
     this.buildings?.destroy();
-    this.sims?.destroy();
+    this.genoses?.destroy();
     this.selection?.destroy();
     if (this.textures !== null) destroyTextures(this.textures);
     this.tiles = null;
     this.buildings = null;
-    this.sims = null;
+    this.genoses = null;
     this.selection = null;
     this.textures = null;
   }
@@ -118,7 +118,7 @@ export class SceneRenderer {
 
     const map = store.map;
     if (map === null) {
-      this.sims?.renderNoWorld();
+      this.genoses?.renderNoWorld();
       this.lastStatsAt = 0;
       return;
     }
@@ -143,9 +143,9 @@ export class SceneRenderer {
       entries: 0,
       labels: 0
     };
-    const ownSim = store.ownSimId;
-    const ownName = ownSim > 0 ? (store.sims.get(ownSim)?.name ?? "") : "";
-    const simStats = this.sims?.render(renderState, ownSim, ownName, camera, map.tileSize) ?? {
+    const ownGenos = store.ownGenosId;
+    const ownName = ownGenos > 0 ? (store.genoses.get(ownGenos)?.name ?? "") : "";
+    const genosStats = this.genoses?.render(renderState, ownGenos, ownName, camera, map.tileSize) ?? {
       visible: 0,
       total: 0,
       localVisible: false
@@ -174,9 +174,9 @@ export class SceneRenderer {
         visibleBuildings: buildingStats.buildings,
         visibleEntryMarkers: buildingStats.entries,
         labelCount: buildingStats.labels,
-        visibleSims: simStats.visible,
-        totalSims: simStats.total,
-        localPlayerVisible: simStats.localVisible,
+        visibleGenoses: genosStats.visible,
+        totalGenoses: genosStats.total,
+        localPlayerVisible: genosStats.localVisible,
         tick: renderState?.tick ?? store.tick,
         bufferFrames: renderState?.frameCount ?? 0,
         interpolationDelayMs: renderState?.interpolationDelayMs ?? 0,

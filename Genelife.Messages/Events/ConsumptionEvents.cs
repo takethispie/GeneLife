@@ -76,7 +76,7 @@ public sealed record ConsumptionMetricsRecorded(
     long GroceryRevenueCents);
 
 public sealed record NutritionHealthChanged(
-    ulong SimNetworkId,
+    ulong GenosNetworkId,
     int Balance,
     int ConsecutivePoorDays,
     float HealthDelta,

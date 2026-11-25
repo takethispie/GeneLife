@@ -25,8 +25,8 @@ public class PlayerPersistenceTests
         engine.Initialize();
 
         var playerId = "player-persist";
-        var simNetworkId = engine.EnsurePlayerSim(playerId);
-        Assert.NotEqual(0UL, simNetworkId);
+        var genosNetworkId = engine.EnsurePlayerGenos(playerId);
+        Assert.NotEqual(0UL, genosNetworkId);
 
         ulong officeNetworkId = 0;
         ulong postingNetworkId = 0;
@@ -34,9 +34,9 @@ public class PlayerPersistenceTests
         Guid invitationId = Guid.NewGuid();
         engine.ExecuteWithWorld(world =>
         {
-            Assert.True(engine.NetworkIds.TryGetEntity(new NetworkId(simNetworkId), out var sim));
+            Assert.True(engine.NetworkIds.TryGetEntity(new NetworkId(genosNetworkId), out var genos));
             engine.Players.TryGet(playerId, out var profile);
-            profile.ContinuationPolicy = PlayerContinuationPolicy.NewSim;
+            profile.ContinuationPolicy = PlayerContinuationPolicy.NewGenos;
 
             ulong Register(Entity entity)
             {
@@ -57,13 +57,13 @@ public class PlayerPersistenceTests
             officeNetworkId = engine.NetworkIds.TryGetNetworkId(office, out var officeId) ? officeId.Value : 0;
             postingNetworkId = engine.NetworkIds.TryGetNetworkId(posting, out var postingId) ? postingId.Value : 0;
 
-            world.Add(sim, new PlayerEmployment(office, 5, PlayerEmploymentSource.PlayerAcceptedOffer)
+            world.Add(genos, new PlayerEmployment(office, 5, PlayerEmploymentSource.PlayerAcceptedOffer)
             {
                 LastAttendedTick = 17,
                 ConsecutiveMissedShifts = 1,
                 AttendedThisMonth = true
             });
-            world.Add(sim, new PlayerJobOffer
+            world.Add(genos, new PlayerJobOffer
             {
                 OfferId = Guid.NewGuid(),
                 Posting = posting,
@@ -88,12 +88,12 @@ public class PlayerPersistenceTests
             engine.Economy.Housing.AddUnit(unit, property);
 
             var households = new HouseholdRepository(world, engine.NetworkIds, engine.Economy);
-            var householdId = households.Create(simNetworkId, 20);
+            var householdId = households.Create(genosNetworkId, 20);
             Assert.True(households.TryGet(householdId, out var household));
             householdNetworkId = householdId.Value;
             Assert.True(new HousingAllocator(world, engine.Economy).TryAssign(
                 household, unit, Tenure.Renter, 20, rentOverride: Money.FromUnits(140m)));
-            world.Add(sim, new PlayerHousing(household, unit, 20, Money.Zero));
+            world.Add(genos, new PlayerHousing(household, unit, 20, Money.Zero));
             world.Add(household, new HouseholdPantry
             {
                 FoodUnits = 3,
@@ -101,7 +101,7 @@ public class PlayerPersistenceTests
                 LastPurchaseTick = 22
             });
 
-            world.Add(sim, new PlayerLeaseOffer
+            world.Add(genos, new PlayerLeaseOffer
             {
                 OfferId = Guid.NewGuid(),
                 Unit = unit,
@@ -115,7 +115,7 @@ public class PlayerPersistenceTests
             Register(partner);
             var invitation = world.Create(new FamilyInvitation(
                 invitationId,
-                sim,
+                genos,
                 partner,
                 FamilyInvitationKind.Partnership,
                 30,
@@ -126,8 +126,8 @@ public class PlayerPersistenceTests
 
         var state = engine.CaptureState(engine.NetworkIds);
         var savedProfile = Assert.Single(state.PlayerProfiles.Where(p => p.PlayerId == playerId));
-        Assert.Equal("NewSim", savedProfile.ContinuationPolicy);
-        var savedLife = Assert.Single(state.PlayerLives.Where(l => l.SimNetworkId == simNetworkId));
+        Assert.Equal("NewGenos", savedProfile.ContinuationPolicy);
+        var savedLife = Assert.Single(state.PlayerLives.Where(l => l.GenosNetworkId == genosNetworkId));
         Assert.True(savedLife.HasEmployment);
         Assert.Equal(officeNetworkId, savedLife.EmploymentOfficeNetworkId);
         Assert.Equal(householdNetworkId, savedLife.HouseholdNetworkId);
@@ -145,15 +145,15 @@ public class PlayerPersistenceTests
         restored.Restore(state, restored.NetworkIds);
 
         Assert.True(restored.Players.TryGet(playerId, out var restoredProfile));
-        Assert.Equal(PlayerContinuationPolicy.NewSim, restoredProfile.ContinuationPolicy);
-        Assert.True(restored.NetworkIds.TryGetEntity(new NetworkId(simNetworkId), out var restoredSim));
-        Assert.True(restored.World!.Has<PlayerEmployment>(restoredSim));
-        Assert.Equal(17, restored.World.Get<PlayerEmployment>(restoredSim).LastAttendedTick);
-        Assert.True(restored.World!.Has<PlayerJobOffer>(restoredSim));
-        Assert.Equal(offerId, restored.World.Get<PlayerJobOffer>(restoredSim).OfferId);
-        Assert.True(restored.World.Has<PlayerLeaseOffer>(restoredSim));
-        Assert.Equal(leaseOfferId, restored.World.Get<PlayerLeaseOffer>(restoredSim).OfferId);
-        Assert.True(restored.World.Has<PlayerHousing>(restoredSim));
+        Assert.Equal(PlayerContinuationPolicy.NewGenos, restoredProfile.ContinuationPolicy);
+        Assert.True(restored.NetworkIds.TryGetEntity(new NetworkId(genosNetworkId), out var restoredGenos));
+        Assert.True(restored.World!.Has<PlayerEmployment>(restoredGenos));
+        Assert.Equal(17, restored.World.Get<PlayerEmployment>(restoredGenos).LastAttendedTick);
+        Assert.True(restored.World!.Has<PlayerJobOffer>(restoredGenos));
+        Assert.Equal(offerId, restored.World.Get<PlayerJobOffer>(restoredGenos).OfferId);
+        Assert.True(restored.World.Has<PlayerLeaseOffer>(restoredGenos));
+        Assert.Equal(leaseOfferId, restored.World.Get<PlayerLeaseOffer>(restoredGenos).OfferId);
+        Assert.True(restored.World.Has<PlayerHousing>(restoredGenos));
 
         Assert.True(restored.NetworkIds.TryGetEntity(new NetworkId(householdNetworkId), out var restoredHousehold));
         Assert.True(restored.World.Has<HouseholdPantry>(restoredHousehold));
@@ -170,17 +170,17 @@ public class PlayerPersistenceTests
         Assert.Equal(state.PlayerProfiles.Count, second.PlayerProfiles.Count);
         Assert.Equal(state.PlayerLives.Count, second.PlayerLives.Count);
         Assert.Equal(state.FamilyInvitations.Count, second.FamilyInvitations.Count);
-        var secondLife = second.PlayerLives.Single(l => l.SimNetworkId == simNetworkId);
+        var secondLife = second.PlayerLives.Single(l => l.GenosNetworkId == genosNetworkId);
         Assert.Equal(offerId, secondLife.JobOfferId);
         Assert.Equal(leaseOfferId, secondLife.LeaseOfferId);
     }
 
     [Fact]
-    public void SchemaElevenSaveGainsPlayerProfilesFromControlledSims()
+    public void SchemaElevenSaveGainsPlayerProfilesFromControlledGenoses()
     {
         using var engine = new SimulationEngine();
         engine.Initialize();
-        var simNetworkId = engine.EnsurePlayerSim("migrating-player");
+        var genosNetworkId = engine.EnsurePlayerGenos("migrating-player");
         var state = engine.CaptureState(engine.NetworkIds);
         engine.Shutdown();
 
@@ -192,7 +192,7 @@ public class PlayerPersistenceTests
 
         var profile = Assert.Single(state.PlayerProfiles);
         Assert.Equal("migrating-player", profile.PlayerId);
-        Assert.Equal(simNetworkId, profile.SimNetworkId);
-        Assert.Contains(state.PlayerLives, life => life.SimNetworkId == simNetworkId);
+        Assert.Equal(genosNetworkId, profile.GenosNetworkId);
+        Assert.Contains(state.PlayerLives, life => life.GenosNetworkId == genosNetworkId);
     }
 }

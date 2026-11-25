@@ -19,7 +19,7 @@ describe("end-to-end client scenarios", () => {
     const delta = validateWorldSnapshotDelta(worldDeltaFixture);
 
     store.applyMapSnapshot(map);
-    store.setOwnSim(1);
+    store.setOwnGenos(1);
     expect(store.applySnapshot(world, 0).status).toBe("applied");
 
     viewport(store);
@@ -32,8 +32,8 @@ describe("end-to-end client scenarios", () => {
     });
     expect(state).not.toBeNull();
     expect(state?.tick).toBe(101);
-    expect(state?.sims.has(store.ownSimId)).toBe(true);
-    expect(state?.sims.size).toBe(4);
+    expect(state?.genoses.has(store.ownGenosId)).toBe(true);
+    expect(state?.genoses.size).toBe(4);
   });
 
   it("recovers with a full snapshot after a delta gap", () => {
@@ -90,9 +90,9 @@ describe("end-to-end client scenarios", () => {
 
 function viewport(store: SimulationStore): void {
   const map = store.map;
-  const sims = Array.from(store.sims.values());
+  const genoses = Array.from(store.genoses.values());
   expect(map).not.toBeNull();
-  expect(sims.every((sim) => sim.tileX >= (map?.minX ?? 0) && sim.tileX <= (map?.maxX ?? 0))).toBe(
+  expect(genoses.every((genos) => genos.tileX >= (map?.minX ?? 0) && genos.tileX <= (map?.maxX ?? 0))).toBe(
     true
   );
 }

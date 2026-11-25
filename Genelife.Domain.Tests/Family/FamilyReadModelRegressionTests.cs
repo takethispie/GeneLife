@@ -13,29 +13,29 @@ namespace Genelife.UnitTests.Family;
 public class FamilyReadModelRegressionTests
 {
     [Fact]
-    public void UnpartneredSimReportsNoPartner()
+    public void UnpartneredGenosReportsNoPartner()
     {
         using var engine = new SimulationEngine();
         engine.Initialize();
-        ulong simId = 0;
+        ulong genosId = 0;
 
         engine.ExecuteWithWorld(world =>
         {
-            var repository = new SimRepository(world, engine.NetworkIds, engine.Economy);
-            simId = repository.Add("Solo", 30).Value;
+            var repository = new GenosRepository(world, engine.NetworkIds, engine.Economy);
+            genosId = repository.Add("Solo", 30).Value;
             return 0;
         });
 
-        var sim = Assert.Single(engine.BuildFamilySims(take: 100).Sims,
-            row => row.NetworkId == simId);
+        var genos = Assert.Single(engine.BuildFamilyGenoses(take: 100).Genoses,
+            row => row.NetworkId == genosId);
 
-        Assert.False(sim.IsPaired);
-        Assert.Null(sim.PartnerNetworkId);
-        Assert.True(string.IsNullOrEmpty(sim.PartnerName));
+        Assert.False(genos.IsPaired);
+        Assert.Null(genos.PartnerNetworkId);
+        Assert.True(string.IsNullOrEmpty(genos.PartnerName));
     }
 
     [Fact]
-    public void EndPartnershipMarksBothSimsUnpaired()
+    public void EndPartnershipMarksBothGenosesUnpaired()
     {
         using var engine = new SimulationEngine();
         engine.Initialize();
@@ -46,22 +46,22 @@ public class FamilyReadModelRegressionTests
         engine.Tick(1f / 20f);
         Assert.True(engine.GetCommandResult(forceId)!.Accepted);
 
-        var paired = engine.BuildFamilySims(take: 100).Sims;
-        Assert.True(paired.Single(sim => sim.NetworkId == ids.First).IsPaired);
-        Assert.True(paired.Single(sim => sim.NetworkId == ids.Second).IsPaired);
+        var paired = engine.BuildFamilyGenoses(take: 100).Genoses;
+        Assert.True(paired.Single(genos => genos.NetworkId == ids.First).IsPaired);
+        Assert.True(paired.Single(genos => genos.NetworkId == ids.Second).IsPaired);
 
         var endId = engine.EnqueueAdminCommand(new EndPartnershipCommand(
             Guid.NewGuid(), "tester", ids.First, ids.Second, "test-end"));
         engine.Tick(1f / 20f);
         Assert.True(engine.GetCommandResult(endId)!.Accepted);
 
-        var unpaired = engine.BuildFamilySims(take: 100).Sims;
+        var unpaired = engine.BuildFamilyGenoses(take: 100).Genoses;
         foreach (var id in new[] { ids.First, ids.Second })
         {
-            var sim = unpaired.Single(row => row.NetworkId == id);
-            Assert.False(sim.IsPaired);
-            Assert.Null(sim.PartnerNetworkId);
-            Assert.True(string.IsNullOrEmpty(sim.PartnerName));
+            var genos = unpaired.Single(row => row.NetworkId == id);
+            Assert.False(genos.IsPaired);
+            Assert.Null(genos.PartnerNetworkId);
+            Assert.True(string.IsNullOrEmpty(genos.PartnerName));
         }
     }
 
@@ -74,12 +74,12 @@ public class FamilyReadModelRegressionTests
 
         engine.ExecuteWithWorld(world =>
         {
-            var repository = new SimRepository(world, engine.NetworkIds, engine.Economy);
+            var repository = new GenosRepository(world, engine.NetworkIds, engine.Economy);
             childId = repository.Add("Unattended Child", 8).Value;
             return 0;
         });
 
-        var child = Assert.Single(engine.BuildFamilySims(take: 100).Sims,
+        var child = Assert.Single(engine.BuildFamilyGenoses(take: 100).Genoses,
             row => row.NetworkId == childId);
 
         Assert.Null(child.GuardianNetworkId);
@@ -109,7 +109,7 @@ public class FamilyReadModelRegressionTests
         ulong secondId = 0;
         engine.ExecuteWithWorld(world =>
         {
-            var repository = new SimRepository(world, engine.NetworkIds, engine.Economy);
+            var repository = new GenosRepository(world, engine.NetworkIds, engine.Economy);
             firstId = repository.Add("First", 30).Value;
             secondId = repository.Add("Second", 31).Value;
             Assert.True(engine.NetworkIds.TryGetEntity(new NetworkId(firstId), out var first));

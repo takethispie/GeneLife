@@ -2,24 +2,24 @@ namespace Genelife.Messages.Events;
 
 public sealed record RelationshipFormed(
     ulong RelationshipId,
-    ulong FromSimId,
-    ulong ToSimId,
+    ulong FromGenosId,
+    ulong ToGenosId,
     string Kind,
     string Source,
     long Tick);
 
 public sealed record RelationshipEnded(
     ulong RelationshipId,
-    ulong FromSimId,
-    ulong ToSimId,
+    ulong FromGenosId,
+    ulong ToGenosId,
     string Kind,
     long Tick);
 
-public sealed record PartnershipFormed(ulong SimAId, ulong SimBId, int Score, long Tick);
+public sealed record PartnershipFormed(ulong GenosAId, ulong GenosBId, int Score, long Tick);
 
-public sealed record PartnershipEnded(ulong SimAId, ulong SimBId, string Reason, long Tick);
+public sealed record PartnershipEnded(ulong GenosAId, ulong GenosBId, string Reason, long Tick);
 
-public sealed record PairingRejected(ulong SimId, ulong CandidateId, string Reason, long Tick);
+public sealed record PairingRejected(ulong GenosId, ulong CandidateId, string Reason, long Tick);
 
 public sealed record HouseholdMerged(ulong HouseholdId, ulong IntoHouseholdId, long Tick);
 
@@ -119,7 +119,7 @@ public sealed record TrustOpened(
     ulong BeneficiaryNetworkId,
     ulong GuardianNetworkId,
     long AmountCents,
-    ulong SourceSimNetworkId,
+    ulong SourceGenosNetworkId,
     long Tick);
 
 public sealed record TrustReleased(

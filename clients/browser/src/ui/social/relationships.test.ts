@@ -4,7 +4,7 @@ import { RelationshipsPanel } from "./relationships";
 const status = (overrides: Record<string, unknown> = {}) => ({
   playerId: "p1",
   partnerPlayerId: null,
-  partnerSimNetworkId: null,
+  partnerGenosNetworkId: null,
   partnerName: null,
   sharesHousehold: false,
   canCohabit: false,
@@ -25,7 +25,7 @@ describe("relationships panel", () => {
     document.body.appendChild(root);
     const fetchImpl = vi.fn(() => Promise.resolve(response(status({
       partnerPlayerId: "p2",
-      partnerSimNetworkId: 22,
+      partnerGenosNetworkId: 22,
       partnerName: "Bob",
       canCohabit: true,
       invitations: [
@@ -70,7 +70,7 @@ describe("relationships panel", () => {
     document.body.appendChild(root);
     const fetchImpl = vi.fn(() => Promise.resolve(response(status({
       partnerPlayerId: "p2",
-      partnerSimNetworkId: 22,
+      partnerGenosNetworkId: 22,
       partnerName: "Bob",
       canCohabit: true
     }))));

@@ -54,74 +54,74 @@ public sealed class PairingSystem : ISimulationSystem
         options.Validate();
 
         var singles = cache.Scored.Keys
-            .Where(sim => IsAvailable(sim, tick))
+            .Where(genos => IsAvailable(genos, tick))
             .OrderBy(NetworkIdOf)
-            .ThenBy(sim => sim.Id)
+            .ThenBy(genos => genos.Id)
             .ToList();
 
         var paired = new HashSet<Entity>();
 
-        foreach (var sim in singles)
+        foreach (var genos in singles)
         {
-            if (paired.Contains(sim) || !IsAvailable(sim, tick))
+            if (paired.Contains(genos) || !IsAvailable(genos, tick))
                 continue;
 
-            var top = Top(sim);
+            var top = Top(genos);
             if (top is null || top.Value.Score < options.PairingThreshold)
                 continue;
 
-            var reciprocal = Top(top.Value.Sim);
-            if (reciprocal is null || reciprocal.Value.Sim != sim ||
+            var reciprocal = Top(top.Value.Genos);
+            if (reciprocal is null || reciprocal.Value.Genos != genos ||
                 reciprocal.Value.Score < options.PairingThreshold)
                 continue;
 
-            if (!AcceptPair(sim, top.Value.Sim, tick))
+            if (!AcceptPair(genos, top.Value.Genos, tick))
             {
-                RejectPair(sim, top.Value.Sim, "acceptance", tick);
+                RejectPair(genos, top.Value.Genos, "acceptance", tick);
                 continue;
             }
 
-            if (TryPair(sim, top.Value.Sim, Math.Min(top.Value.Score, reciprocal.Value.Score), tick))
+            if (TryPair(genos, top.Value.Genos, Math.Min(top.Value.Score, reciprocal.Value.Score), tick))
             {
-                paired.Add(sim);
-                paired.Add(top.Value.Sim);
+                paired.Add(genos);
+                paired.Add(top.Value.Genos);
             }
         }
 
-        foreach (var sim in singles)
+        foreach (var genos in singles)
         {
-            if (paired.Contains(sim) || !IsAvailable(sim, tick))
+            if (paired.Contains(genos) || !IsAvailable(genos, tick))
                 continue;
-            if (!cache.Scored.TryGetValue(sim, out var scored))
+            if (!cache.Scored.TryGetValue(genos, out var scored))
                 continue;
 
             foreach (var candidate in scored)
             {
                 if (candidate.Score < options.PairingThreshold)
                     break;
-                if (paired.Contains(candidate.Sim) || !IsAvailable(candidate.Sim, tick))
+                if (paired.Contains(candidate.Genos) || !IsAvailable(candidate.Genos, tick))
                     continue;
 
                 var eligibility = EligibilityPolicy.Evaluate(
                     world,
                     relationships,
-                    sim,
-                    candidate.Sim,
+                    genos,
+                    candidate.Genos,
                     options,
                     (first, second) => cache.InCooldown(first, second, tick));
                 if (!eligibility.Eligible)
                     continue;
 
-                if (!AcceptPair(sim, candidate.Sim, tick))
+                if (!AcceptPair(genos, candidate.Genos, tick))
                 {
-                    RejectPair(sim, candidate.Sim, "acceptance", tick);
+                    RejectPair(genos, candidate.Genos, "acceptance", tick);
                     continue;
                 }
 
-                if (TryPair(sim, candidate.Sim, candidate.Score, tick))
+                if (TryPair(genos, candidate.Genos, candidate.Score, tick))
                 {
-                    paired.Add(sim);
-                    paired.Add(candidate.Sim);
+                    paired.Add(genos);
+                    paired.Add(candidate.Genos);
                     break;
                 }
             }
@@ -160,13 +160,13 @@ public sealed class PairingSystem : ISimulationSystem
         return true;
     }
 
-    private void RejectPair(Entity sim, Entity candidate, string reason, long tick)
+    private void RejectPair(Entity genos, Entity candidate, string reason, long tick)
     {
         var months = options.RejectionCooldownMonths;
         if (months > 0)
         {
             var until = tick + (long)months * economy.Clock.TicksPerMonth;
-            cache.SetCooldown(sim, candidate, tick, until);
+            cache.SetCooldown(genos, candidate, tick, until);
         }
 
         // Rejections are high-volume by design. Emit the first 100 so operators
@@ -175,29 +175,29 @@ public sealed class PairingSystem : ISimulationSystem
         if (rejectionCount <= 100 || rejectionCount % 50 == 0)
         {
             economy.Emit(new PairingRejected(
-                NetworkIdOf(sim), NetworkIdOf(candidate), reason, tick));
+                NetworkIdOf(genos), NetworkIdOf(candidate), reason, tick));
         }
     }
 
     private bool AcceptPair(Entity first, Entity second, long tick) =>
         Roll(first, second, tick) && Roll(second, first, tick);
 
-    private bool Roll(Entity sim, Entity candidate, long tick)
+    private bool Roll(Entity genos, Entity candidate, long tick)
     {
-        var stream = $"attraction.pairing.{NetworkIdOf(sim)}.{NetworkIdOf(candidate)}.{tick}";
+        var stream = $"attraction.pairing.{NetworkIdOf(genos)}.{NetworkIdOf(candidate)}.{tick}";
         return economy.Random.For(stream).NextDouble() < (double)options.PairingAcceptanceChance;
     }
 
-    private bool IsAvailable(Entity sim, long tick) =>
-        world.IsAlive(sim) &&
-        world.Has<Alive>(sim) &&
-        world.Has<Traits>(sim) &&
-        !world.Has<Dead>(sim) &&
-        !relationships.HasPartner(sim) &&
-        !EligibilityPolicy.IsDependent(world, sim);
+    private bool IsAvailable(Entity genos, long tick) =>
+        world.IsAlive(genos) &&
+        world.Has<Alive>(genos) &&
+        world.Has<Traits>(genos) &&
+        !world.Has<Dead>(genos) &&
+        !relationships.HasPartner(genos) &&
+        !EligibilityPolicy.IsDependent(world, genos);
 
-    private ScoredCandidate? Top(Entity sim) =>
-        cache.Scored.TryGetValue(sim, out var scored) && scored.Count > 0 ? scored[0] : null;
+    private ScoredCandidate? Top(Entity genos) =>
+        cache.Scored.TryGetValue(genos, out var scored) && scored.Count > 0 ? scored[0] : null;
 
     private ulong NetworkIdOf(Entity entity) =>
         world.Has<NetworkId>(entity) ? world.Get<NetworkId>(entity).Value : (ulong)entity.Id;

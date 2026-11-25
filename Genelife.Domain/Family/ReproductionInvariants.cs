@@ -47,7 +47,7 @@ public static class ReproductionInvariants
         foreach (var (parent, count) in activeByParent)
             if (count > 1)
                 issues.Add(new Issue("pregnancy.duplicate-active", "Fail",
-                    $"Sim {parent.Id} has {count} active pregnancies"));
+                    $"Genos {parent.Id} has {count} active pregnancies"));
 
         var policy = economy.Life.Policy;
         var reportedOvercrowdedHouseholds = new HashSet<Entity>();
@@ -57,10 +57,10 @@ public static class ReproductionInvariants
                 var child = alive.Age < policy.WorkStartAge;
                 if (child && world.Has<Employee>(entity))
                     issues.Add(new Issue("child.employed", "Fail",
-                        $"Sim {entity.Id} is a child but is employed"));
+                        $"Genos {entity.Id} is a child but is employed"));
                 if (child && world.Has<RetirementIncome>(entity))
                     issues.Add(new Issue("child.pension", "Fail",
-                        $"Sim {entity.Id} is a child but receives a pension"));
+                        $"Genos {entity.Id} is a child but receives a pension"));
 
                 if (world.Has<BirthRecord>(entity))
                 {
@@ -81,17 +81,17 @@ public static class ReproductionInvariants
 
                 if (alive.Age < policy.SchoolStartAge && world.Has<Enrollment>(entity))
                     issues.Add(new Issue("child.early-enrollment", "Warn",
-                        $"Sim {entity.Id} is enrolled before school start age"));
+                        $"Genos {entity.Id} is enrolled before school start age"));
 
                 if (alive.Age >= policy.SchoolStartAge && !world.Has<Enrollment>(entity))
                     issues.Add(new Issue("child.not-enrolled", "Warn",
-                        $"Sim {entity.Id} is school age but has no enrollment record"));
+                        $"Genos {entity.Id} is school age but has no enrollment record"));
 
                 var household = economy.Housing.HouseholdOf(entity);
                 if (household == Entity.Null)
                 {
                     issues.Add(new Issue("child.no-household", "Warn",
-                        $"Sim {entity.Id} is a child without a household"));
+                        $"Genos {entity.Id} is a child without a household"));
                     return;
                 }
 
@@ -108,7 +108,7 @@ public static class ReproductionInvariants
                     var guardianHousehold = economy.Housing.HouseholdOf(guardian);
                     if (guardianHousehold != Entity.Null && guardianHousehold != household)
                         issues.Add(new Issue("guardian.residence", "Warn",
-                            $"Sim {entity.Id} does not live with guardian {guardian.Id}"));
+                            $"Genos {entity.Id} does not live with guardian {guardian.Id}"));
                 }
             });
 

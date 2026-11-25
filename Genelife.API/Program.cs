@@ -100,7 +100,7 @@ builder.Services.AddSingleton<WorldSaveService>();
 builder.Services.AddSingleton<IWorldPersistence>(provider => provider.GetRequiredService<WorldSaveService>());
 builder.Services.AddSingleton<IReadModelStore, MartenReadModelStore>();
 builder.Services.AddSingleton<IEventConsumerProbe, MartenEventConsumerProbe>();
-builder.Services.AddSingleton<Genelife.Api.Handlers.Push.SimStatePushHandler>();
+builder.Services.AddSingleton<Genelife.Api.Handlers.Push.GenosStatePushHandler>();
 builder.Services.AddSingleton<Genelife.Api.Handlers.Push.CompanyStatePushHandler>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<SnapshotBroadcastService>();
@@ -121,15 +121,15 @@ builder.Services.AddMarten(opts =>
         opts.DatabaseSchemaName = martenSchema;
     opts.DisableNpgsqlLogging = true;
     opts.AutoCreateSchemaObjects = JasperFx.AutoCreate.CreateOrUpdate;
-    opts.Schema.For<Genelife.Api.Models.SimDocument>().Identity(x => x.Id);
-    opts.Schema.For<Genelife.Api.Models.SimDocument>().Index(x => x.NetworkId);
+    opts.Schema.For<Genelife.Api.Models.GenosDocument>().Identity(x => x.Id);
+    opts.Schema.For<Genelife.Api.Models.GenosDocument>().Index(x => x.NetworkId);
     opts.Schema.For<Genelife.Api.Models.CompanyDocument>().Identity(x => x.Id);
     opts.Schema.For<Genelife.Api.Models.CompanyDocument>().Index(x => x.NetworkId);
     opts.Schema.For<Genelife.Api.Models.MapDocument>().Identity(x => x.Id);
     opts.Schema.For<Genelife.Api.Models.BuildingDocument>().Identity(x => x.Id);
     opts.Schema.For<Genelife.Api.Models.BuildingDocument>().Index(x => x.NetworkId);
     opts.Schema.For<Genelife.Api.Models.FamilyDocument>().Identity(x => x.Id);
-    opts.Schema.For<Genelife.Api.Models.FamilyDocument>().Index(x => x.SimNetworkId);
+    opts.Schema.For<Genelife.Api.Models.FamilyDocument>().Index(x => x.GenosNetworkId);
     opts.Schema.For<Genelife.Api.Models.RelationshipDocument>().Identity(x => x.Id);
     opts.Schema.For<Genelife.Api.Models.RelationshipDocument>().Index(x => x.RelationshipNetworkId);
     opts.Schema.For<Genelife.Api.Models.PregnancyDocument>().Identity(x => x.Id);
@@ -149,7 +149,7 @@ builder.Services.AddMarten(opts =>
     opts.Schema.For<Genelife.Api.Models.ChatMessageDocument>().Identity(x => x.Id);
     opts.Schema.For<Genelife.Api.Models.ChatMessageDocument>().Index(x => x.PlayerId);
     opts.Schema.For<Genelife.Api.Models.ChatMessageDocument>().Index(x => x.ExpiresAt);
-    opts.Projections.Add<Genelife.Api.Projections.SimProjection>(JasperFx.Events.Projections.ProjectionLifecycle.Inline);
+    opts.Projections.Add<Genelife.Api.Projections.GenosProjection>(JasperFx.Events.Projections.ProjectionLifecycle.Inline);
     opts.Projections.Add<Genelife.Api.Projections.CompanyProjection>(JasperFx.Events.Projections.ProjectionLifecycle.Inline);
     opts.Projections.Add<Genelife.Api.Projections.MapProjection>(JasperFx.Events.Projections.ProjectionLifecycle.Inline);
     opts.Projections.Add<Genelife.Api.Projections.FamilyProjection>(JasperFx.Events.Projections.ProjectionLifecycle.Inline);
@@ -167,7 +167,7 @@ builder.Services.AddMarten(opts =>
 builder.Host.UseWolverine(opts =>
 {
     opts.Discovery.IncludeAssembly(typeof(Program).Assembly);
-    opts.Discovery.IncludeAssembly(typeof(Genelife.Messages.Commands.CreateSim).Assembly);
+    opts.Discovery.IncludeAssembly(typeof(Genelife.Messages.Commands.CreateGenos).Assembly);
     opts.Durability.Mode = Wolverine.DurabilityMode.ServerlessWithOutbox;
 });
 builder.Services.AddWolverineHttp();

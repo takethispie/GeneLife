@@ -14,7 +14,7 @@ namespace Genelife.Systems;
 /// <summary>
 /// Starts and ends shifts for Work-stage employees. Commuting is abstract; shifts
 /// only change presence, action and performance counters. Plays no role at all
-/// for students, retirees, elders or player-controlled sims.
+/// for students, retirees, elders or player-controlled genoses.
 /// </summary>
 public class WorkScheduleSystem : ISimulationSystem
 {
@@ -154,64 +154,64 @@ public class WorkScheduleSystem : ISimulationSystem
             economy.Emit(@event);
     }
 
-    private void MoveToOffice(Entity sim, Entity office)
+    private void MoveToOffice(Entity genos, Entity office)
     {
         if (map is null || office == Entity.Null || !world.IsAlive(office))
             return;
         if (world.Has<Placement>(office))
-            MoveTo(sim, world.Get<Placement>(office).Entry);
+            MoveTo(genos, world.Get<Placement>(office).Entry);
     }
 
-    private void MoveHome(Entity sim)
+    private void MoveHome(Entity genos)
     {
         if (map is null)
             return;
 
-        if (economy.Housing.TryGetUnitForSim(sim, out var unit) &&
+        if (economy.Housing.TryGetUnitForGenos(genos, out var unit) &&
             world.IsAlive(unit) &&
             world.Has<Genelife.Components.Housing.HousingUnit>(unit))
         {
             var property = world.Get<Genelife.Components.Housing.HousingUnit>(unit).Property;
             if (world.IsAlive(property) && world.Has<Placement>(property))
             {
-                MoveTo(sim, world.Get<Placement>(property).Entry);
+                MoveTo(genos, world.Get<Placement>(property).Entry);
                 return;
             }
         }
 
-        var id = world.Has<NetworkId>(sim) ? world.Get<NetworkId>(sim).Value : 0;
-        MoveTo(sim, MapSpawner.FindSpawn(map, id));
+        var id = world.Has<NetworkId>(genos) ? world.Get<NetworkId>(genos).Value : 0;
+        MoveTo(genos, MapSpawner.FindSpawn(map, id));
     }
 
-    private void MoveTo(Entity sim, TileCoord tile)
+    private void MoveTo(Entity genos, TileCoord tile)
     {
-        if (!map!.Map.IsWalkable(tile) || !world.Has<TilePosition>(sim))
+        if (!map!.Map.IsWalkable(tile) || !world.Has<TilePosition>(genos))
             return;
 
         if (commute.Mode == CommuteMode.Abstract || movementIndex is null)
         {
-            world.Get<TilePosition>(sim) = new TilePosition(tile);
-            if (world.Has<Location>(sim))
+            world.Get<TilePosition>(genos) = new TilePosition(tile);
+            if (world.Has<Location>(genos))
             {
                 var (x, y) = map.Options.ToWorld(tile);
-                world.Get<Location>(sim) = new Location(x, y);
+                world.Get<Location>(genos) = new Location(x, y);
             }
             return;
         }
 
-        var current = world.Get<TilePosition>(sim).Tile;
+        var current = world.Get<TilePosition>(genos).Tile;
         if (current == tile)
             return;
 
-        if (!world.Has<MovementState>(sim))
-            world.Add(sim, new MovementState(commute.SpeedTilesPerSecond));
+        if (!world.Has<MovementState>(genos))
+            world.Add(genos, new MovementState(commute.SpeedTilesPerSecond));
         var target = new MoveTarget(tile);
-        if (world.Has<MoveTarget>(sim))
-            world.Get<MoveTarget>(sim) = target;
+        if (world.Has<MoveTarget>(genos))
+            world.Get<MoveTarget>(genos) = target;
         else
-            world.Add(sim, target);
+            world.Add(genos, target);
 
-        movementIndex.RequestPath(sim, current, tile, map.Version);
+        movementIndex.RequestPath(genos, current, tile, map.Version);
     }
 
     private static ActionType CriticalNeed(Needs needs)

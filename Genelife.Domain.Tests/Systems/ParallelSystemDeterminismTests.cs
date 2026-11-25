@@ -12,7 +12,7 @@ namespace Genelife.UnitTests.Systems;
 /// </summary>
 public class ParallelSystemDeterminismTests
 {
-    private const int SimCount = 600;
+    private const int GenosCount = 600;
     private const int Ticks = 20;
     private const float DeltaTime = 1f / 20f;
 
@@ -25,7 +25,7 @@ public class ParallelSystemDeterminismTests
         Assert.Equal(serial.Count, parallel.Count);
         foreach (var (networkId, expected) in serial)
         {
-            Assert.True(parallel.TryGetValue(networkId, out var actual), $"missing sim {networkId}");
+            Assert.True(parallel.TryGetValue(networkId, out var actual), $"missing genos {networkId}");
             Assert.Equal(expected.Hunger, actual.Hunger);
             Assert.Equal(expected.Energy, actual.Energy);
             Assert.Equal(expected.Hygiene, actual.Hygiene);
@@ -39,7 +39,7 @@ public class ParallelSystemDeterminismTests
     {
         using var world = World.Create();
 
-        for (var i = 0; i < SimCount; i++)
+        for (var i = 0; i < GenosCount; i++)
         {
             world.Create(
                 new NetworkId((ulong)(i + 1)),

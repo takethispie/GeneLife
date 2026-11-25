@@ -17,21 +17,21 @@ public sealed class ProjectionIntegrationTests : IClassFixture<TestApplicationFa
     }
 
     [Fact]
-    public async Task SimCreated_event_creates_SimDocument_via_projection()
+    public async Task GenosCreated_event_creates_GenosDocument_via_projection()
     {
         var store = factory.Services.GetRequiredService<IDocumentStore>();
 
-        var simCreated = new SimCreated(1, "TestSim", 25);
+        var genosCreated = new GenosCreated(1, "TestGenos", 25);
 
         await using var session = store.LightweightSession();
-        session.Events.StartStream(Guid.NewGuid(), simCreated);
+        session.Events.StartStream(Guid.NewGuid(), genosCreated);
         await session.SaveChangesAsync();
 
-        var docs = await session.Query<SimDocument>().ToListAsync();
+        var docs = await session.Query<GenosDocument>().ToListAsync();
         var doc = docs.FirstOrDefault(d => d.NetworkId == 1);
 
         Assert.NotNull(doc);
-        Assert.Equal("TestSim", doc!.Name);
+        Assert.Equal("TestGenos", doc!.Name);
         Assert.Equal(25, doc.Age);
     }
 
@@ -54,29 +54,29 @@ public sealed class ProjectionIntegrationTests : IClassFixture<TestApplicationFa
     }
 
     [Fact]
-    public async Task SimNeedsChanged_event_updates_existing_SimDocument()
+    public async Task GenosNeedsChanged_event_updates_existing_GenosDocument()
     {
         var store = factory.Services.GetRequiredService<IDocumentStore>();
 
         var streamId = Guid.NewGuid();
-        var simCreated = new SimCreated(2, "NeedySim", 30);
+        var genosCreated = new GenosCreated(2, "NeedyGenos", 30);
 
         // SimulationEventWriter persists create events before update events in
         // the same flush so inline projections can see the new document.
         await using (var createSession = store.LightweightSession())
         {
-            createSession.Events.StartStream(streamId, simCreated);
+            createSession.Events.StartStream(streamId, genosCreated);
             await createSession.SaveChangesAsync();
         }
 
         await using (var updateSession = store.LightweightSession())
         {
-            updateSession.Events.Append(streamId, new SimNeedsChanged(2, 80, 50, 60, 40));
+            updateSession.Events.Append(streamId, new GenosNeedsChanged(2, 80, 50, 60, 40));
             await updateSession.SaveChangesAsync();
         }
 
         await using var readSession = store.LightweightSession();
-        var docs = await readSession.Query<SimDocument>().ToListAsync();
+        var docs = await readSession.Query<GenosDocument>().ToListAsync();
         var doc = docs.FirstOrDefault(d => d.NetworkId == 2);
 
         Assert.NotNull(doc);

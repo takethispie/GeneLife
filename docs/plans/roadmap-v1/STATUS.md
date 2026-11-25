@@ -26,7 +26,7 @@ All tech-step documents under `01-economy/`, `02-housing/` and `03-life-stages/`
 ## Known limitations
 
 - V1 is a backend/admin simulation. There is no player-facing game client in this roadmap.
-- Population balance is asserted at 200 sims for a decade (`BalanceScenarioTests`); 1k/2k long-run tuning is still open.
+- Population balance is asserted at 200 genoses for a decade (`BalanceScenarioTests`); 1k/2k long-run tuning is still open.
 - The 2026-11 balance pass fixed the fixed-company seed, money leaks and pension capitalization; vacancy, company failures and wealth Gini remain outside target (see `01-economy/business/04-balance-targets.md`).
 - Performance guardrails are synthetic-tier budgets, not an end-to-end browser load test.
 - Marten read-model projections are eventually consistent through the background event writer.

@@ -520,7 +520,7 @@ private readonly NetworkIdRegistry networkIds = new();
                 playerRegistry,
                 relationshipIndex,
                 this.inheritanceOptions,
-                CreateContinuationSim));
+                CreateContinuationGenos));
             systems.Register(new PlayerEmploymentSystem(world, economy));
             systems.Register(new PlayerHouseholdSystem(world, economy));
             systems.Register(new PlayerConsumptionSystem(world, economy));
@@ -644,12 +644,12 @@ private readonly NetworkIdRegistry networkIds = new();
         // event collection no longer block request readers behind the write lock.
         using (ReadLock())
         {
-            // Collecting sim/map events is a full-world pass that only the
+            // Collecting genos/map events is a full-world pass that only the
             // persistence writer consumes. Skip it entirely when nobody reads
             // the outbound channel.
             if (hasEventConsumer)
             {
-                CollectSimEvents(currentWorld, events);
+                CollectGenosEvents(currentWorld, events);
                 CollectMapEvents(events);
             }
 
@@ -690,9 +690,9 @@ private readonly NetworkIdRegistry networkIds = new();
     private void PublishSnapshot(World currentWorld)
     {
         var snapshotStart = Stopwatch.GetTimestamp();
-        var sims = BuildSimSnapshots(currentWorld);
+        var genoses = BuildGenosSnapshots(currentWorld);
         var companies = BuildCompanySnapshots(currentWorld, employmentIndex!);
-        var next = new WorldSnapshot(tick, WorldSnapshot.CurrentVersion, sims, companies);
+        var next = new WorldSnapshot(tick, WorldSnapshot.CurrentVersion, genoses, companies);
         LastSnapshotBuildTimeMs = (long)ElapsedMilliseconds(snapshotStart);
 
         Interlocked.Exchange(ref _latest, next);
@@ -799,26 +799,26 @@ private readonly NetworkIdRegistry networkIds = new();
 
     private void ObservePlayerLifecycleEvent(World currentWorld, object @event, List<object> events)
     {
-        if (@event is SimDied died &&
-            networkIds.TryGetEntity(new NetworkId(died.SimNetworkId), out var dead) &&
+        if (@event is GenosDied died &&
+            networkIds.TryGetEntity(new NetworkId(died.GenosNetworkId), out var dead) &&
             currentWorld.IsAlive(dead))
         {
             PlayerProfile? profile = null;
-            if (playerRegistry.TryGetBySim(dead, out var bySim))
-                profile = bySim;
-            else if (playerRegistry.TryGetByLastSimNetworkId(died.SimNetworkId, out var byLast))
+            if (playerRegistry.TryGetByGenos(dead, out var byGenos))
+                profile = byGenos;
+            else if (playerRegistry.TryGetByLastGenosNetworkId(died.GenosNetworkId, out var byLast))
                 profile = byLast;
 
             if (profile is not null)
             {
-                profile.LastSimName ??= died.Name;
-                profile.LastSimAge = profile.LastSimAge == 0 ? died.Age : profile.LastSimAge;
-                if (profile.LastSimTraits is null && currentWorld.Has<Traits>(dead))
-                    profile.LastSimTraits = currentWorld.Get<Traits>(dead);
-                if (profile.LastSimHouseholdNetworkId == 0)
-                    profile.LastSimHouseholdNetworkId = died.HouseholdNetworkId;
-                if (profile.LastSimDeathTick == 0)
-                    profile.LastSimDeathTick = died.Tick;
+                profile.LastGenosName ??= died.Name;
+                profile.LastGenosAge = profile.LastGenosAge == 0 ? died.Age : profile.LastGenosAge;
+                if (profile.LastGenosTraits is null && currentWorld.Has<Traits>(dead))
+                    profile.LastGenosTraits = currentWorld.Get<Traits>(dead);
+                if (profile.LastGenosHouseholdNetworkId == 0)
+                    profile.LastGenosHouseholdNetworkId = died.HouseholdNetworkId;
+                if (profile.LastGenosDeathTick == 0)
+                    profile.LastGenosDeathTick = died.Tick;
             }
 
             return;
@@ -829,15 +829,15 @@ private readonly NetworkIdRegistry networkIds = new();
             if (awaiting.CanRespawn &&
                 playerRegistry.TryGet(awaiting.PlayerId, out var profile))
             {
-                profile.LastSimName ??= awaiting.Name;
-                profile.LastSimAge = profile.LastSimAge == 0 ? awaiting.Age : profile.LastSimAge;
+                profile.LastGenosName ??= awaiting.Name;
+                profile.LastGenosAge = profile.LastGenosAge == 0 ? awaiting.Age : profile.LastGenosAge;
 
-                // The monthly estate pass removes the dead sim's relationship
+                // The monthly estate pass removes the dead genos's relationship
                 // edges. Create the respawn child after that pass but while the
                 // dead entity still exists so the parent edge survives.
                 if (profile.ContinuationPolicy == PlayerContinuationPolicy.Respawn &&
-                    profile.PendingRespawnSimNetworkId == 0 &&
-                    networkIds.TryGetEntity(new NetworkId(awaiting.SimNetworkId), out var deadEntity) &&
+                    profile.PendingRespawnGenosNetworkId == 0 &&
+                    networkIds.TryGetEntity(new NetworkId(awaiting.GenosNetworkId), out var deadEntity) &&
                     currentWorld.IsAlive(deadEntity) &&
                     currentWorld.Has<Dead>(deadEntity))
                 {
@@ -845,8 +845,8 @@ private readonly NetworkIdRegistry networkIds = new();
                         currentWorld,
                         profile,
                         deadEntity,
-                        awaiting.SimNetworkId,
-                        profile.LastSimHouseholdNetworkId,
+                        awaiting.GenosNetworkId,
+                        profile.LastGenosHouseholdNetworkId,
                         awaiting.Tick,
                         events);
                 }
@@ -855,7 +855,7 @@ private readonly NetworkIdRegistry networkIds = new();
             playerLifecycleNotices.Enqueue(new PlayerLifecycleNotice(
                 awaiting.PlayerId,
                 "died",
-                awaiting.SimNetworkId,
+                awaiting.GenosNetworkId,
                 0,
                 awaiting.Name,
                 awaiting.Age,
@@ -870,8 +870,8 @@ private readonly NetworkIdRegistry networkIds = new();
             playerLifecycleNotices.Enqueue(new PlayerLifecycleNotice(
                 applied.PlayerId,
                 "respawned",
-                applied.NewSimNetworkId,
-                applied.PreviousSimNetworkId,
+                applied.NewGenosNetworkId,
+                applied.PreviousGenosNetworkId,
                 applied.Name,
                 0,
                 null,
@@ -883,20 +883,20 @@ private readonly NetworkIdRegistry networkIds = new();
     /// <summary>
     /// For a Respawn-policy player, create the child immediately at death. The
     /// dead entity is still alive here, which is the only reliable window for
-    /// linking the parent edge; the player later takes control of this sim.
+    /// linking the parent edge; the player later takes control of this genos.
     /// </summary>
     private void TryCreatePendingRespawnChild(
         World currentWorld,
         PlayerProfile profile,
         Entity dead,
-        ulong simNetworkId,
+        ulong genosNetworkId,
         ulong householdNetworkId,
         long tick,
         List<object> events)
     {
         if (profile.ContinuationPolicy != PlayerContinuationPolicy.Respawn ||
             profile.Observer ||
-            profile.PendingRespawnSimNetworkId != 0 ||
+            profile.PendingRespawnGenosNetworkId != 0 ||
             newbornFactory is null ||
             economy is null)
         {
@@ -912,7 +912,7 @@ private readonly NetworkIdRegistry networkIds = new();
             household = householdEntity;
         }
 
-        var parentTraits = profile.LastSimTraits;
+        var parentTraits = profile.LastGenosTraits;
         if (parentTraits is null && currentWorld.Has<Traits>(dead))
             parentTraits = currentWorld.Get<Traits>(dead);
 
@@ -927,10 +927,10 @@ private readonly NetworkIdRegistry networkIds = new();
         if (!currentWorld.Has<MovementState>(child.Entity))
             currentWorld.Add(child.Entity, new MovementState(MovementOptions.PlayerSpeedTilesPerSecond));
 
-        profile.PendingRespawnSimNetworkId = childNetworkId;
+        profile.PendingRespawnGenosNetworkId = childNetworkId;
         events.Add(new ChildBorn(
             childNetworkId,
-            simNetworkId,
+            genosNetworkId,
             0,
             householdNetworkId,
             tick));
@@ -1024,11 +1024,11 @@ private readonly NetworkIdRegistry networkIds = new();
         && a.EntryX == b.EntryX
         && a.EntryY == b.EntryY;
 
-    private void CollectSimEvents(World world, List<object> events)
+    private void CollectGenosEvents(World world, List<object> events)
     {        var query = new QueryDescription().WithAll<Needs, NetworkId>();
         world.Query(in query, (ref Needs needs, ref NetworkId nid) =>
         {
-            events.Add(new SimNeedsChanged(nid.Value, needs.Hunger, needs.Energy, needs.Hygiene, needs.Bladder));
+            events.Add(new GenosNeedsChanged(nid.Value, needs.Hunger, needs.Energy, needs.Hygiene, needs.Bladder));
         });
     }
 
@@ -1046,7 +1046,7 @@ private readonly NetworkIdRegistry networkIds = new();
 
                 switch (command.Type)
                 {
-                    case CommandType.CreateSim:
+                    case CommandType.CreateGenos:
                         if (command.Payload != null)
                         {
                             var parts = command.Payload.Split('|');
@@ -1067,13 +1067,13 @@ private readonly NetworkIdRegistry networkIds = new();
                                 var nid = new NetworkId(command.NetworkId.GetValueOrDefault());
                                 world.Add(entity, nid);
                                 if (mapContext is not null)
-                                    MapSpawner.PlaceSim(world, entity, mapContext, nid.Value);
+                                    MapSpawner.PlaceGenos(world, entity, mapContext, nid.Value);
                                 economy.Life.Index.OnBorn(economy.Life.Policy.StageFor(age));
                             }
                         }
                         break;
 
-                    case CommandType.DeleteSim:
+                    case CommandType.DeleteGenos:
                         if (command.NetworkId.HasValue)
                         {
                             DestroyByNetworkId(world, command.NetworkId.Value);
@@ -1278,10 +1278,10 @@ private readonly NetworkIdRegistry networkIds = new();
                 return;
             }
 
-            var sim = ResolvePlayerSim(intent.PlayerId, intent.SimNetworkId);
-            if (sim != Entity.Null && world.Has<NetworkId>(sim))
-                intent = intent with { SimNetworkId = world.Get<NetworkId>(sim).Value };
-            var result = playerActions.Apply(intent.PlayerId, sim, intent.Kind, intent.Payload, tick);
+            var genos = ResolvePlayerGenos(intent.PlayerId, intent.GenosNetworkId);
+            if (genos != Entity.Null && world.Has<NetworkId>(genos))
+                intent = intent with { GenosNetworkId = world.Get<NetworkId>(genos).Value };
+            var result = playerActions.Apply(intent.PlayerId, genos, intent.Kind, intent.Payload, tick);
             CompletePlayerCommand(
                 intent,
                 result.Applied ? PlayerCommandStatus.Applied : PlayerCommandStatus.Rejected,
@@ -1326,7 +1326,7 @@ private readonly NetworkIdRegistry networkIds = new();
         economy?.Emit(new PlayerCommandApplied(
             intent.CommandId,
             intent.PlayerId,
-            intent.SimNetworkId,
+            intent.GenosNetworkId,
             intent.Kind.ToString(),
             status.ToString(),
             code,
@@ -1354,17 +1354,17 @@ private readonly NetworkIdRegistry networkIds = new();
         if (intent.Sequence > 0)
             lastIntentSequence[intent.PlayerId] = intent.Sequence;
 
-        var sim = ResolvePlayerSim(intent.PlayerId, intent.SimNetworkId);
-        if (sim == Entity.Null || !world.IsAlive(sim) || world.Has<Dead>(sim))
+        var genos = ResolvePlayerGenos(intent.PlayerId, intent.GenosNetworkId);
+        if (genos == Entity.Null || !world.IsAlive(genos) || world.Has<Dead>(genos))
         {
-            RejectIntent(intent.PlayerId, intent.Sequence, "sim_not_found", "Your sim is not available");
+            RejectIntent(intent.PlayerId, intent.Sequence, "genos_not_found", "Your genos is not available");
             return;
         }
 
-        var owner = world.Has<PlayerControlled>(sim) ? world.Get<PlayerControlled>(sim).PlayerId : null;
+        var owner = world.Has<PlayerControlled>(genos) ? world.Get<PlayerControlled>(genos).PlayerId : null;
         if (!string.Equals(owner, intent.PlayerId, StringComparison.Ordinal))
         {
-            RejectIntent(intent.PlayerId, intent.Sequence, "not_owner", "You do not control that sim");
+            RejectIntent(intent.PlayerId, intent.Sequence, "not_owner", "You do not control that genos");
             return;
         }
 
@@ -1384,40 +1384,40 @@ private readonly NetworkIdRegistry networkIds = new();
             return;
         }
 
-        var current = world.Has<TilePosition>(sim)
-            ? world.Get<TilePosition>(sim).Tile
+        var current = world.Has<TilePosition>(genos)
+            ? world.Get<TilePosition>(genos).Tile
             : mapContext.Options.ToTile(
-                world.Has<Location>(sim) ? world.Get<Location>(sim).Position.X : 0f,
-                world.Has<Location>(sim) ? world.Get<Location>(sim).Position.Y : 0f);
+                world.Has<Location>(genos) ? world.Get<Location>(genos).Position.X : 0f,
+                world.Has<Location>(genos) ? world.Get<Location>(genos).Position.Y : 0f);
 
         if (!mapContext.Options.Bounds.Contains(current) || !mapContext.Map.IsWalkable(current))
         {
-            current = MapSpawner.FindSpawn(mapContext, world.Has<NetworkId>(sim) ? world.Get<NetworkId>(sim).Value : 0);
-            MapSpawner.PlaceSimAt(world, sim, mapContext, current);
+            current = MapSpawner.FindSpawn(mapContext, world.Has<NetworkId>(genos) ? world.Get<NetworkId>(genos).Value : 0);
+            MapSpawner.PlaceGenosAt(world, genos, mapContext, current);
         }
 
-        if (!world.Has<MovementState>(sim))
-            world.Add(sim, new MovementState(MovementOptions.PlayerSpeedTilesPerSecond));
+        if (!world.Has<MovementState>(genos))
+            world.Add(genos, new MovementState(MovementOptions.PlayerSpeedTilesPerSecond));
 
         if (current == target)
         {
-            if (world.Has<MoveTarget>(sim))
+            if (world.Has<MoveTarget>(genos))
             {
-                var existing = world.Get<MoveTarget>(sim);
+                var existing = world.Get<MoveTarget>(genos);
                 existing.HasTarget = false;
-                world.Get<MoveTarget>(sim) = existing;
+                world.Get<MoveTarget>(genos) = existing;
             }
-            movementIndex.Clear(sim);
+            movementIndex.Clear(genos);
             return;
         }
 
         var moveTarget = new MoveTarget(target, tick, movementIndex.PathVersion);
-        if (world.Has<MoveTarget>(sim))
-            world.Get<MoveTarget>(sim) = moveTarget;
+        if (world.Has<MoveTarget>(genos))
+            world.Get<MoveTarget>(genos) = moveTarget;
         else
-            world.Add(sim, moveTarget);
+            world.Add(genos, moveTarget);
 
-        movementIndex.RequestPath(sim, current, target, mapContext.Version);
+        movementIndex.RequestPath(genos, current, target, mapContext.Version);
     }
 
     private void ApplyUseBuildingIntent(UseBuildingIntent intent)
@@ -1450,21 +1450,21 @@ private readonly NetworkIdRegistry networkIds = new();
             return;
         }
 
-        var sim = ResolvePlayerSim(intent.PlayerId, intent.SimNetworkId);
-        if (sim == Entity.Null || !world.IsAlive(sim) || world.Has<Dead>(sim))
+        var genos = ResolvePlayerGenos(intent.PlayerId, intent.GenosNetworkId);
+        if (genos == Entity.Null || !world.IsAlive(genos) || world.Has<Dead>(genos))
         {
-            RejectIntent(intent.PlayerId, intent.Sequence, "sim_not_found", "Your sim is not available");
+            RejectIntent(intent.PlayerId, intent.Sequence, "genos_not_found", "Your genos is not available");
             return;
         }
-        var owner = world.Has<PlayerControlled>(sim) ? world.Get<PlayerControlled>(sim).PlayerId : null;
+        var owner = world.Has<PlayerControlled>(genos) ? world.Get<PlayerControlled>(genos).PlayerId : null;
         if (!string.Equals(owner, intent.PlayerId, StringComparison.Ordinal))
         {
-            RejectIntent(intent.PlayerId, intent.Sequence, "not_owner", "You do not control that sim");
+            RejectIntent(intent.PlayerId, intent.Sequence, "not_owner", "You do not control that genos");
             return;
         }
 
         var placement = world.Get<Placement>(building);
-        if (world.Get<TilePosition>(sim).Tile.ChebyshevDistanceTo(placement.Entry) > 1)
+        if (world.Get<TilePosition>(genos).Tile.ChebyshevDistanceTo(placement.Entry) > 1)
         {
             RejectIntent(intent.PlayerId, intent.Sequence, "out_of_range", "Walk to the entrance first");
             return;
@@ -1488,13 +1488,13 @@ private readonly NetworkIdRegistry networkIds = new();
                 return;
             }
 
-            if (world.Has<MoveTarget>(sim))
+            if (world.Has<MoveTarget>(genos))
             {
-                var moveTarget = world.Get<MoveTarget>(sim);
+                var moveTarget = world.Get<MoveTarget>(genos);
                 moveTarget.HasTarget = false;
-                world.Get<MoveTarget>(sim) = moveTarget;
+                world.Get<MoveTarget>(genos) = moveTarget;
             }
-            movementIndex?.Clear(sim);
+            movementIndex?.Clear(genos);
             return;
         }
 
@@ -1505,7 +1505,7 @@ private readonly NetworkIdRegistry networkIds = new();
         }
         else if (world.Has<Office>(building))
         {
-            if (!world.Has<Employee>(sim) || world.Get<Employee>(sim).Office != building)
+            if (!world.Has<Employee>(genos) || world.Get<Employee>(genos).Office != building)
             {
                 RejectIntent(intent.PlayerId, intent.Sequence, "role_not_allowed", "You cannot use this building");
                 return;
@@ -1523,27 +1523,27 @@ private readonly NetworkIdRegistry networkIds = new();
             return;
         }
 
-        var current = world.Has<CurrentAction>(sim)
-            ? world.Get<CurrentAction>(sim)
+        var current = world.Has<CurrentAction>(genos)
+            ? world.Get<CurrentAction>(genos)
             : new CurrentAction(ActionType.Idle, 0f);
         current = new CurrentAction(action.Value, action.Value == ActionType.Studying ? 60f : 0f);
-        if (world.Has<CurrentAction>(sim))
-            world.Get<CurrentAction>(sim) = current;
+        if (world.Has<CurrentAction>(genos))
+            world.Get<CurrentAction>(genos) = current;
         else
-            world.Add(sim, current);
+            world.Add(genos, current);
 
         if (action.Value == ActionType.Working)
-            playerActions?.RecordWorkPresence(sim, tick);
+            playerActions?.RecordWorkPresence(genos, tick);
 
-        if (!world.Has<MoveTarget>(sim))
+        if (!world.Has<MoveTarget>(genos))
             return;
-        var target = world.Get<MoveTarget>(sim);
+        var target = world.Get<MoveTarget>(genos);
         target.HasTarget = false;
-        world.Get<MoveTarget>(sim) = target;
-        movementIndex?.Clear(sim);
+        world.Get<MoveTarget>(genos) = target;
+        movementIndex?.Clear(genos);
     }
 
-    private Entity ResolvePlayerSim(string playerId, ulong networkId)    {
+    private Entity ResolvePlayerGenos(string playerId, ulong networkId)    {
         if (world is null)
             return Entity.Null;
         if (networkId != 0 && networkIds.TryGetEntity(new NetworkId(networkId), out var entity))
@@ -1561,15 +1561,15 @@ private readonly NetworkIdRegistry networkIds = new();
         return found;
     }
 
-    public ulong GetPlayerSimNetworkId(string playerId)
+    public ulong GetPlayerGenosNetworkId(string playerId)
     {
         using (ReadLock())
         {
             if (world is null || string.IsNullOrWhiteSpace(playerId))
                 return 0;
-            var sim = ResolvePlayerSim(playerId, 0);
-            return sim != Entity.Null && world.IsAlive(sim) && world.Has<NetworkId>(sim)
-                ? world.Get<NetworkId>(sim).Value
+            var genos = ResolvePlayerGenos(playerId, 0);
+            return genos != Entity.Null && world.IsAlive(genos) && world.Has<NetworkId>(genos)
+                ? world.Get<NetworkId>(genos).Value
                 : 0;
         }
     }
@@ -1581,16 +1581,16 @@ private readonly NetworkIdRegistry networkIds = new();
             if (world is null || mapContext is null || string.IsNullOrWhiteSpace(playerId))
                 return null;
 
-            var sim = ResolvePlayerSim(playerId, 0);
-            if (sim == Entity.Null || !world.IsAlive(sim) || world.Has<Dead>(sim))
+            var genos = ResolvePlayerGenos(playerId, 0);
+            if (genos == Entity.Null || !world.IsAlive(genos) || world.Has<Dead>(genos))
                 return null;
 
-            if (world.Has<TilePosition>(sim))
-                return world.Get<TilePosition>(sim).Tile;
+            if (world.Has<TilePosition>(genos))
+                return world.Get<TilePosition>(genos).Tile;
 
-            if (world.Has<Location>(sim))
+            if (world.Has<Location>(genos))
             {
-                var location = world.Get<Location>(sim).Position;
+                var location = world.Get<Location>(genos).Position;
                 return mapContext.Options.ToTile(location.X, location.Y);
             }
 
@@ -1599,11 +1599,11 @@ private readonly NetworkIdRegistry networkIds = new();
     }
 
     /// <summary>
-    /// Creates a player-controlled sim for a new browser player when the world is
-    /// running and the player does not already own a living sim. Returns the
-    /// player's sim network id, or 0 when no sim could be created.
+    /// Creates a player-controlled genos for a new browser player when the world is
+    /// running and the player does not already own a living genos. Returns the
+    /// player's genos network id, or 0 when no genos could be created.
     /// </summary>
-    public ulong EnsurePlayerSim(string playerId)
+    public ulong EnsurePlayerGenos(string playerId)
     {
         using (WriteLock())
         {
@@ -1616,33 +1616,33 @@ private readonly NetworkIdRegistry networkIds = new();
                     return 0;
 
                 // A reconnect can arrive after death but before the lifecycle
-                // system's next cadence. Never mint a replacement sim here.
-                if (known.ControlledSim != Entity.Null &&
-                    world.IsAlive(known.ControlledSim) &&
-                    world.Has<Dead>(known.ControlledSim))
+                // system's next cadence. Never mint a replacement genos here.
+                if (known.ControlledGenos != Entity.Null &&
+                    world.IsAlive(known.ControlledGenos) &&
+                    world.Has<Dead>(known.ControlledGenos))
                 {
                     known.AwaitingContinuation = true;
-                    known.LastSimNetworkId = world.Has<NetworkId>(known.ControlledSim)
-                        ? world.Get<NetworkId>(known.ControlledSim).Value
+                    known.LastGenosNetworkId = world.Has<NetworkId>(known.ControlledGenos)
+                        ? world.Get<NetworkId>(known.ControlledGenos).Value
                         : 0;
-                    if (world.Has<GenName>(known.ControlledSim))
-                        known.LastSimName = world.Get<GenName>(known.ControlledSim).Name;
-                    if (world.Has<Alive>(known.ControlledSim))
-                        known.LastSimAge = world.Get<Alive>(known.ControlledSim).Age;
-                    if (known.LastSimTraits is null && world.Has<Traits>(known.ControlledSim))
-                        known.LastSimTraits = world.Get<Traits>(known.ControlledSim);
+                    if (world.Has<GenName>(known.ControlledGenos))
+                        known.LastGenosName = world.Get<GenName>(known.ControlledGenos).Name;
+                    if (world.Has<Alive>(known.ControlledGenos))
+                        known.LastGenosAge = world.Get<Alive>(known.ControlledGenos).Age;
+                    if (known.LastGenosTraits is null && world.Has<Traits>(known.ControlledGenos))
+                        known.LastGenosTraits = world.Get<Traits>(known.ControlledGenos);
                     return 0;
                 }
             }
 
-            var existing = ResolvePlayerSim(playerId, 0);
+            var existing = ResolvePlayerGenos(playerId, 0);
             if (existing != Entity.Null && world.IsAlive(existing) && !world.Has<Dead>(existing))
             {
-                RegisterPlayerSim(playerId, existing);
+                RegisterPlayerGenos(playerId, existing);
                 return world.Has<NetworkId>(existing) ? world.Get<NetworkId>(existing).Value : 0;
             }
 
-            var entity = CreateContinuationSim(playerId);
+            var entity = CreateContinuationGenos(playerId);
             if (entity is null)
                 return 0;
 
@@ -1651,7 +1651,7 @@ private readonly NetworkIdRegistry networkIds = new();
     }
 
     /// <summary>
-    /// Creates a grown child of the player's last sim, transfers control to it,
+    /// Creates a grown child of the player's last genos, transfers control to it,
     /// and returns the new identity. Only valid while the profile is awaiting a
     /// continuation decision.
     /// </summary>
@@ -1666,49 +1666,49 @@ private readonly NetworkIdRegistry networkIds = new();
             if (profile.Observer || profile.ContinuationPolicy == PlayerContinuationPolicy.Observer)
                 return RespawnFailed("observer", "Observers cannot respawn.");
             if (!profile.AwaitingContinuation)
-                return RespawnFailed("not_awaiting", "Your sim is still alive.");
+                return RespawnFailed("not_awaiting", "Your genos is still alive.");
 
             var parent = Entity.Null;
-            if (profile.LastSimNetworkId != 0 &&
-                networkIds.TryGetEntity(new NetworkId(profile.LastSimNetworkId), out var parentEntity) &&
+            if (profile.LastGenosNetworkId != 0 &&
+                networkIds.TryGetEntity(new NetworkId(profile.LastGenosNetworkId), out var parentEntity) &&
                 world.IsAlive(parentEntity))
             {
                 parent = parentEntity;
             }
 
             if (parent != Entity.Null && !world.Has<Dead>(parent))
-                return RespawnFailed("not_dead", "The previous sim is still alive.");
+                return RespawnFailed("not_dead", "The previous genos is still alive.");
 
             // The normal path: a child was created at death while the parent
             // entity was still alive, so the family edge already exists.
-            if (profile.PendingRespawnSimNetworkId != 0 &&
-                networkIds.TryGetEntity(new NetworkId(profile.PendingRespawnSimNetworkId), out var pending) &&
+            if (profile.PendingRespawnGenosNetworkId != 0 &&
+                networkIds.TryGetEntity(new NetworkId(profile.PendingRespawnGenosNetworkId), out var pending) &&
                 world.IsAlive(pending) &&
                 !world.Has<Dead>(pending))
             {
                 return AttachRespawnChild(playerId, profile, pending);
             }
 
-            profile.PendingRespawnSimNetworkId = 0;
+            profile.PendingRespawnGenosNetworkId = 0;
 
-            if (profile.LastSimName is null && profile.LastSimTraits is null && parent == Entity.Null)
-                return RespawnFailed("no_parent", "No previous sim is available to continue.");
+            if (profile.LastGenosName is null && profile.LastGenosTraits is null && parent == Entity.Null)
+                return RespawnFailed("no_parent", "No previous genos is available to continue.");
 
-            if (profile.LastSimName is null && parent != Entity.Null && world.Has<GenName>(parent))
-                profile.LastSimName = world.Get<GenName>(parent).Name;
-            if (profile.LastSimAge == 0 && parent != Entity.Null && world.Has<Alive>(parent))
-                profile.LastSimAge = world.Get<Alive>(parent).Age;
+            if (profile.LastGenosName is null && parent != Entity.Null && world.Has<GenName>(parent))
+                profile.LastGenosName = world.Get<GenName>(parent).Name;
+            if (profile.LastGenosAge == 0 && parent != Entity.Null && world.Has<Alive>(parent))
+                profile.LastGenosAge = world.Get<Alive>(parent).Age;
 
             var household = Entity.Null;
-            if (profile.LastSimHouseholdNetworkId != 0 &&
-                networkIds.TryGetEntity(new NetworkId(profile.LastSimHouseholdNetworkId), out var householdEntity) &&
+            if (profile.LastGenosHouseholdNetworkId != 0 &&
+                networkIds.TryGetEntity(new NetworkId(profile.LastGenosHouseholdNetworkId), out var householdEntity) &&
                 world.IsAlive(householdEntity) &&
                 economy.Housing.MemberCount(householdEntity) > 0)
             {
                 household = householdEntity;
             }
 
-            var parentTraits = profile.LastSimTraits;
+            var parentTraits = profile.LastGenosTraits;
             if (parentTraits is null && parent != Entity.Null && world.Has<Traits>(parent))
                 parentTraits = world.Get<Traits>(parent);
 
@@ -1720,7 +1720,7 @@ private readonly NetworkIdRegistry networkIds = new();
 
             economy.Emit(new ChildBorn(
                 childNetworkId,
-                profile.LastSimNetworkId,
+                profile.LastGenosNetworkId,
                 0,
                 household != Entity.Null ? GetNetworkId(world, household) : 0,
                 tick));
@@ -1751,21 +1751,21 @@ private readonly NetworkIdRegistry networkIds = new();
         else
             world.Add(child, new PlayerControlled(playerId));
 
-        var previousSimId = profile.LastSimNetworkId;
+        var previousGenosId = profile.LastGenosNetworkId;
         profile.Observer = false;
-        playerRegistry.AttachSim(profile, child);
-        profile.LastSimNetworkId = childNetworkId;
-        profile.PendingRespawnSimNetworkId = 0;
-        profile.LastSimName = null;
-        profile.LastSimAge = 0;
-        profile.LastSimTraits = null;
-        profile.LastSimHouseholdNetworkId = 0;
-        profile.LastSimDeathTick = 0;
+        playerRegistry.AttachGenos(profile, child);
+        profile.LastGenosNetworkId = childNetworkId;
+        profile.PendingRespawnGenosNetworkId = 0;
+        profile.LastGenosName = null;
+        profile.LastGenosAge = 0;
+        profile.LastGenosTraits = null;
+        profile.LastGenosHouseholdNetworkId = 0;
+        profile.LastGenosDeathTick = 0;
         playerRegistry.RecordContinuation();
 
         economy!.Emit(new PlayerContinuationApplied(
             playerId,
-            previousSimId,
+            previousGenosId,
             childNetworkId,
             "child",
             null,
@@ -1773,42 +1773,42 @@ private readonly NetworkIdRegistry networkIds = new();
             childName));
 
         return new PlayerRespawnStatus(
-            true, null, null, childNetworkId, previousSimId, childName, age);
+            true, null, null, childNetworkId, previousGenosId, childName, age);
     }
 
     private static PlayerRespawnStatus RespawnFailed(string code, string message) =>
         new(false, code, message, 0, 0, null, 0);
 
-    private Entity? CreateContinuationSim(string playerId)
+    private Entity? CreateContinuationGenos(string playerId)
     {
         if (!isRunning || world is null || economy is null)
             return null;
 
-        var repository = new SimRepository(world, networkIds, economy, mapContext);
+        var repository = new GenosRepository(world, networkIds, economy, mapContext);
         var name = playerId.Length > 20 ? $"Player-{playerId[..20]}" : $"Player-{playerId}";
         var networkId = repository.Add(name, 25, playerId);
-        Emit(new SimCreated(networkId.Value, name, 25));
+        Emit(new GenosCreated(networkId.Value, name, 25));
 
         if (!networkIds.TryGetEntity(networkId, out var entity) || !world.IsAlive(entity))
             return null;
 
-        RegisterPlayerSim(playerId, entity);
+        RegisterPlayerGenos(playerId, entity);
         return entity;
     }
 
-    private void RegisterPlayerSim(string playerId, Entity entity)
+    private void RegisterPlayerGenos(string playerId, Entity entity)
     {
         if (world is null || !world.IsAlive(entity))
             return;
 
         var isNew = !playerRegistry.TryGet(playerId, out _);
         var profile = playerRegistry.GetOrCreate(playerId, entity, tick);
-        profile.LastSimNetworkId = world.Has<NetworkId>(entity) ? world.Get<NetworkId>(entity).Value : 0;
+        profile.LastGenosNetworkId = world.Has<NetworkId>(entity) ? world.Get<NetworkId>(entity).Value : 0;
         profile.Observer = false;
         disconnectedPlayers.TryRemove(playerId, out _);
 
         if (isNew)
-            Emit(new PlayerProfileCreated(profile.LastSimNetworkId, playerId, tick));
+            Emit(new PlayerProfileCreated(profile.LastGenosNetworkId, playerId, tick));
     }
 
     public void EnsurePlayerSpawn(string playerId)
@@ -1818,19 +1818,19 @@ private readonly NetworkIdRegistry networkIds = new();
             if (world is null || economy is null || mapContext is null)
                 return;
 
-            var sim = ResolvePlayerSim(playerId, 0);
-            if (sim == Entity.Null || !world.IsAlive(sim))
+            var genos = ResolvePlayerGenos(playerId, 0);
+            if (genos == Entity.Null || !world.IsAlive(genos))
                 return;
 
-            RegisterPlayerSim(playerId, sim);
+            RegisterPlayerGenos(playerId, genos);
 
-            if (world.Has<TilePosition>(sim) && mapContext.Map.IsWalkable(world.Get<TilePosition>(sim).Tile))
+            if (world.Has<TilePosition>(genos) && mapContext.Map.IsWalkable(world.Get<TilePosition>(genos).Tile))
                 return;
 
-            var networkId = world.Has<NetworkId>(sim) ? world.Get<NetworkId>(sim).Value : 0;
-            PlayerSpawnService.PlaceAt(world, sim, economy.Housing, mapContext, networkId);
-            if (!world.Has<MovementState>(sim))
-                world.Add(sim, new MovementState(MovementOptions.PlayerSpeedTilesPerSecond));
+            var networkId = world.Has<NetworkId>(genos) ? world.Get<NetworkId>(genos).Value : 0;
+            PlayerSpawnService.PlaceAt(world, genos, economy.Housing, mapContext, networkId);
+            if (!world.Has<MovementState>(genos))
+                world.Add(genos, new MovementState(MovementOptions.PlayerSpeedTilesPerSecond));
         }
     }
 
@@ -1840,7 +1840,7 @@ private readonly NetworkIdRegistry networkIds = new();
     /// both paths behave identically.
     /// </summary>
     public PopulationGenerationResult GeneratePopulation(
-        int totalSims,
+        int totalGenoses,
         int seed = 1,
         int? adults = null,
         int? children = null)
@@ -1859,7 +1859,7 @@ private readonly NetworkIdRegistry networkIds = new();
                 relationshipIndex,
                 relationshipService,
                 relationshipOptions);
-            return generator.Generate(totalSims, seed, adults, children, tick);
+            return generator.Generate(totalGenoses, seed, adults, children, tick);
         }
     }
 
@@ -1972,11 +1972,11 @@ private readonly NetworkIdRegistry networkIds = new();
         var tick = this.tick;
         switch (command)
         {
-            case CreateSimCommand createSim:
+            case CreateGenosCommand createGenos:
             {
-                var repository = new SimRepository(world, networkIds, economy, mapContext);
-                var networkId = repository.Add(createSim.Name, createSim.Age).Value;
-                Emit(new SimCreated(networkId, createSim.Name, createSim.Age));
+                var repository = new GenosRepository(world, networkIds, economy, mapContext);
+                var networkId = repository.Add(createGenos.Name, createGenos.Age).Value;
+                Emit(new GenosCreated(networkId, createGenos.Name, createGenos.Age));
                 return networkId;
             }
             case CreateCompanyCommand createCompany:
@@ -1991,15 +1991,15 @@ private readonly NetworkIdRegistry networkIds = new();
                 Emit(new CompanyCreated(networkId, createCompany.Name));
                 return networkId;
             }
-            case DeleteSimCommand deleteSim:
+            case DeleteGenosCommand deleteGenos:
             {
-                var repository = new SimRepository(world, networkIds, economy, mapContext);
-                return repository.Delete(deleteSim.SimNetworkId);
+                var repository = new GenosRepository(world, networkIds, economy, mapContext);
+                return repository.Delete(deleteGenos.GenosNetworkId);
             }
-            case SetSimActionCommand setAction:
+            case SetGenosActionCommand setAction:
             {
-                var repository = new SimRepository(world, networkIds, economy, mapContext);
-                repository.SetAction(setAction.SimNetworkId, setAction.ActionType);
+                var repository = new GenosRepository(world, networkIds, economy, mapContext);
+                repository.SetAction(setAction.GenosNetworkId, setAction.ActionType);
                 return true;
             }
             case PlaceBuildingCommand place:
@@ -2141,35 +2141,35 @@ private readonly NetworkIdRegistry networkIds = new();
             case ForceStageCommand force:
             {
                 var progression = new StageProgressionSystem(world, economy!);
-                if (!progression.ForceStage(force.SimId, force.Stage, tick))
-                    throw new InvalidOperationException("Sim not found.");
+                if (!progression.ForceStage(force.GenosId, force.Stage, tick))
+                    throw new InvalidOperationException("Genos not found.");
                 progression.Update(tick, clock);
-                return new { simId = force.SimId, stage = force.Stage.ToString() };
+                return new { genosId = force.GenosId, stage = force.Stage.ToString() };
             }
 
-            case GraduateSimCommand graduate:
+            case GraduateGenosCommand graduate:
             {
                 var progression = new StageProgressionSystem(world, economy!);
-                if (!progression.ForceStage(graduate.SimId, LifeStage.Work, tick))
-                    throw new InvalidOperationException("Sim not found.");
+                if (!progression.ForceStage(graduate.GenosId, LifeStage.Work, tick))
+                    throw new InvalidOperationException("Genos not found.");
                 progression.Update(tick, clock);
-                return new { simId = graduate.SimId, stage = LifeStage.Work.ToString() };
+                return new { genosId = graduate.GenosId, stage = LifeStage.Work.ToString() };
             }
 
-            case RetireSimCommand retire:
+            case RetireGenosCommand retire:
             {
                 var progression = new StageProgressionSystem(world, economy!);
-                if (!progression.ForceStage(retire.SimId, LifeStage.Retirement, tick))
-                    throw new InvalidOperationException("Sim not found.");
+                if (!progression.ForceStage(retire.GenosId, LifeStage.Retirement, tick))
+                    throw new InvalidOperationException("Genos not found.");
                 progression.Update(tick, clock);
-                return new { simId = retire.SimId, stage = LifeStage.Retirement.ToString() };
+                return new { genosId = retire.GenosId, stage = LifeStage.Retirement.ToString() };
             }
 
             case GrantCareCommand care:
             {
-                if (!networkIds.TryGetEntity(new NetworkId(care.SimId), out var entity) ||
+                if (!networkIds.TryGetEntity(new NetworkId(care.GenosId), out var entity) ||
                     !world.IsAlive(entity) || world.Has<Dead>(entity))
-                    throw new InvalidOperationException("Sim not found.");
+                    throw new InvalidOperationException("Genos not found.");
 
                 if (!world.Has<Health>(entity))
                     world.Add(entity, new Health(50f));
@@ -2182,7 +2182,7 @@ private readonly NetworkIdRegistry networkIds = new();
 
                 var cost = Money.FromUnits(25m);
                 var shortfall = Money.Zero;
-                if (economy.Housing.HouseholdBySim.TryGetValue(entity, out var household))
+                if (economy.Housing.HouseholdByGenos.TryGetValue(entity, out var household))
                 {
                     var finance = new HouseholdFinanceService(world, economy);
                     finance.TryDebit(household, cost, LedgerKind.MedicalCare, tick, null,
@@ -2204,18 +2204,18 @@ private readonly NetworkIdRegistry networkIds = new();
                 {
                     economy.Government.Balance -= shortfall;
                     economy.Ledger.Record(Guid.NewGuid(), tick, LedgerKind.MedicalCare,
-                        EconomyAccountIds.Government, care.SimId, shortfall, "medical.care");
+                        EconomyAccountIds.Government, care.GenosId, shortfall, "medical.care");
                 }
 
-                economy.Emit(new MedicalCarePurchased(care.SimId, cost.Cents, tick));
-                economy.Emit(new HealthRestored(care.SimId, health.Value, tick));
-                return new { simId = care.SimId, healthBefore = before, healthAfter = health.Value };
+                economy.Emit(new MedicalCarePurchased(care.GenosId, cost.Cents, tick));
+                economy.Emit(new HealthRestored(care.GenosId, health.Value, tick));
+                return new { genosId = care.GenosId, healthBefore = before, healthAfter = health.Value };
             }
 
             case GeneratePopulationCommand generate:
             {
                 return GeneratePopulation(
-                    generate.TotalSims,
+                    generate.TotalGenoses,
                     generate.Seed,
                     generate.Adults,
                     generate.Children);
@@ -2232,9 +2232,9 @@ private readonly NetworkIdRegistry networkIds = new();
                 };
             }
 
-            case PromoteSimCommand promote:
+            case PromoteGenosCommand promote:
             {
-                if (!networkIds.TryGetEntity(new NetworkId(promote.SimId), out var entity) ||
+                if (!networkIds.TryGetEntity(new NetworkId(promote.GenosId), out var entity) ||
                     !world.IsAlive(entity) || !world.Has<Employee>(entity))
                     throw new InvalidOperationException("Employee not found.");
 
@@ -2254,14 +2254,14 @@ private readonly NetworkIdRegistry networkIds = new();
                     world.Get<EmploymentRecord>(entity) = record;
                 }
                 economy.Emit(new PromotionGranted(
-                    promote.SimId,
+                    promote.GenosId,
                     from.ToString(),
                     employee.Seniority.ToString(),
                     employee.SalaryPerCycle.Cents,
                     tick));
                 return new
                 {
-                    simId = promote.SimId,
+                    genosId = promote.GenosId,
                     seniority = employee.Seniority.ToString(),
                     salary = employee.SalaryPerCycle.Cents
                 };
@@ -2269,9 +2269,9 @@ private readonly NetworkIdRegistry networkIds = new();
 
             case SetBenefitEligibilityCommand eligibility:
             {
-                if (!networkIds.TryGetEntity(new NetworkId(eligibility.SimId), out var entity) ||
+                if (!networkIds.TryGetEntity(new NetworkId(eligibility.GenosId), out var entity) ||
                     !world.IsAlive(entity))
-                    throw new InvalidOperationException("Sim not found.");
+                    throw new InvalidOperationException("Genos not found.");
 
                 if (world.Has<UnemploymentRecord>(entity))
                 {
@@ -2291,7 +2291,7 @@ private readonly NetworkIdRegistry networkIds = new();
                         true));
                 }
 
-                return new { simId = eligibility.SimId, eligible = eligibility.Eligible };
+                return new { genosId = eligibility.GenosId, eligible = eligibility.Eligible };
             }
 
             case TopUpPensionFundCommand topUp:
@@ -2320,23 +2320,23 @@ private readonly NetworkIdRegistry networkIds = new();
 
             case ForceDeathCommand forceDeath:
             {
-                if (!networkIds.TryGetEntity(new NetworkId(forceDeath.SimId), out var entity) ||
+                if (!networkIds.TryGetEntity(new NetworkId(forceDeath.GenosId), out var entity) ||
                     !world.IsAlive(entity))
-                    throw new InvalidOperationException("Sim not found.");
+                    throw new InvalidOperationException("Genos not found.");
                 if (world.Has<Dead>(entity))
-                    return new { simId = forceDeath.SimId, alreadyDead = true };
+                    return new { genosId = forceDeath.GenosId, alreadyDead = true };
 
                 world.Add(entity, new Dead(tick, forceDeath.Cause));
                 economy.Life.DeathQueue.Add(entity);
                 economy.Life.DeathsThisYear++;
-                return new { simId = forceDeath.SimId, cause = forceDeath.Cause.ToString() };
+                return new { genosId = forceDeath.GenosId, cause = forceDeath.Cause.ToString() };
             }
 
             case AdvanceAgeCommand advanceAge:
             {
-                if (!networkIds.TryGetEntity(new NetworkId(advanceAge.SimId), out var entity) ||
+                if (!networkIds.TryGetEntity(new NetworkId(advanceAge.GenosId), out var entity) ||
                     !world.IsAlive(entity) || !world.Has<Alive>(entity))
-                    throw new InvalidOperationException("Sim not found.");
+                    throw new InvalidOperationException("Genos not found.");
 
                 var years = Math.Max(1, advanceAge.Years);
                 var alive = world.Get<Alive>(entity);
@@ -2357,7 +2357,7 @@ private readonly NetworkIdRegistry networkIds = new();
                 }
 
                 new StageProgressionSystem(world, economy).Update(tick, clock);
-                return new { simId = advanceAge.SimId, age = world.Get<Alive>(entity).Age };
+                return new { genosId = advanceAge.GenosId, age = world.Get<Alive>(entity).Age };
             }
 
             case PauseImmigrationCommand pause:
@@ -2387,11 +2387,11 @@ private readonly NetworkIdRegistry networkIds = new();
             case SetEnrollmentCommand enrollment:
             {
                 var repository = new SchoolRepository(world, networkIds, economy, mapContext);
-                if (!repository.SetEnrollment(enrollment.SimId, enrollment.SchoolId, enrollment.Enrolled))
+                if (!repository.SetEnrollment(enrollment.GenosId, enrollment.SchoolId, enrollment.Enrolled))
                     throw new InvalidOperationException("Enrollment change failed.");
                 return new
                 {
-                    simId = enrollment.SimId,
+                    genosId = enrollment.GenosId,
                     schoolId = enrollment.SchoolId,
                     enrolled = enrollment.Enrolled
                 };
@@ -2479,17 +2479,17 @@ private readonly NetworkIdRegistry networkIds = new();
             case FireEmployeeCommand fire:
             {
                 var repository = new EmploymentRepository(world, employmentIndex!, networkIds, economy);
-                if (!repository.Fire(fire.SimNetworkId, tick, companyInitiated: true))
+                if (!repository.Fire(fire.GenosNetworkId, tick, companyInitiated: true))
                     throw new InvalidOperationException("Employee not found.");
-                return new { simId = fire.SimNetworkId };
+                return new { genosId = fire.GenosNetworkId };
             }
 
             case ResignEmployeeCommand resign:
             {
                 var repository = new EmploymentRepository(world, employmentIndex!, networkIds, economy);
-                if (!repository.Resign(resign.SimNetworkId, tick))
+                if (!repository.Resign(resign.GenosNetworkId, tick))
                     throw new InvalidOperationException("Employee not found.");
-                return new { simId = resign.SimNetworkId };
+                return new { genosId = resign.GenosNetworkId };
             }
 
             case IssueLoanCommand loanCommand:
@@ -2636,7 +2636,7 @@ private readonly NetworkIdRegistry networkIds = new();
             case CreateHouseholdCommand createHousehold:
             {
                 var repository = new HouseholdRepository(world, networkIds, economy!);
-                var id = repository.Create(createHousehold.HeadSimId, tick);
+                var id = repository.Create(createHousehold.HeadGenosId, tick);
                 return new { householdId = id.Value };
             }
 
@@ -2645,11 +2645,11 @@ private readonly NetworkIdRegistry networkIds = new();
                 var repository = new HouseholdRepository(world, networkIds, economy!);
                 if (!repository.AddMember(
                         new NetworkId(addMember.HouseholdId),
-                        addMember.SimId,
+                        addMember.GenosId,
                         addMember.Role,
                         tick))
                     throw new InvalidOperationException("Household not found.");
-                return new { householdId = addMember.HouseholdId, simId = addMember.SimId };
+                return new { householdId = addMember.HouseholdId, genosId = addMember.GenosId };
             }
 
             case RemoveHouseholdMemberCommand removeMember:
@@ -2657,10 +2657,10 @@ private readonly NetworkIdRegistry networkIds = new();
                 var repository = new HouseholdRepository(world, networkIds, economy!);
                 if (!repository.RemoveMember(
                         new NetworkId(removeMember.HouseholdId),
-                        removeMember.SimId,
+                        removeMember.GenosId,
                         tick))
                     throw new InvalidOperationException("Household membership not found.");
-                return new { householdId = removeMember.HouseholdId, simId = removeMember.SimId };
+                return new { householdId = removeMember.HouseholdId, genosId = removeMember.GenosId };
             }
 
             case PurchaseHomeCommand purchase:
@@ -2681,8 +2681,8 @@ private readonly NetworkIdRegistry networkIds = new();
 
             case ForcePartnershipCommand forcePartnership:
             {
-                var first = ResolveSim(world, forcePartnership.SimAId);
-                var second = ResolveSim(world, forcePartnership.SimBId);
+                var first = ResolveGenos(world, forcePartnership.GenosAId);
+                var second = ResolveGenos(world, forcePartnership.GenosBId);
                 if (!forcePartnership.OverrideEligibility)
                 {
                     var eligibility = EligibilityPolicy.Evaluate(
@@ -2698,35 +2698,35 @@ private readonly NetworkIdRegistry networkIds = new();
                     throw new InvalidOperationException($"Cannot create partnership: {error}.");
 
                 economy!.Emit(new PartnershipFormed(
-                    forcePartnership.SimAId, forcePartnership.SimBId, 0, tick));
+                    forcePartnership.GenosAId, forcePartnership.GenosBId, 0, tick));
                 EmitFamilyAdminAction(
-                    forcePartnership, "force-partnership", forcePartnership.SimAId, forcePartnership.SimBId, 0);
+                    forcePartnership, "force-partnership", forcePartnership.GenosAId, forcePartnership.GenosBId, 0);
                 return new
                 {
-                    simAId = forcePartnership.SimAId,
-                    simBId = forcePartnership.SimBId,
+                    genosAId = forcePartnership.GenosAId,
+                    genosBId = forcePartnership.GenosBId,
                     overrideEligibility = forcePartnership.OverrideEligibility
                 };
             }
 
             case EndPartnershipCommand endPartnership:
             {
-                var first = ResolveSim(world, endPartnership.SimAId);
-                var second = ResolveSim(world, endPartnership.SimBId);
+                var first = ResolveGenos(world, endPartnership.GenosAId);
+                var second = ResolveGenos(world, endPartnership.GenosBId);
                 if (!relationshipService!.EndPartnership(first, second, tick))
                     throw new InvalidOperationException("No active partnership exists for the pair.");
 
                 economy!.Emit(new PartnershipEnded(
-                    endPartnership.SimAId, endPartnership.SimBId, endPartnership.Reason, tick));
+                    endPartnership.GenosAId, endPartnership.GenosBId, endPartnership.Reason, tick));
                 EmitFamilyAdminAction(
-                    endPartnership, "end-partnership", endPartnership.SimAId, endPartnership.SimBId, 0);
-                return new { simAId = endPartnership.SimAId, simBId = endPartnership.SimBId };
+                    endPartnership, "end-partnership", endPartnership.GenosAId, endPartnership.GenosBId, 0);
+                return new { genosAId = endPartnership.GenosAId, genosBId = endPartnership.GenosBId };
             }
 
             case StartPregnancyCommand startPregnancy:
             {
-                var carrying = ResolveSim(world, startPregnancy.CarryingParentId);
-                var other = ResolveSim(world, startPregnancy.OtherParentId);
+                var carrying = ResolveGenos(world, startPregnancy.CarryingParentId);
+                var other = ResolveGenos(world, startPregnancy.OtherParentId);
                 var dueTick = tick + (long)reproductionOptions.PregnancyMonths * clock.TicksPerMonth;
                 var health = world.Has<Health>(carrying)
                     ? (int)world.Get<Health>(carrying).Value
@@ -2763,8 +2763,8 @@ private readonly NetworkIdRegistry networkIds = new();
 
             case AssignGuardianCommand assignGuardian:
             {
-                var child = ResolveSim(world, assignGuardian.ChildId);
-                var guardian = ResolveSim(world, assignGuardian.GuardianId);
+                var child = ResolveGenos(world, assignGuardian.ChildId);
+                var guardian = ResolveGenos(world, assignGuardian.GuardianId);
                 if (!guardianshipService!.AssignGuardian(
                         child, guardian, tick, assignGuardian.Reason, out var guardianError))
                     throw new InvalidOperationException($"Cannot assign guardian: {guardianError}.");
@@ -2807,25 +2807,25 @@ private readonly NetworkIdRegistry networkIds = new();
                 return new { playerId = profile.PlayerId, policy = policy.ToString() };
             }
 
-            case DetachPlayerSimCommand detach:
+            case DetachPlayerGenosCommand detach:
             {
                 if (!playerRegistry.TryGet(detach.PlayerId, out var profile))
                     throw new InvalidOperationException("Player not found.");
 
-                var previousSimId = profile.ControlledSim != Entity.Null &&
-                                    world.IsAlive(profile.ControlledSim)
-                    ? GetNetworkId(world, profile.ControlledSim)
-                    : profile.LastSimNetworkId;
-                if (profile.ControlledSim != Entity.Null && world.IsAlive(profile.ControlledSim) &&
-                    world.Has<PlayerControlled>(profile.ControlledSim))
+                var previousGenosId = profile.ControlledGenos != Entity.Null &&
+                                    world.IsAlive(profile.ControlledGenos)
+                    ? GetNetworkId(world, profile.ControlledGenos)
+                    : profile.LastGenosNetworkId;
+                if (profile.ControlledGenos != Entity.Null && world.IsAlive(profile.ControlledGenos) &&
+                    world.Has<PlayerControlled>(profile.ControlledGenos))
                 {
-                    world.Remove<PlayerControlled>(profile.ControlledSim);
+                    world.Remove<PlayerControlled>(profile.ControlledGenos);
                 }
-                profile.LastSimNetworkId = previousSimId;
-                profile.ControlledSim = Entity.Null;
+                profile.LastGenosNetworkId = previousGenosId;
+                profile.ControlledGenos = Entity.Null;
                 profile.AwaitingContinuation = true;
                 economy!.Emit(new PlayerAwaitingContinuation(
-                    previousSimId,
+                    previousGenosId,
                     profile.PlayerId,
                     tick));
                 economy.Emit(new PlayerAdminActionApplied(
@@ -2847,16 +2847,16 @@ private readonly NetworkIdRegistry networkIds = new();
 
                 profile.ContinuationPolicy = policy;
                 profile.Observer = policy == PlayerContinuationPolicy.Observer;
-                if (profile.ControlledSim != Entity.Null && world.IsAlive(profile.ControlledSim) &&
-                    world.Has<PlayerControlled>(profile.ControlledSim))
+                if (profile.ControlledGenos != Entity.Null && world.IsAlive(profile.ControlledGenos) &&
+                    world.Has<PlayerControlled>(profile.ControlledGenos))
                 {
-                    world.Remove<PlayerControlled>(profile.ControlledSim);
+                    world.Remove<PlayerControlled>(profile.ControlledGenos);
                 }
-                profile.LastSimNetworkId = profile.ControlledSim != Entity.Null &&
-                                           world.IsAlive(profile.ControlledSim)
-                    ? GetNetworkId(world, profile.ControlledSim)
-                    : profile.LastSimNetworkId;
-                profile.ControlledSim = Entity.Null;
+                profile.LastGenosNetworkId = profile.ControlledGenos != Entity.Null &&
+                                           world.IsAlive(profile.ControlledGenos)
+                    ? GetNetworkId(world, profile.ControlledGenos)
+                    : profile.LastGenosNetworkId;
+                profile.ControlledGenos = Entity.Null;
                 profile.AwaitingContinuation = true;
                 economy!.Emit(new PlayerAdminActionApplied(
                     forceContinuation.CommandId,
@@ -2928,11 +2928,11 @@ private readonly NetworkIdRegistry networkIds = new();
         }
     }
 
-    private Entity ResolveSim(World world, ulong networkId)
+    private Entity ResolveGenos(World world, ulong networkId)
     {
         if (!networkIds.TryGetEntity(new NetworkId(networkId), out var entity) ||
             !world.IsAlive(entity) || !world.Has<Alive>(entity) || world.Has<Dead>(entity))
-            throw new InvalidOperationException($"Sim {networkId} not found.");
+            throw new InvalidOperationException($"Genos {networkId} not found.");
         return entity;
     }
 
@@ -3368,7 +3368,7 @@ private readonly NetworkIdRegistry networkIds = new();
     public WorldDataStatus GetWorldData()
     {
         WorldSnapshot? snapshot;
-        List<SimStatus>? simsFallback = null;
+        List<GenosStatus>? genosesFallback = null;
         List<CompanyStatus>? companiesFallback = null;
         var offices = new List<OfficeRecord>();
         var employees = new List<EmployeeRecord>();
@@ -3401,7 +3401,7 @@ private readonly NetworkIdRegistry networkIds = new();
             snapshot = _latest;
             if (snapshot is null)
             {
-                simsFallback = BuildSimSnapshots(currentWorld);
+                genosesFallback = BuildGenosSnapshots(currentWorld);
                 companiesFallback = BuildCompanySnapshots(currentWorld, employmentIndex ?? new EmploymentIndex());
             }
 
@@ -3471,7 +3471,7 @@ private readonly NetworkIdRegistry networkIds = new();
             });
         }
 
-        var sims = snapshot?.Sims ?? simsFallback ?? new List<SimStatus>();
+        var genoses = snapshot?.Genoses ?? genosesFallback ?? new List<GenosStatus>();
         var companies = snapshot?.Companies ?? companiesFallback ?? new List<CompanyStatus>();
 
         var result = new WorldDataStatus
@@ -3481,13 +3481,13 @@ private readonly NetworkIdRegistry networkIds = new();
             Month = clock.MonthOfYear(currentTick),
             IsRunning = running,
             CapturedAt = DateTimeOffset.UtcNow,
-            Sims = sims,
+            Genoses = genoses,
             Map = BuildMapSummary()
         };
 
-        var simNames = new Dictionary<ulong, string>();
-        foreach (var sim in sims)
-            simNames[sim.NetworkId] = sim.Name;
+        var genosNames = new Dictionary<ulong, string>();
+        foreach (var genos in genoses)
+            genosNames[genos.NetworkId] = genos.Name;
 
         var companyNames = new Dictionary<ulong, string>();
         foreach (var company in companies)
@@ -3541,13 +3541,13 @@ private readonly NetworkIdRegistry networkIds = new();
 
         foreach (var employee in employees)
         {
-            simNames.TryGetValue(employee.SimNetworkId, out var simName);
+            genosNames.TryGetValue(employee.GenosNetworkId, out var genosName);
             companyNames.TryGetValue(employee.CompanyNetworkId, out var companyName);
 
             result.Employees.Add(new EmployeeStatus
             {
-                SimNetworkId = employee.SimNetworkId,
-                Sim = simName ?? string.Empty,
+                GenosNetworkId = employee.GenosNetworkId,
+                Genos = genosName ?? string.Empty,
                 CompanyNetworkId = employee.CompanyNetworkId,
                 Company = companyName ?? string.Empty,
                 Position = employee.Position,
@@ -3606,7 +3606,7 @@ private readonly NetworkIdRegistry networkIds = new();
 
         foreach (var application in applications)
         {
-            simNames.TryGetValue(application.ApplicantNetworkId, out var applicantName);
+            genosNames.TryGetValue(application.ApplicantNetworkId, out var applicantName);
 
             var position = application.Position;
             var companyNetworkId = application.CompanyNetworkId;
@@ -3896,7 +3896,7 @@ private readonly NetworkIdRegistry networkIds = new();
 
             ages.Sort();
             var total = ages.Count;
-            status.TotalSims = total;
+            status.TotalGenoses = total;
             status.Education = stages[(int)LifeStage.Education];
             status.Work = stages[(int)LifeStage.Work];
             status.Retirement = stages[(int)LifeStage.Retirement];
@@ -3999,7 +3999,7 @@ private readonly NetworkIdRegistry networkIds = new();
     /// <summary>
     /// Lightweight lifecycle aggregate for the frequently polled world-data
     /// endpoint. It uses the index and the last yearly snapshot instead of
-    /// scanning every sim and pension account.
+    /// scanning every genos and pension account.
     /// </summary>
     public LifecycleStatus BuildLifecycleSummary()
     {
@@ -4012,7 +4012,7 @@ private readonly NetworkIdRegistry networkIds = new();
             var index = economy.Life.Index;
             var latest = economy.Life.MetricHistory.Count > 0 ? economy.Life.MetricHistory[^1] : null;
 
-            status.TotalSims = index.TotalLiving;
+            status.TotalGenoses = index.TotalLiving;
             status.Education = index.StageCount(LifeStage.Education);
             status.Work = index.StageCount(LifeStage.Work);
             status.Retirement = index.StageCount(LifeStage.Retirement);
@@ -4088,7 +4088,7 @@ private readonly NetworkIdRegistry networkIds = new();
                 {
                     Name = "traits",
                     Level = "Pass",
-                    Detail = "All living sims have valid trait sets"
+                    Detail = "All living genoses have valid trait sets"
                 });
             }
             else
@@ -4307,13 +4307,13 @@ private readonly NetworkIdRegistry networkIds = new();
         {
             if (world is null || string.IsNullOrWhiteSpace(playerId) ||
                 !playerRegistry.TryGet(playerId, out var profile) ||
-                profile.ControlledSim == Entity.Null ||
-                !world.IsAlive(profile.ControlledSim) ||
-                world.Has<Dead>(profile.ControlledSim))
+                profile.ControlledGenos == Entity.Null ||
+                !world.IsAlive(profile.ControlledGenos) ||
+                world.Has<Dead>(profile.ControlledGenos))
                 return null;
 
-            var sim = profile.ControlledSim;
-            var tile = world.Has<TilePosition>(sim) ? world.Get<TilePosition>(sim).Tile : default;
+            var genos = profile.ControlledGenos;
+            var tile = world.Has<TilePosition>(genos) ? world.Get<TilePosition>(genos).Tile : default;
             Entity building = Entity.Null;
             world.Query(in new QueryDescription().WithAll<Placement>(),
                 (Entity entity, ref Placement placement) =>
@@ -4327,14 +4327,14 @@ private readonly NetworkIdRegistry networkIds = new();
             var inVenue = building != Entity.Null
                 && world.Has<SocialVenue>(building)
                 && venueService?.IsOccupant(playerId, building) == true;
-            var appearance = AppearanceMapper.TryDerive(world, sim, out var descriptor)
+            var appearance = AppearanceMapper.TryDerive(world, genos, out var descriptor)
                 ? AppearanceMapper.ToDto(descriptor)
                 : null;
 
             return new PlayerPresenceDto(
                 playerId,
-                world.Has<GenName>(sim) ? world.Get<GenName>(sim).Name : null,
-                GetNetworkId(world, sim),
+                world.Has<GenName>(genos) ? world.Get<GenName>(genos).Name : null,
+                GetNetworkId(world, genos),
                 tile.X,
                 tile.Y,
                 buildingId,
@@ -4361,11 +4361,11 @@ private readonly NetworkIdRegistry networkIds = new();
         using (WriteLock())
         {
             if (world is null)
-                return new AppearancePage(Array.Empty<AppearanceSimStatus>(), 0);
+                return new AppearancePage(Array.Empty<AppearanceGenosStatus>(), 0);
 
             take = Math.Clamp(take, 1, 500);
             skip = Math.Max(0, skip);
-            var rows = new List<AppearanceSimStatus>();
+            var rows = new List<AppearanceGenosStatus>();
             var query = new QueryDescription().WithAll<GenName, Traits, Alive>().WithNone<Dead>();
 
             world.Query(in query, (Entity entity, ref GenName name, ref Traits traits, ref Alive alive) =>
@@ -4389,11 +4389,11 @@ private readonly NetworkIdRegistry networkIds = new();
         }
     }
 
-    public AppearanceSimStatus? BuildAppearance(ulong simNetworkId)
+    public AppearanceGenosStatus? BuildAppearance(ulong genosNetworkId)
     {
         using (WriteLock())
         {
-            if (world is null || !networkIds.TryGetEntity(new NetworkId(simNetworkId), out var entity))
+            if (world is null || !networkIds.TryGetEntity(new NetworkId(genosNetworkId), out var entity))
                 return null;
             if (!AppearanceMapper.TryDerive(world, entity, out _))
                 return null;
@@ -4401,11 +4401,11 @@ private readonly NetworkIdRegistry networkIds = new();
         }
     }
 
-    public AppearanceFamilyStatus? BuildAppearanceFamily(ulong simNetworkId)
+    public AppearanceFamilyStatus? BuildAppearanceFamily(ulong genosNetworkId)
     {
         using (WriteLock())
         {
-            if (world is null || !networkIds.TryGetEntity(new NetworkId(simNetworkId), out var focal))
+            if (world is null || !networkIds.TryGetEntity(new NetworkId(genosNetworkId), out var focal))
                 return null;
             if (!AppearanceMapper.TryDerive(world, focal, out var focalDescriptor))
                 return null;
@@ -4457,17 +4457,17 @@ private readonly NetworkIdRegistry networkIds = new();
             resemblance.Score));
     }
 
-    public AppearanceSimStatus? BuildOwnAppearance(string playerId)
+    public AppearanceGenosStatus? BuildOwnAppearance(string playerId)
     {
         using (WriteLock())
         {
             if (world is null || string.IsNullOrWhiteSpace(playerId) ||
                 !playerRegistry.TryGet(playerId, out var profile) ||
-                profile.ControlledSim == Entity.Null || !world.IsAlive(profile.ControlledSim))
+                profile.ControlledGenos == Entity.Null || !world.IsAlive(profile.ControlledGenos))
                 return null;
-            if (!AppearanceMapper.TryDerive(world, profile.ControlledSim, out _))
+            if (!AppearanceMapper.TryDerive(world, profile.ControlledGenos, out _))
                 return null;
-            return Genelife.Api.Appearance.AppearanceReadModel.Build(world, profile.ControlledSim);
+            return Genelife.Api.Appearance.AppearanceReadModel.Build(world, profile.ControlledGenos);
         }
     }
 
@@ -4491,14 +4491,14 @@ private readonly NetworkIdRegistry networkIds = new();
                     continue;
                 }
 
-                var sim = profile.ControlledSim;
-                if (sim == Entity.Null || !world.IsAlive(sim) || world.Has<Dead>(sim))
+                var genos = profile.ControlledGenos;
+                if (genos == Entity.Null || !world.IsAlive(genos) || world.Has<Dead>(genos))
                     continue;
 
                 active++;
-                if (world.Has<Employee>(sim))
+                if (world.Has<Employee>(genos))
                     employed++;
-                if (world.Has<PlayerHousing>(sim) && world.Get<PlayerHousing>(sim).LeaseActive)
+                if (world.Has<PlayerHousing>(genos) && world.Get<PlayerHousing>(genos).LeaseActive)
                     housed++;
             }
 
@@ -4560,39 +4560,39 @@ private readonly NetworkIdRegistry networkIds = new();
         {
             if (world is null || string.IsNullOrWhiteSpace(playerId) ||
                 !playerRegistry.TryGet(playerId, out var profile) ||
-                profile.ControlledSim == Entity.Null ||
-                !world.IsAlive(profile.ControlledSim))
+                profile.ControlledGenos == Entity.Null ||
+                !world.IsAlive(profile.ControlledGenos))
                 return Array.Empty<PlayerInvitationStatus>();
 
-            return PendingInvitations(profile.ControlledSim).ToList();
+            return PendingInvitations(profile.ControlledGenos).ToList();
         }
     }
 
     private PlayerLifeStatus BuildPlayerLifeStatus(PlayerProfile profile)
     {
         var worldRef = world!;
-        var sim = profile.ControlledSim;
-        var simAlive = sim != Entity.Null && worldRef.IsAlive(sim);
-        var simNetworkId = simAlive && worldRef.Has<NetworkId>(sim)
-            ? worldRef.Get<NetworkId>(sim).Value
-            : profile.LastSimNetworkId;
+        var genos = profile.ControlledGenos;
+        var genosAlive = genos != Entity.Null && worldRef.IsAlive(genos);
+        var genosNetworkId = genosAlive && worldRef.Has<NetworkId>(genos)
+            ? worldRef.Get<NetworkId>(genos).Value
+            : profile.LastGenosNetworkId;
 
-        var name = simAlive && worldRef.Has<GenName>(sim) ? worldRef.Get<GenName>(sim).Name : null;
-        var alive = simAlive && worldRef.Has<Alive>(sim) ? worldRef.Get<Alive>(sim) : new Alive(0);
-        var health = simAlive && worldRef.Has<Health>(sim) ? worldRef.Get<Health>(sim).Value : 0f;
-        var needs = simAlive && worldRef.Has<Needs>(sim) ? worldRef.Get<Needs>(sim) : new Needs();
-        var wallet = simAlive && worldRef.Has<Wallet>(sim) ? worldRef.Get<Wallet>(sim).Balance.Cents : 0;
-        var savings = simAlive && worldRef.Has<SavingsAccount>(sim)
-            ? worldRef.Get<SavingsAccount>(sim).Balance.Cents
+        var name = genosAlive && worldRef.Has<GenName>(genos) ? worldRef.Get<GenName>(genos).Name : null;
+        var alive = genosAlive && worldRef.Has<Alive>(genos) ? worldRef.Get<Alive>(genos) : new Alive(0);
+        var health = genosAlive && worldRef.Has<Health>(genos) ? worldRef.Get<Health>(genos).Value : 0f;
+        var needs = genosAlive && worldRef.Has<Needs>(genos) ? worldRef.Get<Needs>(genos) : new Needs();
+        var wallet = genosAlive && worldRef.Has<Wallet>(genos) ? worldRef.Get<Wallet>(genos).Balance.Cents : 0;
+        var savings = genosAlive && worldRef.Has<SavingsAccount>(genos)
+            ? worldRef.Get<SavingsAccount>(genos).Balance.Cents
             : 0;
 
         var employment = new PlayerEmploymentStatus(false, 0, 0, string.Empty, string.Empty, 0, false, 0, 0);
-        if (simAlive && worldRef.Has<Employee>(sim))
+        if (genosAlive && worldRef.Has<Employee>(genos))
         {
-            var employee = worldRef.Get<Employee>(sim);
-            var record = worldRef.Has<EmploymentRecord>(sim) ? worldRef.Get<EmploymentRecord>(sim) : default;
-            var playerEmployment = worldRef.Has<PlayerEmployment>(sim)
-                ? worldRef.Get<PlayerEmployment>(sim)
+            var employee = worldRef.Get<Employee>(genos);
+            var record = worldRef.Has<EmploymentRecord>(genos) ? worldRef.Get<EmploymentRecord>(genos) : default;
+            var playerEmployment = worldRef.Has<PlayerEmployment>(genos)
+                ? worldRef.Get<PlayerEmployment>(genos)
                 : default;
             employment = new PlayerEmploymentStatus(
                 true,
@@ -4601,15 +4601,15 @@ private readonly NetworkIdRegistry networkIds = new();
                 employee.Position,
                 employee.Seniority.ToString(),
                 employee.SalaryPerCycle.Cents,
-                worldRef.Has<CurrentAction>(sim) && worldRef.Get<CurrentAction>(sim).Type == ActionType.Working,
+                worldRef.Has<CurrentAction>(genos) && worldRef.Get<CurrentAction>(genos).Type == ActionType.Working,
                 playerEmployment.ConsecutiveMissedShifts,
                 playerEmployment.LastAttendedTick);
         }
 
         var housing = new PlayerHousingStatus(false, 0, 0, 0, null, null, null, 0, 0, 0, false, 0, 0);
-        if (simAlive && worldRef.Has<PlayerHousing>(sim))
+        if (genosAlive && worldRef.Has<PlayerHousing>(genos))
         {
-            var lease = worldRef.Get<PlayerHousing>(sim);
+            var lease = worldRef.Get<PlayerHousing>(genos);
             var household = lease.Household;
             var unit = lease.Unit;
             if (household != Entity.Null && worldRef.IsAlive(household) && worldRef.Has<Household>(household))
@@ -4655,9 +4655,9 @@ private readonly NetworkIdRegistry networkIds = new();
         }
 
         PlayerJobOfferStatus? jobOffer = null;
-        if (simAlive && worldRef.Has<PlayerJobOffer>(sim))
+        if (genosAlive && worldRef.Has<PlayerJobOffer>(genos))
         {
-            var offer = worldRef.Get<PlayerJobOffer>(sim);
+            var offer = worldRef.Get<PlayerJobOffer>(genos);
             jobOffer = new PlayerJobOfferStatus(
                 offer.OfferId,
                 GetNetworkId(worldRef, offer.Posting),
@@ -4667,9 +4667,9 @@ private readonly NetworkIdRegistry networkIds = new();
         }
 
         PlayerLeaseOfferStatus? leaseOffer = null;
-        if (simAlive && worldRef.Has<PlayerLeaseOffer>(sim))
+        if (genosAlive && worldRef.Has<PlayerLeaseOffer>(genos))
         {
-            var offer = worldRef.Get<PlayerLeaseOffer>(sim);
+            var offer = worldRef.Get<PlayerLeaseOffer>(genos);
             leaseOffer = new PlayerLeaseOfferStatus(
                 offer.OfferId,
                 GetNetworkId(worldRef, offer.Unit),
@@ -4678,24 +4678,24 @@ private readonly NetworkIdRegistry networkIds = new();
                 offer.ExpiresTick);
         }
 
-        ulong? partnerSimId = null;
+        ulong? partnerGenosId = null;
         string? partnerName = null;
         var children = 0;
-        if (simAlive)
+        if (genosAlive)
         {
-            var partner = relationshipIndex.PartnersOf(sim)
+            var partner = relationshipIndex.PartnersOf(genos)
                 .FirstOrNull(candidate => worldRef.IsAlive(candidate) && !worldRef.Has<Dead>(candidate));
             if (partner != Entity.Null && worldRef.IsAlive(partner))
             {
-                partnerSimId = GetNetworkId(worldRef, partner);
+                partnerGenosId = GetNetworkId(worldRef, partner);
                 partnerName = worldRef.Has<GenName>(partner) ? worldRef.Get<GenName>(partner).Name : null;
             }
-            children = relationshipIndex.ChildrenOf(sim)
+            children = relationshipIndex.ChildrenOf(genos)
                 .Count(child => worldRef.IsAlive(child) && !worldRef.Has<Dead>(child));
         }
 
-        var invitations = simAlive
-            ? PendingInvitations(sim).ToList()
+        var invitations = genosAlive
+            ? PendingInvitations(genos).ToList()
             : new List<PlayerInvitationStatus>();
 
         var audit = GetPlayerCommandAudit(profile.PlayerId, 10)
@@ -4709,7 +4709,7 @@ private readonly NetworkIdRegistry networkIds = new();
 
         return new PlayerLifeStatus(
             profile.PlayerId,
-            simNetworkId,
+            genosNetworkId,
             name,
             alive.Age,
             health,
@@ -4719,13 +4719,13 @@ private readonly NetworkIdRegistry networkIds = new();
             needs.Bladder,
             wallet,
             savings,
-            simAlive && !worldRef.Has<Dead>(sim),
+            genosAlive && !worldRef.Has<Dead>(genos),
             profile.AwaitingContinuation,
             profile.ContinuationPolicy.ToString(),
             profile.Observer,
-            simAlive && worldRef.Has<NutritionState>(sim) ? worldRef.Get<NutritionState>(sim).Balance : 0,
-            simAlive && worldRef.Has<NutritionState>(sim) ? worldRef.Get<NutritionState>(sim).ConsecutivePoorDays : 0,
-            partnerSimId,
+            genosAlive && worldRef.Has<NutritionState>(genos) ? worldRef.Get<NutritionState>(genos).Balance : 0,
+            genosAlive && worldRef.Has<NutritionState>(genos) ? worldRef.Get<NutritionState>(genos).ConsecutivePoorDays : 0,
+            partnerGenosId,
             partnerName,
             children,
             employment,
@@ -4736,7 +4736,7 @@ private readonly NetworkIdRegistry networkIds = new();
             audit);
     }
 
-    private IEnumerable<PlayerInvitationStatus> PendingInvitations(Entity sim)
+    private IEnumerable<PlayerInvitationStatus> PendingInvitations(Entity genos)
     {
         var rows = new List<PlayerInvitationStatus>();
         world!.Query(in new QueryDescription().WithAll<FamilyInvitation>(),
@@ -4744,7 +4744,7 @@ private readonly NetworkIdRegistry networkIds = new();
             {
                 if (invitation.Status != FamilyInvitationStatus.Pending)
                     return;
-                if (invitation.From != sim && invitation.To != sim)
+                if (invitation.From != genos && invitation.To != genos)
                     return;
                 rows.Add(new PlayerInvitationStatus(
                     invitation.Id,
@@ -4764,8 +4764,8 @@ private readonly NetworkIdRegistry networkIds = new();
     {
         var players = new HashSet<Entity>();
         foreach (var profile in playerRegistry.All())
-            if (profile.ControlledSim != Entity.Null && world!.IsAlive(profile.ControlledSim))
-                players.Add(profile.ControlledSim);
+            if (profile.ControlledGenos != Entity.Null && world!.IsAlive(profile.ControlledGenos))
+                players.Add(profile.ControlledGenos);
 
         var count = 0;
         world!.Query(in new QueryDescription().WithAll<FamilyInvitation>(),
@@ -4847,9 +4847,9 @@ private readonly NetworkIdRegistry networkIds = new();
             status.Orphans = latestPopulation?.Orphans ?? 0;
             status.StateCareChildren = latestPopulation?.StateCareChildren ?? 0;
             status.ReplacementRate = latestPopulation?.ReplacementRate ?? 0m;
-            status.PairedSims = relationshipsCount(sim => relationshipIndex.PartnersOf(sim).Count > 0);
-            status.SingleAdults = Math.Max(0, adults - status.PairedSims);
-            status.PartnershipRate = adults > 0 ? status.PairedSims / (decimal)adults : 0m;
+            status.PairedGenoses = relationshipsCount(genos => relationshipIndex.PartnersOf(genos).Count > 0);
+            status.SingleAdults = Math.Max(0, adults - status.PairedGenoses);
+            status.PartnershipRate = adults > 0 ? status.PairedGenoses / (decimal)adults : 0m;
             status.Traits = BuildTraitDistribution();
             status.Households = BuildHouseholdCompositions();
             status.Projection = new ProjectionStalenessStatus
@@ -4954,8 +4954,8 @@ private readonly NetworkIdRegistry networkIds = new();
                             Level = "Warn",
                             Detail = "A child with a living parent is still in state care.",
                             EntityNetworkId = GetNetworkId(world, entity),
-                            EntityKind = "sim",
-                            Link = $"/family?sim={GetNetworkId(world, entity)}"
+                            EntityKind = "genos",
+                            Link = $"/family?genos={GetNetworkId(world, entity)}"
                         });
                     }
                 });
@@ -4968,13 +4968,13 @@ private readonly NetworkIdRegistry networkIds = new();
             });
 
             var candidateCount = relationshipCache.Candidates.Values.Sum(candidates => candidates.Count);
-            var candidateCap = relationshipOptions.MaxCandidatesPerSim;
+            var candidateCap = relationshipOptions.MaxCandidatesPerGenos;
             var eligibleSingles = relationshipCache.Candidates.Count;
             issues.Add(new FamilyHealthCheckStatus
             {
                 Name = "candidate-budget",
                 Level = eligibleSingles > 0 && candidateCount > eligibleSingles * candidateCap ? "Fail" : "Pass",
-                Detail = $"{candidateCount} candidate(s) across {eligibleSingles} eligible sim(s); cap {candidateCap} per sim."
+                Detail = $"{candidateCount} candidate(s) across {eligibleSingles} eligible genos(s); cap {candidateCap} per genos."
             });
 
             issues.Add(new FamilyHealthCheckStatus
@@ -5010,11 +5010,11 @@ private readonly NetworkIdRegistry networkIds = new();
                 P95TickMilliseconds = snapshot.P95TickMilliseconds,
                 P99TickMilliseconds = snapshot.P99TickMilliseconds,
                 AllocatedBytesPerTick = snapshot.AllocatedBytesPerTick,
-                CandidateSims = counts.Count,
+                CandidateGenoses = counts.Count,
                 CandidateAverage = counts.Count > 0 ? (int)Math.Round(counts.Average()) : 0,
                 CandidateP95 = Percentile(counts, 0.95),
                 CandidateMax = counts.Count > 0 ? counts[^1] : 0,
-                CandidateCap = relationshipOptions.MaxCandidatesPerSim,
+                CandidateCap = relationshipOptions.MaxCandidatesPerGenos,
                 WorstSystem = worst?.Name ?? string.Empty,
                 WorstSystemAverageMilliseconds = worst?.AverageMilliseconds ?? 0
             };
@@ -5182,19 +5182,19 @@ private readonly NetworkIdRegistry networkIds = new();
         }
     }
 
-    public List<PregnancyStatusDto> BuildPregnanciesForSim(ulong simId)
+    public List<PregnancyStatusDto> BuildPregnanciesForGenos(ulong genosId)
     {
         using (WriteLock())
         {
             var result = new List<PregnancyStatusDto>();
             if (world is null || economy is null ||
-                !networkIds.TryGetEntity(new NetworkId(simId), out var sim))
+                !networkIds.TryGetEntity(new NetworkId(genosId), out var genos))
                 return result;
 
             world.Query(in new QueryDescription().WithAll<Pregnancy, NetworkId>(),
                 (Entity _, ref Pregnancy pregnancy, ref NetworkId networkId) =>
                 {
-                    if (pregnancy.CarryingParent != sim && pregnancy.OtherParent != sim)
+                    if (pregnancy.CarryingParent != genos && pregnancy.OtherParent != genos)
                         return;
                     result.Add(BuildPregnancyStatus(pregnancy, networkId.Value));
                 });
@@ -5290,13 +5290,13 @@ private readonly NetworkIdRegistry networkIds = new();
         }
     }
 
-    public List<ChildStatusDto> BuildChildrenForSim(ulong simId)
+    public List<ChildStatusDto> BuildChildrenForGenos(ulong genosId)
     {
         using (WriteLock())
         {
             var result = new List<ChildStatusDto>();
             if (world is null || economy is null ||
-                !networkIds.TryGetEntity(new NetworkId(simId), out var sim))
+                !networkIds.TryGetEntity(new NetworkId(genosId), out var genos))
                 return result;
 
             var workAge = economy.Life.Policy.WorkStartAge;
@@ -5308,7 +5308,7 @@ private readonly NetworkIdRegistry networkIds = new();
 
                     var parents = relationshipIndex.ParentsOf(entity);
                     var guardian = relationshipIndex.GuardiansOf(entity).FirstOrNull();
-                    if (!parents.Contains(sim) && guardian != sim)
+                    if (!parents.Contains(genos) && guardian != genos)
                         return;
 
                     result.Add(BuildChildStatus(entity, alive, networkId.Value));
@@ -5415,7 +5415,7 @@ private readonly NetworkIdRegistry networkIds = new();
         }
     }
 
-    public FamilySimPage BuildFamilySims(
+    public FamilyGenosPage BuildFamilyGenoses(
         int take = 100,
         int skip = 0,
         string? stage = null,
@@ -5426,7 +5426,7 @@ private readonly NetworkIdRegistry networkIds = new();
     {
         using (WriteLock())
         {
-            var page = new FamilySimPage
+            var page = new FamilyGenosPage
             {
                 Take = Math.Clamp(take, 1, 500),
                 Skip = Math.Max(0, skip)
@@ -5439,7 +5439,7 @@ private readonly NetworkIdRegistry networkIds = new();
                 : null;
             var rows = new List<(ulong NetworkId, Entity Entity, Alive Alive, GenName Name, LifeStage Stage, Entity Household, ulong HouseholdId)>();
             world.Query(in new QueryDescription().WithAll<Alive, GenName, NetworkId>().WithNone<Dead>(),
-                (Entity entity, ref Alive alive, ref GenName simName, ref NetworkId networkId) =>
+                (Entity entity, ref Alive alive, ref GenName genosName, ref NetworkId networkId) =>
                 {
                     var stageValue = world.Has<Lifecycle>(entity)
                         ? world.Get<Lifecycle>(entity).Stage
@@ -5447,7 +5447,7 @@ private readonly NetworkIdRegistry networkIds = new();
                     if (stageFilter is { } required && stageValue != required)
                         return;
                     if (!string.IsNullOrWhiteSpace(name) &&
-                        !simName.Name.Contains(name, StringComparison.OrdinalIgnoreCase))
+                        !genosName.Name.Contains(name, StringComparison.OrdinalIgnoreCase))
                         return;
 
                     var isPaired = relationshipIndex.HasPartner(entity);
@@ -5463,27 +5463,27 @@ private readonly NetworkIdRegistry networkIds = new();
                     if (householdId is not null && householdNetworkId != householdId.Value)
                         return;
 
-                    rows.Add((networkId.Value, entity, alive, simName, stageValue, household, householdNetworkId));
+                    rows.Add((networkId.Value, entity, alive, genosName, stageValue, household, householdNetworkId));
                 });
 
             rows.Sort((a, b) => a.NetworkId.CompareTo(b.NetworkId));
             page.Total = rows.Count;
-            page.Sims = rows
+            page.Genoses = rows
                 .Skip(page.Skip)
                 .Take(page.Take)
-                .Select(row => BuildFamilySimStatus(
+                .Select(row => BuildFamilyGenosStatus(
                     row.Entity, row.Alive, row.Name, row.NetworkId, row.Stage, row.Household, row.HouseholdId))
                 .ToList();
             return page;
         }
     }
 
-    public FamilySimDetailStatus? BuildFamilySim(ulong simId)
+    public FamilyGenosDetailStatus? BuildFamilyGenos(ulong genosId)
     {
         using (WriteLock())
         {
             if (world is null || economy is null ||
-                !networkIds.TryGetEntity(new NetworkId(simId), out var entity) ||
+                !networkIds.TryGetEntity(new NetworkId(genosId), out var entity) ||
                 !world.IsAlive(entity) || !world.Has<Alive>(entity))
                 return null;
 
@@ -5504,9 +5504,9 @@ private readonly NetworkIdRegistry networkIds = new();
                     relationships.Add(new FamilyRelationshipStatus
                     {
                         NetworkId = relationshipId.Value,
-                        FromSimId = NetworkIdOf(world, relationship.From),
+                        FromGenosId = NetworkIdOf(world, relationship.From),
                         FromName = NameOf(relationship.From),
-                        ToSimId = NetworkIdOf(world, relationship.To),
+                        ToGenosId = NetworkIdOf(world, relationship.To),
                         ToName = NameOf(relationship.To),
                         Kind = relationship.Kind.ToString(),
                         Source = relationship.Source.ToString(),
@@ -5515,14 +5515,14 @@ private readonly NetworkIdRegistry networkIds = new();
                 });
             relationships.Sort((a, b) => a.NetworkId.CompareTo(b.NetworkId));
 
-            var detail = new FamilySimDetailStatus
+            var detail = new FamilyGenosDetailStatus
             {
-                Sim = BuildFamilySimStatus(entity, alive, new GenName(name), simId, stageValue, household, householdNetworkId),
+                Genos = BuildFamilyGenosStatus(entity, alive, new GenName(name), genosId, stageValue, household, householdNetworkId),
                 Relationships = relationships,
-                Pregnancies = BuildPregnanciesForSim(simId),
-                Children = BuildChildrenForSim(simId),
+                Pregnancies = BuildPregnanciesForGenos(genosId),
+                Children = BuildChildrenForGenos(genosId),
                 Guardianships = BuildGuardianships()
-                    .Where(guardian => guardian.GuardianNetworkId == simId || guardian.ChildNetworkId == simId)
+                    .Where(guardian => guardian.GuardianNetworkId == genosId || guardian.ChildNetworkId == genosId)
                     .ToList()
             };
 
@@ -5533,10 +5533,10 @@ private readonly NetworkIdRegistry networkIds = new();
         }
     }
 
-    private FamilySimStatus BuildFamilySimStatus(
+    private FamilyGenosStatus BuildFamilyGenosStatus(
         Entity entity,
         Alive alive,
-        GenName simName,
+        GenName genosName,
         ulong networkId,
         LifeStage stage,
         Entity household,
@@ -5551,10 +5551,10 @@ private readonly NetworkIdRegistry networkIds = new();
                        !parents.Any(parent => world.IsAlive(parent) && !world.Has<Dead>(parent)) &&
                        !relationshipsAlive(guardian);
 
-        var status = new FamilySimStatus
+        var status = new FamilyGenosStatus
         {
             NetworkId = networkId,
-            Name = simName.Name,
+            Name = genosName.Name,
             Age = alive.Age,
             Stage = stage.ToString(),
             Sex = world!.Has<Traits>(entity) ? world.Get<Traits>(entity).Sex.ToString() : string.Empty,
@@ -5594,7 +5594,7 @@ private readonly NetworkIdRegistry networkIds = new();
     }
 
     public FamilyRelationshipPage BuildFamilyRelationships(
-        ulong? simId = null,
+        ulong? genosId = null,
         string? kind = null,
         string? source = null,
         int take = 100,
@@ -5628,15 +5628,15 @@ private readonly NetworkIdRegistry networkIds = new();
 
                     var fromId = NetworkIdOf(world, relationship.From);
                     var toId = NetworkIdOf(world, relationship.To);
-                    if (simId is not null && simId.Value != fromId && simId.Value != toId)
+                    if (genosId is not null && genosId.Value != fromId && genosId.Value != toId)
                         return;
 
                     relationships.Add((networkId.Value, new FamilyRelationshipStatus
                     {
                         NetworkId = networkId.Value,
-                        FromSimId = fromId,
+                        FromGenosId = fromId,
                         FromName = NameOf(relationship.From),
-                        ToSimId = toId,
+                        ToGenosId = toId,
                         ToName = NameOf(relationship.To),
                         Kind = relationship.Kind.ToString(),
                         Source = relationship.Source.ToString(),
@@ -5660,21 +5660,21 @@ private readonly NetworkIdRegistry networkIds = new();
             ? world.Get<GenName>(entity).Name
             : string.Empty;
 
-    public AttractionExplanationStatus BuildAttractionExplanation(ulong simId, ulong candidateId)
+    public AttractionExplanationStatus BuildAttractionExplanation(ulong genosId, ulong candidateId)
     {
         using (WriteLock())
         {
             var result = new AttractionExplanationStatus
             {
-                SimId = simId,
+                GenosId = genosId,
                 CandidateId = candidateId
             };
             if (world is null || economy is null ||
-                !networkIds.TryGetEntity(new NetworkId(simId), out var first) ||
+                !networkIds.TryGetEntity(new NetworkId(genosId), out var first) ||
                 !networkIds.TryGetEntity(new NetworkId(candidateId), out var second))
             {
                 result.ReasonCode = "not-found";
-                result.Reason = "One or both sims do not exist.";
+                result.Reason = "One or both genoses do not exist.";
                 return result;
             }
 
@@ -5712,11 +5712,11 @@ private readonly NetworkIdRegistry networkIds = new();
         }
     }
 
-    public List<SimLifecycleStatus> BuildLifecycleSims(int take = 500, int skip = 0, string? stageFilter = null)
+    public List<GenosLifecycleStatus> BuildLifecycleGenoses(int take = 500, int skip = 0, string? stageFilter = null)
     {
         using (WriteLock())
         {
-            var result = new List<SimLifecycleStatus>();
+            var result = new List<GenosLifecycleStatus>();
             if (world is null || economy is null)
                 return result;
 
@@ -5732,7 +5732,7 @@ private readonly NetworkIdRegistry networkIds = new();
                         : economy.Life.Policy.StageFor(alive.Age);
                     if (filter is { } required && stage != required)
                         return;
-                    var row = new SimLifecycleStatus
+                    var row = new GenosLifecycleStatus
                     {
                         NetworkId = nid.Value,
                         Name = name.Name,
@@ -5804,7 +5804,7 @@ private readonly NetworkIdRegistry networkIds = new();
                     if (world.Has<UnemploymentRecord>(entity))
                         row.UnemploymentCycle = world.Get<UnemploymentRecord>(entity).CyclesClaimed;
 
-                    if (economy.Housing.HouseholdBySim.TryGetValue(entity, out var household))
+                    if (economy.Housing.HouseholdByGenos.TryGetValue(entity, out var household))
                         row.HouseholdNetworkId = GetNetworkId(world, household);
 
                     if (world.Has<Traits>(entity))
@@ -5957,12 +5957,12 @@ private readonly NetworkIdRegistry networkIds = new();
 
             return economy.Life.MortalityLog
                 .OrderByDescending(record => record.Tick)
-                .ThenByDescending(record => record.SimNetworkId)
+                .ThenByDescending(record => record.GenosNetworkId)
                 .Take(Math.Clamp(take, 1, 1000))
                 .Select(record => new MortalityRecordStatus
                 {
                     Tick = record.Tick,
-                    SimNetworkId = record.SimNetworkId,
+                    GenosNetworkId = record.GenosNetworkId,
                     Name = record.Name,
                     Age = record.Age,
                     Cause = record.Cause.ToString(),
@@ -6469,15 +6469,15 @@ private readonly NetworkIdRegistry networkIds = new();
         }
     }
 
-    private List<SimStatus> BuildSimSnapshots(World world)
+    private List<GenosStatus> BuildGenosSnapshots(World world)
     {
-        var sims = new List<SimStatus>();
+        var genoses = new List<GenosStatus>();
         var query = new QueryDescription().WithAll<GenName, Needs, CurrentAction>();
 
         world.Query(in query, (Entity entity, ref GenName name, ref Needs needs, ref CurrentAction action) =>
         {
             var isPlayerControlled = world.Has<PlayerControlled>(entity);
-            var status = new SimStatus
+            var status = new GenosStatus
             {
                 NetworkId = world.Has<NetworkId>(entity) ? world.Get<NetworkId>(entity).Value : 0,
                 Name = name.Name,
@@ -6522,14 +6522,14 @@ private readonly NetworkIdRegistry networkIds = new();
             if (world.Has<ConsumptionState>(entity))
                 status.UnmetDemand = world.Get<ConsumptionState>(entity).UnmetDemand.Units;
 
-            sims.Add(status);
+            genoses.Add(status);
         });
 
-        return sims;
+        return genoses;
     }
 
     /// <summary>
-    /// Derives a sim's appearance only when its inputs changed. The derivation
+    /// Derives a genos's appearance only when its inputs changed. The derivation
     /// depends on traits, age band, appearance version and the stable key
     /// (network id), so all four are part of the cache stamp.
     /// </summary>
@@ -6635,7 +6635,7 @@ private readonly NetworkIdRegistry networkIds = new();
         bool IsClosed);
 
     private readonly record struct EmployeeRecord(
-        ulong SimNetworkId,
+        ulong GenosNetworkId,
         ulong CompanyNetworkId,
         Entity Office,
         string Position,
@@ -6687,7 +6687,7 @@ private readonly NetworkIdRegistry networkIds = new();
                 throw new InvalidOperationException("Simulation is not running");
 
             var currentTick = Volatile.Read(ref tick);
-            var sims = new List<PersistedSim>();
+            var genoses = new List<PersistedGenos>();
             var companies = new List<PersistedCompany>();
             var offices = new List<PersistedOffice>();
             var postings = new List<PersistedPosting>();
@@ -6702,15 +6702,15 @@ private readonly NetworkIdRegistry networkIds = new();
             var householdMeters = new List<PersistedHouseholdMeter>();
             var storeInventories = new List<PersistedStoreInventory>();
             var nutritionRows = new List<PersistedNutrition>();
-            var simByEntity = new Dictionary<Entity, PersistedSim>();
+            var genosByEntity = new Dictionary<Entity, PersistedGenos>();
 
-            var simQuery = new QueryDescription().WithAll<GenName, Needs, Alive, NetworkId>();
-            world.Query(in simQuery, (Entity entity, ref GenName name, ref Needs needs, ref Alive alive, ref NetworkId nid) =>
+            var genosQuery = new QueryDescription().WithAll<GenName, Needs, Alive, NetworkId>();
+            world.Query(in genosQuery, (Entity entity, ref GenName name, ref Needs needs, ref Alive alive, ref NetworkId nid) =>
             {
                 var action = world.Has<CurrentAction>(entity)
                     ? world.Get<CurrentAction>(entity)
                     : new CurrentAction(ActionType.Idle, 0f);
-                var sim = new PersistedSim
+                var genos = new PersistedGenos
                 {
                     Name = name.Name,
                     Age = alive.Age,
@@ -6722,95 +6722,95 @@ private readonly NetworkIdRegistry networkIds = new();
                     ActionType = action.Type.ToString(),
                     TimeRemaining = action.TimeRemaining
                 };
-                sims.Add(sim);
-                simByEntity[entity] = sim;
+                genoses.Add(genos);
+                genosByEntity[entity] = genos;
             });
 
             var traitsQuery = new QueryDescription().WithAll<GenName, Traits>();
             world.Query(in traitsQuery, (Entity entity, ref Traits traits) =>
             {
-                if (!simByEntity.TryGetValue(entity, out var sim))
+                if (!genosByEntity.TryGetValue(entity, out var genos))
                     return;
-                sim.EyeColor = (int)traits.EyeColor;
-                sim.HairColor = (int)traits.HairColor;
-                sim.Handedness = (int)traits.Handedness;
-                sim.Morphotype = (int)traits.Morphotype;
-                sim.Aptitude = (int)traits.Aptitude;
-                sim.HeightPotential = (int)traits.HeightPotential;
-                sim.Sex = (int)traits.Sex;
-                sim.Temperament = (int)traits.Temperament;
-                sim.SkinTone = (int)traits.SkinTone;
-                sim.FaceShape = (int)traits.FaceShape;
-                sim.AppearanceVersion = AppearanceDescriptor.CurrentVersion;
-                sim.AppearanceMigrated = true;
-                sim.TraitsMigrated = true;
+                genos.EyeColor = (int)traits.EyeColor;
+                genos.HairColor = (int)traits.HairColor;
+                genos.Handedness = (int)traits.Handedness;
+                genos.Morphotype = (int)traits.Morphotype;
+                genos.Aptitude = (int)traits.Aptitude;
+                genos.HeightPotential = (int)traits.HeightPotential;
+                genos.Sex = (int)traits.Sex;
+                genos.Temperament = (int)traits.Temperament;
+                genos.SkinTone = (int)traits.SkinTone;
+                genos.FaceShape = (int)traits.FaceShape;
+                genos.AppearanceVersion = AppearanceDescriptor.CurrentVersion;
+                genos.AppearanceMigrated = true;
+                genos.TraitsMigrated = true;
             });
 
             var birthRecords = new QueryDescription().WithAll<GenName, BirthRecord>();
             world.Query(in birthRecords, (Entity entity, ref GenName _, ref BirthRecord record) =>
             {
-                if (!simByEntity.TryGetValue(entity, out var sim))
+                if (!genosByEntity.TryGetValue(entity, out var genos))
                     return;
-                sim.BirthPregnancyNetworkId = record.PregnancyNetworkId;
-                sim.BirthTick = record.BornTick;
+                genos.BirthPregnancyNetworkId = record.PregnancyNetworkId;
+                genos.BirthTick = record.BornTick;
             });
 
             var jobSeekerQuery = new QueryDescription().WithAll<GenName, JobSeeker>();
             world.Query(in jobSeekerQuery, (Entity entity, ref JobSeeker js) =>
             {
-                if (simByEntity.TryGetValue(entity, out var sim))
+                if (genosByEntity.TryGetValue(entity, out var genos))
                 {
-                    sim.IsLookingForWork = js.IsLookingForWork;
-                    sim.DesiredSalaryCents = js.DesiredSalary.Cents;
+                    genos.IsLookingForWork = js.IsLookingForWork;
+                    genos.DesiredSalaryCents = js.DesiredSalary.Cents;
                 }
             });
 
             var locationQuery = new QueryDescription().WithAll<GenName, Location>();
             world.Query(in locationQuery, (Entity entity, ref Location location) =>
             {
-                if (simByEntity.TryGetValue(entity, out var sim))
+                if (genosByEntity.TryGetValue(entity, out var genos))
                 {
-                    sim.X = location.Position.X;
-                    sim.Y = location.Position.Y;
+                    genos.X = location.Position.X;
+                    genos.Y = location.Position.Y;
                 }
             });
 
             var tileQuery = new QueryDescription().WithAll<GenName, TilePosition>();
             world.Query(in tileQuery, (Entity entity, ref TilePosition position) =>
             {
-                if (simByEntity.TryGetValue(entity, out var sim))
+                if (genosByEntity.TryGetValue(entity, out var genos))
                 {
-                    sim.HasTilePosition = true;
-                    sim.TileX = position.Tile.X;
-                    sim.TileY = position.Tile.Y;
+                    genos.HasTilePosition = true;
+                    genos.TileX = position.Tile.X;
+                    genos.TileY = position.Tile.Y;
                 }
             });
 
             var moveTargetQuery = new QueryDescription().WithAll<GenName, MoveTarget>();
             world.Query(in moveTargetQuery, (Entity entity, ref MoveTarget target) =>
             {
-                if (simByEntity.TryGetValue(entity, out var sim))
+                if (genosByEntity.TryGetValue(entity, out var genos))
                 {
-                    sim.HasMoveTarget = target.HasTarget;
-                    sim.MoveTargetX = target.Tile.X;
-                    sim.MoveTargetY = target.Tile.Y;
+                    genos.HasMoveTarget = target.HasTarget;
+                    genos.MoveTargetX = target.Tile.X;
+                    genos.MoveTargetY = target.Tile.Y;
                 }
             });
 
             var movementQuery = new QueryDescription().WithAll<GenName, MovementState>();
             world.Query(in movementQuery, (Entity entity, ref MovementState movement) =>
             {
-                if (simByEntity.TryGetValue(entity, out var sim))
+                if (genosByEntity.TryGetValue(entity, out var genos))
                 {
-                    sim.MoveFromX = movement.From.X;
-                    sim.MoveFromY = movement.From.Y;
-                    sim.MoveToX = movement.To.X;
-                    sim.MoveToY = movement.To.Y;
-                    sim.MoveProgress = movement.Progress;
-                    sim.SubTileX = movement.IsMoving
+                    genos.MoveFromX = movement.From.X;
+                    genos.MoveFromY = movement.From.Y;
+                    genos.MoveToX = movement.To.X;
+                    genos.MoveToY = movement.To.Y;
+                    genos.MoveProgress = movement.Progress;
+                    genos.SubTileX = movement.IsMoving
                         ? movement.From.X + (movement.To.X - movement.From.X) * movement.Progress
                         : 0f;
-                    sim.SubTileY = movement.IsMoving
+                    genos.SubTileY = movement.IsMoving
                         ? movement.From.Y + (movement.To.Y - movement.From.Y) * movement.Progress
                         : 0f;
                 }
@@ -6819,127 +6819,127 @@ private readonly NetworkIdRegistry networkIds = new();
             var playerQuery = new QueryDescription().WithAll<GenName, PlayerControlled>();
             world.Query(in playerQuery, (Entity entity, ref PlayerControlled pc) =>
             {
-                if (simByEntity.TryGetValue(entity, out var sim))
-                    sim.PlayerId = pc.PlayerId;
+                if (genosByEntity.TryGetValue(entity, out var genos))
+                    genos.PlayerId = pc.PlayerId;
             });
 
             var walletQuery = new QueryDescription().WithAll<GenName, Wallet>();
             world.Query(in walletQuery, (Entity entity, ref Wallet wallet) =>
             {
-                if (simByEntity.TryGetValue(entity, out var sim))
+                if (genosByEntity.TryGetValue(entity, out var genos))
                 {
-                    sim.HasWallet = true;
-                    sim.WalletBalanceCents = wallet.Balance.Cents;
+                    genos.HasWallet = true;
+                    genos.WalletBalanceCents = wallet.Balance.Cents;
                 }
             });
 
             var savingsQuery = new QueryDescription().WithAll<GenName, SavingsAccount>();
             world.Query(in savingsQuery, (Entity entity, ref SavingsAccount savings) =>
             {
-                if (simByEntity.TryGetValue(entity, out var sim))
-                    sim.SavingsBalanceCents = savings.Balance.Cents;
+                if (genosByEntity.TryGetValue(entity, out var genos))
+                    genos.SavingsBalanceCents = savings.Balance.Cents;
             });
 
             var consumptionQuery = new QueryDescription().WithAll<GenName, ConsumptionState>();
             world.Query(in consumptionQuery, (Entity entity, ref ConsumptionState consumption) =>
             {
-                if (simByEntity.TryGetValue(entity, out var sim))
+                if (genosByEntity.TryGetValue(entity, out var genos))
                 {
-                    sim.UnmetDemandCents = consumption.UnmetDemand.Cents;
-                    sim.LastSpendCents = consumption.LastCycleSpent.Cents;
-                    sim.ConsumptionLifetimeCents = consumption.LifetimeSpent.Cents;
+                    genos.UnmetDemandCents = consumption.UnmetDemand.Cents;
+                    genos.LastSpendCents = consumption.LastCycleSpent.Cents;
+                    genos.ConsumptionLifetimeCents = consumption.LifetimeSpent.Cents;
                 }
             });
 
             var pensionQuery = new QueryDescription().WithAll<GenName, PensionAccount>();
             world.Query(in pensionQuery, (Entity entity, ref PensionAccount pension) =>
             {
-                if (simByEntity.TryGetValue(entity, out var sim))
+                if (genosByEntity.TryGetValue(entity, out var genos))
                 {
-                    sim.PensionEmployeeCents = pension.EmployeeContributions.Cents;
-                    sim.PensionEmployerCents = pension.EmployerContributions.Cents;
-                    sim.PensionCycles = pension.ContributingCycles;
+                    genos.PensionEmployeeCents = pension.EmployeeContributions.Cents;
+                    genos.PensionEmployerCents = pension.EmployerContributions.Cents;
+                    genos.PensionCycles = pension.ContributingCycles;
                 }
             });
 
             var employeeQuery = new QueryDescription().WithAll<Employee>();
             world.Query(in employeeQuery, (Entity entity, ref Employee employee) =>
             {
-                if (!simByEntity.TryGetValue(entity, out var sim))
+                if (!genosByEntity.TryGetValue(entity, out var genos))
                     return;
-                sim.EmployerNetworkId = GetNetworkId(world, employee.Company);
-                sim.OfficeNetworkId = GetNetworkId(world, employee.Office);
-                sim.Position = employee.Position;
-                sim.SalaryCents = employee.SalaryPerCycle.Cents;
-                sim.Seniority = employee.Seniority.ToString();
-                sim.HiredAtTick = employee.HiredAtTick;
+                genos.EmployerNetworkId = GetNetworkId(world, employee.Company);
+                genos.OfficeNetworkId = GetNetworkId(world, employee.Office);
+                genos.Position = employee.Position;
+                genos.SalaryCents = employee.SalaryPerCycle.Cents;
+                genos.Seniority = employee.Seniority.ToString();
+                genos.HiredAtTick = employee.HiredAtTick;
             });
 
             var claimQuery = new QueryDescription().WithAll<WageClaim>();
             world.Query(in claimQuery, (Entity entity, ref WageClaim claim) =>
             {
-                if (!simByEntity.TryGetValue(entity, out var sim))
+                if (!genosByEntity.TryGetValue(entity, out var genos))
                     return;
-                sim.ClaimCompanyNetworkId = GetNetworkId(world, claim.Company);
-                sim.UnpaidGrossCents = claim.UnpaidGross.Cents;
-                sim.UnpaidNetCents = claim.UnpaidNet.Cents;
-                sim.SeveranceCents = claim.Severance.Cents;
-                sim.ClaimCycles = claim.CyclesInArrears;
-                sim.ClaimFirstTick = claim.FirstMissedTick;
+                genos.ClaimCompanyNetworkId = GetNetworkId(world, claim.Company);
+                genos.UnpaidGrossCents = claim.UnpaidGross.Cents;
+                genos.UnpaidNetCents = claim.UnpaidNet.Cents;
+                genos.SeveranceCents = claim.Severance.Cents;
+                genos.ClaimCycles = claim.CyclesInArrears;
+                genos.ClaimFirstTick = claim.FirstMissedTick;
             });
 
             var lifecycleQuery = new QueryDescription().WithAll<GenName, Lifecycle>();
             world.Query(in lifecycleQuery, (Entity entity, ref Lifecycle lifecycle) =>
             {
-                if (!simByEntity.TryGetValue(entity, out var sim))
+                if (!genosByEntity.TryGetValue(entity, out var genos))
                     return;
-                sim.Stage = lifecycle.Stage.ToString();
-                sim.AgeTicks = lifecycle.AgeTicks;
-                sim.StageEnteredTick = lifecycle.StageEnteredTick;
-                sim.StageCause = lifecycle.LastCause.ToString();
-                sim.LastAgedTick = lifecycle.LastAgedTick;
-                sim.MaxAgeFlagged = lifecycle.MaxAgeFlagged;
+                genos.Stage = lifecycle.Stage.ToString();
+                genos.AgeTicks = lifecycle.AgeTicks;
+                genos.StageEnteredTick = lifecycle.StageEnteredTick;
+                genos.StageCause = lifecycle.LastCause.ToString();
+                genos.LastAgedTick = lifecycle.LastAgedTick;
+                genos.MaxAgeFlagged = lifecycle.MaxAgeFlagged;
             });
 
             world.Query(in new QueryDescription().WithAll<GenName, SkillProfile>(),
                 (Entity entity, ref SkillProfile profile) =>
                 {
-                    if (!simByEntity.TryGetValue(entity, out var sim))
+                    if (!genosByEntity.TryGetValue(entity, out var genos))
                         return;
-                    sim.SkillProgramming = profile.Programming;
-                    sim.SkillArt = profile.Art;
-                    sim.SkillCooking = profile.Cooking;
-                    sim.SkillMedical = profile.Medical;
-                    sim.SkillEngineering = profile.Engineering;
-                    sim.SkillSales = profile.Sales;
+                    genos.SkillProgramming = profile.Programming;
+                    genos.SkillArt = profile.Art;
+                    genos.SkillCooking = profile.Cooking;
+                    genos.SkillMedical = profile.Medical;
+                    genos.SkillEngineering = profile.Engineering;
+                    genos.SkillSales = profile.Sales;
                 });
 
             world.Query(in new QueryDescription().WithAll<GenName, Health>(),
                 (Entity entity, ref Health health) =>
                 {
-                    if (!simByEntity.TryGetValue(entity, out var sim))
+                    if (!genosByEntity.TryGetValue(entity, out var genos))
                         return;
-                    sim.HealthValue = health.Value;
-                    sim.HealthDeclineRate = health.DeclineRate;
-                    sim.HealthLastCareTick = health.LastCareTick;
-                    sim.ChronicConditions = health.ChronicConditions;
+                    genos.HealthValue = health.Value;
+                    genos.HealthDeclineRate = health.DeclineRate;
+                    genos.HealthLastCareTick = health.LastCareTick;
+                    genos.ChronicConditions = health.ChronicConditions;
                 });
 
             world.Query(in new QueryDescription().WithAll<GenName, Enrollment>(),
                 (Entity entity, ref Enrollment enrollment) =>
                 {
-                    if (!simByEntity.TryGetValue(entity, out var sim))
+                    if (!genosByEntity.TryGetValue(entity, out var genos))
                         return;
-                    sim.EnrollmentSchoolNetworkId = GetNetworkId(world, enrollment.School);
-                    sim.EnrollmentAttendance = enrollment.Attendance;
-                    sim.EnrollmentMonths = enrollment.MonthsAttended;
-                    sim.IsUnenrolled = enrollment.IsUnenrolled;
+                    genos.EnrollmentSchoolNetworkId = GetNetworkId(world, enrollment.School);
+                    genos.EnrollmentAttendance = enrollment.Attendance;
+                    genos.EnrollmentMonths = enrollment.MonthsAttended;
+                    genos.IsUnenrolled = enrollment.IsUnenrolled;
                 });
 
             world.Query(in new QueryDescription().WithAll<GenName, EmploymentRecord>(),
                 (Entity entity, ref EmploymentRecord record) =>
                 {
-                    if (!simByEntity.TryGetValue(entity, out var sid))
+                    if (!genosByEntity.TryGetValue(entity, out var sid))
                         return;
                     sid.EmploymentAttendance = record.Attendance;
                     sid.EmploymentPerformance = record.Performance;
@@ -6956,7 +6956,7 @@ private readonly NetworkIdRegistry networkIds = new();
             world.Query(in new QueryDescription().WithAll<GenName, WorkSchedule>(),
                 (Entity entity, ref WorkSchedule schedule) =>
                 {
-                    if (!simByEntity.TryGetValue(entity, out var sid))
+                    if (!genosByEntity.TryGetValue(entity, out var sid))
                         return;
                     sid.WorkOfficeNetworkId = GetNetworkId(world, schedule.Office);
                     sid.IsAtWork = schedule.IsAtWork;
@@ -6970,7 +6970,7 @@ private readonly NetworkIdRegistry networkIds = new();
             world.Query(in new QueryDescription().WithAll<GenName, RetirementIncome>(),
                 (Entity entity, ref RetirementIncome income) =>
                 {
-                    if (!simByEntity.TryGetValue(entity, out var sid))
+                    if (!genosByEntity.TryGetValue(entity, out var sid))
                         return;
                     sid.RetirementMonthlyCents = income.MonthlyPension.Cents;
                     sid.RetirementStartedTick = income.StartedTick;
@@ -6982,7 +6982,7 @@ private readonly NetworkIdRegistry networkIds = new();
             world.Query(in new QueryDescription().WithAll<GenName, UnemploymentRecord>(),
                 (Entity entity, ref UnemploymentRecord record) =>
                 {
-                    if (!simByEntity.TryGetValue(entity, out var sid))
+                    if (!genosByEntity.TryGetValue(entity, out var sid))
                         return;
                     sid.UnemploymentStartedTick = record.StartedTick;
                     sid.UnemploymentBenefitCents = record.BenefitPerCycle.Cents;
@@ -6995,7 +6995,7 @@ private readonly NetworkIdRegistry networkIds = new();
             world.Query(in new QueryDescription().WithAll<GenName, Dead>(),
                 (Entity entity, ref Dead dead) =>
                 {
-                    if (!simByEntity.TryGetValue(entity, out var sid))
+                    if (!genosByEntity.TryGetValue(entity, out var sid))
                         return;
                     sid.IsDead = true;
                     sid.DeathTick = dead.Tick;
@@ -7153,7 +7153,7 @@ private readonly NetworkIdRegistry networkIds = new();
                     pendingRevenue.Add(new PersistedPendingRevenue
                     {
                         CompanyNetworkId = companyNetworkId,
-                        SimNetworkId = spend.SimNetworkId,
+                        GenosNetworkId = spend.GenosNetworkId,
                         Category = spend.Category,
                         AmountCents = spend.Amount.Cents,
                         Tick = spend.Tick
@@ -7235,7 +7235,7 @@ private readonly NetworkIdRegistry networkIds = new();
                     householdMembers.Add(new PersistedHouseholdMember
                     {
                         HouseholdNetworkId = GetNetworkId(world, member.Household),
-                        SimNetworkId = GetNetworkId(world, entity),
+                        GenosNetworkId = GetNetworkId(world, entity),
                         Role = member.Role.ToString()
                     });
                 });
@@ -7253,8 +7253,8 @@ private readonly NetworkIdRegistry networkIds = new();
                     relationships.Add(new PersistedRelationship
                     {
                         NetworkId = networkId,
-                        FromSimNetworkId = fromId,
-                        ToSimNetworkId = toId,
+                        FromGenosNetworkId = fromId,
+                        ToGenosNetworkId = toId,
                         Kind = relationship.Kind.ToString(),
                         Source = relationship.Source.ToString(),
                         SinceTick = relationship.SinceTick,
@@ -7307,7 +7307,7 @@ private readonly NetworkIdRegistry networkIds = new();
                         BalanceCents = trust.Balance.Cents,
                         CreatedTick = trust.CreatedTick,
                         ReleaseAgeTicks = trust.ReleaseAgeTicks,
-                        SourceSimNetworkId = trust.SourceSimNetworkId
+                        SourceGenosNetworkId = trust.SourceGenosNetworkId
                     });
                 });
 
@@ -7342,19 +7342,19 @@ private readonly NetworkIdRegistry networkIds = new();
                     });
                 });
 
-            foreach (var (simEntity, sim) in simByEntity)
+            foreach (var (genosEntity, genos) in genosByEntity)
             {
-                if (!economy.Housing.HouseholdBySim.TryGetValue(simEntity, out var householdEntity))
+                if (!economy.Housing.HouseholdByGenos.TryGetValue(genosEntity, out var householdEntity))
                     continue;
                 if (!world.IsAlive(householdEntity) || !world.Has<Household>(householdEntity))
                     continue;
 
                 var household = world.Get<Household>(householdEntity);
-                sim.HouseholdNetworkId = GetNetworkId(world, householdEntity);
-                sim.HouseholdUnitNetworkId = GetNetworkId(world, household.Unit);
-                sim.Tenure = household.Tenure.ToString();
+                genos.HouseholdNetworkId = GetNetworkId(world, householdEntity);
+                genos.HouseholdUnitNetworkId = GetNetworkId(world, household.Unit);
+                genos.Tenure = household.Tenure.ToString();
                 if (world.IsAlive(household.Unit) && world.Has<HousingUnit>(household.Unit))
-                    sim.HousingTier = world.Get<HousingUnit>(household.Unit).Tier.ToString();
+                    genos.HousingTier = world.Get<HousingUnit>(household.Unit).Tier.ToString();
             }
 
             var housingMetricHistory = economy.Housing.MetricHistory.Select(snapshot => new PersistedHousingSnapshot
@@ -7461,7 +7461,7 @@ private readonly NetworkIdRegistry networkIds = new();
             var mortalityLog = economy.Life.MortalityLog.Select(record => new PersistedMortalityRecord
             {
                 Tick = record.Tick,
-                SimNetworkId = record.SimNetworkId,
+                GenosNetworkId = record.GenosNetworkId,
                 Name = record.Name,
                 Age = record.Age,
                 Cause = record.Cause.ToString(),
@@ -7470,7 +7470,7 @@ private readonly NetworkIdRegistry networkIds = new();
 
             var estateQueue = economy.Life.EstateQueue.Select(request => new PersistedEstateRequest
             {
-                SimNetworkId = request.SimNetworkId,
+                GenosNetworkId = request.GenosNetworkId,
                 HouseholdNetworkId = GetNetworkId(world, request.Household),
                 UnitNetworkId = GetNetworkId(world, request.Unit),
                 OwnedUnitNetworkId = GetNetworkId(world, request.OwnedUnit),
@@ -7562,33 +7562,33 @@ private readonly NetworkIdRegistry networkIds = new();
                 playerProfiles.Add(new PersistedPlayerProfile
                 {
                     PlayerId = profile.PlayerId,
-                    SimNetworkId = profile.LastSimNetworkId,
+                    GenosNetworkId = profile.LastGenosNetworkId,
                     ContinuationPolicy = profile.ContinuationPolicy.ToString(),
                     AwaitingContinuation = profile.AwaitingContinuation,
                     Observer = profile.Observer,
                     CreatedTick = profile.CreatedTick,
                     LastActionTick = profile.LastActionTick,
                     LastSequence = profile.LastSequence,
-                    LastSimName = profile.LastSimName,
-                    LastSimAge = profile.LastSimAge,
-                    LastSimTraits = profile.LastSimTraits,
-                    LastSimHouseholdNetworkId = profile.LastSimHouseholdNetworkId,
-                    LastSimDeathTick = profile.LastSimDeathTick,
-                    PendingRespawnSimNetworkId = profile.PendingRespawnSimNetworkId
+                    LastGenosName = profile.LastGenosName,
+                    LastGenosAge = profile.LastGenosAge,
+                    LastGenosTraits = profile.LastGenosTraits,
+                    LastGenosHouseholdNetworkId = profile.LastGenosHouseholdNetworkId,
+                    LastGenosDeathTick = profile.LastGenosDeathTick,
+                    PendingRespawnGenosNetworkId = profile.PendingRespawnGenosNetworkId
                 });
 
-                var sim = profile.ControlledSim;
-                if (sim == Entity.Null || !world.IsAlive(sim) || !world.Has<NetworkId>(sim))
+                var genos = profile.ControlledGenos;
+                if (genos == Entity.Null || !world.IsAlive(genos) || !world.Has<NetworkId>(genos))
                     continue;
 
                 var life = new PersistedPlayerLife
                 {
-                    SimNetworkId = world.Get<NetworkId>(sim).Value
+                    GenosNetworkId = world.Get<NetworkId>(genos).Value
                 };
 
-                if (world.Has<PlayerEmployment>(sim))
+                if (world.Has<PlayerEmployment>(genos))
                 {
-                    var employment = world.Get<PlayerEmployment>(sim);
+                    var employment = world.Get<PlayerEmployment>(genos);
                     life.HasEmployment = true;
                     life.EmploymentOfficeNetworkId = GetNetworkId(world, employment.Office);
                     life.HiredTick = employment.HiredTick;
@@ -7598,9 +7598,9 @@ private readonly NetworkIdRegistry networkIds = new();
                     life.AttendedThisMonth = employment.AttendedThisMonth;
                 }
 
-                if (world.Has<PlayerHousing>(sim))
+                if (world.Has<PlayerHousing>(genos))
                 {
-                    var lease = world.Get<PlayerHousing>(sim);
+                    var lease = world.Get<PlayerHousing>(genos);
                     life.HouseholdNetworkId = GetNetworkId(world, lease.Household);
                     life.UnitNetworkId = GetNetworkId(world, lease.Unit);
                     life.LeaseStartTick = lease.LeaseStartTick;
@@ -7608,9 +7608,9 @@ private readonly NetworkIdRegistry networkIds = new();
                     life.LeaseActive = lease.LeaseActive;
                 }
 
-                if (world.Has<PlayerJobOffer>(sim))
+                if (world.Has<PlayerJobOffer>(genos))
                 {
-                    var offer = world.Get<PlayerJobOffer>(sim);
+                    var offer = world.Get<PlayerJobOffer>(genos);
                     life.JobOfferId = offer.OfferId;
                     life.JobOfferPostingNetworkId = GetNetworkId(world, offer.Posting);
                     life.JobOfferOfficeNetworkId = GetNetworkId(world, offer.Office);
@@ -7620,9 +7620,9 @@ private readonly NetworkIdRegistry networkIds = new();
                     life.JobOfferExpiresTick = offer.ExpiresTick;
                 }
 
-                if (world.Has<PlayerLeaseOffer>(sim))
+                if (world.Has<PlayerLeaseOffer>(genos))
                 {
-                    var offer = world.Get<PlayerLeaseOffer>(sim);
+                    var offer = world.Get<PlayerLeaseOffer>(genos);
                     life.LeaseOfferId = offer.OfferId;
                     life.LeaseOfferUnitNetworkId = GetNetworkId(world, offer.Unit);
                     life.LeaseOfferPropertyNetworkId = GetNetworkId(world, offer.Property);
@@ -7631,7 +7631,7 @@ private readonly NetworkIdRegistry networkIds = new();
                     life.LeaseOfferExpiresTick = offer.ExpiresTick;
                 }
 
-                var pantryOwner = sim;
+                var pantryOwner = genos;
                 if (life.HouseholdNetworkId != 0 &&
                     networkIds.TryGetEntity(new NetworkId(life.HouseholdNetworkId), out var pantryHousehold) &&
                     world.IsAlive(pantryHousehold))
@@ -7656,8 +7656,8 @@ private readonly NetworkIdRegistry networkIds = new();
                     {
                         NetworkId = nid.Value,
                         Id = invitation.Id,
-                        FromSimNetworkId = GetNetworkId(world, invitation.From),
-                        ToSimNetworkId = GetNetworkId(world, invitation.To),
+                        FromGenosNetworkId = GetNetworkId(world, invitation.From),
+                        ToGenosNetworkId = GetNetworkId(world, invitation.To),
                         Kind = invitation.Kind.ToString(),
                         Status = invitation.Status.ToString(),
                         CreatedTick = invitation.CreatedTick,
@@ -7731,7 +7731,7 @@ private readonly NetworkIdRegistry networkIds = new();
                 {
                     nutritionRows.Add(new PersistedNutrition
                     {
-                        SimNetworkId = GetNetworkId(world, entity),
+                        GenosNetworkId = GetNetworkId(world, entity),
                         Balance = nutrition.Balance,
                         ConsecutivePoorDays = nutrition.ConsecutivePoorDays,
                         LastMealTick = nutrition.LastMealTick
@@ -7839,7 +7839,7 @@ private readonly NetworkIdRegistry networkIds = new();
                 StoreInventories = storeInventories,
                 Nutrition = nutritionRows,
                 GroceryCatalogVersion = GroceryCatalog.Version,
-                Sims = sims,
+                Genoses = genoses,
                 Companies = companies,
                 Offices = offices,
                 Postings = postings,
@@ -7879,17 +7879,17 @@ private readonly NetworkIdRegistry networkIds = new();
         }
     }
 
-    private TileCoord ResolveRestoredTile(PersistedSim sim)
+    private TileCoord ResolveRestoredTile(PersistedGenos genos)
     {
         if (mapContext is null)
-            return new TileCoord(sim.TileX, sim.TileY);
+            return new TileCoord(genos.TileX, genos.TileY);
 
-        var tile = sim.HasTilePosition
-            ? new TileCoord(sim.TileX, sim.TileY)
-            : mapContext.Options.ToTile(sim.X, sim.Y);
+        var tile = genos.HasTilePosition
+            ? new TileCoord(genos.TileX, genos.TileY)
+            : mapContext.Options.ToTile(genos.X, genos.Y);
 
         if (!mapContext.Options.Bounds.Contains(tile) || !mapContext.Map.IsWalkable(tile))
-            tile = MapSpawner.FindSpawn(mapContext, sim.NetworkId);
+            tile = MapSpawner.FindSpawn(mapContext, genos.NetworkId);
 
         return tile;
     }
@@ -8036,7 +8036,7 @@ private readonly NetworkIdRegistry networkIds = new();
                 mapContext!.LoadRestored(generated, state.Map.Version);
             }
 
-            var simEntities = new Dictionary<ulong, Entity>();
+            var genosEntities = new Dictionary<ulong, Entity>();
             var companyEntities = new Dictionary<ulong, Entity>();
             var officeEntities = new Dictionary<ulong, Entity>();
             var postingEntities = new Dictionary<ulong, Entity>();
@@ -8136,268 +8136,268 @@ private readonly NetworkIdRegistry networkIds = new();
             }
 
             var restoredTick = state.Tick;
-            foreach (var sim in state.Sims)
+            foreach (var genos in state.Genoses)
             {
-                var stage = Enum.TryParse<LifeStage>(sim.Stage, out var savedStage)
+                var stage = Enum.TryParse<LifeStage>(genos.Stage, out var savedStage)
                     ? savedStage
-                    : LifecycleClassifier.Classify(sim.Age, economy.Life.Policy);
-                var ageTicks = sim.AgeTicks > 0
-                    ? sim.AgeTicks
-                    : LifecycleFactory.Create(sim.Age, restoredTick, clock, economy.Life.Policy, sim.NetworkId.GetHashCode()).AgeTicks;
-                var cause = Enum.TryParse<StageTransitionCause>(sim.StageCause, out var savedCause)
+                    : LifecycleClassifier.Classify(genos.Age, economy.Life.Policy);
+                var ageTicks = genos.AgeTicks > 0
+                    ? genos.AgeTicks
+                    : LifecycleFactory.Create(genos.Age, restoredTick, clock, economy.Life.Policy, genos.NetworkId.GetHashCode()).AgeTicks;
+                var cause = Enum.TryParse<StageTransitionCause>(genos.StageCause, out var savedCause)
                     ? savedCause
                     : StageTransitionCause.Restored;
-                var lastAgedTick = !state.LifecycleMigrated && sim.LastAgedTick == 0
+                var lastAgedTick = !state.LifecycleMigrated && genos.LastAgedTick == 0
                     ? restoredTick
-                    : sim.LastAgedTick;
+                    : genos.LastAgedTick;
 
                 var profile = new SkillProfile
                 {
-                    Programming = sim.SkillProgramming,
-                    Art = sim.SkillArt,
-                    Cooking = sim.SkillCooking,
-                    Medical = sim.SkillMedical,
-                    Engineering = sim.SkillEngineering,
-                    Sales = sim.SkillSales
+                    Programming = genos.SkillProgramming,
+                    Art = genos.SkillArt,
+                    Cooking = genos.SkillCooking,
+                    Medical = genos.SkillMedical,
+                    Engineering = genos.SkillEngineering,
+                    Sales = genos.SkillSales
                 };
 
                 Traits traits;
-                if (!sim.TraitsMigrated)
+                if (!genos.TraitsMigrated)
                 {
                     traits = TraitsGenerator.Create(
-                        RandomSeed, sim.NetworkId, TraitSource.Migration, economy.Genetics);
-                    TraitValidation.EnsureValid(traits, sim.NetworkId);
+                        RandomSeed, genos.NetworkId, TraitSource.Migration, economy.Genetics);
+                    TraitValidation.EnsureValid(traits, genos.NetworkId);
                     // Persist the generated values on the in-memory state so a second
                     // restore of the same object cannot backfill a different trait set.
-                    sim.EyeColor = (int)traits.EyeColor;
-                    sim.HairColor = (int)traits.HairColor;
-                    sim.Handedness = (int)traits.Handedness;
-                    sim.Morphotype = (int)traits.Morphotype;
-                    sim.Aptitude = (int)traits.Aptitude;
-                    sim.HeightPotential = (int)traits.HeightPotential;
-                    sim.Sex = (int)traits.Sex;
-                    sim.Temperament = (int)traits.Temperament;
-                    sim.SkinTone = (int)traits.SkinTone;
-                    sim.FaceShape = (int)traits.FaceShape;
-                    sim.AppearanceVersion = AppearanceDescriptor.CurrentVersion;
-                    sim.AppearanceMigrated = true;
-                    sim.TraitsMigrated = true;
+                    genos.EyeColor = (int)traits.EyeColor;
+                    genos.HairColor = (int)traits.HairColor;
+                    genos.Handedness = (int)traits.Handedness;
+                    genos.Morphotype = (int)traits.Morphotype;
+                    genos.Aptitude = (int)traits.Aptitude;
+                    genos.HeightPotential = (int)traits.HeightPotential;
+                    genos.Sex = (int)traits.Sex;
+                    genos.Temperament = (int)traits.Temperament;
+                    genos.SkinTone = (int)traits.SkinTone;
+                    genos.FaceShape = (int)traits.FaceShape;
+                    genos.AppearanceVersion = AppearanceDescriptor.CurrentVersion;
+                    genos.AppearanceMigrated = true;
+                    genos.TraitsMigrated = true;
                 }
                 else
                 {
-                    if (!sim.AppearanceMigrated)
+                    if (!genos.AppearanceMigrated)
                     {
                         var (skin, face) = AppearanceDerivation.BackfillGenes(
-                            RandomSeed, sim.NetworkId, AppearanceDescriptor.CurrentVersion);
-                        sim.SkinTone = (int)skin;
-                        sim.FaceShape = (int)face;
-                        sim.AppearanceVersion = AppearanceDescriptor.CurrentVersion;
-                        sim.AppearanceMigrated = true;
+                            RandomSeed, genos.NetworkId, AppearanceDescriptor.CurrentVersion);
+                        genos.SkinTone = (int)skin;
+                        genos.FaceShape = (int)face;
+                        genos.AppearanceVersion = AppearanceDescriptor.CurrentVersion;
+                        genos.AppearanceMigrated = true;
                         economy?.Emit(new AppearanceMigrated(
-                            sim.NetworkId,
+                            genos.NetworkId,
                             AppearanceDescriptor.CurrentVersion,
-                            sim.SkinTone,
-                            sim.FaceShape,
+                            genos.SkinTone,
+                            genos.FaceShape,
                             0));
                     }
 
-                    if (sim.AppearanceVersion > AppearanceDescriptor.CurrentVersion)
+                    if (genos.AppearanceVersion > AppearanceDescriptor.CurrentVersion)
                     {
                         throw new InvalidOperationException(
-                            $"Sim {sim.NetworkId} has appearance version {sim.AppearanceVersion}, " +
+                            $"Genos {genos.NetworkId} has appearance version {genos.AppearanceVersion}, " +
                             $"newer than supported version {AppearanceDescriptor.CurrentVersion}.");
                     }
 
                     traits = new Traits
                     {
-                        EyeColor = (EyeColor)sim.EyeColor,
-                        HairColor = (HairColor)sim.HairColor,
-                        Handedness = (Handedness)sim.Handedness,
-                        Morphotype = (Morphotype)sim.Morphotype,
-                        Aptitude = (Aptitude)sim.Aptitude,
-                        HeightPotential = (HeightPotential)sim.HeightPotential,
-                        Sex = (Sex)sim.Sex,
-                        Temperament = (Temperament)sim.Temperament,
-                        SkinTone = (SkinTone)sim.SkinTone,
-                        FaceShape = (FaceShape)sim.FaceShape
+                        EyeColor = (EyeColor)genos.EyeColor,
+                        HairColor = (HairColor)genos.HairColor,
+                        Handedness = (Handedness)genos.Handedness,
+                        Morphotype = (Morphotype)genos.Morphotype,
+                        Aptitude = (Aptitude)genos.Aptitude,
+                        HeightPotential = (HeightPotential)genos.HeightPotential,
+                        Sex = (Sex)genos.Sex,
+                        Temperament = (Temperament)genos.Temperament,
+                        SkinTone = (SkinTone)genos.SkinTone,
+                        FaceShape = (FaceShape)genos.FaceShape
                     };
-                    TraitValidation.EnsureValid(traits, sim.NetworkId);
+                    TraitValidation.EnsureValid(traits, genos.NetworkId);
 
                     var descriptor = AppearanceDerivation.Derive(
                         traits,
-                        sim.Age,
-                        sim.NetworkId,
-                        (byte)sim.AppearanceVersion);
-                    AppearanceValidation.EnsureValid(descriptor, $"network id {sim.NetworkId}");
+                        genos.Age,
+                        genos.NetworkId,
+                        (byte)genos.AppearanceVersion);
+                    AppearanceValidation.EnsureValid(descriptor, $"network id {genos.NetworkId}");
                 }
 
-                var spawnTile = ResolveRestoredTile(sim);
+                var spawnTile = ResolveRestoredTile(genos);
                 var (spawnX, spawnY) = mapContext is not null
                     ? mapContext.Options.ToWorld(spawnTile)
-                    : (sim.X, sim.Y);
+                    : (genos.X, genos.Y);
 
                 var entity = world!.Create(
-                    new GenName(sim.Name),
-                    new Needs { Hunger = sim.Hunger, Energy = sim.Energy, Hygiene = sim.Hygiene, Bladder = sim.Bladder },
+                    new GenName(genos.Name),
+                    new Needs { Hunger = genos.Hunger, Energy = genos.Energy, Hygiene = genos.Hygiene, Bladder = genos.Bladder },
                     new CurrentAction(
-                        Enum.TryParse<ActionType>(sim.ActionType, out var at) ? at : ActionType.Idle,
-                        sim.TimeRemaining),
-                    new Alive(sim.Age),
+                        Enum.TryParse<ActionType>(genos.ActionType, out var at) ? at : ActionType.Idle,
+                        genos.TimeRemaining),
+                    new Alive(genos.Age),
                     new Location(spawnX, spawnY),
                     profile,
-                    new Health(sim.HealthValue <= 0f ? HealthSystem.InitialForAge(sim.Age) : sim.HealthValue)
+                    new Health(genos.HealthValue <= 0f ? HealthSystem.InitialForAge(genos.Age) : genos.HealthValue)
                     {
-                        DeclineRate = sim.HealthDeclineRate,
-                        LastCareTick = sim.HealthLastCareTick,
-                        ChronicConditions = sim.ChronicConditions
+                        DeclineRate = genos.HealthDeclineRate,
+                        LastCareTick = genos.HealthLastCareTick,
+                        ChronicConditions = genos.ChronicConditions
                     },
-                    new Lifecycle(stage, ageTicks, sim.StageEnteredTick, cause, lastAgedTick)
+                    new Lifecycle(stage, ageTicks, genos.StageEnteredTick, cause, lastAgedTick)
                     {
-                        MaxAgeFlagged = sim.MaxAgeFlagged
+                        MaxAgeFlagged = genos.MaxAgeFlagged
                     },
                     traits
                 );
 
-                var walletCents = sim.WalletBalanceCents != 0
-                    ? sim.WalletBalanceCents
-                    : (long)Math.Round((decimal)sim.WalletBalance * 100m);
-                if (sim.HasWallet || walletCents != 0 || sim.EmployerNetworkId != 0)
+                var walletCents = genos.WalletBalanceCents != 0
+                    ? genos.WalletBalanceCents
+                    : (long)Math.Round((decimal)genos.WalletBalance * 100m);
+                if (genos.HasWallet || walletCents != 0 || genos.EmployerNetworkId != 0)
                     world.Add(entity, new Wallet(new Money(walletCents)));
 
-                if (sim.SavingsBalanceCents != 0)
-                    world.Add(entity, new SavingsAccount(new Money(sim.SavingsBalanceCents)));
+                if (genos.SavingsBalanceCents != 0)
+                    world.Add(entity, new SavingsAccount(new Money(genos.SavingsBalanceCents)));
 
-                if (sim.UnmetDemandCents != 0 || sim.LastSpendCents != 0 || sim.ConsumptionLifetimeCents != 0)
+                if (genos.UnmetDemandCents != 0 || genos.LastSpendCents != 0 || genos.ConsumptionLifetimeCents != 0)
                 {
                     world.Add(entity, new ConsumptionState
                     {
-                        UnmetDemand = new Money(sim.UnmetDemandCents),
-                        LastCycleSpent = new Money(sim.LastSpendCents),
-                        LifetimeSpent = new Money(sim.ConsumptionLifetimeCents),
+                        UnmetDemand = new Money(genos.UnmetDemandCents),
+                        LastCycleSpent = new Money(genos.LastSpendCents),
+                        LifetimeSpent = new Money(genos.ConsumptionLifetimeCents),
                         LastSpendTick = state.Tick
                     });
                 }
 
-                if (sim.PensionEmployeeCents != 0 || sim.PensionEmployerCents != 0)
+                if (genos.PensionEmployeeCents != 0 || genos.PensionEmployerCents != 0)
                 {
                     world.Add(entity, new PensionAccount
                     {
-                        EmployeeContributions = new Money(sim.PensionEmployeeCents),
-                        EmployerContributions = new Money(sim.PensionEmployerCents),
-                        ContributingCycles = sim.PensionCycles
+                        EmployeeContributions = new Money(genos.PensionEmployeeCents),
+                        EmployerContributions = new Money(genos.PensionEmployerCents),
+                        ContributingCycles = genos.PensionCycles
                     });
                 }
 
-                var networkId = new NetworkId(sim.NetworkId);
+                var networkId = new NetworkId(genos.NetworkId);
                 world.Add(entity, networkId);
                 networkIds.AllocateWithValue(entity, networkId);
-                simEntities[sim.NetworkId] = entity;
+                genosEntities[genos.NetworkId] = entity;
 
-                if (sim.BirthPregnancyNetworkId != 0)
+                if (genos.BirthPregnancyNetworkId != 0)
                 {
                     world.Add(entity, new BirthRecord
                     {
-                        PregnancyNetworkId = sim.BirthPregnancyNetworkId,
-                        BornTick = sim.BirthTick
+                        PregnancyNetworkId = genos.BirthPregnancyNetworkId,
+                        BornTick = genos.BirthTick
                     });
                 }
 
                 if (mapContext is not null)
                 {
                     world.Add(entity, new TilePosition(spawnTile));
-                    if (sim.HasMoveTarget)
-                        world.Add(entity, new MoveTarget(new TileCoord(sim.MoveTargetX, sim.MoveTargetY)));
+                    if (genos.HasMoveTarget)
+                        world.Add(entity, new MoveTarget(new TileCoord(genos.MoveTargetX, genos.MoveTargetY)));
 
                     var movement = new MovementState(MovementOptions.PlayerSpeedTilesPerSecond);
-                    if (sim.MoveProgress > 0f || sim.MoveToX != 0 || sim.MoveToY != 0)
+                    if (genos.MoveProgress > 0f || genos.MoveToX != 0 || genos.MoveToY != 0)
                     {
-                        movement.From = new TileCoord(sim.MoveFromX, sim.MoveFromY);
-                        movement.To = new TileCoord(sim.MoveToX, sim.MoveToY);
-                        movement.Progress = sim.MoveProgress;
-                        movement.IsMoving = sim.MoveProgress > 0f;
+                        movement.From = new TileCoord(genos.MoveFromX, genos.MoveFromY);
+                        movement.To = new TileCoord(genos.MoveToX, genos.MoveToY);
+                        movement.Progress = genos.MoveProgress;
+                        movement.IsMoving = genos.MoveProgress > 0f;
                     }
                     world.Add(entity, movement);
                 }
 
-                if (sim.IsLookingForWork)
+                if (genos.IsLookingForWork)
                     world.Add(entity, new JobSeeker(
                         true,
                         profile.ToMask(),
-                        sim.DesiredSalaryCents > 0 ? new Money(sim.DesiredSalaryCents) : Money.FromUnits(1000m)));
+                        genos.DesiredSalaryCents > 0 ? new Money(genos.DesiredSalaryCents) : Money.FromUnits(1000m)));
 
-                if (sim.PlayerId != null)
-                    world.Add(entity, new PlayerControlled(sim.PlayerId));
+                if (genos.PlayerId != null)
+                    world.Add(entity, new PlayerControlled(genos.PlayerId));
 
-                if (sim.EnrollmentSchoolNetworkId != 0 || sim.IsUnenrolled)
+                if (genos.EnrollmentSchoolNetworkId != 0 || genos.IsUnenrolled)
                 {
-                    var schoolEntity = sim.EnrollmentSchoolNetworkId != 0 &&
-                                       schoolEntities.TryGetValue(sim.EnrollmentSchoolNetworkId, out var school)
+                    var schoolEntity = genos.EnrollmentSchoolNetworkId != 0 &&
+                                       schoolEntities.TryGetValue(genos.EnrollmentSchoolNetworkId, out var school)
                         ? school
                         : Entity.Null;
                     world.Add(entity, new Enrollment(
                         schoolEntity,
-                        sim.StageEnteredTick,
-                        sim.EnrollmentAttendance <= 0f ? 0.5f : sim.EnrollmentAttendance,
-                        sim.IsUnenrolled || schoolEntity == Entity.Null)
+                        genos.StageEnteredTick,
+                        genos.EnrollmentAttendance <= 0f ? 0.5f : genos.EnrollmentAttendance,
+                        genos.IsUnenrolled || schoolEntity == Entity.Null)
                     {
-                        MonthsAttended = sim.EnrollmentMonths
+                        MonthsAttended = genos.EnrollmentMonths
                     });
                 }
 
-                if (sim.IsDead)
+                if (genos.IsDead)
                 {
                     world.Add(entity, new Dead(
-                        sim.DeathTick == 0 ? restoredTick : sim.DeathTick,
-                        Enum.TryParse<DeathCause>(sim.DeathCause, out var deathCause) ? deathCause : DeathCause.Other));
+                        genos.DeathTick == 0 ? restoredTick : genos.DeathTick,
+                        Enum.TryParse<DeathCause>(genos.DeathCause, out var deathCause) ? deathCause : DeathCause.Other));
                 }
             }
 
-            foreach (var sim in state.Sims)
+            foreach (var genos in state.Genoses)
             {
-                if (!simEntities.TryGetValue(sim.NetworkId, out var entity))
+                if (!genosEntities.TryGetValue(genos.NetworkId, out var entity))
                     continue;
-                if (sim.EmployerNetworkId == 0 || sim.SalaryCents <= 0)
+                if (genos.EmployerNetworkId == 0 || genos.SalaryCents <= 0)
                     continue;
-                if (!companyEntities.TryGetValue(sim.EmployerNetworkId, out var company))
+                if (!companyEntities.TryGetValue(genos.EmployerNetworkId, out var company))
                     continue;
-                officeEntities.TryGetValue(sim.OfficeNetworkId, out var office);
+                officeEntities.TryGetValue(genos.OfficeNetworkId, out var office);
 
                 var employee = new Employee(
                     company,
                     office,
-                    sim.Position,
-                    new Money(sim.SalaryCents))
+                    genos.Position,
+                    new Money(genos.SalaryCents))
                 {
-                    Seniority = Enum.TryParse<Seniority>(sim.Seniority, out var seniority)
+                    Seniority = Enum.TryParse<Seniority>(genos.Seniority, out var seniority)
                         ? seniority
                         : Seniority.Associate,
-                    HiredAtTick = sim.HiredAtTick
+                    HiredAtTick = genos.HiredAtTick
                 };
                 world!.Add(entity, employee);
-                world.Add(entity, new EmploymentRecord(sim.HiredAtTick)
+                world.Add(entity, new EmploymentRecord(genos.HiredAtTick)
                 {
-                    Attendance = sim.EmploymentAttendance,
-                    Performance = sim.EmploymentPerformance,
-                    TenureCycles = sim.EmploymentTenureCycles,
-                    Warnings = sim.EmploymentWarnings,
-                    ShiftsCompleted = sim.EmploymentShiftsCompleted,
-                    ShiftsExpected = sim.EmploymentShiftsExpected,
-                    Interruptions = sim.EmploymentInterruptions,
-                    ConsecutiveLowMonths = sim.EmploymentConsecutiveLowMonths,
-                    HighPerformanceMonths = sim.EmploymentHighPerformanceMonths,
-                    LastReviewTick = sim.EmploymentLastReviewTick
+                    Attendance = genos.EmploymentAttendance,
+                    Performance = genos.EmploymentPerformance,
+                    TenureCycles = genos.EmploymentTenureCycles,
+                    Warnings = genos.EmploymentWarnings,
+                    ShiftsCompleted = genos.EmploymentShiftsCompleted,
+                    ShiftsExpected = genos.EmploymentShiftsExpected,
+                    Interruptions = genos.EmploymentInterruptions,
+                    ConsecutiveLowMonths = genos.EmploymentConsecutiveLowMonths,
+                    HighPerformanceMonths = genos.EmploymentHighPerformanceMonths,
+                    LastReviewTick = genos.EmploymentLastReviewTick
                 });
-                if (sim.WorkOfficeNetworkId != 0 &&
-                    officeEntities.TryGetValue(sim.WorkOfficeNetworkId, out var workOffice))
+                if (genos.WorkOfficeNetworkId != 0 &&
+                    officeEntities.TryGetValue(genos.WorkOfficeNetworkId, out var workOffice))
                 {
                     world.Add(entity, new WorkSchedule(workOffice)
                     {
-                        IsAtWork = sim.IsAtWork,
-                        ShiftTicksRemaining = sim.ShiftTicksRemaining,
-                        LastShiftStartTick = sim.LastShiftStartTick,
-                        LastShiftEndTick = sim.LastShiftEndTick,
-                        ShiftsCompleted = sim.WorkShiftsCompleted,
-                        ShiftsInterrupted = sim.WorkShiftsInterrupted
+                        IsAtWork = genos.IsAtWork,
+                        ShiftTicksRemaining = genos.ShiftTicksRemaining,
+                        LastShiftStartTick = genos.LastShiftStartTick,
+                        LastShiftEndTick = genos.LastShiftEndTick,
+                        ShiftsCompleted = genos.WorkShiftsCompleted,
+                        ShiftsInterrupted = genos.WorkShiftsInterrupted
                     });
                 }
                 else
@@ -8407,62 +8407,62 @@ private readonly NetworkIdRegistry networkIds = new();
                 employmentIndex!.Add(company, entity);
             }
 
-            foreach (var sim in state.Sims)
+            foreach (var genos in state.Genoses)
             {
-                if (!simEntities.TryGetValue(sim.NetworkId, out var entity))
+                if (!genosEntities.TryGetValue(genos.NetworkId, out var entity))
                     continue;
-                if (sim.ClaimCompanyNetworkId == 0)
+                if (genos.ClaimCompanyNetworkId == 0)
                     continue;
-                if (!companyEntities.TryGetValue(sim.ClaimCompanyNetworkId, out var claimCompany))
+                if (!companyEntities.TryGetValue(genos.ClaimCompanyNetworkId, out var claimCompany))
                     continue;
-                if (sim.UnpaidNetCents == 0 && sim.UnpaidGrossCents == 0 && sim.SeveranceCents == 0)
+                if (genos.UnpaidNetCents == 0 && genos.UnpaidGrossCents == 0 && genos.SeveranceCents == 0)
                     continue;
 
                 world!.Add(entity, new WageClaim(
                     claimCompany,
-                    new Money(sim.UnpaidGrossCents),
-                    new Money(sim.UnpaidNetCents),
-                    sim.ClaimFirstTick)
+                    new Money(genos.UnpaidGrossCents),
+                    new Money(genos.UnpaidNetCents),
+                    genos.ClaimFirstTick)
                 {
-                    Severance = new Money(sim.SeveranceCents),
-                    CyclesInArrears = sim.ClaimCycles
+                    Severance = new Money(genos.SeveranceCents),
+                    CyclesInArrears = genos.ClaimCycles
                 });
             }
 
-            foreach (var sim in state.Sims)
+            foreach (var genos in state.Genoses)
             {
-                if (!simEntities.TryGetValue(sim.NetworkId, out var entity))
+                if (!genosEntities.TryGetValue(genos.NetworkId, out var entity))
                     continue;
 
-                if (sim.RetirementMonthlyCents != 0)
+                if (genos.RetirementMonthlyCents != 0)
                 {
                     world!.Add(entity, new RetirementIncome(
-                        new Money(sim.RetirementMonthlyCents),
-                        sim.RetirementStartedTick,
-                        sim.RetirementFund,
-                        sim.RetirementMeansTested)
+                        new Money(genos.RetirementMonthlyCents),
+                        genos.RetirementStartedTick,
+                        genos.RetirementFund,
+                        genos.RetirementMeansTested)
                     {
-                        Reduced = sim.RetirementReduced
+                        Reduced = genos.RetirementReduced
                     });
                 }
 
-                if (sim.UnemploymentMaxCycles > 0 || sim.UnemploymentBenefitCents != 0)
+                if (genos.UnemploymentMaxCycles > 0 || genos.UnemploymentBenefitCents != 0)
                 {
                     world.Add(entity, new UnemploymentRecord(
-                        sim.UnemploymentStartedTick,
-                        new Money(sim.UnemploymentBenefitCents),
-                        sim.UnemploymentMaxCycles,
-                        sim.UnemploymentEligible)
+                        genos.UnemploymentStartedTick,
+                        new Money(genos.UnemploymentBenefitCents),
+                        genos.UnemploymentMaxCycles,
+                        genos.UnemploymentEligible)
                     {
-                        CyclesClaimed = sim.UnemploymentCyclesClaimed,
-                        UnpaidCycles = sim.UnemploymentUnpaidCycles
+                        CyclesClaimed = genos.UnemploymentCyclesClaimed,
+                        UnpaidCycles = genos.UnemploymentUnpaidCycles
                     });
                 }
             }
 
             foreach (var application in state.Applications)
             {
-                if (!simEntities.TryGetValue(application.ApplicantNetworkId, out var applicant))
+                if (!genosEntities.TryGetValue(application.ApplicantNetworkId, out var applicant))
                     continue;
                 if (!postingEntities.TryGetValue(application.PostingNetworkId, out var posting))
                     continue;
@@ -8508,7 +8508,7 @@ private readonly NetworkIdRegistry networkIds = new();
 
             foreach (var household in state.Households)
             {
-                if (!simEntities.TryGetValue(household.HeadNetworkId, out var head))
+                if (!genosEntities.TryGetValue(household.HeadNetworkId, out var head))
                     continue;
 
                 var entity = world!.Create(new Household
@@ -8610,12 +8610,12 @@ private readonly NetworkIdRegistry networkIds = new();
             {
                 if (!householdEntities.TryGetValue(member.HouseholdNetworkId, out var household))
                     continue;
-                if (!simEntities.TryGetValue(member.SimNetworkId, out var sim))
+                if (!genosEntities.TryGetValue(member.GenosNetworkId, out var genos))
                     continue;
-                if (world!.Has<HouseholdMember>(sim))
+                if (world!.Has<HouseholdMember>(genos))
                     continue;
 
-                world.Add(sim, new HouseholdMember(
+                world.Add(genos, new HouseholdMember(
                     household,
                     Enum.TryParse<HouseholdRole>(member.Role, out var role)
                         ? role
@@ -8624,8 +8624,8 @@ private readonly NetworkIdRegistry networkIds = new();
 
             foreach (var persisted in state.Relationships)
             {
-                if (!simEntities.TryGetValue(persisted.FromSimNetworkId, out var from) ||
-                    !simEntities.TryGetValue(persisted.ToSimNetworkId, out var to))
+                if (!genosEntities.TryGetValue(persisted.FromGenosNetworkId, out var from) ||
+                    !genosEntities.TryGetValue(persisted.ToGenosNetworkId, out var to))
                 {
                     // Legacy saves may contain edges whose endpoint was destroyed
                     // before the old estate cleanup ran. Prune them instead of
@@ -8664,8 +8664,8 @@ private readonly NetworkIdRegistry networkIds = new();
                     throw new InvalidOperationException(
                         $"Pregnancy {persisted.NetworkId} has unknown source '{persisted.Source}'.");
 
-                if (!simEntities.TryGetValue(persisted.CarryingParentNetworkId, out var carrying) ||
-                    !simEntities.TryGetValue(persisted.OtherParentNetworkId, out var other))
+                if (!genosEntities.TryGetValue(persisted.CarryingParentNetworkId, out var carrying) ||
+                    !genosEntities.TryGetValue(persisted.OtherParentNetworkId, out var other))
                 {
                     // Resolved pregnancies are retained as history. A parent may
                     // legitimately have been destroyed since resolution, so drop
@@ -8703,13 +8703,13 @@ private readonly NetworkIdRegistry networkIds = new();
 
             foreach (var persisted in state.Trusts)
             {
-                if (!simEntities.TryGetValue(persisted.BeneficiaryNetworkId, out var beneficiary))
+                if (!genosEntities.TryGetValue(persisted.BeneficiaryNetworkId, out var beneficiary))
                     throw new InvalidOperationException(
                         $"Trust {persisted.NetworkId} references a missing beneficiary " +
                         $"{persisted.BeneficiaryNetworkId}.");
                 Entity guardian = Entity.Null;
                 if (persisted.GuardianNetworkId != 0 &&
-                    !simEntities.TryGetValue(persisted.GuardianNetworkId, out guardian))
+                    !genosEntities.TryGetValue(persisted.GuardianNetworkId, out guardian))
                     throw new InvalidOperationException(
                         $"Trust {persisted.NetworkId} references a missing guardian " +
                         $"{persisted.GuardianNetworkId}.");
@@ -8721,7 +8721,7 @@ private readonly NetworkIdRegistry networkIds = new();
                     Guardian = guardian,
                     CreatedTick = persisted.CreatedTick,
                     ReleaseAgeTicks = persisted.ReleaseAgeTicks,
-                    SourceSimNetworkId = persisted.SourceSimNetworkId
+                    SourceGenosNetworkId = persisted.SourceGenosNetworkId
                 });
                 var trustNetworkId = new NetworkId(persisted.NetworkId);
                 world.Add(trust, trustNetworkId);
@@ -8730,7 +8730,7 @@ private readonly NetworkIdRegistry networkIds = new();
 
             foreach (var persisted in state.StateCare)
             {
-                if (!simEntities.TryGetValue(persisted.ChildNetworkId, out var child))
+                if (!genosEntities.TryGetValue(persisted.ChildNetworkId, out var child))
                     throw new InvalidOperationException(
                         $"State care row references a missing child {persisted.ChildNetworkId}.");
                 world!.Add(child, new StateCare
@@ -8744,33 +8744,33 @@ private readonly NetworkIdRegistry networkIds = new();
             playerRegistry.Clear();
             foreach (var persisted in state.PlayerProfiles)
             {
-                Entity sim = Entity.Null;
-                if (persisted.SimNetworkId != 0 &&
-                    simEntities.TryGetValue(persisted.SimNetworkId, out var resolvedSim))
-                    sim = resolvedSim;
+                Entity genos = Entity.Null;
+                if (persisted.GenosNetworkId != 0 &&
+                    genosEntities.TryGetValue(persisted.GenosNetworkId, out var resolvedGenos))
+                    genos = resolvedGenos;
 
-                var profile = playerRegistry.GetOrCreate(persisted.PlayerId, sim, persisted.CreatedTick);
+                var profile = playerRegistry.GetOrCreate(persisted.PlayerId, genos, persisted.CreatedTick);
                 profile.ContinuationPolicy = Enum.TryParse<PlayerContinuationPolicy>(
                     persisted.ContinuationPolicy, ignoreCase: true, out var policy)
                     ? policy
                     : PlayerContinuationPolicy.Respawn;
-                profile.AwaitingContinuation = persisted.AwaitingContinuation || sim == Entity.Null;
+                profile.AwaitingContinuation = persisted.AwaitingContinuation || genos == Entity.Null;
                 profile.Observer = persisted.Observer;
                 profile.CreatedTick = persisted.CreatedTick;
                 profile.LastActionTick = persisted.LastActionTick;
                 profile.LastSequence = persisted.LastSequence;
-                profile.LastSimNetworkId = persisted.SimNetworkId;
-                profile.LastSimName = persisted.LastSimName;
-                profile.LastSimAge = persisted.LastSimAge;
-                profile.LastSimTraits = persisted.LastSimTraits;
-                profile.LastSimHouseholdNetworkId = persisted.LastSimHouseholdNetworkId;
-                profile.LastSimDeathTick = persisted.LastSimDeathTick;
-                profile.PendingRespawnSimNetworkId = persisted.PendingRespawnSimNetworkId;
+                profile.LastGenosNetworkId = persisted.GenosNetworkId;
+                profile.LastGenosName = persisted.LastGenosName;
+                profile.LastGenosAge = persisted.LastGenosAge;
+                profile.LastGenosTraits = persisted.LastGenosTraits;
+                profile.LastGenosHouseholdNetworkId = persisted.LastGenosHouseholdNetworkId;
+                profile.LastGenosDeathTick = persisted.LastGenosDeathTick;
+                profile.PendingRespawnGenosNetworkId = persisted.PendingRespawnGenosNetworkId;
 
-                if (sim != Entity.Null && world!.IsAlive(sim) && !world.Has<Dead>(sim) &&
-                    !persisted.AwaitingContinuation && !world.Has<PlayerControlled>(sim))
+                if (genos != Entity.Null && world!.IsAlive(genos) && !world.Has<Dead>(genos) &&
+                    !persisted.AwaitingContinuation && !world.Has<PlayerControlled>(genos))
                 {
-                    world.Add(sim, new PlayerControlled(persisted.PlayerId));
+                    world.Add(genos, new PlayerControlled(persisted.PlayerId));
                 }
             }
 
@@ -8830,7 +8830,7 @@ private readonly NetworkIdRegistry networkIds = new();
 
             foreach (var persisted in state.PlayerLives)
             {
-                if (!simEntities.TryGetValue(persisted.SimNetworkId, out var sim) || !world!.IsAlive(sim))
+                if (!genosEntities.TryGetValue(persisted.GenosNetworkId, out var genos) || !world!.IsAlive(genos))
                     continue;
 
                 if (persisted.HasEmployment)
@@ -8838,10 +8838,10 @@ private readonly NetworkIdRegistry networkIds = new();
                     Entity office = Entity.Null;
                     if (persisted.EmploymentOfficeNetworkId != 0)
                         officeEntities.TryGetValue(persisted.EmploymentOfficeNetworkId, out office);
-                    if (office == Entity.Null && world.Has<Employee>(sim))
-                        office = world.Get<Employee>(sim).Office;
+                    if (office == Entity.Null && world.Has<Employee>(genos))
+                        office = world.Get<Employee>(genos).Office;
 
-                    world.Add(sim, new PlayerEmployment(
+                    world.Add(genos, new PlayerEmployment(
                         office,
                         persisted.HiredTick,
                         Enum.TryParse<PlayerEmploymentSource>(persisted.EmploymentSource, out var source)
@@ -8863,7 +8863,7 @@ private readonly NetworkIdRegistry networkIds = new();
 
                 if (household != Entity.Null)
                 {
-                    world.Add(sim, new PlayerHousing(
+                    world.Add(genos, new PlayerHousing(
                         household,
                         unit,
                         persisted.LeaseStartTick,
@@ -8882,10 +8882,10 @@ private readonly NetworkIdRegistry networkIds = new();
                         });
                     }
                 }
-                else if (!world.Has<HouseholdPantry>(sim) &&
+                else if (!world.Has<HouseholdPantry>(genos) &&
                          (persisted.FoodUnits != 0 || persisted.HouseholdGoods != 0))
                 {
-                    world.Add(sim, new HouseholdPantry
+                    world.Add(genos, new HouseholdPantry
                     {
                         FoodUnits = persisted.FoodUnits,
                         HouseholdGoods = persisted.HouseholdGoods,
@@ -8897,7 +8897,7 @@ private readonly NetworkIdRegistry networkIds = new();
                     postingEntities.TryGetValue(persisted.JobOfferPostingNetworkId, out var posting))
                 {
                     officeEntities.TryGetValue(persisted.JobOfferOfficeNetworkId, out var offerOffice);
-                    world.Add(sim, new PlayerJobOffer
+                    world.Add(genos, new PlayerJobOffer
                     {
                         OfferId = persisted.JobOfferId,
                         Posting = posting,
@@ -8913,7 +8913,7 @@ private readonly NetworkIdRegistry networkIds = new();
                     unitEntities.TryGetValue(persisted.LeaseOfferUnitNetworkId, out var offerUnit))
                 {
                     propertyEntities.TryGetValue(persisted.LeaseOfferPropertyNetworkId, out var offerProperty);
-                    world.Add(sim, new PlayerLeaseOffer
+                    world.Add(genos, new PlayerLeaseOffer
                     {
                         OfferId = persisted.LeaseOfferId,
                         Unit = offerUnit,
@@ -8927,8 +8927,8 @@ private readonly NetworkIdRegistry networkIds = new();
 
             foreach (var persisted in state.FamilyInvitations)
             {
-                if (!simEntities.TryGetValue(persisted.FromSimNetworkId, out var from) ||
-                    !simEntities.TryGetValue(persisted.ToSimNetworkId, out var to))
+                if (!genosEntities.TryGetValue(persisted.FromGenosNetworkId, out var from) ||
+                    !genosEntities.TryGetValue(persisted.ToGenosNetworkId, out var to))
                     continue;
                 if (!Enum.TryParse<FamilyInvitationKind>(persisted.Kind, out var kind) ||
                     !Enum.TryParse<FamilyInvitationStatus>(persisted.Status, out var status))
@@ -9050,9 +9050,9 @@ private readonly NetworkIdRegistry networkIds = new();
 
             foreach (var persisted in state.Nutrition)
             {
-                if (!simEntities.TryGetValue(persisted.SimNetworkId, out var sim))
+                if (!genosEntities.TryGetValue(persisted.GenosNetworkId, out var genos))
                     continue;
-                world!.Add(sim, new NutritionState
+                world!.Add(genos, new NutritionState
                 {
                     Balance = Math.Clamp(persisted.Balance, -100, 100),
                     ConsecutivePoorDays = Math.Max(0, persisted.ConsecutivePoorDays),
@@ -9202,7 +9202,7 @@ private readonly NetworkIdRegistry networkIds = new();
             {
                 economy.Life.MortalityLog.Add(new MortalityRecord(
                     row.Tick,
-                    row.SimNetworkId,
+                    row.GenosNetworkId,
                     row.Name,
                     row.Age,
                     Enum.TryParse<DeathCause>(row.Cause, out var deathCause) ? deathCause : DeathCause.Other,
@@ -9255,12 +9255,12 @@ private readonly NetworkIdRegistry networkIds = new();
 
             if (!state.LifecycleMigrated)
             {
-                foreach (var sim in state.Sims)
+                foreach (var genos in state.Genoses)
                 {
-                    if (!simEntities.TryGetValue(sim.NetworkId, out var entity) || sim.IsDead)
+                    if (!genosEntities.TryGetValue(genos.NetworkId, out var entity) || genos.IsDead)
                         continue;
 
-                    var stage = economy.Life.Policy.StageFor(sim.Age);
+                    var stage = economy.Life.Policy.StageFor(genos.Age);
                     if (stage != LifeStage.Work && world!.Has<Employee>(entity))
                     {
                         LifeSystemHelpers.RemoveEmployment(
@@ -9310,8 +9310,8 @@ private readonly NetworkIdRegistry networkIds = new();
             var queuedDeaths = new HashSet<ulong>();
             foreach (var row in state.EstateQueue)
             {
-                if (!simEntities.TryGetValue(row.SimNetworkId, out var deadSim) ||
-                    !world!.IsAlive(deadSim))
+                if (!genosEntities.TryGetValue(row.GenosNetworkId, out var deadGenos) ||
+                    !world!.IsAlive(deadGenos))
                     continue;
 
                 Entity household = Entity.Null;
@@ -9327,19 +9327,19 @@ private readonly NetworkIdRegistry networkIds = new();
                 var heirs = new List<Entity>();
                 foreach (var heirId in row.Heirs)
                 {
-                    if (simEntities.TryGetValue(heirId, out var heir) && world.IsAlive(heir))
+                    if (genosEntities.TryGetValue(heirId, out var heir) && world.IsAlive(heir))
                         heirs.Add(heir);
                 }
 
                 estateRequests.Add(new EstateRequest
                 {
-                    Sim = deadSim,
+                    Genos = deadGenos,
                     Household = household,
                     Unit = unit,
                     OwnedUnit = ownedUnit,
                     Tick = row.Tick,
                     Name = row.Name,
-                    SimNetworkId = row.SimNetworkId,
+                    GenosNetworkId = row.GenosNetworkId,
                     Age = row.Age,
                     Cause = Enum.TryParse<DeathCause>(row.Cause, out var estateCause)
                         ? estateCause
@@ -9348,17 +9348,17 @@ private readonly NetworkIdRegistry networkIds = new();
                     HouseholdRentArrears = row.HouseholdRentArrears,
                     HouseholdUtilityArrears = row.HouseholdUtilityArrears
                 });
-                queuedDeaths.Add(row.SimNetworkId);
+                queuedDeaths.Add(row.GenosNetworkId);
             }
 
-            foreach (var sim in state.Sims.Where(sim => sim.IsDead))
+            foreach (var genos in state.Genoses.Where(genos => genos.IsDead))
             {
-                if (queuedDeaths.Contains(sim.NetworkId) ||
-                    !simEntities.TryGetValue(sim.NetworkId, out var deadSim) ||
-                    !world!.IsAlive(deadSim))
+                if (queuedDeaths.Contains(genos.NetworkId) ||
+                    !genosEntities.TryGetValue(genos.NetworkId, out var deadGenos) ||
+                    !world!.IsAlive(deadGenos))
                     continue;
 
-                economy.Life.DeathQueue.Add(deadSim);
+                economy.Life.DeathQueue.Add(deadGenos);
             }
 
             if (economy.Life.DeathQueue.Count > 0)
@@ -9382,10 +9382,10 @@ private readonly NetworkIdRegistry networkIds = new();
                     inheritanceOptions: inheritanceOptions,
                     trusts: trustService).Update(state.Tick);
 
-            foreach (var sim in state.Sims.Where(sim => sim.IsDead))
+            foreach (var genos in state.Genoses.Where(genos => genos.IsDead))
             {
-                if (simEntities.TryGetValue(sim.NetworkId, out var deadSim) && world!.IsAlive(deadSim))
-                    economy.Life.QueueDestroy(deadSim, restoredTick + 1);
+                if (genosEntities.TryGetValue(genos.NetworkId, out var deadGenos) && world!.IsAlive(deadGenos))
+                    economy.Life.QueueDestroy(deadGenos, restoredTick + 1);
             }
 
             economy.Life.Index.Rebuild(world!);
@@ -9400,7 +9400,7 @@ private readonly NetworkIdRegistry networkIds = new();
                 {
                     if (lifecycle.Stage != economy.Life.Policy.StageFor(alive.Age))
                         throw new InvalidOperationException(
-                            "Lifecycle restore mismatch for sim " +
+                            "Lifecycle restore mismatch for genos " +
                             $"{GetNetworkId(world!, entity)}: {lifecycle.Stage} at age {alive.Age}");
                 });
 
@@ -9465,7 +9465,7 @@ private readonly NetworkIdRegistry networkIds = new();
                 var amount = new Money(pending.AmountCents);
                 if (companyEntities.TryGetValue(pending.CompanyNetworkId, out var company))
                 {
-                    economy.BookRevenue(company, pending.Category, pending.SimNetworkId, amount, pending.Tick);
+                    economy.BookRevenue(company, pending.Category, pending.GenosNetworkId, amount, pending.Tick);
                 }
                 else
                 {
@@ -9488,7 +9488,7 @@ private readonly NetworkIdRegistry networkIds = new();
     private void BackfillBalanceStock(PersistedWorldState state, long tick)
     {
         var living = economy!.Life.Index.TotalLiving;
-        var pensionSeed = economy.Options.SeededPensionFundPerSim * living;
+        var pensionSeed = economy.Options.SeededPensionFundPerGenos * living;
         if (!economy.Pension.Balance.IsPositive && pensionSeed.IsPositive &&
             economy.Government.Balance >= pensionSeed)
         {

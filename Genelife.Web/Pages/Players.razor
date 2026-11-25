@@ -9,7 +9,7 @@
 <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
     <div>
         <h1 class="mb-1">Players</h1>
-        <p class="text-muted mb-0">Player-controlled sims, employment, household, pantry, family state and continuation.</p>
+        <p class="text-muted mb-0">Player-controlled genoses, employment, household, pantry, family state and continuation.</p>
     </div>
     <div class="d-flex align-items-center gap-3">
         <div class="form-check form-switch mb-0">
@@ -76,7 +76,7 @@
 <div class="row g-2 align-items-end mb-3">
     <div class="col-12 col-md-4">
         <label class="form-label small mb-1" for="playerSearch">Search</label>
-        <input id="playerSearch" class="form-control" @bind="search" @bind:event="oninput" placeholder="player id or sim name" />
+        <input id="playerSearch" class="form-control" @bind="search" @bind:event="oninput" placeholder="player id or genos name" />
     </div>
     <div class="col-6 col-md-3">
         <label class="form-label small mb-1" for="playerState">State</label>
@@ -102,7 +102,7 @@
             <thead>
                 <tr>
                     <th>Player</th>
-                    <th>Sim</th>
+                    <th>Genos</th>
                     <th>State</th>
                     <th>Wallet</th>
                     <th>Employment</th>
@@ -118,7 +118,7 @@
                         <td><code>@Short(row.PlayerId)</code></td>
                         <td>
                             <div>@(row.Name ?? "—")</div>
-                            <div class="small text-muted">@row.SimNetworkId &middot; age @row.Age</div>
+                            <div class="small text-muted">@row.GenosNetworkId &middot; age @row.Age</div>
                         </td>
                         <td>
                             @if (row.AwaitingContinuation)
@@ -242,7 +242,7 @@
                     <select class="form-select" @bind="policy">
                         <option value="Respawn">Respawn as child</option>
                         <option value="Heir">Heir</option>
-                        <option value="NewSim">New sim</option>
+                        <option value="NewGenos">New genos</option>
                         <option value="Observer">Observer</option>
                     </select>
                 </div>
@@ -254,7 +254,7 @@
                     <button class="btn btn-outline-primary w-100" type="button" @onclick="SaveContinuationAsync" disabled="@isBusy">Save</button>
                 </div>
                 <div class="col-6 col-md-2">
-                    <button class="btn btn-outline-danger w-100" type="button" @onclick="DetachAsync" disabled="@isBusy">Detach sim</button>
+                    <button class="btn btn-outline-danger w-100" type="button" @onclick="DetachAsync" disabled="@isBusy">Detach genos</button>
                 </div>
             </div>
         </div>

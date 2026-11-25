@@ -20,12 +20,12 @@ public class WorldSnapshotTests
     [Fact]
     public void WorldSnapshot_Construction_StoresAllProperties()
     {
-        var sims = new List<SimStatus> { new() { Name = "Alice", Hunger = 50, Energy = 80 } };
+        var genoses = new List<GenosStatus> { new() { Name = "Alice", Hunger = 50, Energy = 80 } };
         var companies = new List<CompanyStatus> { new() { NetworkId = 1, Name = "Acme", EmployeeCount = 0 } };
-        var snapshot = new WorldSnapshot(tick: 42, version: 1, sims: sims, companies: companies);
+        var snapshot = new WorldSnapshot(tick: 42, version: 1, genoses: genoses, companies: companies);
         Assert.Equal(42, snapshot.Tick);
         Assert.Equal(1, snapshot.Version);
-        Assert.Same(sims, snapshot.Sims);
+        Assert.Same(genoses, snapshot.Genoses);
         Assert.Same(companies, snapshot.Companies);
     }
 
@@ -46,7 +46,7 @@ public class WorldSnapshotTests
             Tick(engine);
             var snapshot = engine.GetLatestSnapshot();
             Assert.NotNull(snapshot);
-            Assert.NotNull(snapshot.Sims);
+            Assert.NotNull(snapshot.Genoses);
             Assert.NotNull(snapshot.Companies);
             Assert.True(snapshot.Tick > 0);
         }
@@ -54,7 +54,7 @@ public class WorldSnapshotTests
     }
 
     [Fact]
-    public void SnapshotSims_ReflectsWorldEntities()
+    public void SnapshotGenoses_ReflectsWorldEntities()
     {
         using var engine = new SimulationEngine();
         engine.Initialize();
@@ -63,17 +63,17 @@ public class WorldSnapshotTests
             engine.ExecuteWithWorld(world =>
             {
                 world.Create(
-                    new GenName("TestSim"), new Needs { Hunger = 70f, Energy = 60f },
+                    new GenName("TestGenos"), new Needs { Hunger = 70f, Energy = 60f },
                     new CurrentAction(ActionType.Sleeping, 2.5f), new Alive(25));
                 return true;
             });
             Tick(engine);
             var snapshot = engine.GetLatestSnapshot();
             Assert.NotNull(snapshot);
-            var sim = snapshot.Sims.Find(s => s.Name == "TestSim");
-            Assert.NotNull(sim);
-            Assert.Equal("TestSim", sim.Name);
-            Assert.Equal("Sleeping", sim.CurrentAction);
+            var genos = snapshot.Genoses.Find(s => s.Name == "TestGenos");
+            Assert.NotNull(genos);
+            Assert.Equal("TestGenos", genos.Name);
+            Assert.Equal("Sleeping", genos.CurrentAction);
         }
         finally { engine.Shutdown(); }
     }
@@ -106,7 +106,7 @@ public class WorldSnapshotTests
             engine.ExecuteWithWorld(world =>
             {
                 for (int i = 0; i < 10; i++)
-                    world.Create(new GenName($"Sim_{i}"), new Needs(), new CurrentAction(ActionType.Idle, 0f), new Alive(18));
+                    world.Create(new GenName($"Genos_{i}"), new Needs(), new CurrentAction(ActionType.Idle, 0f), new Alive(18));
                 for (int i = 0; i < 5; i++)
                     world.Create(new CompanyName($"Company_{i}"));
                 return true;
@@ -114,7 +114,7 @@ public class WorldSnapshotTests
             Tick(engine);
             var snapshot = engine.GetLatestSnapshot();
             Assert.NotNull(snapshot);
-            Assert.True(snapshot.Sims.Count > 0 || snapshot.Companies.Count > 0);
+            Assert.True(snapshot.Genoses.Count > 0 || snapshot.Companies.Count > 0);
         }
         finally { engine.Shutdown(); }
     }
@@ -172,7 +172,7 @@ public class WorldSnapshotTests
     }
 
     [Fact]
-    public void SnapshotSims_IncludeLocationAndTickForInterpolation()
+    public void SnapshotGenoses_IncludeLocationAndTickForInterpolation()
     {
         using var engine = new SimulationEngine();
         engine.Initialize();
@@ -193,11 +193,11 @@ public class WorldSnapshotTests
             Tick(engine);
             var snapshot = engine.GetLatestSnapshot();
             Assert.NotNull(snapshot);
-            var sim = snapshot.Sims.Find(s => s.Name == "Moving");
-            Assert.NotNull(sim);
-            Assert.Equal(7UL, sim.NetworkId);
-            Assert.Equal(12.5f, sim.X);
-            Assert.Equal(-3.25f, sim.Y);
+            var genos = snapshot.Genoses.Find(s => s.Name == "Moving");
+            Assert.NotNull(genos);
+            Assert.Equal(7UL, genos.NetworkId);
+            Assert.Equal(12.5f, genos.X);
+            Assert.Equal(-3.25f, genos.Y);
             Assert.True(snapshot.Tick > 0);
         }
         finally { engine.Shutdown(); }
@@ -265,9 +265,9 @@ public class WorldSnapshotTests
             var delta = engine.SnapshotHistory.BuildDelta(sinceTick);
             Assert.NotNull(delta);
             Assert.False(delta!.Full);
-            Assert.True(delta.Sims.Count <= 5, $"expected a small delta, got {delta.Sims.Count} sims");
+            Assert.True(delta.Genoses.Count <= 5, $"expected a small delta, got {delta.Genoses.Count} genoses");
 
-            var changed = Assert.Single(delta.Sims, sim => sim.NetworkId == 1);
+            var changed = Assert.Single(delta.Genoses, genos => genos.NetworkId == 1);
             Assert.Equal(5f, changed.X);
             Assert.Equal(5f, changed.Y);
 

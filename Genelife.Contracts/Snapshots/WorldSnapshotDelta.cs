@@ -14,9 +14,9 @@ public sealed class WorldSnapshotDelta
     public long SinceTick { get; init; }
     public int Version { get; init; }
     public bool Full { get; init; }
-    public List<SimStatus> Sims { get; init; } = new();
+    public List<GenosStatus> Genoses { get; init; } = new();
     public List<CompanyStatus> Companies { get; init; } = new();
-    public List<ulong> RemovedSims { get; init; } = new();
+    public List<ulong> RemovedGenoses { get; init; } = new();
     public List<ulong> RemovedCompanies { get; init; } = new();
 
     public static WorldSnapshotDelta FromSnapshot(WorldSnapshot snapshot) => new()
@@ -25,22 +25,22 @@ public sealed class WorldSnapshotDelta
         SinceTick = 0,
         Version = snapshot.Version,
         Full = true,
-        Sims = snapshot.Sims,
+        Genoses = snapshot.Genoses,
         Companies = snapshot.Companies
     };
 
     public static WorldSnapshotDelta Between(WorldSnapshot from, WorldSnapshot to)
     {
-        var previousSims = IndexById(from.Sims, sim => sim.NetworkId);
-        var currentSims = IndexById(to.Sims, sim => sim.NetworkId);
+        var previousGenoses = IndexById(from.Genoses, genos => genos.NetworkId);
+        var currentGenoses = IndexById(to.Genoses, genos => genos.NetworkId);
         var previousCompanies = IndexById(from.Companies, company => company.NetworkId);
         var currentCompanies = IndexById(to.Companies, company => company.NetworkId);
 
-        var sims = new List<SimStatus>();
-        foreach (var sim in to.Sims)
+        var genoses = new List<GenosStatus>();
+        foreach (var genos in to.Genoses)
         {
-            if (!previousSims.TryGetValue(sim.NetworkId, out var prior) || !SimsEqual(prior, sim))
-                sims.Add(sim);
+            if (!previousGenoses.TryGetValue(genos.NetworkId, out var prior) || !GenosesEqual(prior, genos))
+                genoses.Add(genos);
         }
 
         var companies = new List<CompanyStatus>();
@@ -50,11 +50,11 @@ public sealed class WorldSnapshotDelta
                 companies.Add(company);
         }
 
-        var removedSims = new List<ulong>();
-        foreach (var id in previousSims.Keys)
+        var removedGenoses = new List<ulong>();
+        foreach (var id in previousGenoses.Keys)
         {
-            if (!currentSims.ContainsKey(id))
-                removedSims.Add(id);
+            if (!currentGenoses.ContainsKey(id))
+                removedGenoses.Add(id);
         }
 
         var removedCompanies = new List<ulong>();
@@ -70,14 +70,14 @@ public sealed class WorldSnapshotDelta
             SinceTick = from.Tick,
             Version = to.Version,
             Full = false,
-            Sims = sims,
+            Genoses = genoses,
             Companies = companies,
-            RemovedSims = removedSims,
+            RemovedGenoses = removedGenoses,
             RemovedCompanies = removedCompanies
         };
     }
 
-    public static bool SimsEqual(SimStatus a, SimStatus b) =>
+    public static bool GenosesEqual(GenosStatus a, GenosStatus b) =>
         a.NetworkId == b.NetworkId
         && string.Equals(a.Name, b.Name, StringComparison.Ordinal)
         && a.Age == b.Age

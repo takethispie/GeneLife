@@ -16,13 +16,13 @@ public sealed class DocumentStoreTests : IClassFixture<TestApplicationFactory>
     }
 
     [Fact]
-    public async Task Query_simdocument_returns_empty_on_fresh_database()
+    public async Task Query_genosdocument_returns_empty_on_fresh_database()
     {
         var store = factory.Services.GetRequiredService<IDocumentStore>();
         await using var session = store.LightweightSession();
 
-        var sims = await session.Query<SimDocument>().ToListAsync();
-        Assert.NotNull(sims);
+        var genoses = await session.Query<GenosDocument>().ToListAsync();
+        Assert.NotNull(genoses);
     }
 
     [Fact]
@@ -36,16 +36,16 @@ public sealed class DocumentStoreTests : IClassFixture<TestApplicationFactory>
     }
 
     [Fact]
-    public async Task Store_and_query_simdocument_roundtrip()
+    public async Task Store_and_query_genosdocument_roundtrip()
     {
         var store = factory.Services.GetRequiredService<IDocumentStore>();
         await using var session = store.LightweightSession();
 
-        var doc = new SimDocument
+        var doc = new GenosDocument
         {
             Id = Guid.NewGuid(),
             NetworkId = 42,
-            Name = "TestSim",
+            Name = "TestGenos",
             Age = 25,
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow
@@ -54,9 +54,9 @@ public sealed class DocumentStoreTests : IClassFixture<TestApplicationFactory>
         session.Store(doc);
         await session.SaveChangesAsync();
 
-        var loaded = await session.LoadAsync<SimDocument>(doc.Id);
+        var loaded = await session.LoadAsync<GenosDocument>(doc.Id);
         Assert.NotNull(loaded);
-        Assert.Equal("TestSim", loaded!.Name);
+        Assert.Equal("TestGenos", loaded!.Name);
         Assert.Equal(42L, loaded.NetworkId);
     }
 }

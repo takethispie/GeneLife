@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 namespace Genelife.Api.Services;
 
 public sealed record WorldSaveBatch(
-    IReadOnlyList<SimDocument> Sims,
+    IReadOnlyList<GenosDocument> Genoses,
     IReadOnlyList<CompanyDocument> Companies) : IWorldSaveBatch;
 
 public class WorldSaveService : IWorldPersistence
@@ -28,10 +28,10 @@ public class WorldSaveService : IWorldPersistence
 
     public WorldSaveBatch Build(World world, EmploymentIndex employmentIndex)
     {
-        var sims = new List<SimDocument>();
+        var genoses = new List<GenosDocument>();
 
-        var simQuery = new QueryDescription().WithAll<GenName, Needs, CurrentAction, NetworkId>();
-        world.Query(in simQuery, (Entity entity, ref GenName name, ref Needs needs, ref CurrentAction action, ref NetworkId nid) =>
+        var genosQuery = new QueryDescription().WithAll<GenName, Needs, CurrentAction, NetworkId>();
+        world.Query(in genosQuery, (Entity entity, ref GenName name, ref Needs needs, ref CurrentAction action, ref NetworkId nid) =>
         {
             long householdNetworkId = 0;
             long unitNetworkId = 0;
@@ -50,7 +50,7 @@ public class WorldSaveService : IWorldPersistence
                     housingTier = unit.Tier.ToString();
             }
 
-            SimDocument document = new()
+            GenosDocument document = new()
             {
                 Id = DocumentIds.ForNetworkId(nid.Value),
                 NetworkId = (long)nid.Value,
@@ -87,7 +87,7 @@ public class WorldSaveService : IWorldPersistence
                 document.AppearanceVersion = dto.AppearanceVersion;
             }
 
-            sims.Add(document);
+            genoses.Add(document);
         });
 
         var companies = new List<CompanyDocument>();
@@ -106,7 +106,7 @@ public class WorldSaveService : IWorldPersistence
             });
         });
 
-        return new WorldSaveBatch(sims, companies);
+        return new WorldSaveBatch(genoses, companies);
     }
 
     private static long NetworkIdOf(World world, Entity entity) =>
@@ -135,15 +135,15 @@ public class WorldSaveService : IWorldPersistence
 
         await using var session = documentStore.LightweightSession();
 
-        foreach (var doc in batch.Sims)
+        foreach (var doc in batch.Genoses)
             session.Store(doc);
 
         foreach (var doc in batch.Companies)
             session.Store(doc);
 
         await session.SaveChangesAsync();
-        logger?.LogInformation("World saved to Marten: {SimCount} sims, {CompanyCount} companies",
-            batch.Sims.Count, batch.Companies.Count);
+        logger?.LogInformation("World saved to Marten: {GenosCount} genoses, {CompanyCount} companies",
+            batch.Genoses.Count, batch.Companies.Count);
     }
 
     IWorldSaveBatch? IWorldPersistence.Build(World world, EmploymentIndex employmentIndex) =>

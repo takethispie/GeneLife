@@ -8,8 +8,8 @@ export interface DebugMetrics {
   zoom: number;
   visibleTiles: number;
   visibleBuildings: number;
-  visibleSims: number;
-  totalSims: number;
+  visibleGenoses: number;
+  totalGenoses: number;
   tick: number;
   bufferFrames: number;
   interpolationDelayMs: number;
@@ -31,8 +31,8 @@ const EMPTY: DebugMetrics = {
   zoom: 1,
   visibleTiles: 0,
   visibleBuildings: 0,
-  visibleSims: 0,
-  totalSims: 0,
+  visibleGenoses: 0,
+  totalGenoses: 0,
   tick: 0,
   bufferFrames: 0,
   interpolationDelayMs: 0,
@@ -65,7 +65,7 @@ export class DebugOverlay {
       `fps ${metrics.fps.toFixed(1)}  frame ${metrics.frameTimeMs.toFixed(2)}ms`,
       `map ${metrics.mapId || "-"} v${metrics.mapVersion}  renderer ${metrics.renderer || "-"}`,
       `camera ${metrics.cameraX.toFixed(1)},${metrics.cameraY.toFixed(1)} zoom ${metrics.zoom.toFixed(2)}`,
-      `visible tiles ${metrics.visibleTiles}  buildings ${metrics.visibleBuildings}  sims ${metrics.visibleSims}/${metrics.totalSims}`,
+      `visible tiles ${metrics.visibleTiles}  buildings ${metrics.visibleBuildings}  genoses ${metrics.visibleGenoses}/${metrics.totalGenoses}`,
       `tick ${metrics.tick}  buffer ${metrics.bufferFrames}  interp ${metrics.interpolationDelayMs}ms`,
       `input ack p50 ${metrics.inputAckP50Ms.toFixed(0)}ms  p95 ${metrics.inputAckP95Ms.toFixed(0)}ms`,
       `rx ${(metrics.bytesPerSecond / 1024).toFixed(1)} KiB/s  reconnects ${metrics.reconnectCount}`,

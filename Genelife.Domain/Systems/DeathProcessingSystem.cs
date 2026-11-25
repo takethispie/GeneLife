@@ -199,7 +199,7 @@ public class DeathProcessingSystem : ISimulationSystem
 
         RejectApplications(entity, applicationsByApplicant);
 
-        if (household != Entity.Null && economy.Housing.HouseholdBySim.ContainsKey(entity))
+        if (household != Entity.Null && economy.Housing.HouseholdByGenos.ContainsKey(entity))
             economy.Housing.RemoveMember(entity);
         if (world.Has<HouseholdMember>(entity))
             world.Remove<HouseholdMember>(entity);
@@ -240,7 +240,7 @@ public class DeathProcessingSystem : ISimulationSystem
         if (life.MortalityLog.Count > maxMortalityRecords)
             life.MortalityLog.RemoveRange(0, life.MortalityLog.Count - maxMortalityRecords);
 
-        economy.Emit(new SimDied(
+        economy.Emit(new GenosDied(
             networkId,
             name,
             alive.Age,
@@ -253,13 +253,13 @@ public class DeathProcessingSystem : ISimulationSystem
 
         life.EstateQueue.Add(new EstateRequest
         {
-            Sim = entity,
+            Genos = entity,
             Household = household,
             OwnedUnit = ownedUnit,
             Unit = unit,
             Tick = tick,
             Name = name,
-            SimNetworkId = networkId,
+            GenosNetworkId = networkId,
             Age = alive.Age,
             Cause = cause,
             Heirs = heirs,
@@ -321,9 +321,9 @@ public class DeathProcessingSystem : ISimulationSystem
             tick));
     }
 
-    private void RejectApplications(Entity sim, Dictionary<Entity, List<Entity>> applicationsByApplicant)
+    private void RejectApplications(Entity genos, Dictionary<Entity, List<Entity>> applicationsByApplicant)
     {
-        if (!applicationsByApplicant.TryGetValue(sim, out var applications))
+        if (!applicationsByApplicant.TryGetValue(genos, out var applications))
             return;
 
         foreach (var entity in applications)

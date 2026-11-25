@@ -2,7 +2,7 @@
 
 ## Context
 
-`SimulationEngine.Tick` builds `BuildSimSnapshots` and `BuildCompanySnapshots` inside the tick (`Genelife.API/Services/SimulationEngine.cs:5832-5905`). Snapshot construction counts against the 50 ms tick budget. The tick only needs to publish the tick's world state; a consumer thread can build the snapshot and delta.
+`SimulationEngine.Tick` builds `BuildGenosSnapshots` and `BuildCompanySnapshots` inside the tick (`Genelife.API/Services/SimulationEngine.cs:5832-5905`). Snapshot construction counts against the 50 ms tick budget. The tick only needs to publish the tick's world state; a consumer thread can build the snapshot and delta.
 
 ## Design
 
@@ -13,7 +13,7 @@
 ## Tasks
 
 - [ ] Add a snapshot consumer thread or channel.
-- [ ] Move `BuildSimSnapshots` and `BuildCompanySnapshots` off the tick thread.
+- [ ] Move `BuildGenosSnapshots` and `BuildCompanySnapshots` off the tick thread.
 - [ ] Feed `SnapshotHistory` and `SnapshotBroadcastService` from the consumer.
 - [ ] Confirm readers see a consistent latest snapshot.
 - [ ] Run the 2k and 32-player runs and record tick time without snapshot cost.

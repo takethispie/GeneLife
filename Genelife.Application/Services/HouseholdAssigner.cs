@@ -18,7 +18,7 @@ namespace Genelife.Api.Services;
 
 /// <summary>
 /// Deterministic population and household assignment. The same plan and seed
-/// produce the same sims, households and homes on every run.
+/// produce the same genoses, households and homes on every run.
 /// </summary>
 public sealed class HouseholdAssigner
 {
@@ -51,13 +51,13 @@ public sealed class HouseholdAssigner
         for (var i = 0; i < plan.Adults; i++)
         {
             var age = random.Next(19, 66);
-            adults.Add(CreateSim($"Adult {i + 1}", age, random, isAdult: true, tick));
+            adults.Add(CreateGenos($"Adult {i + 1}", age, random, isAdult: true, tick));
         }
 
         for (var i = 0; i < plan.Children; i++)
         {
             var age = random.Next(1, 18);
-            children.Add(CreateSim($"Child {i + 1}", age, random, isAdult: false, tick));
+            children.Add(CreateGenos($"Child {i + 1}", age, random, isAdult: false, tick));
         }
 
         var householdIds = FormHouseholds(adults, random, tick);
@@ -93,7 +93,7 @@ public sealed class HouseholdAssigner
         var query = new QueryDescription().WithAll<Alive>();
         world.Query(in query, (Entity entity, ref Alive alive) =>
         {
-            if (economy.Housing.HouseholdBySim.ContainsKey(entity))
+            if (economy.Housing.HouseholdByGenos.ContainsKey(entity))
                 return;
             if (alive.Age >= 18)
                 adults.Add(entity);
@@ -110,15 +110,15 @@ public sealed class HouseholdAssigner
         return result;
     }
 
-    public AssignmentResult AssignSingle(ulong simId, ulong unitId, long tick)
+    public AssignmentResult AssignSingle(ulong genosId, ulong unitId, long tick)
     {
-        if (!networkIds.TryGetEntity(new NetworkId(simId), out var sim) || !world.IsAlive(sim))
-            throw new InvalidOperationException("Sim not found.");
-        if (!world.Has<GenName>(sim))
-            throw new InvalidOperationException("Entity is not a sim.");
+        if (!networkIds.TryGetEntity(new NetworkId(genosId), out var genos) || !world.IsAlive(genos))
+            throw new InvalidOperationException("Genos not found.");
+        if (!world.Has<GenName>(genos))
+            throw new InvalidOperationException("Entity is not a genos.");
 
         Entity household;
-        if (economy.Housing.HouseholdBySim.TryGetValue(sim, out household))
+        if (economy.Housing.HouseholdByGenos.TryGetValue(genos, out household))
         {
             if (unitId != 0 && networkIds.TryGetEntity(new NetworkId(unitId), out var unit))
                 allocator.TryAssign(household, unit, Tenure.Renter, tick);
@@ -127,7 +127,7 @@ public sealed class HouseholdAssigner
             return SummarizeHousehold(household, tick);
         }
 
-        var id = households.Create(simId, tick);
+        var id = households.Create(genosId, tick);
         if (!households.TryGet(id, out household))
             throw new InvalidOperationException("Household creation failed.");
 
@@ -139,7 +139,7 @@ public sealed class HouseholdAssigner
         return SummarizeHousehold(household, tick);
     }
 
-    private Entity CreateSim(string name, int age, Random random, bool isAdult, long tick)
+    private Entity CreateGenos(string name, int age, Random random, bool isAdult, long tick)
     {
         var entity = world.Create(
             new GenName(name),
@@ -165,7 +165,7 @@ public sealed class HouseholdAssigner
 
         var id = networkIds.Allocate(entity);
         world.Add(entity, id);
-        economy.Emit(new SimCreated(id.Value, name, age));
+        economy.Emit(new GenosCreated(id.Value, name, age));
         return entity;
     }
 

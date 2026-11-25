@@ -9,14 +9,14 @@ export type Selection =
 export interface HudState {
   connection: ConnectionState;
   playerId: string;
-  ownSimNetworkId: number;
+  ownGenosNetworkId: number;
   mapId: string;
   mapVersion: number;
   tick: number;
   fps: number;
   frameTimeMs: number;
-  visibleSims: number;
-  totalSims: number;
+  visibleGenoses: number;
+  totalGenoses: number;
   localPlayerVisible: boolean;
   viewportRadius: number;
   interpolationDelayMs: number;
@@ -38,14 +38,14 @@ export interface HudState {
 export const INITIAL_HUD_STATE: HudState = {
   connection: "idle",
   playerId: "",
-  ownSimNetworkId: 0,
+  ownGenosNetworkId: 0,
   mapId: "",
   mapVersion: 0,
   tick: 0,
   fps: 0,
   frameTimeMs: 0,
-  visibleSims: 0,
-  totalSims: 0,
+  visibleGenoses: 0,
+  totalGenoses: 0,
   localPlayerVisible: false,
   viewportRadius: 0,
   interpolationDelayMs: 0,
@@ -66,7 +66,7 @@ export const INITIAL_HUD_STATE: HudState = {
 
 /**
  * Tiny observable for low-frequency HUD/session state. It deliberately does not
- * hold sim positions; Pixi reads the simulation store directly.
+ * hold genos positions; Pixi reads the simulation store directly.
  */
 export class UiStore {
   private state: HudState = { ...INITIAL_HUD_STATE };

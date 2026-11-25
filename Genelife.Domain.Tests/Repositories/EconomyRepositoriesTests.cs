@@ -42,14 +42,14 @@ public class EconomyRepositoriesTests
         networkIds.TryGetEntity(companyId, out var company);
         var officeId = offices.Add(companyId, "Main", 2, Money.FromUnits(50m));
         networkIds.TryGetEntity(officeId, out var office);
-        var sim = world.Create(new GenName("Worker"), new Employee(company, office, "Dev", Money.FromUnits(1000m)));
-        var sim2 = world.Create(new GenName("Worker2"), new Employee(company, office, "Dev", Money.FromUnits(1000m)));
+        var genos = world.Create(new GenName("Worker"), new Employee(company, office, "Dev", Money.FromUnits(1000m)));
+        var genos2 = world.Create(new GenName("Worker2"), new Employee(company, office, "Dev", Money.FromUnits(1000m)));
 
         Assert.Throws<InvalidOperationException>(() => offices.Update(officeId, null, 1, null));
         Assert.Throws<InvalidOperationException>(() => offices.Close(officeId));
 
-        world.Remove<Employee>(sim);
-        world.Remove<Employee>(sim2);
+        world.Remove<Employee>(genos);
+        world.Remove<Employee>(genos2);
         Assert.True(offices.Close(officeId));
         Assert.True(world.Get<Office>(office).IsClosed);
     }
@@ -135,12 +135,12 @@ public class EconomyRepositoriesTests
 
         networkIds.TryGetEntity(companyId, out var company);
         networkIds.TryGetEntity(officeId, out var office);
-        var sim = world.Create(
+        var genos = world.Create(
             new GenName("Worker"),
             new Employee(company, office, "Dev", Money.FromUnits(1000m)));
-        var simId = networkIds.Allocate(sim);
+        var genosId = networkIds.Allocate(genos);
 
-        Assert.True(employment.Fire(simId.Value, 100));
+        Assert.True(employment.Fire(genosId.Value, 100));
 
         Assert.Equal(1, world.Get<JobPosting>(posting).OpenSeats);
         Assert.False(world.Get<JobPosting>(posting).IsClosed);

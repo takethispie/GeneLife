@@ -28,7 +28,7 @@ public sealed class HousingRegistry
     public Dictionary<Entity, Entity> PropertyByUnit { get; } = new();
     public Dictionary<Entity, Entity> HouseholdByUnit { get; } = new();
     public Dictionary<Entity, Entity> UnitByHousehold { get; } = new();
-    public Dictionary<Entity, Entity> HouseholdBySim { get; } = new();
+    public Dictionary<Entity, Entity> HouseholdByGenos { get; } = new();
     public Dictionary<Entity, List<Entity>> UnitsByOwner { get; } = new();
     public Dictionary<Entity, List<Entity>> MembersByHousehold { get; } = new();
     public Dictionary<Entity, Entity> OwnerByProperty { get; } = new();
@@ -144,39 +144,39 @@ public sealed class HousingRegistry
         PropertyByUnit.Remove(unit);
     }
 
-    public void AddMember(Entity sim, Entity household)
+    public void AddMember(Entity genos, Entity household)
     {
-        if (HouseholdBySim.TryGetValue(sim, out var existing) && existing != household)
-            RemoveMember(sim);
+        if (HouseholdByGenos.TryGetValue(genos, out var existing) && existing != household)
+            RemoveMember(genos);
 
         if (!MembersByHousehold.TryGetValue(household, out var members))
         {
             members = new List<Entity>();
             MembersByHousehold[household] = members;
         }
-        if (!members.Contains(sim))
-            members.Add(sim);
+        if (!members.Contains(genos))
+            members.Add(genos);
 
-        HouseholdBySim[sim] = household;
+        HouseholdByGenos[genos] = household;
 
         if (UnitByHousehold.TryGetValue(household, out var unit) && unit != Entity.Null)
         {
-            SetResidence(sim, household, unit);
+            SetResidence(genos, household, unit);
             RefreshOccupancy(household, unit);
         }
     }
 
-    public void RemoveMember(Entity sim)
+    public void RemoveMember(Entity genos)
     {
-        if (!HouseholdBySim.TryGetValue(sim, out var household))
+        if (!HouseholdByGenos.TryGetValue(genos, out var household))
             return;
 
-        HouseholdBySim.Remove(sim);
+        HouseholdByGenos.Remove(genos);
         if (MembersByHousehold.TryGetValue(household, out var members))
-            members.Remove(sim);
+            members.Remove(genos);
 
-        if (world.IsAlive(sim) && world.Has<Residence>(sim))
-            world.Remove<Residence>(sim);
+        if (world.IsAlive(genos) && world.Has<Residence>(genos))
+            world.Remove<Residence>(genos);
 
         if (UnitByHousehold.TryGetValue(household, out var unit) && unit != Entity.Null)
             RefreshOccupancy(household, unit);
@@ -262,18 +262,18 @@ public sealed class HousingRegistry
         MoveUnitOwner(unit, oldOwner, newOwner);
     }
 
-    public bool TryGetUnitForSim(Entity sim, out Entity unit)
+    public bool TryGetUnitForGenos(Entity genos, out Entity unit)
     {
         unit = Entity.Null;
-        if (!HouseholdBySim.TryGetValue(sim, out var household))
+        if (!HouseholdByGenos.TryGetValue(genos, out var household))
             return false;
         if (!UnitByHousehold.TryGetValue(household, out unit) || unit == Entity.Null)
             return false;
         return world.IsAlive(unit);
     }
 
-    public Entity HouseholdOf(Entity sim) =>
-        HouseholdBySim.TryGetValue(sim, out var household) ? household : Entity.Null;
+    public Entity HouseholdOf(Entity genos) =>
+        HouseholdByGenos.TryGetValue(genos, out var household) ? household : Entity.Null;
 
     public Entity UnitOf(Entity household) =>
         UnitByHousehold.TryGetValue(household, out var unit) ? unit : Entity.Null;
@@ -444,19 +444,19 @@ public sealed class HousingRegistry
                 issues.Add($"unit {unit.Id} and household {household.Id} disagree about occupancy");
         }
 
-        foreach (var (sim, household) in HouseholdBySim)
+        foreach (var (genos, household) in HouseholdByGenos)
         {
-            if (!world.IsAlive(sim) || !world.Has<HouseholdMember>(sim))
-                issues.Add($"sim {sim.Id} is mapped to a household without membership");
-            else if (world.Get<HouseholdMember>(sim).Household != household)
-                issues.Add($"sim {sim.Id} membership disagrees with the registry");
+            if (!world.IsAlive(genos) || !world.Has<HouseholdMember>(genos))
+                issues.Add($"genos {genos.Id} is mapped to a household without membership");
+            else if (world.Get<HouseholdMember>(genos).Household != household)
+                issues.Add($"genos {genos.Id} membership disagrees with the registry");
         }
 
         foreach (var (household, members) in MembersByHousehold)
         {
             foreach (var member in members)
             {
-                if (HouseholdBySim.GetValueOrDefault(member) != household)
+                if (HouseholdByGenos.GetValueOrDefault(member) != household)
                     issues.Add($"member {member.Id} is not registered in household {household.Id}");
             }
         }
@@ -478,7 +478,7 @@ public sealed class HousingRegistry
         PropertyByUnit.Clear();
         HouseholdByUnit.Clear();
         UnitByHousehold.Clear();
-        HouseholdBySim.Clear();
+        HouseholdByGenos.Clear();
         UnitsByOwner.Clear();
         MembersByHousehold.Clear();
         OwnerByProperty.Clear();
@@ -489,16 +489,16 @@ public sealed class HousingRegistry
         MetricHistory.Clear();
     }
 
-    private void SetResidence(Entity sim, Entity household, Entity unit)
+    private void SetResidence(Entity genos, Entity household, Entity unit)
     {
-        if (!world.IsAlive(sim))
+        if (!world.IsAlive(genos))
             return;
 
         var residence = new Residence(household, unit);
-        if (world.Has<Residence>(sim))
-            world.Get<Residence>(sim) = residence;
+        if (world.Has<Residence>(genos))
+            world.Get<Residence>(genos) = residence;
         else
-            world.Add(sim, residence);
+            world.Add(genos, residence);
     }
 
     private void RefreshOccupancy(Entity household, Entity unit)

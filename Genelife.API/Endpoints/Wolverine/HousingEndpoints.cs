@@ -271,7 +271,7 @@ public static class HousingEndpoints
         return Enqueue(engine, new CreateHouseholdCommand(
             Guid.NewGuid(),
             http.User.Identity?.Name ?? "admin",
-            request.HeadSimId));
+            request.HeadGenosId));
     }
 
     [WolverinePost("/api/housing/households/{householdId}/members")]
@@ -289,15 +289,15 @@ public static class HousingEndpoints
             Guid.NewGuid(),
             http.User.Identity?.Name ?? "admin",
             householdId,
-            request.SimId,
+            request.GenosId,
             role));
     }
 
-    [WolverineDelete("/api/housing/households/{householdId}/members/{simId}")]
+    [WolverineDelete("/api/housing/households/{householdId}/members/{genosId}")]
     [Authorize(Policy = AuthPolicies.Admin)]
     public static IResult RemoveMember(
         ulong householdId,
-        ulong simId,
+        ulong genosId,
         SimulationEngine engine,
         HttpContext http)
     {
@@ -305,7 +305,7 @@ public static class HousingEndpoints
             Guid.NewGuid(),
             http.User.Identity?.Name ?? "admin",
             householdId,
-            simId));
+            genosId));
     }
 
     [WolverinePost("/api/housing/purchase")]
@@ -383,9 +383,9 @@ public sealed record SpawnPopulationRequest(
     int LuxuryUnits = 0,
     int Seed = 1);
 
-public sealed record CreateHouseholdRequest(ulong HeadSimId);
+public sealed record CreateHouseholdRequest(ulong HeadGenosId);
 
-public sealed record AddHouseholdMemberRequest(ulong SimId, string Role = "Partner");
+public sealed record AddHouseholdMemberRequest(ulong GenosId, string Role = "Partner");
 
 public sealed record PurchaseHomeRequest(ulong HouseholdId, ulong UnitId);
 

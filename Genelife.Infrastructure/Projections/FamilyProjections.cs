@@ -6,12 +6,12 @@ using Marten.Events.Projections;
 namespace Genelife.Api.Projections;
 
 /// <summary>
-/// Family summary per sim. Every handler is an upsert and every collection is a
+/// Family summary per genos. Every handler is an upsert and every collection is a
 /// set, so applying the same event twice does not duplicate a fact.
 /// </summary>
 public sealed partial class FamilyProjection : EventProjection
 {
-    public async Task Project(SimCreated e, IDocumentOperations ops)
+    public async Task Project(GenosCreated e, IDocumentOperations ops)
     {
         var doc = await GetOrCreate(ops, e.NetworkId);
         doc.Name = e.Name;
@@ -21,9 +21,9 @@ public sealed partial class FamilyProjection : EventProjection
         ops.Store(doc);
     }
 
-    public async Task Project(SimAged e, IDocumentOperations ops)
+    public async Task Project(GenosAged e, IDocumentOperations ops)
     {
-        var doc = await GetOrCreate(ops, e.SimNetworkId);
+        var doc = await GetOrCreate(ops, e.GenosNetworkId);
         doc.Age = e.Age;
         doc.UpdatedAt = DateTimeOffset.UtcNow;
         ops.Store(doc);
@@ -31,15 +31,15 @@ public sealed partial class FamilyProjection : EventProjection
 
     public async Task Project(LifeStageChanged e, IDocumentOperations ops)
     {
-        var doc = await GetOrCreate(ops, e.SimNetworkId);
+        var doc = await GetOrCreate(ops, e.GenosNetworkId);
         doc.Stage = e.To;
         doc.UpdatedAt = DateTimeOffset.UtcNow;
         ops.Store(doc);
     }
 
-    public async Task Project(SimDied e, IDocumentOperations ops)
+    public async Task Project(GenosDied e, IDocumentOperations ops)
     {
-        var doc = await GetOrCreate(ops, e.SimNetworkId);
+        var doc = await GetOrCreate(ops, e.GenosNetworkId);
         doc.IsDead = true;
         doc.UpdatedAt = DateTimeOffset.UtcNow;
         ops.Store(doc);
@@ -47,38 +47,38 @@ public sealed partial class FamilyProjection : EventProjection
 
     public async Task Project(RelationshipFormed e, IDocumentOperations ops)
     {
-        var from = await GetOrCreate(ops, e.FromSimId);
-        var to = await GetOrCreate(ops, e.ToSimId);
+        var from = await GetOrCreate(ops, e.FromGenosId);
+        var to = await GetOrCreate(ops, e.ToGenosId);
 
         switch (e.Kind)
         {
             case "Partner":
-                from.PartnerNetworkId = (long)e.ToSimId;
-                to.PartnerNetworkId = (long)e.FromSimId;
+                from.PartnerNetworkId = (long)e.ToGenosId;
+                to.PartnerNetworkId = (long)e.FromGenosId;
                 break;
             case "ExPartner":
-                if (from.PartnerNetworkId == (long)e.ToSimId)
+                if (from.PartnerNetworkId == (long)e.ToGenosId)
                     from.PartnerNetworkId = 0;
-                if (to.PartnerNetworkId == (long)e.FromSimId)
+                if (to.PartnerNetworkId == (long)e.FromGenosId)
                     to.PartnerNetworkId = 0;
                 break;
             case "Parent":
-                to.ParentIds.Add((long)e.FromSimId);
-                from.ChildIds.Add((long)e.ToSimId);
+                to.ParentIds.Add((long)e.FromGenosId);
+                from.ChildIds.Add((long)e.ToGenosId);
                 break;
             case "Child":
-                to.ChildIds.Add((long)e.FromSimId);
-                from.ParentIds.Add((long)e.ToSimId);
+                to.ChildIds.Add((long)e.FromGenosId);
+                from.ParentIds.Add((long)e.ToGenosId);
                 break;
             case "Guardian":
-                to.GuardianNetworkId = (long)e.FromSimId;
+                to.GuardianNetworkId = (long)e.FromGenosId;
                 to.InStateCare = false;
-                from.WardIds.Add((long)e.ToSimId);
+                from.WardIds.Add((long)e.ToGenosId);
                 break;
             case "Ward":
-                from.GuardianNetworkId = (long)e.ToSimId;
+                from.GuardianNetworkId = (long)e.ToGenosId;
                 from.InStateCare = false;
-                to.WardIds.Add((long)e.FromSimId);
+                to.WardIds.Add((long)e.FromGenosId);
                 break;
         }
 
@@ -92,35 +92,35 @@ public sealed partial class FamilyProjection : EventProjection
 
     public async Task Project(RelationshipEnded e, IDocumentOperations ops)
     {
-        var from = await GetOrCreate(ops, e.FromSimId);
-        var to = await GetOrCreate(ops, e.ToSimId);
+        var from = await GetOrCreate(ops, e.FromGenosId);
+        var to = await GetOrCreate(ops, e.ToGenosId);
 
         switch (e.Kind)
         {
             case "Partner":
             case "ExPartner":
-                if (from.PartnerNetworkId == (long)e.ToSimId)
+                if (from.PartnerNetworkId == (long)e.ToGenosId)
                     from.PartnerNetworkId = 0;
-                if (to.PartnerNetworkId == (long)e.FromSimId)
+                if (to.PartnerNetworkId == (long)e.FromGenosId)
                     to.PartnerNetworkId = 0;
                 break;
             case "Parent":
-                to.ParentIds.Remove((long)e.FromSimId);
-                from.ChildIds.Remove((long)e.ToSimId);
+                to.ParentIds.Remove((long)e.FromGenosId);
+                from.ChildIds.Remove((long)e.ToGenosId);
                 break;
             case "Child":
-                to.ChildIds.Remove((long)e.FromSimId);
-                from.ParentIds.Remove((long)e.ToSimId);
+                to.ChildIds.Remove((long)e.FromGenosId);
+                from.ParentIds.Remove((long)e.ToGenosId);
                 break;
             case "Guardian":
-                if (to.GuardianNetworkId == (long)e.FromSimId)
+                if (to.GuardianNetworkId == (long)e.FromGenosId)
                     to.GuardianNetworkId = null;
-                from.WardIds.Remove((long)e.ToSimId);
+                from.WardIds.Remove((long)e.ToGenosId);
                 break;
             case "Ward":
-                if (from.GuardianNetworkId == (long)e.ToSimId)
+                if (from.GuardianNetworkId == (long)e.ToGenosId)
                     from.GuardianNetworkId = null;
-                to.WardIds.Remove((long)e.FromSimId);
+                to.WardIds.Remove((long)e.FromGenosId);
                 break;
         }
 
@@ -133,10 +133,10 @@ public sealed partial class FamilyProjection : EventProjection
     }
 
     public async Task Project(PartnershipFormed e, IDocumentOperations ops)    {
-        var first = await GetOrCreate(ops, e.SimAId);
-        var second = await GetOrCreate(ops, e.SimBId);
-        first.PartnerNetworkId = (long)e.SimBId;
-        second.PartnerNetworkId = (long)e.SimAId;
+        var first = await GetOrCreate(ops, e.GenosAId);
+        var second = await GetOrCreate(ops, e.GenosBId);
+        first.PartnerNetworkId = (long)e.GenosBId;
+        second.PartnerNetworkId = (long)e.GenosAId;
         first.UpdatedTick = e.Tick;
         second.UpdatedTick = e.Tick;
         ops.Store(first);
@@ -145,11 +145,11 @@ public sealed partial class FamilyProjection : EventProjection
 
     public async Task Project(PartnershipEnded e, IDocumentOperations ops)
     {
-        var first = await GetOrCreate(ops, e.SimAId);
-        var second = await GetOrCreate(ops, e.SimBId);
-        if (first.PartnerNetworkId == (long)e.SimBId)
+        var first = await GetOrCreate(ops, e.GenosAId);
+        var second = await GetOrCreate(ops, e.GenosBId);
+        if (first.PartnerNetworkId == (long)e.GenosBId)
             first.PartnerNetworkId = 0;
-        if (second.PartnerNetworkId == (long)e.SimAId)
+        if (second.PartnerNetworkId == (long)e.GenosAId)
             second.PartnerNetworkId = 0;
         first.UpdatedTick = e.Tick;
         second.UpdatedTick = e.Tick;
@@ -284,11 +284,11 @@ public sealed partial class FamilyProjection : EventProjection
         ProjectionDocumentStore.GetOrCreate(
             ops,
             DocumentIds.ForNetworkId(networkId),
-            document => document.SimNetworkId == (long)networkId,
+            document => document.GenosNetworkId == (long)networkId,
             () => new FamilyDocument
             {
                 Id = DocumentIds.ForNetworkId(networkId),
-                SimNetworkId = (long)networkId
+                GenosNetworkId = (long)networkId
             });
 }
 
@@ -297,8 +297,8 @@ public sealed partial class RelationshipProjection : EventProjection
     public async Task Project(RelationshipFormed e, IDocumentOperations ops)
     {
         var doc = await GetOrCreate(ops, e.RelationshipId);
-        doc.FromSimNetworkId = (long)e.FromSimId;
-        doc.ToSimNetworkId = (long)e.ToSimId;
+        doc.FromGenosNetworkId = (long)e.FromGenosId;
+        doc.ToGenosNetworkId = (long)e.ToGenosId;
         doc.Kind = e.Kind;
         doc.Source = e.Source;
         doc.SinceTick = e.Tick;
@@ -514,7 +514,7 @@ public sealed partial class EstateProjection : EventProjection
 {
     public async Task Project(EstateSettled e, IDocumentOperations ops)
     {
-        var doc = await GetOrCreate(ops, e.SimNetworkId);
+        var doc = await GetOrCreate(ops, e.GenosNetworkId);
         doc.AssetsCents = e.AssetsCents;
         doc.DebtsCents = e.DebtsCents;
         doc.DistributedCents = e.DistributedCents;
@@ -527,7 +527,7 @@ public sealed partial class EstateProjection : EventProjection
 
     public async Task Project(InheritancePaid e, IDocumentOperations ops)
     {
-        var doc = await GetOrCreate(ops, e.SimNetworkId);
+        var doc = await GetOrCreate(ops, e.GenosNetworkId);
         doc.InheritancePaidCents += e.AmountCents;
         doc.UpdatedTick = e.Tick;
         doc.UpdatedAt = DateTimeOffset.UtcNow;
@@ -536,7 +536,7 @@ public sealed partial class EstateProjection : EventProjection
 
     public async Task Project(EscheatRecorded e, IDocumentOperations ops)
     {
-        var doc = await GetOrCreate(ops, e.SimNetworkId);
+        var doc = await GetOrCreate(ops, e.GenosNetworkId);
         doc.EscheatCents = Math.Max(doc.EscheatCents, e.AmountCents);
         doc.UpdatedTick = e.Tick;
         doc.UpdatedAt = DateTimeOffset.UtcNow;
@@ -545,10 +545,10 @@ public sealed partial class EstateProjection : EventProjection
 
     public async Task Project(TrustOpened e, IDocumentOperations ops)
     {
-        if (e.SourceSimNetworkId == 0)
+        if (e.SourceGenosNetworkId == 0)
             return;
 
-        var doc = await GetOrCreate(ops, e.SourceSimNetworkId);
+        var doc = await GetOrCreate(ops, e.SourceGenosNetworkId);
         doc.TrustsOpenedCents += e.AmountCents;
         doc.UpdatedTick = e.Tick;
         doc.UpdatedAt = DateTimeOffset.UtcNow;

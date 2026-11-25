@@ -5,7 +5,7 @@ namespace Genelife.Api.Social;
 public sealed record PlayerPresenceDto(
     string PlayerId,
     string? DisplayName,
-    ulong SimNetworkId,
+    ulong GenosNetworkId,
     int TileX,
     int TileY,
     ulong? BuildingNetworkId,

@@ -5,18 +5,18 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace Genelife.Api.Handlers.Push;
 
-public class SimStatePushHandler
+public class GenosStatePushHandler
 {
     private readonly IHubContext<WorldHub> hubContext;
 
-    public SimStatePushHandler(IHubContext<WorldHub> hubContext)
+    public GenosStatePushHandler(IHubContext<WorldHub> hubContext)
     {
         this.hubContext = hubContext;
     }
 
-    public async Task Handle(SimCreated @event)
+    public async Task Handle(GenosCreated @event)
     {
-        await hubContext.Clients.Group("all-sims").SendAsync("SimCreated", new
+        await hubContext.Clients.Group("all-genoses").SendAsync("GenosCreated", new
         {
             @event.NetworkId,
             @event.Name,
@@ -24,9 +24,9 @@ public class SimStatePushHandler
         });
     }
 
-    public async Task Handle(SimNeedsChanged @event)
+    public async Task Handle(GenosNeedsChanged @event)
     {
-        await hubContext.Clients.Group($"sim:{@event.NetworkId}").SendAsync("SimNeedsChanged", new
+        await hubContext.Clients.Group($"genos:{@event.NetworkId}").SendAsync("GenosNeedsChanged", new
         {
             @event.NetworkId,
             @event.Hunger,
@@ -36,9 +36,9 @@ public class SimStatePushHandler
         });
     }
 
-    public async Task Handle(SimActionStarted @event)
+    public async Task Handle(GenosActionStarted @event)
     {
-        await hubContext.Clients.Group($"sim:{@event.NetworkId}").SendAsync("SimActionStarted", new
+        await hubContext.Clients.Group($"genos:{@event.NetworkId}").SendAsync("GenosActionStarted", new
         {
             @event.NetworkId,
             @event.ActionType,
@@ -46,9 +46,9 @@ public class SimStatePushHandler
         });
     }
 
-    public async Task Handle(SimActionCompleted @event)
+    public async Task Handle(GenosActionCompleted @event)
     {
-        await hubContext.Clients.Group($"sim:{@event.NetworkId}").SendAsync("SimActionCompleted", new
+        await hubContext.Clients.Group($"genos:{@event.NetworkId}").SendAsync("GenosActionCompleted", new
         {
             @event.NetworkId,
             @event.ActionType

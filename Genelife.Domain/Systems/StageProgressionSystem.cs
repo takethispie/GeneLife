@@ -83,51 +83,51 @@ public class StageProgressionSystem : ISimulationSystem
         }
     }
 
-    private void ApplyEnter(Entity sim, LifeStage stage, long tick)
+    private void ApplyEnter(Entity genos, LifeStage stage, long tick)
     {
         switch (stage)
         {
             case LifeStage.Work:
-                EnterWork(sim, tick);
+                EnterWork(genos, tick);
                 break;
             case LifeStage.Retirement:
-                EnterRetirement(sim, tick);
+                EnterRetirement(genos, tick);
                 break;
             case LifeStage.Elderly:
-                EnterElderly(sim, tick);
+                EnterElderly(genos, tick);
                 break;
             case LifeStage.Education:
             default:
-                LifeSystemHelpers.RemoveEmployment(world, economy.Employment, economy, sim, tick);
-                LifeSystemHelpers.RemoveJobSearch(world, sim);
-                if (world.Has<RetirementIncome>(sim))
-                    world.Remove<RetirementIncome>(sim);
-                world.SetOrAdd(sim, new Health(world.Has<Health>(sim) ? world.Get<Health>(sim).Value : 100f));
+                LifeSystemHelpers.RemoveEmployment(world, economy.Employment, economy, genos, tick);
+                LifeSystemHelpers.RemoveJobSearch(world, genos);
+                if (world.Has<RetirementIncome>(genos))
+                    world.Remove<RetirementIncome>(genos);
+                world.SetOrAdd(genos, new Health(world.Has<Health>(genos) ? world.Get<Health>(genos).Value : 100f));
                 break;
         }
     }
 
-    private void EnterWork(Entity sim, long tick)
+    private void EnterWork(Entity genos, long tick)
     {
-        ChildhoodPolicy.ClearDependentMarker(world, sim);
-        EnrollmentHelpers.ReleaseSeat(world, sim, economy.Life.Index);
+        ChildhoodPolicy.ClearDependentMarker(world, genos);
+        EnrollmentHelpers.ReleaseSeat(world, genos, economy.Life.Index);
 
-        if (world.Has<RetirementIncome>(sim))
-            world.Remove<RetirementIncome>(sim);
+        if (world.Has<RetirementIncome>(genos))
+            world.Remove<RetirementIncome>(genos);
 
-        LifeSystemHelpers.EnsureWallet(world, sim);
+        LifeSystemHelpers.EnsureWallet(world, genos);
 
-        if (world.Has<Employee>(sim) || world.Has<JobSeeker>(sim))
+        if (world.Has<Employee>(genos) || world.Has<JobSeeker>(genos))
             return;
 
-        var profile = world.Has<SkillProfile>(sim) ? world.Get<SkillProfile>(sim) : new SkillProfile();
+        var profile = world.Has<SkillProfile>(genos) ? world.Get<SkillProfile>(genos) : new SkillProfile();
         if (profile.ToMask() == Skill.None)
         {
             profile.Add(Skill.Sales, 0.3f);
-            world.SetOrAdd(sim, profile);
+            world.SetOrAdd(genos, profile);
         }
         var salary = economy.Life.Careers.SalaryForSkills(profile.Total);
-        var household = LifeSystemHelpers.HouseholdOf(world, economy, sim);
+        var household = LifeSystemHelpers.HouseholdOf(world, economy, genos);
         if (household != Entity.Null)
         {
             var members = economy.Housing.MemberCount(household);
@@ -137,10 +137,10 @@ public class StageProgressionSystem : ISimulationSystem
             salary = salary.Multiply(pressure);
         }
 
-        world.Add(sim, new JobSeeker(true, profile.ToMask(), salary));
+        world.Add(genos, new JobSeeker(true, profile.ToMask(), salary));
         economy.Life.GraduatesThisYear++;
         economy.Emit(new StudentGraduated(
-            LifeSystemHelpers.NetworkIdOf(world, sim),
+            LifeSystemHelpers.NetworkIdOf(world, genos),
             (int)profile.ToMask(),
             salary.Cents,
             tick));
@@ -151,36 +151,36 @@ public class StageProgressionSystem : ISimulationSystem
                 tick));
     }
 
-    private void EnterRetirement(Entity sim, long tick)
+    private void EnterRetirement(Entity genos, long tick)
     {
-        LifeSystemHelpers.RemoveEmployment(world, economy.Employment, economy, sim, tick, retire: true);
-        LifeSystemHelpers.RemoveJobSearch(world, sim);
-        if (world.Has<UnemploymentRecord>(sim))
-            world.Remove<UnemploymentRecord>(sim);
+        LifeSystemHelpers.RemoveEmployment(world, economy.Employment, economy, genos, tick, retire: true);
+        LifeSystemHelpers.RemoveJobSearch(world, genos);
+        if (world.Has<UnemploymentRecord>(genos))
+            world.Remove<UnemploymentRecord>(genos);
 
-        var account = world.Has<PensionAccount>(sim) ? world.Get<PensionAccount>(sim) : default;
+        var account = world.Has<PensionAccount>(genos) ? world.Get<PensionAccount>(genos) : default;
         var (pension, meansTested) = economy.Life.Pensions.EntitlementFor(account, economy.Life.Policy);
 
-        if (!world.Has<RetirementIncome>(sim))
-            world.Add(sim, new RetirementIncome(pension, tick, meansTested ? "means-tested" : "statement", meansTested));
+        if (!world.Has<RetirementIncome>(genos))
+            world.Add(genos, new RetirementIncome(pension, tick, meansTested ? "means-tested" : "statement", meansTested));
 
         economy.Life.RetiredThisYear++;
-        var household = LifeSystemHelpers.HouseholdOf(world, economy, sim);
+        var household = LifeSystemHelpers.HouseholdOf(world, economy, genos);
         if (household != Entity.Null)
             economy.Emit(new HouseholdIncomeChanged(LifeSystemHelpers.NetworkIdOf(world, household), tick));
 
         economy.Emit(new Retired(
-            LifeSystemHelpers.NetworkIdOf(world, sim),
-            world.Has<Alive>(sim) ? world.Get<Alive>(sim).Age : economy.Life.Policy.RetirementAge,
+            LifeSystemHelpers.NetworkIdOf(world, genos),
+            world.Has<Alive>(genos) ? world.Get<Alive>(genos).Age : economy.Life.Policy.RetirementAge,
             pension.Cents,
             tick));
     }
 
-    private void EnterElderly(Entity sim, long tick)
+    private void EnterElderly(Entity genos, long tick)
     {
-        if (!world.Has<Health>(sim))
-            world.Add(sim, new Health(60f));
-        LifeSystemHelpers.RemoveJobSearch(world, sim);
+        if (!world.Has<Health>(genos))
+            world.Add(genos, new Health(60f));
+        LifeSystemHelpers.RemoveJobSearch(world, genos);
     }
 
     private int CountEarners(Entity household)
@@ -198,7 +198,7 @@ public class StageProgressionSystem : ISimulationSystem
     /// Admin scenario helper: sets the age to the stage boundary so the next
     /// progression pass applies the full transition with all handlers.
     /// </summary>
-    public bool ForceStage(ulong simNetworkId, LifeStage stage, long tick)
+    public bool ForceStage(ulong genosNetworkId, LifeStage stage, long tick)
     {
         var queryInWorld = new QueryDescription().WithAll<NetworkId, Alive>();
         var found = false;
@@ -206,7 +206,7 @@ public class StageProgressionSystem : ISimulationSystem
 
         world.Query(in queryInWorld, (Entity entity, ref NetworkId networkId, ref Alive alive) =>
         {
-            if (found || networkId.Value != simNetworkId)
+            if (found || networkId.Value != genosNetworkId)
                 return;
             found = true;
             foundEntity = entity;

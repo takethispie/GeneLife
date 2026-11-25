@@ -34,7 +34,7 @@ public sealed class TrustService
         Entity beneficiary,
         Entity guardian,
         Money amount,
-        ulong sourceSimNetworkId,
+        ulong sourceGenosNetworkId,
         long tick,
         long releaseAgeTicks)
     {
@@ -51,7 +51,7 @@ public sealed class TrustService
             Guardian = guardian,
             CreatedTick = tick,
             ReleaseAgeTicks = releaseAgeTicks,
-            SourceSimNetworkId = sourceSimNetworkId
+            SourceGenosNetworkId = sourceGenosNetworkId
         });
         var networkId = NetworkIdAllocator?.Invoke(trust) ?? new NetworkId(fallbackId++);
         world.Add(trust, networkId);
@@ -59,7 +59,7 @@ public sealed class TrustService
             Guid.NewGuid(),
             tick,
             LedgerKind.TrustDeposit,
-            sourceSimNetworkId == 0 ? null : sourceSimNetworkId,
+            sourceGenosNetworkId == 0 ? null : sourceGenosNetworkId,
             networkId.Value,
             amount,
             "estate.trust-deposit");
@@ -68,7 +68,7 @@ public sealed class TrustService
             NetworkIdOf(beneficiary),
             NetworkIdOf(guardian),
             amount.Cents,
-            sourceSimNetworkId,
+            sourceGenosNetworkId,
             tick));
         return trust;
     }

@@ -13,7 +13,7 @@ describe("player directory", () => {
     const fetchImpl = vi.fn(() => Promise.resolve(new Response(JSON.stringify({
       scope: "Nearby",
       radius: 12,
-      items: [{ playerId: "bob", displayName: "Bob", simNetworkId: 2, tileX: 3, tileY: 4, buildingNetworkId: null, state: "Online" }]
+      items: [{ playerId: "bob", displayName: "Bob", genosNetworkId: 2, tileX: 3, tileY: 4, buildingNetworkId: null, state: "Online" }]
     }), { status: 200 })));
     const panel = new PlayerDirectoryPanel({
       root,
@@ -45,7 +45,7 @@ describe("player directory", () => {
       fetchImpl: vi.fn(() => Promise.resolve(new Response(JSON.stringify({
         scope: "Nearby",
         radius: 12,
-        items: [{ playerId: "bob", displayName: "Resident", simNetworkId: 2, tileX: 3, tileY: 4, buildingNetworkId: null, state: "Online" }]
+        items: [{ playerId: "bob", displayName: "Resident", genosNetworkId: 2, tileX: 3, tileY: 4, buildingNetworkId: null, state: "Online" }]
       }), { status: 200 }))),
       intervalMs: 60_000
     });

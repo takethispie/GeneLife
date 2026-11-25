@@ -1,10 +1,10 @@
 namespace Genelife.Messages.Events;
 
-public sealed record PlayerProfileCreated(ulong SimNetworkId, string PlayerId, long Tick);
+public sealed record PlayerProfileCreated(ulong GenosNetworkId, string PlayerId, long Tick);
 
 public sealed record PlayerHired(
     string PlayerId,
-    ulong SimNetworkId,
+    ulong GenosNetworkId,
     ulong CompanyNetworkId,
     ulong OfficeNetworkId,
     string Position,
@@ -13,21 +13,21 @@ public sealed record PlayerHired(
 
 public sealed record PlayerQuitJob(
     string PlayerId,
-    ulong SimNetworkId,
+    ulong GenosNetworkId,
     ulong CompanyNetworkId,
     string Reason,
     long Tick);
 
 public sealed record PlayerTerminated(
     string PlayerId,
-    ulong SimNetworkId,
+    ulong GenosNetworkId,
     ulong CompanyNetworkId,
     string Reason,
     long Tick);
 
 public sealed record PlayerLeaseStarted(
     string PlayerId,
-    ulong SimNetworkId,
+    ulong GenosNetworkId,
     ulong HouseholdNetworkId,
     ulong UnitNetworkId,
     long RentCents,
@@ -35,20 +35,20 @@ public sealed record PlayerLeaseStarted(
 
 public sealed record PlayerMoved(
     string PlayerId,
-    ulong SimNetworkId,
+    ulong GenosNetworkId,
     ulong HouseholdNetworkId,
     ulong FromUnitNetworkId,
     ulong ToUnitNetworkId,
     long Tick);
 
 public sealed record PlayerArrearsPaid(
-    ulong SimNetworkId,
+    ulong GenosNetworkId,
     ulong HouseholdNetworkId,
     long AmountCents,
     long Tick);
 
 public sealed record PlayerBoughtItem(
-    ulong SimNetworkId,
+    ulong GenosNetworkId,
     ulong StoreNetworkId,
     string CatalogItemId,
     int Quantity,
@@ -56,22 +56,22 @@ public sealed record PlayerBoughtItem(
     long Tick);
 
 public sealed record PlayerConsumedItem(
-    ulong SimNetworkId,
+    ulong GenosNetworkId,
     string CatalogItemId,
     int Quantity,
     long Tick);
 
 public sealed record PlayerInvited(
-    ulong FromSimNetworkId,
-    ulong ToSimNetworkId,
+    ulong FromGenosNetworkId,
+    ulong ToGenosNetworkId,
     Guid InvitationId,
     string Kind,
     long ExpiresTick,
     long Tick);
 
 public sealed record PlayerInvitationResponded(
-    ulong FromSimNetworkId,
-    ulong ToSimNetworkId,
+    ulong FromGenosNetworkId,
+    ulong ToGenosNetworkId,
     Guid InvitationId,
     string Kind,
     bool Accepted,
@@ -79,13 +79,13 @@ public sealed record PlayerInvitationResponded(
     long Tick);
 
 public sealed record PlayerChildNamed(
-    ulong ParentSimNetworkId,
-    ulong ChildSimNetworkId,
+    ulong ParentGenosNetworkId,
+    ulong ChildGenosNetworkId,
     string Name,
     long Tick);
 
 public sealed record PlayerAwaitingContinuation(
-    ulong SimNetworkId,
+    ulong GenosNetworkId,
     string PlayerId,
     long Tick,
     string? Name = null,
@@ -95,8 +95,8 @@ public sealed record PlayerAwaitingContinuation(
 
 public sealed record PlayerContinuationApplied(
     string PlayerId,
-    ulong PreviousSimNetworkId,
-    ulong NewSimNetworkId,
+    ulong PreviousGenosNetworkId,
+    ulong NewGenosNetworkId,
     string Policy,
     string? Code,
     long Tick,
@@ -109,7 +109,7 @@ public sealed record PlayerContinuationApplied(
 public sealed record PlayerCommandApplied(
     Guid CommandId,
     string PlayerId,
-    ulong SimNetworkId,
+    ulong GenosNetworkId,
     string Kind,
     string Status,
     string? Code,

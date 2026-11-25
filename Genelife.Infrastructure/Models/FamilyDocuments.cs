@@ -1,13 +1,13 @@
 namespace Genelife.Api.Models;
 
 /// <summary>
-/// Durable family summary per sim. The live engine is authoritative for the
+/// Durable family summary per genos. The live engine is authoritative for the
 /// current tick; this document is the rebuildable history.
 /// </summary>
 public sealed class FamilyDocument
 {
     public Guid Id { get; set; }
-    public long SimNetworkId { get; set; }
+    public long GenosNetworkId { get; set; }
     public string Name { get; set; } = string.Empty;
     public int Age { get; set; }
     public string Stage { get; set; } = string.Empty;
@@ -30,8 +30,8 @@ public sealed class RelationshipDocument
 {
     public Guid Id { get; set; }
     public long RelationshipNetworkId { get; set; }
-    public long FromSimNetworkId { get; set; }
-    public long ToSimNetworkId { get; set; }
+    public long FromGenosNetworkId { get; set; }
+    public long ToGenosNetworkId { get; set; }
     public string Kind { get; set; } = string.Empty;
     public string Source { get; set; } = string.Empty;
     public long SinceTick { get; set; }

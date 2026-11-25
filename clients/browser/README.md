@@ -12,11 +12,11 @@ hardening deliverables in `docs/plans/roadmap-v3`.
 
 Server prerequisites completed alongside the client:
 
-- `Welcome` is sent on connect with the player's `simNetworkId`, tick interval,
+- `Welcome` is sent on connect with the player's `genosNetworkId`, tick interval,
   protocol version and map version.
 - Post-admission intent rejections are delivered as `IntentRejected` events.
-- A new browser player gets a controllable sim on connect
-  (`SignalR:AutoCreatePlayerSim`, default `true`).
+- A new browser player gets a controllable genos on connect
+  (`SignalR:AutoCreatePlayerGenos`, default `true`).
 - CORS allows credentials for SignalR negotiate while keeping an explicit origin
   allowlist.
 
@@ -122,7 +122,7 @@ npm run test:e2e:admin
 Set `E2E_ADMIN_BASE_URL` to point at a different server and
 `E2E_ADMIN_START_SERVER=0` to reuse it without Playwright starting
 `Genelife.Web`. The suite covers the overview and all seven tabs, per-tab
-refreshes, sim detail, empty states, destructive confirmation gating, confirmation
+refreshes, genos detail, empty states, destructive confirmation gating, confirmation
 reset on tab switches, and command success/failure results.
 
 Live acceptance tests require the API, PostgreSQL and a running simulation:
@@ -149,7 +149,7 @@ src/
   contracts/    hub DTOs, runtime validators, REST types
   net/          SignalR client, intent sender, viewport debounce, recovery, traffic
   simulation/   mutable replication store, map cache/RLE decoder, interpolation
-  render/       Pixi application, camera, culling, tile/building/sim layers
+  render/       Pixi application, camera, culling, tile/building/genos layers
   input/        input map, camera input, targeting, building selection
   ui/           DOM HUD, notifications, settings, accessibility CSS
   test/         fixtures, scenario and performance tests
@@ -171,7 +171,7 @@ Rules enforced by the code:
 
 | Event | Payload | Purpose |
 |---|---|---|
-| `Welcome` | `WelcomeMessage` | own sim id, tick interval, protocol/map version |
+| `Welcome` | `WelcomeMessage` | own genos id, tick interval, protocol/map version |
 | `IntentRejected` | `IntentRejected` | sequence, code and message after admission |
 
 Fixtures for both, plus malformed cases, live in `src/test/fixtures` and are
@@ -184,8 +184,8 @@ validated by `src/contracts/validate.ts`. Regenerate them with
   open `/?fixtures=1`.
 - **Auth succeeds but SignalR negotiate fails** — the API CORS policy must allow
   the browser origin *and* credentials. Restart the API after changing CORS.
-- **`Your sim is not ready yet`** — the simulation is not running or the player
-  sim has not been created yet. Start the simulation as an admin.
+- **`Your genos is not ready yet`** — the simulation is not running or the player
+  genos has not been created yet. Start the simulation as an admin.
 - **No map** — check the hub console log and the `Last error` HUD row; protocol
   or contract mismatches fail loudly instead of rendering partial state.
 

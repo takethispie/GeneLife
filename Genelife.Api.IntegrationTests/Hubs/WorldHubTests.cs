@@ -91,7 +91,7 @@ public sealed class WorldHubTests : IClassFixture<TestApplicationFactory>, IAsyn
 
         Assert.NotNull(snapshot);
         Assert.True(snapshot.Tick >= 0);
-        Assert.NotNull(snapshot.Sims);
+        Assert.NotNull(snapshot.Genoses);
         Assert.NotNull(snapshot.Companies);
 
         await connection.StopAsync(CancellationToken);
@@ -128,7 +128,7 @@ public sealed class WorldHubTests : IClassFixture<TestApplicationFactory>, IAsyn
     }
 
     [Fact]
-    public async Task Connect_receives_welcome_with_the_players_own_sim_id()
+    public async Task Connect_receives_welcome_with_the_players_own_genos_id()
     {
         await StartSimulation();
 
@@ -146,7 +146,7 @@ public sealed class WorldHubTests : IClassFixture<TestApplicationFactory>, IAsyn
         await snapshotTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken);
 
         Assert.Equal("player-welcome", welcome.PlayerId);
-        Assert.True(welcome.SimNetworkId > 0);
+        Assert.True(welcome.GenosNetworkId > 0);
         Assert.Equal("world", welcome.MapId);
         Assert.True(welcome.MapVersion >= 1);
         Assert.Equal(40, welcome.TickIntervalMs);
@@ -179,7 +179,7 @@ public sealed class WorldHubTests : IClassFixture<TestApplicationFactory>, IAsyn
             type = "move",
             playerId = "player-rejected",
             sequence = 1L,
-            simNetworkId = welcome.SimNetworkId,
+            genosNetworkId = welcome.GenosNetworkId,
             targetTileX = 99_999,
             targetTileY = 99_999
         };
@@ -250,8 +250,8 @@ public sealed class WorldHubTests : IClassFixture<TestApplicationFactory>, IAsyn
     public async Task SubmitIntent_with_valid_payload_succeeds()
     {
         var (client, _) = await StartSimulation();
-        await client.PostAsJsonAsync("/api/simulation/sims",
-            new { name = "TestSim", age = 25 }, CancellationToken);
+        await client.PostAsJsonAsync("/api/simulation/genoses",
+            new { name = "TestGenos", age = 25 }, CancellationToken);
 
         var token = PlayerToken("player-intent");
         var connection = CreateConnection(token, "player-intent");

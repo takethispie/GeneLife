@@ -1,7 +1,7 @@
 export interface AssetManifest {
   tileset: string;
-  simAtlas: string;
-  simPalettes?: string;
+  genosAtlas: string;
+  genosPalettes?: string;
   buildingAtlas: string;
   audio: string[];
 }
@@ -13,8 +13,8 @@ export interface AssetManifest {
  */
 export const ASSET_MANIFEST: AssetManifest = {
   tileset: "/atlases/tileset.svg",
-  simAtlas: "/atlases/sim.svg",
-  simPalettes: "/atlases/sim-palettes.json",
+  genosAtlas: "/atlases/genos.svg",
+  genosPalettes: "/atlases/genos-palettes.json",
   buildingAtlas: "/atlases/building.svg",
   audio: []
 };
@@ -36,8 +36,8 @@ export async function preloadAssets(
 ): Promise<AssetLoadResult> {
   const urls = [
     manifest.tileset,
-    manifest.simAtlas,
-    ...(manifest.simPalettes === undefined ? [] : [manifest.simPalettes]),
+    manifest.genosAtlas,
+    ...(manifest.genosPalettes === undefined ? [] : [manifest.genosPalettes]),
     manifest.buildingAtlas,
     ...manifest.audio
   ];

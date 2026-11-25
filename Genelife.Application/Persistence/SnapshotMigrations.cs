@@ -14,11 +14,11 @@ public static class SnapshotMigrations
 
         if (fromVersion <= 1)
         {
-            foreach (var sim in state.Sims)
+            foreach (var genos in state.Genoses)
             {
-                if (sim.WalletBalanceCents == 0 && sim.WalletBalance != 0)
-                    sim.WalletBalanceCents = (long)Math.Round((decimal)sim.WalletBalance * 100m);
-                sim.WalletBalance = 0;
+                if (genos.WalletBalanceCents == 0 && genos.WalletBalance != 0)
+                    genos.WalletBalanceCents = (long)Math.Round((decimal)genos.WalletBalance * 100m);
+                genos.WalletBalance = 0;
             }
 
             foreach (var company in state.Companies)
@@ -65,7 +65,7 @@ public static class SnapshotMigrations
         if (fromVersion <= 5)
         {
             // v6 adds heritable traits. They cannot be backfilled here because the
-            // deterministic backfill needs the world seed and each sim's network id;
+            // deterministic backfill needs the world seed and each genos's network id;
             // SimulationEngine.Restore generates them and sets TraitsMigrated.
             state.GeneticsOptions ??= Genelife.Family.GeneticsOptions.Default;
             if (string.IsNullOrWhiteSpace(state.AttractionModelVersion))
@@ -81,9 +81,9 @@ public static class SnapshotMigrations
 
         if (fromVersion <= 10)
         {
-            foreach (var sim in state.Sims)
-                sim.HasWallet |= sim.WalletBalanceCents != 0 || sim.WalletBalance != 0 ||
-                                 sim.EmployerNetworkId != 0;
+            foreach (var genos in state.Genoses)
+                genos.HasWallet |= genos.WalletBalanceCents != 0 || genos.WalletBalance != 0 ||
+                                 genos.EmployerNetworkId != 0;
         }
 
         if (fromVersion <= 8)
@@ -122,19 +122,19 @@ public static class SnapshotMigrations
 
             if (state.PlayerProfiles.Count == 0)
             {
-                var memberBySim = state.HouseholdMembers
-                    .GroupBy(member => member.SimNetworkId)
+                var memberByGenos = state.HouseholdMembers
+                    .GroupBy(member => member.GenosNetworkId)
                     .ToDictionary(group => group.Key, group => group.First());
                 var householdById = state.Households
                     .GroupBy(household => household.NetworkId)
                     .ToDictionary(group => group.Key, group => group.First());
 
-                foreach (var sim in state.Sims.Where(sim => !string.IsNullOrWhiteSpace(sim.PlayerId)))
+                foreach (var genos in state.Genoses.Where(genos => !string.IsNullOrWhiteSpace(genos.PlayerId)))
                 {
                     state.PlayerProfiles.Add(new PersistedPlayerProfile
                     {
-                        PlayerId = sim.PlayerId!,
-                        SimNetworkId = sim.NetworkId,
+                        PlayerId = genos.PlayerId!,
+                        GenosNetworkId = genos.NetworkId,
                         ContinuationPolicy = "Heir",
                         AwaitingContinuation = false,
                         Observer = false,
@@ -145,16 +145,16 @@ public static class SnapshotMigrations
 
                     var life = new PersistedPlayerLife
                     {
-                        SimNetworkId = sim.NetworkId,
-                        HasEmployment = sim.EmployerNetworkId != 0,
-                        EmploymentOfficeNetworkId = sim.WorkOfficeNetworkId != 0
-                            ? sim.WorkOfficeNetworkId
-                            : sim.OfficeNetworkId,
-                        HiredTick = sim.HiredAtTick,
+                        GenosNetworkId = genos.NetworkId,
+                        HasEmployment = genos.EmployerNetworkId != 0,
+                        EmploymentOfficeNetworkId = genos.WorkOfficeNetworkId != 0
+                            ? genos.WorkOfficeNetworkId
+                            : genos.OfficeNetworkId,
+                        HiredTick = genos.HiredAtTick,
                         EmploymentSource = "AdminAssigned"
                     };
 
-                    if (memberBySim.TryGetValue(sim.NetworkId, out var member) &&
+                    if (memberByGenos.TryGetValue(genos.NetworkId, out var member) &&
                         householdById.TryGetValue(member.HouseholdNetworkId, out var household))
                     {
                         life.HouseholdNetworkId = household.NetworkId;
@@ -173,12 +173,12 @@ public static class SnapshotMigrations
             state.PlayerProfiles ??= [];
             state.PlayerLives ??= [];
             state.FamilyInvitations ??= [];
-            foreach (var sim in state.Sims)
+            foreach (var genos in state.Genoses)
             {
-                if (!sim.AppearanceMigrated)
+                if (!genos.AppearanceMigrated)
                 {
-                    sim.AppearanceVersion = 0;
-                    sim.AppearanceMigrated = false;
+                    genos.AppearanceVersion = 0;
+                    genos.AppearanceMigrated = false;
                 }
             }
         }

@@ -14,7 +14,7 @@ public class FamilyPersistenceTests
 {
 
     [Fact]
-    public void CapturedFamilyEdgesAlwaysPointAtCapturedSims()
+    public void CapturedFamilyEdgesAlwaysPointAtCapturedGenoses()
     {
         using var engine = new SimulationEngine();
         engine.Initialize();
@@ -33,13 +33,13 @@ public class FamilyPersistenceTests
             engine.Tick(1f / 20f);
 
         var state = engine.CaptureState(engine.NetworkIds);
-        var ids = state.Sims.Select(sim => sim.NetworkId).ToHashSet();
+        var ids = state.Genoses.Select(genos => genos.NetworkId).ToHashSet();
         var dangling = state.Relationships
-            .Where(rel => !ids.Contains(rel.FromSimNetworkId) || !ids.Contains(rel.ToSimNetworkId))
-            .Select(rel => $"{rel.NetworkId}:{rel.FromSimNetworkId}->{rel.ToSimNetworkId}:{rel.Kind}")
+            .Where(rel => !ids.Contains(rel.FromGenosNetworkId) || !ids.Contains(rel.ToGenosNetworkId))
+            .Select(rel => $"{rel.NetworkId}:{rel.FromGenosNetworkId}->{rel.ToGenosNetworkId}:{rel.Kind}")
             .ToList();
         var missingIds = state.Relationships
-            .SelectMany(rel => new[] { rel.FromSimNetworkId, rel.ToSimNetworkId })
+            .SelectMany(rel => new[] { rel.FromGenosNetworkId, rel.ToGenosNetworkId })
             .Where(id => !ids.Contains(id))
             .Distinct()
             .ToList();
@@ -55,7 +55,7 @@ public class FamilyPersistenceTests
                 $"dead={alive && engine.World!.Has<Dead>(entity)}");
         }
         Assert.True(dangling.Count == 0,
-            $"dangling={dangling.Count} ids={ids.Count} sims={state.Sims.Count} relationships={state.Relationships.Count} " +
+            $"dangling={dangling.Count} ids={ids.Count} genoses={state.Genoses.Count} relationships={state.Relationships.Count} " +
             $"diagnostics=[{string.Join(";", diagnostics)}] sample={string.Join(",", dangling.Take(10))}");
     }
 
@@ -67,7 +67,7 @@ public class FamilyPersistenceTests
         ulong childId = 0;
         engine.ExecuteWithWorld(world =>
         {
-            var repository = new SimRepository(world, engine.NetworkIds, engine.Economy);
+            var repository = new GenosRepository(world, engine.NetworkIds, engine.Economy);
             childId = repository.Add("Ward", 7).Value;
             Assert.True(engine.NetworkIds.TryGetEntity(new NetworkId(childId), out var child));
             world.Add(child, new StateCare
@@ -126,11 +126,11 @@ public class FamilyPersistenceTests
     {
         using var engine = new SimulationEngine();
         engine.Initialize();
-        ulong simId = 0;
+        ulong genosId = 0;
         engine.ExecuteWithWorld(world =>
         {
-            var repository = new SimRepository(world, engine.NetworkIds, engine.Economy);
-            simId = repository.Add("Only", 30).Value;
+            var repository = new GenosRepository(world, engine.NetworkIds, engine.Economy);
+            genosId = repository.Add("Only", 30).Value;
             return 0;
         });
 
@@ -138,8 +138,8 @@ public class FamilyPersistenceTests
         state.Relationships.Add(new PersistedRelationship
         {
             NetworkId = 9_999_999,
-            FromSimNetworkId = simId,
-            ToSimNetworkId = 8_888_888,
+            FromGenosNetworkId = genosId,
+            ToGenosNetworkId = 8_888_888,
             Kind = "Partner",
             Source = "Admin",
             SinceTick = 1
@@ -149,7 +149,7 @@ public class FamilyPersistenceTests
         using var restored = new SimulationEngine();
         restored.Restore(state, restored.NetworkIds);
 
-        Assert.True(restored.NetworkIds.TryGetEntity(new NetworkId(simId), out _));
+        Assert.True(restored.NetworkIds.TryGetEntity(new NetworkId(genosId), out _));
         Assert.Empty(restored.BuildFamilyRelationships().Relationships);
     }
 
@@ -162,7 +162,7 @@ public class FamilyPersistenceTests
         ulong secondId = 0;
         engine.ExecuteWithWorld(world =>
         {
-            var repository = new SimRepository(world, engine.NetworkIds, engine.Economy);
+            var repository = new GenosRepository(world, engine.NetworkIds, engine.Economy);
             firstId = repository.Add("First", 30).Value;
             secondId = repository.Add("Second", 31).Value;
             return 0;
@@ -172,8 +172,8 @@ public class FamilyPersistenceTests
         state.Relationships.Add(new PersistedRelationship
         {
             NetworkId = 9_999_998,
-            FromSimNetworkId = firstId,
-            ToSimNetworkId = secondId,
+            FromGenosNetworkId = firstId,
+            ToGenosNetworkId = secondId,
             Kind = "Cousin",
             Source = "Admin",
             SinceTick = 1
@@ -213,7 +213,7 @@ public class FamilyPersistenceTests
         ulong carryingId = 0;
         engine.ExecuteWithWorld(world =>
         {
-            var repository = new SimRepository(world, engine.NetworkIds, engine.Economy);
+            var repository = new GenosRepository(world, engine.NetworkIds, engine.Economy);
             carryingId = repository.Add("Carrier", 30).Value;
             var otherId = repository.Add("Other", 31).Value;
             Assert.True(engine.NetworkIds.TryGetEntity(new NetworkId(carryingId), out var carrying));
@@ -228,7 +228,7 @@ public class FamilyPersistenceTests
 
         var state = engine.CaptureState(engine.NetworkIds);
         state.Pregnancies[0].Status = active ? "Active" : "Completed";
-        state.Sims.RemoveAll(sim => sim.NetworkId == carryingId);
+        state.Genoses.RemoveAll(genos => genos.NetworkId == carryingId);
         engine.Shutdown();
         return (state, carryingId);
     }

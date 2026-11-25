@@ -5,11 +5,11 @@
 **Tier:** 3 — architectural
 
 **Depends on:** features 01 and 02, `SimulationLoop` as a `BackgroundService`, `SystemRegistry`, `SnapshotBroadcastService`, `LoadHarness`
-**Feeds:** long-term scale beyond 2,000 sims
+**Feeds:** long-term scale beyond 2,000 genoses
 
 ## Objective
 
-Remove the two architectural limits that remain after tiers 1 and 2: the tick runs on a thread-pool thread shared with ASP.NET, and all world work is serial on one thread. Move the sim to a dedicated thread, parallelize only systems that are provably independent, and build snapshots off the tick thread.
+Remove the two architectural limits that remain after tiers 1 and 2: the tick runs on a thread-pool thread shared with ASP.NET, and all world work is serial on one thread. Move the simulation to a dedicated thread, parallelize only systems that are provably independent, and build snapshots off the tick thread.
 
 This is the highest-risk feature. It requires a determinism proof for every parallel change.
 
@@ -17,7 +17,7 @@ This is the highest-risk feature. It requires a determinism proof for every para
 
 - `SimulationLoop` is a `BackgroundService`; each tick runs on a pool thread shared with request handling.
 - `SystemRegistry.Update` runs systems serially on the tick thread.
-- `SimulationEngine.Tick` builds `BuildSimSnapshots` and `BuildCompanySnapshots` inside the tick, so snapshot construction counts against the tick budget.
+- `SimulationEngine.Tick` builds `BuildGenosSnapshots` and `BuildCompanySnapshots` inside the tick, so snapshot construction counts against the tick budget.
 - The command queue exists but request threads still take the world lock for some paths.
 
 ## Deliverables
@@ -31,7 +31,7 @@ This is the highest-risk feature. It requires a determinism proof for every para
 
 ```mermaid
 flowchart TD
-    subgraph SimThread[Dedicated simulation thread]
+    subgraph SimulationThread[Dedicated simulation thread]
         T[Tick: drain commands, run systems]
         P[Publish world state]
     end
@@ -69,5 +69,5 @@ The tick thread only mutates and publishes. Snapshot construction and broadcast 
 - No request thread mutates the world outside the command queue.
 - Parallel systems produce identical results to the serial path on the replay suite.
 - Snapshot construction no longer counts against the tick budget.
-- The 2,000-sim decade and 32-player soak stay inside the tick budget with no dropped ticks.
+- The 2,000-genos decade and 32-player soak stay inside the tick budget with no dropped ticks.
 - Determinism and replay suites pass for NPC-only and 32-player worlds.

@@ -7,7 +7,7 @@ public sealed class WorldDataStatus
     public int Month { get; set; }
     public bool IsRunning { get; set; }
     public DateTimeOffset CapturedAt { get; set; }
-    public List<SimStatus> Sims { get; set; } = new();
+    public List<GenosStatus> Genoses { get; set; } = new();
     public List<CompanyStatus> Companies { get; set; } = new();
     public List<OfficeStatus> Offices { get; set; } = new();
     public List<EmployeeStatus> Employees { get; set; } = new();

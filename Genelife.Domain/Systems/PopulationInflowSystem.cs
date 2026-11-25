@@ -143,9 +143,9 @@ public class PopulationInflowSystem : ISimulationSystem
         }
     }
 
-    private bool TryCreateArrival(long tick, SimulationClock clock, out Entity sim, PendingArrival? pending = null)
+    private bool TryCreateArrival(long tick, SimulationClock clock, out Entity genos, PendingArrival? pending = null)
     {
-        sim = Entity.Null;
+        genos = Entity.Null;
         var life = economy.Life;
         if (life.ImmigrationState.ArrivalsThisYear >= life.ImmigrationState.ArrivalBudget &&
             life.ImmigrationState.ArrivalBudget > 0)
@@ -157,7 +157,7 @@ public class PopulationInflowSystem : ISimulationSystem
         var profile = pending?.Profile ?? ProfileForOpenRole(random);
         var name = pending?.Name ?? $"Immigrant {life.ImmigrationState.ArrivalsThisYear + 1}";
 
-        sim = world.Create(
+        genos = world.Create(
             new GenName(name),
             new Needs(),
             new CurrentAction(ActionType.Idle, 0f),
@@ -170,25 +170,25 @@ public class PopulationInflowSystem : ISimulationSystem
             new Health(HealthSystem.InitialForAge(age)),
             new JobSeeker(true, profile.ToMask(), life.Careers.SalaryForSkills(profile.Total)));
 
-        life.AllocateNetworkId(sim);
-        var networkIdValue = LifeSystemHelpers.NetworkIdOf(world, sim);
+        life.AllocateNetworkId(genos);
+        var networkIdValue = LifeSystemHelpers.NetworkIdOf(world, genos);
         var traits = TraitsGenerator.Create(
             economy.Random.Seed, networkIdValue, TraitSource.Immigrant, economy.Genetics);
-        world.Add(sim, traits);
+        world.Add(genos, traits);
         AptitudeSkills.ApplyStartingBonus(ref profile, traits.Aptitude);
-        world.Get<Components.Life.SkillProfile>(sim) = profile;
-        if (world.Has<JobSeeker>(sim))
+        world.Get<Components.Life.SkillProfile>(genos) = profile;
+        if (world.Has<JobSeeker>(genos))
         {
-            ref var seeker = ref world.Get<JobSeeker>(sim);
+            ref var seeker = ref world.Get<JobSeeker>(genos);
             seeker = new JobSeeker(true, profile.ToMask(), seeker.DesiredSalary);
         }
 
         if (map is not null)
-            MapSpawner.PlaceSim(world, sim, map, networkIdValue);
+            MapSpawner.PlaceGenos(world, genos, map, networkIdValue);
 
         var household = world.Create(new Household
         {
-            Head = sim,
+            Head = genos,
             Unit = Entity.Null,
             Tenure = Tenure.Renter,
             MoveInTick = tick,
@@ -196,23 +196,23 @@ public class PopulationInflowSystem : ISimulationSystem
         });
         life.AllocateNetworkId(household);
 
-        world.Add(sim, new HouseholdMember(household, HouseholdRole.Head));
-        economy.Housing.AddMember(sim, household);
+        world.Add(genos, new HouseholdMember(household, HouseholdRole.Head));
+        economy.Housing.AddMember(genos, household);
 
         var allocator = new HousingAllocator(world, economy);
         if (!allocator.TryAssignBest(household, tick))
         {
-            economy.Housing.RemoveMember(sim);
-            if (world.Has<HouseholdMember>(sim))
-                world.Remove<HouseholdMember>(sim);
+            economy.Housing.RemoveMember(genos);
+            if (world.Has<HouseholdMember>(genos))
+                world.Remove<HouseholdMember>(genos);
             world.Destroy(household);
-            world.Destroy(sim);
-            sim = Entity.Null;
+            world.Destroy(genos);
+            genos = Entity.Null;
             return false;
         }
 
-        var networkId = LifeSystemHelpers.NetworkIdOf(world, sim);
-        economy.Emit(new SimCreated(networkId, name, age));
+        var networkId = LifeSystemHelpers.NetworkIdOf(world, genos);
+        economy.Emit(new GenosCreated(networkId, name, age));
         if (policy.ImmigrantStartingCash.IsPositive)
         {
             economy.Ledger.Record(

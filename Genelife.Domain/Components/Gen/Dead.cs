@@ -3,7 +3,7 @@ using Genelife.Enums;
 namespace Genelife.Components.Gen;
 
 /// <summary>
-/// Death marker. Every gameplay query excludes dead sims; the entity itself is
+/// Death marker. Every gameplay query excludes dead genoses; the entity itself is
 /// destroyed one snapshot tick after its relationships and estate are settled.
 /// </summary>
 public record struct Dead

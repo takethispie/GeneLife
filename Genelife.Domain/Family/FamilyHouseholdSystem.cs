@@ -154,13 +154,13 @@ public sealed class FamilyHouseholdSystem : ISimulationSystem
         }
     }
 
-    private void SetRole(Entity sim, Entity household, HouseholdRole role)
+    private void SetRole(Entity genos, Entity household, HouseholdRole role)
     {
-        if (household == Entity.Null || !world.IsAlive(household) || !world.Has<HouseholdMember>(sim))
+        if (household == Entity.Null || !world.IsAlive(household) || !world.Has<HouseholdMember>(genos))
             return;
-        var member = world.Get<HouseholdMember>(sim);
+        var member = world.Get<HouseholdMember>(genos);
         member.Role = role;
-        world.Get<HouseholdMember>(sim) = member;
+        world.Get<HouseholdMember>(genos) = member;
     }
 
     private ulong NetworkIdOf(Entity entity) =>

@@ -148,9 +148,9 @@ public record HousingMarketUpdated(
 
 public record HouseholdFormed(ulong HouseholdId, ulong HeadId, long Tick);
 
-public record HouseholdMemberJoined(ulong HouseholdId, ulong SimId, string Role, long Tick);
+public record HouseholdMemberJoined(ulong HouseholdId, ulong GenosId, string Role, long Tick);
 
-public record HouseholdMemberLeft(ulong HouseholdId, ulong SimId, long Tick);
+public record HouseholdMemberLeft(ulong HouseholdId, ulong GenosId, long Tick);
 
 public record HouseholdDissolved(ulong HouseholdId, long Tick);
 

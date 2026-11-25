@@ -218,24 +218,24 @@ public static class EconomyEndpoints
             Money.FromUnits(request.Amount)));
     }
 
-    [WolverinePost("/api/companies/{companyId}/employees/{simId}/fire")]
+    [WolverinePost("/api/companies/{companyId}/employees/{genosId}/fire")]
     [Authorize(Policy = AuthPolicies.Admin)]
-    public static IResult Fire(ulong companyId, ulong simId, SimulationEngine engine, HttpContext http)
+    public static IResult Fire(ulong companyId, ulong genosId, SimulationEngine engine, HttpContext http)
     {
         return Enqueue(engine, new FireEmployeeCommand(
             Guid.NewGuid(),
             http.User.Identity?.Name ?? "admin",
-            simId));
+            genosId));
     }
 
-    [WolverinePost("/api/companies/{companyId}/employees/{simId}/resign")]
+    [WolverinePost("/api/companies/{companyId}/employees/{genosId}/resign")]
     [Authorize(Policy = AuthPolicies.Admin)]
-    public static IResult Resign(ulong companyId, ulong simId, SimulationEngine engine, HttpContext http)
+    public static IResult Resign(ulong companyId, ulong genosId, SimulationEngine engine, HttpContext http)
     {
         return Enqueue(engine, new ResignEmployeeCommand(
             Guid.NewGuid(),
             http.User.Identity?.Name ?? "admin",
-            simId));
+            genosId));
     }
 
     [WolverinePost("/api/companies/{companyId}/loans")]

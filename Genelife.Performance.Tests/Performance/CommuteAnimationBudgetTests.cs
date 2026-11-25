@@ -5,7 +5,7 @@ using Genelife.Map;
 namespace Genelife.UnitTests.Performance;
 
 /// <summary>
-/// Release evidence for enabling animated commutes by default. The same 2,000-sim
+/// Release evidence for enabling animated commutes by default. The same 2,000-genos
 /// year is measured with the previous abstract commute and with animation; the
 /// default is accepted only while the animated tick stays inside the budget and
 /// does not materially regress against the abstract baseline.
@@ -14,7 +14,7 @@ namespace Genelife.UnitTests.Performance;
 public class CommuteAnimationBudgetTests
 {
     [Fact]
-    public void AnimatedCommutesStayInsideTheTwoThousandSimTickBudget()
+    public void AnimatedCommutesStayInsideTheTwoThousandGenosTickBudget()
     {
         var abstractMetrics = Measure(CommuteMode.Abstract);
         var animatedMetrics = Measure(CommuteMode.Animate);

@@ -46,7 +46,7 @@ public enum PlayerCommandStatus : byte
 /// </summary>
 public sealed record PlayerActionIntent : Intent
 {
-    public ulong SimNetworkId { get; init; }
+    public ulong GenosNetworkId { get; init; }
     public PlayerActionKind Kind { get; init; }
     public JsonElement Payload { get; init; }
     public Guid CommandId { get; init; } = Guid.NewGuid();
@@ -77,9 +77,9 @@ public static class PlayerActionPayloads
     public sealed record PayArrears(long AmountCents, bool RentOnly);
     public sealed record BuyItem(ulong StoreNetworkId, string CatalogItemId, int Quantity);
     public sealed record ConsumeItem(string CatalogItemId, int Quantity);
-    public sealed record InvitePartner(ulong TargetSimNetworkId, string? TargetPlayerId = null);
+    public sealed record InvitePartner(ulong TargetGenosNetworkId, string? TargetPlayerId = null);
     public sealed record RespondToInvitation(Guid InvitationId, bool Accept);
-    public sealed record TryForChild(ulong PartnerSimNetworkId);
+    public sealed record TryForChild(ulong PartnerGenosNetworkId);
     public sealed record NameChild(ulong ChildNetworkId, string Name);
     public sealed record ChooseContinuation(string Policy);
     public sealed record InviteCohabit(string TargetPlayerId);

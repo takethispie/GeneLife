@@ -110,8 +110,8 @@ public class BirthTests
             RelationshipService = new RelationshipService(World, Relationships);
             Pregnancies = new PregnancyIndex();
             PregnancyService = new PregnancyService(World, Pregnancies);
-            First = CreateSim(1, 30, Sex.Female);
-            Second = CreateSim(2, 31, Sex.Male);
+            First = CreateGenos(1, 30, Sex.Female);
+            Second = CreateGenos(2, 31, Sex.Male);
             Household = World.Create(new Household { Head = First, Tenure = Tenure.Renter, MemberCount = 2 });
             World.Add(Household, NetworkIds.Allocate(Household));
             World.Add(First, new HouseholdMember(Household, HouseholdRole.Head));
@@ -172,9 +172,9 @@ public class BirthTests
             return result;
         }
 
-        private Entity CreateSim(ulong networkId, int age, Sex sex) =>
+        private Entity CreateGenos(ulong networkId, int age, Sex sex) =>
             World.Create(
-                new GenName($"Sim {networkId}"),
+                new GenName($"Genos {networkId}"),
                 new Alive(age),
                 new Health(90f),
                 new Traits { Sex = sex },

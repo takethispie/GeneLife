@@ -21,9 +21,9 @@ client-blocking gaps listed in the original plan are now resolved server-side.
 | Intent contract | Implemented | `Genelife.Contracts/Intents/Intent.cs` |
 | Intent admission | Implemented | `WorldHub.SubmitIntent`, queue drain, `IntentResult` |
 | Contracts assembly | Implemented | `Genelife.Contracts`, referenced by API, Web and tests |
-| Player identity | Implemented in V3 | `WelcomeMessage` on connect with own `SimNetworkId` |
+| Player identity | Implemented in V3 | `WelcomeMessage` on connect with own `GenosNetworkId` |
 | Post-admission rejection | Implemented in V3 | `IntentRejected` drained from the engine and delivered by `SnapshotBroadcastService` |
-| Player sim creation | Implemented in V3 | `SimulationEngine.EnsurePlayerSim`, auto-run on connect |
+| Player genos creation | Implemented in V3 | `SimulationEngine.EnsurePlayerGenos`, auto-run on connect |
 | Browser CORS | Implemented in V3 | Explicit origins plus `AllowCredentials()` for SignalR negotiate |
 | Aspire dev stack | Implemented in V3 | `GeneLife.AppHost` runs the Vite client, injects `VITE_API_BASE_URL` and pins port 5173 |
 
@@ -52,7 +52,7 @@ client-blocking gaps listed in the original plan are now resolved server-side.
   gaps, overlaps, out-of-bounds runs and unknown flags.
 - Map cache keyed by `MapId` + `Version`; building deltas apply in place and gaps
   force a full map refresh.
-- Pixi scene with one world container and layered terrain, roads, buildings, sims,
+- Pixi scene with one world container and layered terrain, roads, buildings, genoses,
   selection and effects.
 - Camera in world units with clamping, pointer-anchored zoom, easing and reduced
   motion; pooled sprites culled to the visible tile rectangle.
@@ -80,8 +80,8 @@ client-blocking gaps listed in the original plan are now resolved server-side.
   payloads and typed admission/async rejection feedback.
 - Building selection and `UseBuildingIntent`; proximity is a hint only and range
   errors come back from the server.
-- DOM HUD at 10 Hz: connection, player, own sim, map/version, tick, FPS, frame,
-  visible sims, viewport radius, buffer, interpolation, rate, reconnect count,
+- DOM HUD at 10 Hz: connection, player, own genos, map/version, tick, FPS, frame,
+  visible genoses, viewport radius, buffer, interpolation, rate, reconnect count,
   build and last error.
 - Notifications with dedupe and a dismiss action, assertive live region, settings
   (reduced motion, HUD scale, debug, rebindable keys), focus rings and
@@ -126,7 +126,7 @@ client-blocking gaps listed in the original plan are now resolved server-side.
 | Interpolation | 120 ms delay, three-tile snap threshold, three-tick maximum gap |
 | Viewport | 200 ms debounce, one-tile threshold, server-clamped result |
 | HUD framework | DOM/CSS only; simulation store stays framework-free |
-| Player sim | Auto-create on connect when the world is running; prefer a living owned sim |
+| Player genos | Auto-create on connect when the world is running; prefer a living owned genos |
 | Rejected intents | Admission result plus asynchronous `IntentRejected` with sequence and code |
 
 ## Known gaps and deferred work
@@ -139,7 +139,7 @@ client-blocking gaps listed in the original plan are now resolved server-side.
 - Silent network loss is detected by the server ping timeout, so automatic
   recovery can take tens of seconds. The live Playwright test accounts for this.
 - Fixture mode is read-only and requires the Vite dev server for fixture files.
-- The full 2,000-sim render path is budgeted at the data/interpolation layer;
+- The full 2,000-genos render path is budgeted at the data/interpolation layer;
   GPU frame rate is environment-dependent and documented in
   `clients/browser/docs/performance.md`.
 

@@ -2,7 +2,7 @@ export const familyOverview = {
   population: 120,
   adults: 90,
   minors: 30,
-  pairedSims: 60,
+  pairedGenoses: 60,
   singleAdults: 30,
   partnerships: 30,
   parentEdges: 48,
@@ -86,7 +86,7 @@ export const familyOverview = {
     p95TickMilliseconds: 3.1,
     p99TickMilliseconds: 7.4,
     allocatedBytesPerTick: 20480,
-    candidateSims: 120,
+    candidateGenoses: 120,
     candidateAverage: 3,
     candidateP95: 5,
     candidateMax: 5,
@@ -114,7 +114,7 @@ export const familyOverview = {
   ]
 };
 
-export const familySim = {
+export const familyGenos = {
   networkId: 101,
   name: "Ada Lovelace",
   age: 34,
@@ -134,21 +134,21 @@ export const familySim = {
   traits: [{ value: "Analytical", count: 1, share: 1 }]
 };
 
-export const familySimsPage = {
+export const familyGenosesPage = {
   total: 1,
   skip: 0,
   take: 200,
-  sims: [familySim]
+  genoses: [familyGenos]
 };
 
-export const familySimDetail = {
-  sim: familySim,
+export const familyGenosDetail = {
+  genos: familyGenos,
   relationships: [
     {
       networkId: 1,
-      fromSimId: 101,
+      fromGenosId: 101,
       fromName: "Ada Lovelace",
-      toSimId: 102,
+      toGenosId: 102,
       toName: "Charles Babbage",
       kind: "Partner",
       source: "Seed",
@@ -199,9 +199,9 @@ export const familyRelationshipsPage = {
   relationships: [
     {
       networkId: 1,
-      fromSimId: 101,
+      fromGenosId: 101,
       fromName: "Ada Lovelace",
-      toSimId: 102,
+      toGenosId: 102,
       toName: "Charles Babbage",
       kind: "Partner",
       source: "Seed",
@@ -211,7 +211,7 @@ export const familyRelationshipsPage = {
 };
 
 export const familyAttraction = {
-  simId: 101,
+  genosId: 101,
   candidateId: 102,
   eligible: true,
   reasonCode: null,
@@ -289,7 +289,7 @@ export const familyGuardianships = [
   }
 ];
 
-export const emptyFamilySimsPage = { total: 0, skip: 0, take: 200, sims: [] };
+export const emptyFamilyGenosesPage = { total: 0, skip: 0, take: 200, genoses: [] };
 export const emptyFamilyChildrenPage = {
   total: 0,
   skip: 0,

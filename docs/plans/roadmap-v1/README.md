@@ -22,7 +22,7 @@ Feature-level detail was removed after V1 shipped; recover it from git history i
 
 | Area | Current implementation |
 |---|---|
-| Entities | Arch ECS `World`; sims and companies are entities with components |
+| Entities | Arch ECS `World`; genoses and companies are entities with components |
 | Identity | `NetworkId` + `NetworkIdRegistry` |
 | Labour market | `Office`, `JobPosting`, `OpenPosition`, `JobApplication`, `Employee`, `EmploymentIndex` |
 | Hiring | `HiringSystem` (`Genelife/Systems/HiringSystem.cs:20`), collect → decide → apply |
@@ -32,7 +32,7 @@ Feature-level detail was removed after V1 shipped; recover it from git history i
 | Read model | `WorldDataStatus` snapshot + `/api/data` (`Genelife.API/Endpoints/WorldDataEndpoints.cs:10`) |
 | Admin UI | Blazor WebAssembly `Genelife.Web`, `Data.razor` tabs, `/api/data` polling |
 | Tick loop | 20 Hz fixed step (`SimulationLoop`), systems registered in `SimulationEngine.Initialize` (`Genelife.API/Services/SimulationEngine.cs:91`) |
-| Persistence | Snapshot file + Marten `SimDocument` / `CompanyDocument`; event writer off the tick thread |
+| Persistence | Snapshot file + Marten `GenosDocument` / `CompanyDocument`; event writer off the tick thread |
 
 Not present today: company accounts, offices creation API, job posting API, age progression, life stages, schools, housing, rent, pensions, health, mortality, households, population generation, economy/housing admin pages.
 

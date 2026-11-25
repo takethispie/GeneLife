@@ -38,15 +38,15 @@ public class LifecycleTests
         var world = World.Create();
         var economy = new EconomyContext(world);
         var clock = economy.Clock;
-        var sim = CreateSim(world, economy, "Aging", 20, LifeStage.Work, new SkillProfile());
-        SetAgeTicks(world, sim, 20L * clock.TicksPerYear + 500, lastAgedTick: 0);
+        var genos = CreateGenos(world, economy, "Aging", 20, LifeStage.Work, new SkillProfile());
+        SetAgeTicks(world, genos, 20L * clock.TicksPerYear + 500, lastAgedTick: 0);
 
         var aging = new AgingSystem(world, economy, interval: 1);
         aging.Update(clock.TicksPerYear, clock);
-        Assert.Equal(21, world.Get<Alive>(sim).Age);
+        Assert.Equal(21, world.Get<Alive>(genos).Age);
 
         aging.Update(2L * clock.TicksPerYear, clock);
-        Assert.Equal(22, world.Get<Alive>(sim).Age);
+        Assert.Equal(22, world.Get<Alive>(genos).Age);
     }
 
     [Fact]
@@ -55,18 +55,18 @@ public class LifecycleTests
         var world = World.Create();
         var economy = new EconomyContext(world);
         var clock = economy.Clock;
-        var sim = CreateSim(world, economy, "Student", 17, LifeStage.Education, new SkillProfile { Programming = 0.6f });
-        SetAgeTicks(world, sim, 18L * clock.TicksPerYear - 50, lastAgedTick: 1);
+        var genos = CreateGenos(world, economy, "Student", 17, LifeStage.Education, new SkillProfile { Programming = 0.6f });
+        SetAgeTicks(world, genos, 18L * clock.TicksPerYear - 50, lastAgedTick: 1);
 
         new AgingSystem(world, economy, interval: 1).Update(clock.TicksPerYear, clock);
-        Assert.Equal(18, world.Get<Alive>(sim).Age);
+        Assert.Equal(18, world.Get<Alive>(genos).Age);
 
         new StageProgressionSystem(world, economy, interval: 1).Update(clock.TicksPerYear, clock);
 
-        Assert.Equal(LifeStage.Work, world.Get<Lifecycle>(sim).Stage);
-        Assert.True(world.Has<JobSeeker>(sim));
-        Assert.True(world.Get<JobSeeker>(sim).Skills.HasFlag(Skill.Programming));
-        Assert.True(world.Get<JobSeeker>(sim).DesiredSalary.IsPositive);
+        Assert.Equal(LifeStage.Work, world.Get<Lifecycle>(genos).Stage);
+        Assert.True(world.Has<JobSeeker>(genos));
+        Assert.True(world.Get<JobSeeker>(genos).Skills.HasFlag(Skill.Programming));
+        Assert.True(world.Get<JobSeeker>(genos).DesiredSalary.IsPositive);
         Assert.Equal(1, economy.Life.GraduatesThisYear);
     }
 
@@ -76,8 +76,8 @@ public class LifecycleTests
         var world = World.Create();
         var economy = new EconomyContext(world);
         var school = world.Create(new School("Tech", "Central", 30, 1f, Skill.Programming));
-        var sim = CreateSim(world, economy, "Pupil", 10, LifeStage.Education, new SkillProfile());
-        world.Add(sim, new Enrollment(school, 0, 1f));
+        var genos = CreateGenos(world, economy, "Pupil", 10, LifeStage.Education, new SkillProfile());
+        world.Add(genos, new Enrollment(school, 0, 1f));
         economy.Life.Index.OnEnrolled(school, unenrolled: false);
 
         var enrollment = new EnrollmentSystem(world, economy);
@@ -90,10 +90,10 @@ public class LifecycleTests
             education.Update(tick);
         }
 
-        var profile = world.Get<SkillProfile>(sim);
+        var profile = world.Get<SkillProfile>(genos);
         Assert.True(profile.Programming > 0.4f, $"programming={profile.Programming}");
         Assert.True(profile.Programming > profile.Art * 2f, $"art={profile.Art}");
-        Assert.True(world.Get<Enrollment>(sim).MonthsAttended >= 120);
+        Assert.True(world.Get<Enrollment>(genos).MonthsAttended >= 120);
     }
 
     [Fact]
@@ -102,8 +102,8 @@ public class LifecycleTests
         var world = World.Create();
         var economy = new EconomyContext(world);
         var school = world.Create(new School("Small", "Central", 1, 1f, Skill.Programming));
-        var first = CreateSim(world, economy, "First", 10, LifeStage.Education, new SkillProfile());
-        var second = CreateSim(world, economy, "Second", 10, LifeStage.Education, new SkillProfile());
+        var first = CreateGenos(world, economy, "First", 10, LifeStage.Education, new SkillProfile());
+        var second = CreateGenos(world, economy, "Second", 10, LifeStage.Education, new SkillProfile());
 
         new EnrollmentSystem(world, economy).Update(economy.Clock.TicksPerMonth);
 
@@ -125,14 +125,14 @@ public class LifecycleTests
         var economy = new EconomyContext(world);
         var company = CreateCompany(world, "Acme");
         var office = world.Create(new Office("HQ", company, 10, Money.Zero));
-        var sim = CreateSim(world, economy, "Worker", 30, LifeStage.Work,
+        var genos = CreateGenos(world, economy, "Worker", 30, LifeStage.Work,
             new SkillProfile { Programming = 0.9f, Engineering = 0.8f });
-        world.Add(sim, new Employee(company, office, "Engineer", Money.FromUnits(1000m))
+        world.Add(genos, new Employee(company, office, "Engineer", Money.FromUnits(1000m))
         {
             Seniority = Seniority.Associate,
             HiredAtTick = 0
         });
-        world.Add(sim, new EmploymentRecord(0)
+        world.Add(genos, new EmploymentRecord(0)
         {
             ShiftsCompleted = 4,
             ShiftsExpected = 4,
@@ -140,17 +140,17 @@ public class LifecycleTests
             Performance = 0.9f,
             HighPerformanceMonths = 12
         });
-        economy.Employment.Add(company, sim);
+        economy.Employment.Add(company, genos);
 
         new AttendanceSystem(world, economy).Update(economy.Clock.TicksPerMonth);
-        var record = world.Get<EmploymentRecord>(sim);
+        var record = world.Get<EmploymentRecord>(genos);
         Assert.True(record.Attendance > 0.9f, $"attendance={record.Attendance}");
         Assert.Equal(11, record.TenureCycles);
 
-        var before = world.Get<Employee>(sim).SalaryPerCycle;
+        var before = world.Get<Employee>(genos).SalaryPerCycle;
         new CareerSystem(world, economy).Update(economy.Clock.TicksPerYear);
 
-        var after = world.Get<Employee>(sim);
+        var after = world.Get<Employee>(genos);
         Assert.Equal(Seniority.Specialist, after.Seniority);
         Assert.True(after.SalaryPerCycle > before);
     }
@@ -163,38 +163,38 @@ public class LifecycleTests
         economy.Pension.Balance = Money.FromUnits(50_000m);
         var company = CreateCompany(world, "Acme");
         var office = world.Create(new Office("HQ", company, 10, Money.Zero) { SeatsUsed = 1 });
-        var sim = CreateSim(world, economy, "Retiring", 65, LifeStage.Work, new SkillProfile { Sales = 0.6f });
-        world.Add(sim, new Employee(company, office, "Seller", Money.FromUnits(1000m))
+        var genos = CreateGenos(world, economy, "Retiring", 65, LifeStage.Work, new SkillProfile { Sales = 0.6f });
+        world.Add(genos, new Employee(company, office, "Seller", Money.FromUnits(1000m))
         {
             HiredAtTick = 0
         });
-        world.Add(sim, new EmploymentRecord(0));
-        world.Add(sim, new PensionAccount
+        world.Add(genos, new EmploymentRecord(0));
+        world.Add(genos, new PensionAccount
         {
             EmployeeContributions = Money.FromUnits(4_000m),
             EmployerContributions = Money.FromUnits(4_000m),
             ContributingCycles = 20
         });
-        economy.Employment.Add(company, sim);
+        economy.Employment.Add(company, genos);
 
         var tick = economy.Clock.TicksPerYear;
         new StageProgressionSystem(world, economy).Update(tick, economy.Clock);
 
-        Assert.Equal(LifeStage.Retirement, world.Get<Lifecycle>(sim).Stage);
-        Assert.False(world.Has<Employee>(sim));
-        Assert.False(world.Has<JobSeeker>(sim));
-        Assert.True(world.Has<RetirementIncome>(sim));
-        Assert.True(world.Get<RetirementIncome>(sim).MonthlyPension.IsPositive);
+        Assert.Equal(LifeStage.Retirement, world.Get<Lifecycle>(genos).Stage);
+        Assert.False(world.Has<Employee>(genos));
+        Assert.False(world.Has<JobSeeker>(genos));
+        Assert.True(world.Has<RetirementIncome>(genos));
+        Assert.True(world.Get<RetirementIncome>(genos).MonthlyPension.IsPositive);
         Assert.Equal(0, world.Get<Office>(office).SeatsUsed);
 
-        var walletBefore = world.Get<Wallet>(sim).Balance;
+        var walletBefore = world.Get<Wallet>(genos).Balance;
         var pension = new PensionSystem(world, economy);
         pension.Update(tick + economy.Clock.TicksPerMonth, economy.Clock);
-        var walletAfter = world.Get<Wallet>(sim).Balance;
+        var walletAfter = world.Get<Wallet>(genos).Balance;
         Assert.True(walletAfter > walletBefore, $"{walletBefore} -> {walletAfter}");
 
         pension.Update(tick + economy.Clock.TicksPerMonth, economy.Clock);
-        Assert.Equal(walletAfter, world.Get<Wallet>(sim).Balance);
+        Assert.Equal(walletAfter, world.Get<Wallet>(genos).Balance);
     }
 
     [Fact]
@@ -203,11 +203,11 @@ public class LifecycleTests
         var world = World.Create();
         var economy = new EconomyContext(world);
         economy.Government.Balance = Money.FromUnits(10_000m);
-        var sim = CreateSim(world, economy, "NoContributions", 65, LifeStage.Work, new SkillProfile());
+        var genos = CreateGenos(world, economy, "NoContributions", 65, LifeStage.Work, new SkillProfile());
         var tick = economy.Clock.TicksPerYear;
 
         new StageProgressionSystem(world, economy).Update(tick, economy.Clock);
-        var income = world.Get<RetirementIncome>(sim);
+        var income = world.Get<RetirementIncome>(genos);
         Assert.True(income.MeansTested);
         Assert.True(income.MonthlyPension.IsPositive);
 
@@ -217,7 +217,7 @@ public class LifecycleTests
 
         Assert.Equal(fundBefore, economy.Pension.Balance);
         Assert.True(economy.Government.Balance < governmentBefore);
-        Assert.True(world.Get<Wallet>(sim).Balance.IsPositive);
+        Assert.True(world.Get<Wallet>(genos).Balance.IsPositive);
     }
 
     [Fact]
@@ -225,42 +225,42 @@ public class LifecycleTests
     {
         var world = World.Create();
         var economy = new EconomyContext(world);
-        var sim = CreateSim(world, economy, "Elder", 90, LifeStage.Elderly, new SkillProfile());
-        var health = world.Get<Health>(sim);
+        var genos = CreateGenos(world, economy, "Elder", 90, LifeStage.Elderly, new SkillProfile());
+        var health = world.Get<Health>(genos);
         health.Value = 100f;
-        world.Get<Health>(sim) = health;
+        world.Get<Health>(genos) = health;
 
         new HealthSystem(world, economy).Update(economy.Clock.TicksPerMonth);
-        Assert.True(world.Get<Health>(sim).Value < 100f);
+        Assert.True(world.Get<Health>(genos).Value < 100f);
 
-        var heir = CreateSim(world, economy, "Heir", 40, LifeStage.Work, new SkillProfile());
+        var heir = CreateGenos(world, economy, "Heir", 40, LifeStage.Work, new SkillProfile());
         var household = world.Create(new Household
         {
-            Head = sim,
+            Head = genos,
             Unit = Entity.Null,
             Tenure = Tenure.Renter,
             MemberCount = 2
         });
         world.Add(household, new NetworkId(900));
-        world.Add(sim, new HouseholdMember(household, HouseholdRole.Head));
+        world.Add(genos, new HouseholdMember(household, HouseholdRole.Head));
         world.Add(heir, new HouseholdMember(household, HouseholdRole.Child));
-        economy.Housing.AddMember(sim, household);
+        economy.Housing.AddMember(genos, household);
         economy.Housing.AddMember(heir, household);
-        world.Get<Wallet>(sim).Balance = Money.FromUnits(1_000m);
+        world.Get<Wallet>(genos).Balance = Money.FromUnits(1_000m);
         world.Get<Wallet>(heir).Balance = Money.Zero;
 
-        health = world.Get<Health>(sim);
+        health = world.Get<Health>(genos);
         health.Value = 0f;
-        world.Get<Health>(sim) = health;
+        world.Get<Health>(genos) = health;
 
         var tick = 2L * economy.Clock.TicksPerYear;
         new MortalitySystem(world, economy).Update(tick);
-        Assert.True(world.Has<Dead>(sim));
+        Assert.True(world.Has<Dead>(genos));
 
         new DeathProcessingSystem(world, economy).Update(tick);
         new EstateSettlementSystem(world, economy).Update(tick);
 
-        Assert.Equal(Money.Zero, world.Get<Wallet>(sim).Balance);
+        Assert.Equal(Money.Zero, world.Get<Wallet>(genos).Balance);
         Assert.Equal(Money.FromUnits(900m), world.Get<Wallet>(heir).Balance);
         Assert.True(economy.Life.MortalityLog.Count > 0);
         Assert.Equal(Money.FromUnits(100m), economy.Government.Balance);
@@ -418,8 +418,8 @@ public class LifecycleTests
         var economy = new EconomyContext(world);
         HousingBootstrap.CreateStock(world, economy, 0);
 
-        var head = CreateSim(world, economy, "Owner", 75, LifeStage.Retirement, new SkillProfile());
-        var heir = CreateSim(world, economy, "Heir", 40, LifeStage.Work, new SkillProfile());
+        var head = CreateGenos(world, economy, "Owner", 75, LifeStage.Retirement, new SkillProfile());
+        var heir = CreateGenos(world, economy, "Heir", 40, LifeStage.Work, new SkillProfile());
         var household = world.Create(new Household
         {
             Head = head,
@@ -458,7 +458,7 @@ public class LifecycleTests
     }
 
     [Fact]
-    public void Restore_settles_a_pending_dead_estate_before_destroying_the_sim()
+    public void Restore_settles_a_pending_dead_estate_before_destroying_the_genos()
     {
         using var engine = new SimulationEngine();
         engine.Initialize();
@@ -579,8 +579,8 @@ public class LifecycleTests
         var state = engine.CaptureState(engine.NetworkIds);
         state.Tick = 5_000;
         state.LifecycleMigrated = false;
-        foreach (var sim in state.Sims)
-            sim.Stage = string.Empty;
+        foreach (var genos in state.Genoses)
+            genos.Stage = string.Empty;
 
         using var restored = new SimulationEngine();
         restored.Restore(state, restored.NetworkIds);
@@ -656,7 +656,7 @@ public class LifecycleTests
             world.Add(school, engine.NetworkIds.Allocate(school));
 
             var worker = world.Create(
-                new GenName("Snapshot Sim"),
+                new GenName("Snapshot Genos"),
                 new Needs(),
                 new CurrentAction(ActionType.Idle, 0f),
                 new Alive(32),
@@ -717,19 +717,19 @@ public class LifecycleTests
         restored.Restore(state, restored.NetworkIds);
 
         var restoredWorld = restored.World!;
-        Entity sim = Entity.Null;
+        Entity genos = Entity.Null;
         restoredWorld.Query(in new QueryDescription().WithAll<GenName>(),
             (Entity entity, ref GenName name) =>
             {
-                if (name.Name == "Snapshot Sim")
-                    sim = entity;
+                if (name.Name == "Snapshot Genos")
+                    genos = entity;
             });
 
-        Assert.True(restoredWorld.IsAlive(sim));
-        Assert.Equal(LifeStage.Work, restoredWorld.Get<Lifecycle>(sim).Stage);
-        Assert.Equal(82f, restoredWorld.Get<Health>(sim).Value);
-        Assert.Equal(0.7f, restoredWorld.Get<SkillProfile>(sim).Programming, 3);
-        Assert.Equal(Money.FromUnits(750m), restoredWorld.Get<Wallet>(sim).Balance);
+        Assert.True(restoredWorld.IsAlive(genos));
+        Assert.Equal(LifeStage.Work, restoredWorld.Get<Lifecycle>(genos).Stage);
+        Assert.Equal(82f, restoredWorld.Get<Health>(genos).Value);
+        Assert.Equal(0.7f, restoredWorld.Get<SkillProfile>(genos).Programming, 3);
+        Assert.Equal(Money.FromUnits(750m), restoredWorld.Get<Wallet>(genos).Balance);
 
         Entity student = Entity.Null;
         Entity retiree = Entity.Null;
@@ -752,7 +752,7 @@ public class LifecycleTests
         Assert.Equal(3, restored.Economy!.Life.Index.TotalLiving);
     }
 
-    private static Entity CreateSim(
+    private static Entity CreateGenos(
         World world,
         EconomyContext economy,
         string name,
@@ -779,12 +779,12 @@ public class LifecycleTests
         return entity;
     }
 
-    private static void SetAgeTicks(World world, Entity sim, long ageTicks, long lastAgedTick)
+    private static void SetAgeTicks(World world, Entity genos, long ageTicks, long lastAgedTick)
     {
-        var lifecycle = world.Get<Lifecycle>(sim);
+        var lifecycle = world.Get<Lifecycle>(genos);
         lifecycle.AgeTicks = ageTicks;
         lifecycle.LastAgedTick = lastAgedTick;
-        world.Get<Lifecycle>(sim) = lifecycle;
+        world.Get<Lifecycle>(genos) = lifecycle;
     }
 
     private static Entity CreateCompany(World world, string name)

@@ -11,7 +11,7 @@ using Genelife.Values;
 namespace Genelife.Systems;
 
 /// <summary>
-/// Safety net that makes a Work-stage sim a job seeker when they have neither an
+/// Safety net that makes a Work-stage genos a job seeker when they have neither an
 /// employee role nor an active search. Stage progression usually adds the seeker
 /// directly at graduation; this system exists to recover from restored or
 /// manually modified worlds.
@@ -54,7 +54,7 @@ public class JobSeekerSystem : ISimulationSystem
                 return;
             }
 
-            // Legacy sims without lifecycle state keep the old age fallback.
+            // Legacy genoses without lifecycle state keep the old age fallback.
             var policy = economy?.Life.Policy ?? LifeStagePolicy.Default;
             if (alive.Age >= policy.WorkStartAge && alive.Age < policy.RetirementAge)
                 eligible.Add(entity);

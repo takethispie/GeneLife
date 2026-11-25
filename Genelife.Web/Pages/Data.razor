@@ -107,18 +107,18 @@
                     }
                     else
                     {
-                        <SimsTable Sims="Npcs" />
+                        <GenosesTable Genoses="Npcs" />
                     }
                     break;
 
                 case DataTab.Players:
                     @if (Players.Count == 0)
                     {
-                        <EmptyState Message="No player-controlled sims in the world." />
+                        <EmptyState Message="No player-controlled genoses in the world." />
                     }
                     else
                     {
-                        <SimsTable Sims="Players" />
+                        <GenosesTable Genoses="Players" />
                     }
                     break;
 
@@ -209,19 +209,19 @@
                             <table class="table table-sm table-striped table-hover align-middle mb-0">
                                 <thead>
                                     <tr>
-                                        <th scope="col">Sim</th>
+                                        <th scope="col">Genos</th>
                                         <th scope="col">Company</th>
                                         <th scope="col">Position</th>
                                         <th scope="col">Salary</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var employee in data.Employees.OrderBy(e => e.Company).ThenBy(e => e.Sim))
+                                    @foreach (var employee in data.Employees.OrderBy(e => e.Company).ThenBy(e => e.Genos))
                                     {
                                         <tr>
                                             <td>
-                                                <span class="fw-semibold">@employee.Sim</span>
-                                                <span class="font-monospace text-muted ms-1">#@employee.SimNetworkId</span>
+                                                <span class="fw-semibold">@employee.Genos</span>
+                                                <span class="font-monospace text-muted ms-1">#@employee.GenosNetworkId</span>
                                             </td>
                                             <td>@employee.Company</td>
                                             <td>@employee.Position</td>
@@ -402,8 +402,8 @@
     private DateTimeOffset? loadedAt;
     private CancellationTokenSource? refreshLoop;
 
-    private List<SimData> Npcs => data.Sims.Where(s => !s.IsPlayerControlled).ToList();
-    private List<SimData> Players => data.Sims.Where(s => s.IsPlayerControlled).ToList();
+    private List<GenosData> Npcs => data.Genoses.Where(s => !s.IsPlayerControlled).ToList();
+    private List<GenosData> Players => data.Genoses.Where(s => s.IsPlayerControlled).ToList();
 
     private IEnumerable<(string Label, int Value)> SummaryCards =>
     [

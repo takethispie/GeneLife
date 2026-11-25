@@ -19,14 +19,14 @@
             </tr>
         </thead>
         <tbody>
-            @foreach (var sim in Sims.OrderBy(s => s.NetworkId))
+            @foreach (var genos in Genoses.OrderBy(s => s.NetworkId))
             {
                 <tr>
-                    <td class="font-monospace text-muted">#@sim.NetworkId</td>
-                    <td class="fw-semibold">@sim.Name</td>
-                    <td>@sim.Age</td>
+                    <td class="font-monospace text-muted">#@genos.NetworkId</td>
+                    <td class="fw-semibold">@genos.Name</td>
+                    <td>@genos.Age</td>
                     <td>
-                        @if (sim.IsPlayerControlled)
+                        @if (genos.IsPlayerControlled)
                         {
                             <span class="badge text-bg-primary">Player</span>
                         }
@@ -35,14 +35,14 @@
                             <span class="badge text-bg-secondary">NPC</span>
                         }
                     </td>
-                    <td class="text-end">@sim.WalletBalance.ToString("0.00")</td>
-                    <td class="@NeedClass(sim.Hunger)">@sim.Hunger.ToString("0.0")</td>
-                    <td class="@NeedClass(sim.Energy)">@sim.Energy.ToString("0.0")</td>
-                    <td class="@NeedClass(sim.Hygiene)">@sim.Hygiene.ToString("0.0")</td>
-                    <td class="@NeedClass(sim.Bladder)">@sim.Bladder.ToString("0.0")</td>
-                    <td>@sim.CurrentAction</td>
-                    <td>@sim.TimeRemaining.ToString("0.00")</td>
-                    <td class="font-monospace text-muted">@sim.X.ToString("0.0"), @sim.Y.ToString("0.0")</td>
+                    <td class="text-end">@genos.WalletBalance.ToString("0.00")</td>
+                    <td class="@NeedClass(genos.Hunger)">@genos.Hunger.ToString("0.0")</td>
+                    <td class="@NeedClass(genos.Energy)">@genos.Energy.ToString("0.0")</td>
+                    <td class="@NeedClass(genos.Hygiene)">@genos.Hygiene.ToString("0.0")</td>
+                    <td class="@NeedClass(genos.Bladder)">@genos.Bladder.ToString("0.0")</td>
+                    <td>@genos.CurrentAction</td>
+                    <td>@genos.TimeRemaining.ToString("0.00")</td>
+                    <td class="font-monospace text-muted">@genos.X.ToString("0.0"), @genos.Y.ToString("0.0")</td>
                 </tr>
             }
         </tbody>
@@ -51,7 +51,7 @@
 
 @code {
     [Parameter]
-    public IReadOnlyList<SimData> Sims { get; set; } = Array.Empty<SimData>();
+    public IReadOnlyList<GenosData> Genoses { get; set; } = Array.Empty<GenosData>();
 
     private static string NeedClass(float value)
     {

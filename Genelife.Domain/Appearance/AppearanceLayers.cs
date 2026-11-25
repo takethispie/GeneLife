@@ -3,7 +3,7 @@ namespace Genelife.Appearance;
 /// <summary>
 /// Ordered atlas/palette contract shared by the browser, the admin SVG renderer
 /// and tests. Part ids reference shared regions; palette ids reference shared
-/// colour ramps. No id is a per-sim file.
+/// colour ramps. No id is a per-genos file.
 /// </summary>
 public sealed record AppearanceLayers
 {

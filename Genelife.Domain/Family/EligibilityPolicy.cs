@@ -31,9 +31,9 @@ public static class EligibilityPolicy
         options ??= RelationshipOptions.Default;
 
         if (first == second)
-            return EligibilityResult.Rejected("self", "A sim cannot pair with itself.");
+            return EligibilityResult.Rejected("self", "A genos cannot pair with itself.");
         if (!IsAlive(world, first) || !IsAlive(world, second))
-            return EligibilityResult.Rejected("not-alive", "Both sims must be alive.");
+            return EligibilityResult.Rejected("not-alive", "Both genoses must be alive.");
         if (IsDependent(world, first) || IsDependent(world, second))
             return EligibilityResult.Rejected("dependent", "Dependants are not eligible for pairing.");
 
@@ -41,20 +41,20 @@ public static class EligibilityPolicy
         var ageB = world.Get<Alive>(second).Age;
 
         if (ageA < options.MinimumPairingAge || ageB < options.MinimumPairingAge)
-            return EligibilityResult.Rejected("minor", $"Both sims must be at least {options.MinimumPairingAge}.");
+            return EligibilityResult.Rejected("minor", $"Both genoses must be at least {options.MinimumPairingAge}.");
         if (ageA > options.MaximumPairingAge || ageB > options.MaximumPairingAge)
-            return EligibilityResult.Rejected("too-old", $"Both sims must be at most {options.MaximumPairingAge}.");
+            return EligibilityResult.Rejected("too-old", $"Both genoses must be at most {options.MaximumPairingAge}.");
         if (Math.Abs(ageA - ageB) > options.MaxAgeGap)
             return EligibilityResult.Rejected("age-gap", $"Age gap exceeds {options.MaxAgeGap} years.");
 
         if (index.HasPartner(first) || index.HasPartner(second))
-            return EligibilityResult.Rejected("has-partner", "Both sims must be single.");
+            return EligibilityResult.Rejected("has-partner", "Both genoses must be single.");
 
         if (IsCloseRelative(index, first, second, options))
             return EligibilityResult.Rejected("close-relative", "Close relatives may not pair.");
 
         if (!world.Has<Traits>(first) || !world.Has<Traits>(second))
-            return EligibilityResult.Rejected("missing-traits", "Both sims need a trait set.");
+            return EligibilityResult.Rejected("missing-traits", "Both genoses need a trait set.");
 
         if (!options.AllowSameSexPairing &&
             world.Get<Traits>(first).Sex == world.Get<Traits>(second).Sex)
@@ -66,12 +66,12 @@ public static class EligibilityPolicy
         return EligibilityResult.Allowed;
     }
 
-    public static bool IsAlive(World world, Entity sim) =>
-        world.IsAlive(sim) && world.Has<Alive>(sim) && !world.Has<Dead>(sim);
+    public static bool IsAlive(World world, Entity genos) =>
+        world.IsAlive(genos) && world.Has<Alive>(genos) && !world.Has<Dead>(genos);
 
-    public static bool IsDependent(World world, Entity sim) =>
-        world.Has<HouseholdMember>(sim) &&
-        world.Get<HouseholdMember>(sim).Role == HouseholdRole.Child;
+    public static bool IsDependent(World world, Entity genos) =>
+        world.Has<HouseholdMember>(genos) &&
+        world.Get<HouseholdMember>(genos).Role == HouseholdRole.Child;
 
     public static bool IsCloseRelative(
         RelationshipIndex index,

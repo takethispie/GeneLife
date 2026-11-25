@@ -2,7 +2,7 @@
 
 **Scope:** server simulation loop only. No gameplay, client, economy or persistence changes.
 
-**Target:** remove dropped ticks as a routine event by cutting per-tick cost and lock contention, so the 20 Hz loop stays inside its 50 ms budget at 2,000 sims and under 32-player API load.
+**Target:** remove dropped ticks as a routine event by cutting per-tick cost and lock contention, so the 20 Hz loop stays inside its 50 ms budget at 2,000 genoses and under 32-player API load.
 
 **Builds on:** V5 release state, the hybrid ECS + Wolverine path, `SimulationLoop`, `FixedStepScheduler`, `SystemRegistry`, `Metrics`, `SnapshotBroadcastService`, `LoadHarness` and the existing per-NPC-tier budgets in `PerformanceThresholds`.
 
@@ -49,7 +49,7 @@ flowchart TD
 
 1. **Runtime and hot-path trims.** Change build settings and remove obvious per-tick waste. Low risk, no behavior change, measurable immediately.
 2. **Lock and cadence structure.** Reduce how long the world lock is held and stop the monthly thundering herd. Medium risk; touches tick ordering and snapshot publication.
-3. **Architecture and parallelism.** Move the sim off the thread pool and parallelize safe work. Highest risk; requires determinism proof.
+3. **Architecture and parallelism.** Move the simulation off the thread pool and parallelize safe work. Highest risk; requires determinism proof.
 
 Features are ordered, not strictly serial. Tier 1 can land in one change set. Tier 2 and Tier 3 should each be gated by a `LoadHarness` before/after run.
 
@@ -77,7 +77,7 @@ A change is kept only if it moves at least one of p95, p99, allocation or droppe
 
 ## Definition of done for V6
 
-- The 2,000-sim decade run stays inside the tick budget with p95 and p99 under 50 ms.
+- The 2,000-genos decade run stays inside the tick budget with p95 and p99 under 50 ms.
 - The 32-player soak records no dropped ticks attributable to lock contention or thread-pool starvation.
 - Runtime settings are in the build files and documented.
 - Every retained change has a before/after `LoadHarness` record.

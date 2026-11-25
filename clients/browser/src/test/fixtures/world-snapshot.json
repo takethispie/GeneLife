@@ -1,7 +1,7 @@
 {
   "tick": 100,
   "version": 2,
-  "sims": [
+  "genoses": [
     {
       "networkId": 1,
       "name": "Ada",

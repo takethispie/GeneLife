@@ -14,7 +14,7 @@ namespace Genelife.Social;
 
 /// <summary>
 /// Venue configuration, admission and occupancy. Presence is derived from the
-/// controlled sim's tile each tick; capacity and opening hours are enforced
+/// controlled genos's tile each tick; capacity and opening hours are enforced
 /// before a player becomes an occupant and gains the venue channel.
 /// </summary>
 public sealed class VenueService
@@ -255,16 +255,16 @@ public sealed class VenueService
                 continue;
             }
 
-            if (profile.ControlledSim == Entity.Null ||
-                !world.IsAlive(profile.ControlledSim) ||
-                world.Has<Components.Gen.Dead>(profile.ControlledSim) ||
-                !world.Has<TilePosition>(profile.ControlledSim))
+            if (profile.ControlledGenos == Entity.Null ||
+                !world.IsAlive(profile.ControlledGenos) ||
+                world.Has<Components.Gen.Dead>(profile.ControlledGenos) ||
+                !world.Has<TilePosition>(profile.ControlledGenos))
             {
                 Leave(profile.PlayerId, tick);
                 continue;
             }
 
-            var tile = world.Get<TilePosition>(profile.ControlledSim).Tile;
+            var tile = world.Get<TilePosition>(profile.ControlledGenos).Tile;
             var venue = VenueAt(tile);
             var current = VenueOf(profile.PlayerId);
 
@@ -371,8 +371,8 @@ public sealed class VenueService
     }
 
     private ulong NetworkIdOfPlayer(string playerId) =>
-        players.TryGet(playerId, out var profile) && profile.ControlledSim != Entity.Null
-            ? NetworkIdOf(profile.ControlledSim)
+        players.TryGet(playerId, out var profile) && profile.ControlledGenos != Entity.Null
+            ? NetworkIdOf(profile.ControlledGenos)
             : 0;
 
     private ulong NetworkIdOf(Entity entity) =>

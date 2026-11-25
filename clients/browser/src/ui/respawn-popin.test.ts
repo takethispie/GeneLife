@@ -19,14 +19,14 @@ describe("RespawnPopin", () => {
 
   it("stays open and surfaces the error when respawn fails", async () => {
     const root = document.createElement("div");
-    const onRespawn = vi.fn().mockResolvedValue({ ok: false, message: "No parent sim" });
+    const onRespawn = vi.fn().mockResolvedValue({ ok: false, message: "No parent genos" });
     const popin = new RespawnPopin({ root, onRespawn });
 
     popin.show({ name: "Ada" });
     const button = root.querySelector("button") as HTMLButtonElement;
     button.click();
 
-    await vi.waitFor(() => expect(root.textContent).toContain("No parent sim"));
+    await vi.waitFor(() => expect(root.textContent).toContain("No parent genos"));
     expect(popin.isOpen).toBe(true);
     expect(button.disabled).toBe(false);
     expect(button.textContent).toBe("Respawn as child");

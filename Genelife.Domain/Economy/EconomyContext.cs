@@ -19,17 +19,17 @@ public sealed class PendingCompanyRevenue
     public Dictionary<string, Money> ByCategory { get; } = new(StringComparer.OrdinalIgnoreCase);
     public List<PendingSpend> Spends { get; } = new();
 
-    public void Add(string category, ulong simNetworkId, Money amount, long tick)
+    public void Add(string category, ulong genosNetworkId, Money amount, long tick)
     {
         Total += amount;
         ByCategory.TryGetValue(category, out var current);
         ByCategory[category] = current + amount;
-        Spends.Add(new PendingSpend(simNetworkId, category, amount, tick));
+        Spends.Add(new PendingSpend(genosNetworkId, category, amount, tick));
     }
 }
 
 public readonly record struct PendingSpend(
-    ulong SimNetworkId,
+    ulong GenosNetworkId,
     string Category,
     Money Amount,
     long Tick);
@@ -120,14 +120,14 @@ public sealed class EconomyContext
         return drained;
     }
 
-    public void BookRevenue(Entity company, string category, ulong simNetworkId, Money amount, long tick)
+    public void BookRevenue(Entity company, string category, ulong genosNetworkId, Money amount, long tick)
     {
         if (!PendingRevenue.TryGetValue(company, out var pending))
         {
             pending = new PendingCompanyRevenue();
             PendingRevenue[company] = pending;
         }
-        pending.Add(category, simNetworkId, amount, tick);
+        pending.Add(category, genosNetworkId, amount, tick);
     }
 
     public MoneySupplyBreakdown GetMoneySupplyBreakdown()

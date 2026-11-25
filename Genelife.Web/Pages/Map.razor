@@ -439,8 +439,8 @@
     private IEnumerable<MapBuildingStatus> VisibleBuildings =>
         map.BuildingList.Where(building => string.IsNullOrEmpty(kindFilter) || building.Kind == kindFilter);
 
-    private IEnumerable<SimData> Players =>
-        world.Sims.Where(sim => sim.IsPlayerControlled && !sim.IsDead);
+    private IEnumerable<GenosData> Players =>
+        world.Genoses.Where(genos => genos.IsPlayerControlled && !genos.IsDead);
 
     private IEnumerable<(string Label, string Value)> SummaryCards => new[]
     {
@@ -519,7 +519,7 @@
         createWidth = map.Width >= 64 ? map.Width : 256;
         createHeight = map.Height >= 64 ? map.Height : 256;
 
-        var living = world.Sims.Count(sim => !sim.IsDead);
+        var living = world.Genoses.Count(genos => !genos.IsDead);
         createPopulation = Math.Clamp(living == 0 ? 500 : living, 0, 5000);
         createPopulationSeed = createSeed;
         createAdults = null;

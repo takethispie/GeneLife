@@ -45,16 +45,16 @@ public sealed class AttractionSystem : ISimulationSystem
     {
         options.Validate();
 
-        var sims = cache.Candidates.Keys
-            .Where(sim => world.IsAlive(sim) && world.Has<Alive>(sim) && world.Has<Traits>(sim) &&
-                          !world.Has<Dead>(sim) && !relationships.HasPartner(sim))
+        var genoses = cache.Candidates.Keys
+            .Where(genos => world.IsAlive(genos) && world.Has<Alive>(genos) && world.Has<Traits>(genos) &&
+                          !world.Has<Dead>(genos) && !relationships.HasPartner(genos))
             .OrderBy(NetworkIdOf)
-            .ThenBy(sim => sim.Id)
+            .ThenBy(genos => genos.Id)
             .ToList();
 
-        foreach (var sim in sims)
+        foreach (var genos in genoses)
         {
-            if (!cache.Candidates.TryGetValue(sim, out var candidates))
+            if (!cache.Candidates.TryGetValue(genos, out var candidates))
                 continue;
 
             var scored = new List<ScoredCandidate>(candidates.Count);
@@ -68,7 +68,7 @@ public sealed class AttractionSystem : ISimulationSystem
                 var eligibility = EligibilityPolicy.Evaluate(
                     world,
                     relationships,
-                    sim,
+                    genos,
                     candidate,
                     options,
                     (first, second) => cache.InCooldown(first, second, tick));
@@ -78,10 +78,10 @@ public sealed class AttractionSystem : ISimulationSystem
                 var input = AttractionInputFactory.Create(
                     world,
                     economy,
-                    sim,
+                    genos,
                     candidate,
-                    !relationships.HasPartner(sim) && !cache.InCooldown(sim, candidate, tick),
-                    !relationships.HasPartner(candidate) && !cache.InCooldown(sim, candidate, tick));
+                    !relationships.HasPartner(genos) && !cache.InCooldown(genos, candidate, tick),
+                    !relationships.HasPartner(candidate) && !cache.InCooldown(genos, candidate, tick));
                 var result = AttractionScorer.Score(input, eligibility, options);
                 if (result.Score > 0)
                     scored.Add(new ScoredCandidate(candidate, result.Score));
@@ -92,20 +92,20 @@ public sealed class AttractionSystem : ISimulationSystem
                 var byScore = b.Score.CompareTo(a.Score);
                 if (byScore != 0)
                     return byScore;
-                var byNetworkId = NetworkIdOf(a.Sim).CompareTo(NetworkIdOf(b.Sim));
-                return byNetworkId != 0 ? byNetworkId : a.Sim.Id.CompareTo(b.Sim.Id);
+                var byNetworkId = NetworkIdOf(a.Genos).CompareTo(NetworkIdOf(b.Genos));
+                return byNetworkId != 0 ? byNetworkId : a.Genos.Id.CompareTo(b.Genos.Id);
             });
 
-            if (scored.Count > options.MaxCandidatesPerSim)
-                scored.RemoveRange(options.MaxCandidatesPerSim, scored.Count - options.MaxCandidatesPerSim);
+            if (scored.Count > options.MaxCandidatesPerGenos)
+                scored.RemoveRange(options.MaxCandidatesPerGenos, scored.Count - options.MaxCandidatesPerGenos);
 
             if (scored.Count > 0)
-                cache.Scored[sim] = scored;
+                cache.Scored[genos] = scored;
             else
-                cache.Scored.Remove(sim);
+                cache.Scored.Remove(genos);
         }
 
-        foreach (var stale in cache.Scored.Keys.Where(sim => !sims.Contains(sim)).ToList())
+        foreach (var stale in cache.Scored.Keys.Where(genos => !genoses.Contains(genos)).ToList())
             cache.Scored.Remove(stale);
     }
 

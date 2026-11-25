@@ -99,7 +99,7 @@ public class DecisionSystemTests
     }
 
     [Fact]
-    public void Update_SkipsPlayerControlledSims()
+    public void Update_SkipsPlayerControlledGenoses()
     {
         var world = World.Create();
         world.Create(

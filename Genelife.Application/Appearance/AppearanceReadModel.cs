@@ -17,14 +17,14 @@ public static class AppearanceReadModel
         layers.HeightScale,
         layers.LayerOrderVersion);
 
-    public static AppearanceSimStatus Build(Arch.Core.World world, Arch.Core.Entity entity)
+    public static AppearanceGenosStatus Build(Arch.Core.World world, Arch.Core.Entity entity)
     {
         if (!AppearanceMapper.TryDerive(world, entity, out var descriptor))
-            throw new InvalidOperationException("Sim has no appearance descriptor.");
+            throw new InvalidOperationException("Genos has no appearance descriptor.");
 
         var isPlayer = world.Has<Genelife.Components.Gen.PlayerControlled>(entity);
         var layers = AppearanceComposer.Compose(descriptor, isPlayer);
-        return new AppearanceSimStatus(
+        return new AppearanceGenosStatus(
             AppearanceMapper.StableKey(world, entity),
             world.Has<GenName>(entity) ? world.Get<GenName>(entity).Name : string.Empty,
             world.Has<Alive>(entity) ? world.Get<Alive>(entity).Age : 0,

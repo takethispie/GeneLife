@@ -56,8 +56,8 @@ public class EconomyMetricsSystem : ISimulationSystem
                 bankrupt++;
         });
 
-        var simQuery = new QueryDescription().WithAll<Alive>().WithNone<Components.Gen.Dead>();
-        world.Query(in simQuery, (Entity entity, ref Alive _) =>
+        var genosQuery = new QueryDescription().WithAll<Alive>().WithNone<Components.Gen.Dead>();
+        world.Query(in genosQuery, (Entity entity, ref Alive _) =>
         {
             var cash = world.Has<Wallet>(entity) ? world.Get<Wallet>(entity).Balance : Money.Zero;
             var savings = world.Has<SavingsAccount>(entity)
@@ -69,8 +69,8 @@ public class EconomyMetricsSystem : ISimulationSystem
         var employed = 0;
         var workingAge = 0;
         var jobSeekers = 0;
-        var simsQuery = new QueryDescription().WithAll<Alive>().WithNone<Components.Gen.Dead>();
-        world.Query(in simsQuery, (Entity entity, ref Alive alive) =>
+        var genosesQuery = new QueryDescription().WithAll<Alive>().WithNone<Components.Gen.Dead>();
+        world.Query(in genosesQuery, (Entity entity, ref Alive alive) =>
         {
             if (alive.Age < 18)
                 return;

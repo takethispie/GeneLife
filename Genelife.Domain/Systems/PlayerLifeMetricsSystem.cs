@@ -50,12 +50,12 @@ public sealed class PlayerLifeMetricsSystem : ISimulationSystem
             if (profile.AwaitingContinuation)
                 awaiting++;
 
-            var sim = profile.ControlledSim;
-            if (sim == Entity.Null || !world.IsAlive(sim))
+            var genos = profile.ControlledGenos;
+            if (genos == Entity.Null || !world.IsAlive(genos))
                 continue;
-            if (world.Has<Employee>(sim))
+            if (world.Has<Employee>(genos))
                 employed++;
-            if (world.Has<PlayerHousing>(sim) && world.Get<PlayerHousing>(sim).LeaseActive)
+            if (world.Has<PlayerHousing>(genos) && world.Get<PlayerHousing>(genos).LeaseActive)
                 housed++;
         }
 

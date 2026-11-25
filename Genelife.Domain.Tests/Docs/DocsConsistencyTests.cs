@@ -66,7 +66,7 @@ public class DocsConsistencyTests
                      "/api/simulation/stop",
                      "/api/simulation/status",
                      "/api/simulation/metrics",
-                     "/api/simulation/sims",
+                     "/api/simulation/genoses",
                      "/api/simulation/save",
                      "/api/simulation/restore",
                      "/api/data",

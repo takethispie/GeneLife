@@ -6,8 +6,8 @@ import {
   familyOverview,
   familyPregnanciesPage,
   familyRelationshipsPage,
-  familySimDetail,
-  familySimsPage
+  familyGenosDetail,
+  familyGenosesPage
 } from "./family-fixtures";
 
 export interface ApiCall {
@@ -26,8 +26,8 @@ export interface MockFailure {
 
 export interface FamilyApiOptions {
   family?: unknown;
-  sims?: unknown;
-  simDetail?: unknown;
+  genoses?: unknown;
+  genosDetail?: unknown;
   relationships?: unknown;
   attraction?: unknown;
   pregnancies?: unknown;
@@ -131,12 +131,12 @@ function respond(call: ApiCall, options: FamilyApiOptions): FulfillOptions | nul
     return jsonResponse(options.family ?? familyOverview);
   }
 
-  if (method === "GET" && pathname === "/api/family/sims") {
-    return jsonResponse(options.sims ?? familySimsPage);
+  if (method === "GET" && pathname === "/api/family/genoses") {
+    return jsonResponse(options.genoses ?? familyGenosesPage);
   }
 
-  if (method === "GET" && /^\/api\/family\/sims\/\d+$/.test(pathname)) {
-    return jsonResponse(options.simDetail ?? familySimDetail);
+  if (method === "GET" && /^\/api\/family\/genoses\/\d+$/.test(pathname)) {
+    return jsonResponse(options.genosDetail ?? familyGenosDetail);
   }
 
   if (method === "GET" && pathname === "/api/family/relationships") {

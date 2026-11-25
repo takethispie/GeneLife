@@ -29,8 +29,8 @@ public class FamilyProjectionCoverageTests
 
         var required = new[]
         {
-            typeof(SimCreated),
-            typeof(SimDied),
+            typeof(GenosCreated),
+            typeof(GenosDied),
             typeof(RelationshipFormed),
             typeof(RelationshipEnded),
             typeof(PartnershipFormed),

@@ -7,7 +7,7 @@ import {
 import {
   emptyFamilyChildrenPage,
   emptyFamilyGuardianships,
-  emptyFamilySimsPage
+  emptyFamilyGenosesPage
 } from "./family-fixtures";
 
 const test = base.extend<{ pageErrors: string[] }>({
@@ -58,11 +58,11 @@ function commandCall(api: FamilyApiHandle, pathname: string): ApiCall {
   return call;
 }
 
-test("renders the overview, every tab, and sim detail", async ({ page }) => {
+test("renders the overview, every tab, and genos detail", async ({ page }) => {
   const api = await mockFamilyApi(page);
   await openFamily(page);
 
-  await expect(page.getByText("118 of 120 sims have traits")).toBeVisible();
+  await expect(page.getByText("118 of 120 genoses have traits")).toBeVisible();
   const population = page.locator(".card", { hasText: "Population" }).first();
   await expect(population).toContainText("120");
   await expect(population).toContainText("90 adults");
@@ -74,11 +74,11 @@ test("renders the overview, every tab, and sim detail", async ({ page }) => {
   await expect(page.getByText("Trust conservation", { exact: true })).toBeVisible();
   getCall(api, "/api/family");
 
-  await tab(page, "Sims").click();
-  await expect(tab(page, "Sims")).toHaveClass(/active/);
+  await tab(page, "Genoses").click();
+  await expect(tab(page, "Genoses")).toHaveClass(/active/);
   await expect(page.getByRole("cell", { name: /Ada Lovelace #101/ })).toBeVisible();
   await expect(page.getByRole("cell", { name: "Partnered", exact: true })).toBeVisible();
-  getCall(api, "/api/family/sims");
+  getCall(api, "/api/family/genoses");
 
   await page.getByRole("button", { name: "Open", exact: true }).first().click();
   await expect(page.getByRole("heading", { name: /Ada Lovelace/ })).toBeVisible();
@@ -86,7 +86,7 @@ test("renders the overview, every tab, and sim detail", async ({ page }) => {
   await expect(page.getByRole("cell", { name: "Partner", exact: true })).toBeVisible();
   await expect(page.getByText("Byron (#301, 6)")).toBeVisible();
   await expect(page.getByText("No pregnancies.")).toBeVisible();
-  getCall(api, "/api/family/sims/101");
+  getCall(api, "/api/family/genoses/101");
 
   await tab(page, "Relationships").click();
   await expect(page.getByRole("cell", { name: "Seed", exact: true })).toBeVisible();
@@ -102,7 +102,7 @@ test("renders the overview, every tab, and sim detail", async ({ page }) => {
   await expect(page.getByText("Eligible", { exact: true })).toBeVisible();
   await expect(page.getByText("score 42", { exact: true })).toBeVisible();
   await expect(page.getByRole("cell", { name: "Trait match" })).toBeVisible();
-  expect(getCall(api, "/api/family/attraction").search).toContain("simId=101");
+  expect(getCall(api, "/api/family/attraction").search).toContain("genosId=101");
 
   await tab(page, "Pregnancies").click();
   await expect(page.getByRole("cell", { name: "#700", exact: true })).toBeVisible();
@@ -132,7 +132,7 @@ test("renders the overview, every tab, and sim detail", async ({ page }) => {
 test("confirmation gates destructive commands and renders command results", async ({ page }) => {
   const api = await mockFamilyApi(page);
   await openFamily(page);
-  await tab(page, "Sims").click();
+  await tab(page, "Genoses").click();
 
   const partnership = page.locator(".card", { hasText: "Partnership operations" }).first();
   const partnershipInputs = partnership.getByRole("spinbutton");
@@ -152,16 +152,16 @@ test("confirmation gates destructive commands and renders command results", asyn
   await expect(partnershipConfirm).not.toBeChecked();
   await expect(endButton).toBeDisabled();
   expect(commandCall(api, "/api/family/partnerships/end").body).toMatchObject({
-    simAId: 101,
-    simBId: 102,
+    genosAId: 101,
+    genosBId: 102,
     reason: "e2e-end"
   });
 
   await partnership.getByRole("button", { name: "Force partnership" }).click();
   await expect(page.locator(".alert.alert-info")).toHaveText("Partnership queued.");
   expect(commandCall(api, "/api/family/partnerships/force").body).toMatchObject({
-    simAId: 101,
-    simBId: 102,
+    genosAId: 101,
+    genosBId: 102,
     reason: "e2e-end",
     overrideEligibility: false
   });
@@ -233,7 +233,7 @@ test("confirmation gates destructive commands and renders command results", asyn
 test("resets destructive confirmation when switching tabs", async ({ page }) => {
   const api = await mockFamilyApi(page);
   await openFamily(page);
-  await tab(page, "Sims").click();
+  await tab(page, "Genoses").click();
 
   const partnership = page.locator(".card", { hasText: "Partnership operations" }).first();
   await partnership.getByRole("checkbox", { name: "Confirm destructive change" }).check();
@@ -262,7 +262,7 @@ test("renders command failures in the family error alert", async ({ page }) => {
     failures: [{ method: "POST", pathname: "/api/family/partnerships/force", status: 500 }]
   });
   await openFamily(page);
-  await tab(page, "Sims").click();
+  await tab(page, "Genoses").click();
 
   const partnership = page.locator(".card", { hasText: "Partnership operations" }).first();
   const partnershipInputs = partnership.getByRole("spinbutton");
@@ -282,14 +282,14 @@ test("renders command failures in the family error alert", async ({ page }) => {
 
 test("renders empty states for paged tabs", async ({ page }) => {
   const api = await mockFamilyApi(page, {
-    sims: emptyFamilySimsPage,
+    genoses: emptyFamilyGenosesPage,
     children: emptyFamilyChildrenPage,
     guardianships: emptyFamilyGuardianships
   });
   await openFamily(page);
 
-  await tab(page, "Sims").click();
-  await expect(page.getByText("No sims match the filters.")).toBeVisible();
+  await tab(page, "Genoses").click();
+  await expect(page.getByText("No genoses match the filters.")).toBeVisible();
 
   await tab(page, "Children").click();
   await expect(page.getByText("No children.", { exact: true })).toBeVisible();

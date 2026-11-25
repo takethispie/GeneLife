@@ -41,7 +41,7 @@ public class ContinuityInvariantTests
     }
 
     [Fact]
-    public void ActivePartnerEdgeToDeadSimFails()
+    public void ActivePartnerEdgeToDeadGenosFails()
     {
         var world = World.Create();
         var economy = new EconomyContext(world);

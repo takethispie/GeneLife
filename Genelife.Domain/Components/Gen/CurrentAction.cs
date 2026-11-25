@@ -3,7 +3,7 @@ using Genelife.Enums;
 namespace Genelife.Components.Gen;
 
 /// <summary>
-/// Component representing the current action a Sim is performing
+/// Component representing the current action a Genos is performing
 /// </summary>
 public record struct CurrentAction
 {

@@ -5,7 +5,7 @@ namespace Genelife.Family;
 /// <summary>
 /// Validates the canonical trait component. Every defined enum combination is
 /// legal in V4a; undefined numeric values are not. Missing traits on a living
-/// sim are a migration/creation defect handled by callers and invariants.
+/// genos are a migration/creation defect handled by callers and invariants.
 /// </summary>
 public static class TraitValidation
 {

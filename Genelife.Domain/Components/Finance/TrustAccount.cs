@@ -14,5 +14,5 @@ public record struct TrustAccount
     public Entity Guardian;
     public long CreatedTick;
     public long ReleaseAgeTicks;
-    public ulong SourceSimNetworkId;
+    public ulong SourceGenosNetworkId;
 }

@@ -3,8 +3,8 @@ using Genelife.Components.Gen;
 namespace Genelife.Family;
 
 public readonly record struct AttractionInput(
-    ulong SimNetworkIdA,
-    ulong SimNetworkIdB,
+    ulong GenosNetworkIdA,
+    ulong GenosNetworkIdB,
     Traits TraitsA,
     Traits TraitsB,
     int AgeA,

@@ -87,7 +87,7 @@ public static class ContinuityInvariants
                 if (!world.IsAlive(relationship.From) || world.Has<Dead>(relationship.From) ||
                     !world.IsAlive(relationship.To) || world.Has<Dead>(relationship.To))
                     issues.Add(new Issue("death.active-partner", "Fail",
-                        $"Relationship {entity.Id} keeps an active partner edge to a dead sim"));
+                        $"Relationship {entity.Id} keeps an active partner edge to a dead genos"));
             });
 
         if (children > 0 && orphans > 0)

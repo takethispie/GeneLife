@@ -11,7 +11,7 @@ namespace Genelife.Systems;
 /// <summary>
 /// Monthly nutrition modifier over the existing health model. It never adds a
 /// second health stat; poor nutrition lowers health, balanced nutrition slows
-/// decline. Sim-level nutrition is created by the player consume path.
+/// decline. Genos-level nutrition is created by the player consume path.
 /// </summary>
 public sealed class NutritionSystem : ISimulationSystem
 {

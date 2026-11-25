@@ -43,7 +43,7 @@ public static class SimulationEndpoints
         return Results.Ok(new
         {
             isRunning = simulationManager.IsRunning,
-            sims = await simulationManager.GetAllSimsAsync()
+            genoses = await simulationManager.GetAllGenosesAsync()
         });
     }
 
@@ -78,17 +78,17 @@ public static class SimulationEndpoints
         });
     }
 
-    [WolverinePost("/api/simulation/sims")]
+    [WolverinePost("/api/simulation/genoses")]
     [Authorize(Policy = AuthPolicies.Admin)]
-    public static IResult AddSim(AddSimRequest request, SimulationManager simulationManager)
+    public static IResult AddGenos(AddGenosRequest request, SimulationManager simulationManager)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
             return Results.BadRequest(new { message = "Name is required" });
 
         try
         {
-            simulationManager.AddSim(request.Name, request.Age);
-            return Results.Ok(new { message = $"Sim '{request.Name}' added successfully" });
+            simulationManager.AddGenos(request.Name, request.Age);
+            return Results.Ok(new { message = $"Genos '{request.Name}' added successfully" });
         }
         catch (InvalidOperationException ex)
         {
@@ -96,10 +96,10 @@ public static class SimulationEndpoints
         }
     }
 
-    [WolverineGet("/api/simulation/sims")]
+    [WolverineGet("/api/simulation/genoses")]
     [Authorize(Policy = AuthPolicies.Player)]
-    public static Task<List<SimStatus>> GetAllSims(SimulationManager simulationManager) =>
-        simulationManager.GetAllSimsAsync();
+    public static Task<List<GenosStatus>> GetAllGenoses(SimulationManager simulationManager) =>
+        simulationManager.GetAllGenosesAsync();
 
     [WolverinePost("/api/simulation/save")]
     [Authorize(Policy = AuthPolicies.Admin)]
@@ -115,7 +115,7 @@ public static class SimulationEndpoints
             {
                 Tick = state.Tick,
                 SchemaVersion = state.SchemaVersion,
-                SimCount = state.Sims.Count,
+                GenosCount = state.Genoses.Count,
                 CompanyCount = state.Companies.Count,
                 SavedAt = DateTime.UtcNow.ToString("O")
             });

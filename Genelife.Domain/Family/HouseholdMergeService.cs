@@ -96,29 +96,29 @@ public sealed class HouseholdMergeService
         return true;
     }
 
-    public bool TrySplit(Entity sim, long tick, out Entity household)
+    public bool TrySplit(Entity genos, long tick, out Entity household)
     {
         household = Entity.Null;
         var registry = economy.Housing;
-        var existing = registry.HouseholdOf(sim);
+        var existing = registry.HouseholdOf(genos);
         if (existing == Entity.Null)
             return false;
-        if (world.Has<Household>(existing) && world.Get<Household>(existing).Head == sim &&
+        if (world.Has<Household>(existing) && world.Get<Household>(existing).Head == genos &&
             registry.MemberCount(existing) > 1)
             return false;
 
         household = world.Create(new Household
         {
-            Head = sim,
+            Head = genos,
             Unit = Entity.Null,
             Tenure = Tenure.Renter,
             MoveInTick = tick,
             MemberCount = 1
         });
         registry.AllocateNetworkId(household);
-        registry.RemoveMember(sim);
-        SetRole(sim, household, HouseholdRole.Head);
-        registry.AddMember(sim, household);
+        registry.RemoveMember(genos);
+        SetRole(genos, household, HouseholdRole.Head);
+        registry.AddMember(genos, household);
 
         if (world.IsAlive(existing) && registry.MemberCount(existing) == 0)
         {
@@ -181,13 +181,13 @@ public sealed class HouseholdMergeService
         return oldRole;
     }
 
-    private void SetRole(Entity sim, Entity household, HouseholdRole role)
+    private void SetRole(Entity genos, Entity household, HouseholdRole role)
     {
         var membership = new HouseholdMember(household, role);
-        if (world.Has<HouseholdMember>(sim))
-            world.Get<HouseholdMember>(sim) = membership;
+        if (world.Has<HouseholdMember>(genos))
+            world.Get<HouseholdMember>(genos) = membership;
         else
-            world.Add(sim, membership);
+            world.Add(genos, membership);
     }
 
     private ulong NetworkIdOf(Entity entity) =>

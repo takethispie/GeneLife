@@ -66,9 +66,9 @@ public sealed class VenueActivityService
         long tick)
     {
         if (!players.TryGet(playerId, out var profile) ||
-            profile.ControlledSim == Entity.Null ||
-            !world.IsAlive(profile.ControlledSim) ||
-            world.Has<Dead>(profile.ControlledSim))
+            profile.ControlledGenos == Entity.Null ||
+            !world.IsAlive(profile.ControlledGenos) ||
+            world.Has<Dead>(profile.ControlledGenos))
             return VenueActivityResult.Reject("not_available", "Your character is not available.");
 
         if (social.IsActivityBlocked(playerId, tick))
@@ -89,11 +89,11 @@ public sealed class VenueActivityService
                 return VenueActivityResult.Reject("activity_cooldown", "Wait a moment before another activity.");
         }
 
-        var sim = profile.ControlledSim;
-        if (activity == VenueActivity.ShareMeal && !TryConsumeMeal(sim))
+        var genos = profile.ControlledGenos;
+        if (activity == VenueActivity.ShareMeal && !TryConsumeMeal(genos))
             return VenueActivityResult.Reject("no_food", "You have no food to share.");
 
-        var displayName = world.Has<GenName>(sim) ? world.Get<GenName>(sim).Name : null;
+        var displayName = world.Has<GenName>(genos) ? world.Get<GenName>(genos).Name : null;
         var notice = new VenueActivityNotice(playerId, displayName, activity, tick);
         var recipients = Recipients(venue, playerId);
 
@@ -110,7 +110,7 @@ public sealed class VenueActivityService
 
         economy.Emit(new VenueActivityPerformed(
             NetworkIdOf(venue),
-            NetworkIdOf(sim),
+            NetworkIdOf(genos),
             activity.ToString(),
             tick));
 
@@ -135,9 +135,9 @@ public sealed class VenueActivityService
         }
     }
 
-    private bool TryConsumeMeal(Entity sim)
+    private bool TryConsumeMeal(Entity genos)
     {
-        var household = LifeSystemHelpers.HouseholdOf(world, economy, sim);
+        var household = LifeSystemHelpers.HouseholdOf(world, economy, genos);
         if (household == Entity.Null ||
             !world.IsAlive(household) ||
             !world.Has<HouseholdPantry>(household))

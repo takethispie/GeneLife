@@ -2,7 +2,7 @@
 
 **Scope:** server simulation, persistence, read models and admin surfaces. No appearance rendering, no player pregnancy UI, no matchmaking or social graph for players.
 
-**Target:** every sim has a deterministic inherited trait set; eligible sims form relationships through an explainable attraction score; partners can form households and have children; children inherit traits with mutation, are raised, schooled and eventually enter the workforce; births supplement immigration as a population-continuity path; inheritance follows family relationships; operators can inspect and audit the whole family graph.
+**Target:** every genos has a deterministic inherited trait set; eligible genoses form relationships through an explainable attraction score; partners can form households and have children; children inherit traits with mutation, are raised, schooled and eventually enter the workforce; births supplement immigration as a population-continuity path; inheritance follows family relationships; operators can inspect and audit the whole family graph.
 
 **Builds on:** V1 economy/housing/life stages, V2 spatial world and indices, V3 read-model and client conventions, the 2026-11 balance pass, `SimulationRandom`, `EstateSettlementSystem`, `PopulationInflowSystem`, `HousingRegistry`, `HouseholdRole.Child`, `Tenure.Dependent`, `HousingUnit.Capacity`.
 
@@ -33,7 +33,7 @@ Feature-level detail was removed after V4 shipped; recover it from git history i
 | Households | `Household`, `HouseholdMember`, `HouseholdRole` (`Head`, `Partner`, `Child`, `Relative`, `Other`), `Tenure.Dependent`, `Residence`, `HousingRegistry` |
 | Housing | `Property`, `HousingUnit` with `Capacity` and `OccupantCount`, `IsOvercrowded`, allocation, rent, eviction, construction, ownership |
 | Inheritance | `DeathProcessingSystem` computes heirs from current household members; `EstateSettlementSystem` pays debts, funeral, heirs and escheat |
-| Traits | None. Sims have age, name, `SkillProfile`, health and needs only |
+| Traits | None. Genoses have age, name, `SkillProfile`, health and needs only |
 | Relationships | None. No parent, partner or guardian edge exists |
 | Reproduction | None. No pregnancy, birth path or newborn creation path |
 | Attraction | Orphaned `AttractivenessService` ML.NET prototype outside `GeneLife.sln`; not a runtime dependency |
@@ -122,11 +122,11 @@ public record struct Traits
 | Genetic vs acquired | Genetics owns potential/aptitude and temperament baseline. Runtime systems own realised skills, health, income and housing. |
 | Attraction evaluator | Deterministic integer basis-point score in C#. Coefficients are calibrated offline; no ML runtime dependency. |
 | Fairness | Traits are simulation inputs, not player value judgments. Admin pages show them for debugging only; no public ranking. |
-| Persistence | Traits are persisted per sim; schema 5 → 6 with deterministic backfill from world seed + `NetworkId`. |
+| Persistence | Traits are persisted per genos; schema 5 → 6 with deterministic backfill from world seed + `NetworkId`. |
 
 ### Relationship model
 
-Relationships are directed edges stored on edge entities, not fixed slots on a sim:
+Relationships are directed edges stored on edge entities, not fixed slots on a genos:
 
 ```csharp
 public enum RelationshipKind : byte
@@ -151,7 +151,7 @@ Rules:
 - Siblings, grandparents and in-laws are derived from parent and partner edges; they are not stored.
 - The relationship index is derived, rebuilt on restore and updated only in apply phases, following `EmploymentIndex` and `HousingRegistry`.
 - No self-edges, no duplicate same-kind edges, no ancestry cycles.
-- A sim may have at most one current `Partner` in V4a.
+- A genos may have at most one current `Partner` in V4a.
 
 ### Attraction and pairing
 
@@ -159,8 +159,8 @@ Attraction is explainable, deterministic and bounded:
 
 - Score in integer basis points from `0` to `10,000`.
 - Components: trait compatibility, age preference, proximity or shared institution, socioeconomic stability, health, and existing relationship status.
-- Candidate generation uses household, workplace, school and `SpatialIndex` neighbours; it never scans the whole population per sim.
-- Attractiveness vectors are precomputed per eligible sim per quarter.
+- Candidate generation uses household, workplace, school and `SpatialIndex` neighbours; it never scans the whole population per genos.
+- Attractiveness vectors are precomputed per eligible genos per quarter.
 - Only opposite-sex pairs are eligible in V4a; same-sex pairing is deferred until the policy is revisited.
 - Pairing keeps partners in separate households by default (`CohabitOnPairing = false`) until births add household formation; capacity-aware merge is implemented and opt-in.
 - Pairing requires mutual eligibility, a score above the configured threshold, and mutual acceptance drawn from `SimulationRandom`.
@@ -180,7 +180,7 @@ Attraction is explainable, deterministic and bounded:
 
 - `HousingUnit.Capacity` and `OccupantCount` are authoritative for crowding.
 - `HousingRegistry.AddMember`/`RemoveMember`/`MoveIn`/`MoveOut` remain the only membership path.
-- Partnership merge moves the lower-priority sim into the higher-priority home when capacity allows; otherwise it records the partnership and leaves the household split.
+- Partnership merge moves the lower-priority genos into the higher-priority home when capacity allows; otherwise it records the partnership and leaves the household split.
 - Household head is deterministic: existing head, then oldest adult, then lowest `NetworkId`.
 - `Tenure.Dependent` covers children and other dependants; rent remains the household's responsibility.
 - Splitting a household on separation or death creates a new household only when a member cannot remain.
@@ -206,7 +206,7 @@ Attraction is explainable, deterministic and bounded:
 
 `PersistedWorldState.CurrentSchemaVersion` moves from 5 to 6.
 
-- `PersistedSim` gains trait fields and a `TraitsMigrated` flag.
+- `PersistedGenos` gains trait fields and a `TraitsMigrated` flag.
 - New lists: `PersistedRelationship`, `PersistedPregnancy`, `PersistedGuardianship` (if separate from relationship edges), and a `PersistedFamilyOptions`/`RelationshipOptions`/`ReproductionOptions` block.
 - Relationship/pregnancy indices are rebuilt on restore, never persisted as authoritative duplicates.
 - V5 → V6 backfills traits deterministically and marks legacy family data as `Source=Restored`; no parent edges are invented for old saves.
@@ -228,7 +228,7 @@ Attraction is explainable, deterministic and bounded:
 | 621 | `FamilyMetricsSystem` | 1200 | 05 |
 | 622 | `ReproductionMetricsSystem` | 1200 | 05 |
 
-`TraitSystem` is not a tick system; traits are created with the sim or restored. Existing orders (`390` stage progression, `580` estate settlement, `590` population inflow, `620` population metrics) are unchanged except for explicit integration points.
+`TraitSystem` is not a tick system; traits are created with the genos or restored. Existing orders (`390` stage progression, `580` estate settlement, `590` population inflow, `620` population metrics) are unchanged except for explicit integration points.
 
 ### Command, event and read-model path
 
@@ -240,10 +240,10 @@ Attraction is explainable, deterministic and bounded:
 
 ### Performance
 
-- Candidate generation is capped per sim and uses indices, never a full population cross-product.
+- Candidate generation is capped per genos and uses indices, never a full population cross-product.
 - Attractiveness vectors are cached per quarter and invalidated on trait/relationship changes.
 - The family read model paginates and filters on the server.
-- V4 acceptance runs the 10-year balance scenario plus a 2,000-sim family scenario inside the existing tick budgets.
+- V4 acceptance runs the 10-year balance scenario plus a 2,000-genos family scenario inside the existing tick budgets.
 
 ---
 
@@ -279,7 +279,7 @@ Features are ordered, not strictly serial: the persistence model and trait gener
 | Family | 02, 03, 05 | inspect traits, relationships, partnerships, pregnancies, guardianships and household composition; filter by household, age, stage and relationship state |
 | Lifecycle | 04, 05 | show births, birth rate, replacement rate, children, orphans, average household size and dependency ratio |
 | Housing | 03, 05 | show household size, unit capacity, overcrowding and dependants |
-| Data | 01, 05 | show trait summary and family identifiers for a sim |
+| Data | 01, 05 | show trait summary and family identifiers for a genos |
 | Economy | 03, 04, 05 | show child costs, school costs, inheritance transfers and family-related government spending |
 
 All pages use the existing polling read model, `EmptyState`, command result pattern and admin authorization. No direct world access from the browser.
@@ -313,9 +313,9 @@ All pages use the existing polling read model, `EmptyState`, command result patt
 
 ## Definition of done for V4
 
-- Every seeded sim and every newborn has a deterministic `Traits` component; legacy snapshots migrate with a stable backfill.
+- Every seeded genos and every newborn has a deterministic `Traits` component; legacy snapshots migrate with a stable backfill.
 - Parent, child, partner and guardian edges are persisted, indexed and visible in the read model; no ancestry cycles or duplicate edges.
-- Eligible sims form partnerships through an explainable deterministic score; the same seed and options replay identically.
+- Eligible genoses form partnerships through an explainable deterministic score; the same seed and options replay identically.
 - Partners merge or split households without breaking rent, capacity, tenure, estates or the money ledger.
 - Births create complete, consistent newborns with inherited traits, parent edges, household membership and a dependency record.
 - Children are raised, enrolled at school age and transition into work; child costs are funded by real transfers.
@@ -323,4 +323,4 @@ All pages use the existing polling read model, `EmptyState`, command result patt
 - Inheritance follows family relationships, supports minors and guardians, and preserves ledger conservation.
 - The admin family page exposes traits, relationships, pregnancies, guardianships, household composition and health checks.
 - Schema 5 → 6 migration, restore, replay and the 10-year balance scenario pass.
-- The 2,000-sim family scenario stays within the existing tick budget.
+- The 2,000-genos family scenario stays within the existing tick budget.

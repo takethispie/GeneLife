@@ -6,7 +6,7 @@ namespace Genelife.UnitTests.Performance;
 
 /// <summary>
 /// Release evidence for the shared-atlas appearance contract: composing the same
-/// 2,000 living sims the 2k decade scenario runs must stay inside one 60 Hz frame.
+/// 2,000 living genoses the 2k decade scenario runs must stay inside one 60 Hz frame.
 /// The composer is pure and allocates no textures; the client reuses the same
 /// layer contract to build sprites.
 /// </summary>

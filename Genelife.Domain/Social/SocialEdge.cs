@@ -5,7 +5,7 @@ public enum SocialEdgeKind : byte { Friend, Block, Mute }
 public enum SocialEdgeSource : byte { Request, Admin, Migration, Player }
 
 /// <summary>
-/// A social relationship keyed by player id, not sim entity. Friends are
+/// A social relationship keyed by player id, not genos entity. Friends are
 /// mirrored; blocks are enforced symmetrically; mutes are one-directional.
 /// </summary>
 public sealed record SocialEdge

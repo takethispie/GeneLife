@@ -54,7 +54,7 @@ export type SubmitOutcome =
 export interface IntentClientOptions {
   invoke: (intent: Intent) => Promise<IntentResult>;
   playerId: () => string | null;
-  ownSimNetworkId: () => number;
+  ownGenosNetworkId: () => number;
   sequenceStore?: SequenceStore;
   onResult?: (intent: Intent, result: IntentResult) => void;
   onRejected?: (code: string, message: string, intent: Intent | undefined) => void;
@@ -75,7 +75,7 @@ interface PendingIntent {
 export class IntentClient {
   private readonly invoke: (intent: Intent) => Promise<IntentResult>;
   private readonly playerId: () => string | null;
-  private readonly ownSimNetworkId: () => number;
+  private readonly ownGenosNetworkId: () => number;
   private readonly sequenceStore: SequenceStore;
   private readonly onResult: ((intent: Intent, result: IntentResult) => void) | undefined;
   private readonly onRejected:
@@ -93,7 +93,7 @@ export class IntentClient {
   constructor(options: IntentClientOptions) {
     this.invoke = options.invoke;
     this.playerId = options.playerId;
-    this.ownSimNetworkId = options.ownSimNetworkId;
+    this.ownGenosNetworkId = options.ownGenosNetworkId;
     this.sequenceStore = options.sequenceStore ?? new SessionSequenceStore();
     this.onResult = options.onResult;
     this.onRejected = options.onRejected;
@@ -115,7 +115,7 @@ export class IntentClient {
       type: "move",
       playerId: context.playerId,
       sequence: this.nextSequence(),
-      simNetworkId: context.simNetworkId,
+      genosNetworkId: context.genosNetworkId,
       targetTileX: Math.trunc(targetTileX),
       targetTileY: Math.trunc(targetTileY)
     };
@@ -131,7 +131,7 @@ export class IntentClient {
       type: "useBuilding",
       playerId: context.playerId,
       sequence: this.nextSequence(),
-      simNetworkId: context.simNetworkId,
+      genosNetworkId: context.genosNetworkId,
       buildingNetworkId: buildingNetworkId
     };
 
@@ -146,7 +146,7 @@ export class IntentClient {
       type: "playerAction",
       playerId: context.playerId,
       sequence: this.nextSequence(),
-      simNetworkId: context.simNetworkId,
+      genosNetworkId: context.genosNetworkId,
       kind,
       payload
     };
@@ -189,11 +189,11 @@ export class IntentClient {
     }
   }
 
-  private context(): { playerId: string; simNetworkId: number } | null {
+  private context(): { playerId: string; genosNetworkId: number } | null {
     const playerId = this.playerId();
-    const simNetworkId = this.ownSimNetworkId();
-    if (playerId === null || playerId.trim() === "" || simNetworkId <= 0) return null;
-    return { playerId, simNetworkId };
+    const genosNetworkId = this.ownGenosNetworkId();
+    if (playerId === null || playerId.trim() === "" || genosNetworkId <= 0) return null;
+    return { playerId, genosNetworkId };
   }
 
   private nextSequence(): number {
@@ -212,6 +212,6 @@ export class IntentClient {
 function contextError(): SubmitOutcome {
   return {
     status: "not-ready",
-    message: "Your sim is not ready yet"
+    message: "Your genos is not ready yet"
   };
 }

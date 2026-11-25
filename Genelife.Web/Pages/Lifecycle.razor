@@ -43,7 +43,7 @@
 {
     var status = lifecycle.Status;
     <div class="d-flex flex-wrap align-items-center gap-2 mb-3 small text-muted">
-        <span>@status.TotalSims sims</span>
+        <span>@status.TotalGenoses genoses</span>
         <span>&middot;</span>
         <span>Average age @status.AverageAge.ToString("0.0") / median @status.MedianAge.ToString("0.0")</span>
         <span>&middot;</span>
@@ -137,7 +137,7 @@
 
     <div class="card mb-4"><div class="card-body">
         <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
-            <h2 class="h6 text-uppercase text-muted mb-0">Sim lifecycle</h2>
+            <h2 class="h6 text-uppercase text-muted mb-0">Genos lifecycle</h2>
             <div class="d-flex gap-2">
                 <select class="form-select form-select-sm" @bind="stageFilter">
                     <option value="">All stages</option>
@@ -153,47 +153,47 @@
             <table class="table table-sm table-striped align-middle mb-0">
                 <thead>
                     <tr>
-                        <th>Sim</th><th>Age</th><th>Stage</th><th>Health</th><th>Role</th><th>School / pension</th><th>Performance</th><th></th>
+                        <th>Genos</th><th>Age</th><th>Stage</th><th>Health</th><th>Role</th><th>School / pension</th><th>Performance</th><th></th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var sim in FilteredSims)
+                    @foreach (var genos in FilteredGenoses)
                     {
-                        <tr class="@(sim.IsDead ? "table-secondary" : null)">
-                            <td>@sim.Name <span class="small text-muted">#@sim.NetworkId</span></td>
-                            <td>@sim.Age</td>
-                            <td><span class="badge @StageBadge(sim.Stage)">@sim.Stage</span></td>
-                            <td>@sim.Health.ToString("0.0")</td>
+                        <tr class="@(genos.IsDead ? "table-secondary" : null)">
+                            <td>@genos.Name <span class="small text-muted">#@genos.NetworkId</span></td>
+                            <td>@genos.Age</td>
+                            <td><span class="badge @StageBadge(genos.Stage)">@genos.Stage</span></td>
+                            <td>@genos.Health.ToString("0.0")</td>
                             <td>
-                                @if (sim.IsEmployed)
+                                @if (genos.IsEmployed)
                                 {
-                                    <span>@sim.Position @sim.Seniority at @sim.Employer</span>
-                                    @if (sim.IsAtWork)
+                                    <span>@genos.Position @genos.Seniority at @genos.Employer</span>
+                                    @if (genos.IsAtWork)
                                     {
                                         <span class="badge text-bg-primary">On shift</span>
                                     }
                                 }
-                                else if (sim.IsLookingForWork)
+                                else if (genos.IsLookingForWork)
                                 {
                                     <span class="text-muted">Looking for work</span>
                                 }
                                 else
                                 {
-                                    <span class="text-muted">@sim.TopSkill</span>
+                                    <span class="text-muted">@genos.TopSkill</span>
                                 }
                             </td>
                             <td>
-                                @if (sim.IsEnrolled)
+                                @if (genos.IsEnrolled)
                                 {
-                                    <span>@sim.School &middot; attendance @Percent(sim.Attendance)</span>
+                                    <span>@genos.School &middot; attendance @Percent(genos.Attendance)</span>
                                 }
-                                else if (sim.IsUnenrolled)
+                                else if (genos.IsUnenrolled)
                                 {
                                     <span class="text-warning">Unenrolled</span>
                                 }
-                                else if (sim.MonthlyPension is { } pension)
+                                else if (genos.MonthlyPension is { } pension)
                                 {
-                                    <span>Pension @Money(pension) @if (sim.PensionReduced) { <span class="badge text-bg-warning">Reduced</span> }</span>
+                                    <span>Pension @Money(pension) @if (genos.PensionReduced) { <span class="badge text-bg-warning">Reduced</span> }</span>
                                 }
                                 else
                                 {
@@ -201,40 +201,40 @@
                                 }
                             </td>
                             <td>
-                                @if (sim.IsEmployed)
+                                @if (genos.IsEmployed)
                                 {
-                                    <span>@Percent(sim.Performance) @if (sim.Warnings > 0) { <span class="badge text-bg-warning">@sim.Warnings warnings</span> }</span>
+                                    <span>@Percent(genos.Performance) @if (genos.Warnings > 0) { <span class="badge text-bg-warning">@genos.Warnings warnings</span> }</span>
                                 }
-                                else if (sim.UnemploymentCycle is { } cycle)
+                                else if (genos.UnemploymentCycle is { } cycle)
                                 {
                                     <span class="small text-muted">Benefit cycle @cycle</span>
                                 }
                             </td>
                             <td class="text-end">
-                                @if (!sim.IsDead)
+                                @if (!genos.IsDead)
                                 {
                                     <div class="btn-group btn-group-sm flex-wrap">
-                                        @if (sim.Stage == "Education")
+                                        @if (genos.Stage == "Education")
                                         {
-                                            <button class="btn btn-outline-secondary" type="button" @onclick="() => GraduateAsync(sim.NetworkId)" disabled="@isBusy">Graduate</button>
-                                            @if (sim.IsEnrolled)
+                                            <button class="btn btn-outline-secondary" type="button" @onclick="() => GraduateAsync(genos.NetworkId)" disabled="@isBusy">Graduate</button>
+                                            @if (genos.IsEnrolled)
                                             {
-                                                <button class="btn btn-outline-secondary" type="button" @onclick="() => UnenrollAsync(sim)" disabled="@isBusy">Unenroll</button>
+                                                <button class="btn btn-outline-secondary" type="button" @onclick="() => UnenrollAsync(genos)" disabled="@isBusy">Unenroll</button>
                                             }
                                             else
                                             {
-                                                <button class="btn btn-outline-secondary" type="button" @onclick="() => EnrollAsync(sim)" disabled="@isBusy || FirstSchoolId is null">Enroll</button>
+                                                <button class="btn btn-outline-secondary" type="button" @onclick="() => EnrollAsync(genos)" disabled="@isBusy || FirstSchoolId is null">Enroll</button>
                                             }
                                         }
-                                        @if (sim.Stage == "Work")
+                                        @if (genos.Stage == "Work")
                                         {
-                                            <button class="btn btn-outline-secondary" type="button" @onclick="() => RetireAsync(sim.NetworkId)" disabled="@isBusy">Retire</button>
-                                            @if (sim.IsEmployed)
+                                            <button class="btn btn-outline-secondary" type="button" @onclick="() => RetireAsync(genos.NetworkId)" disabled="@isBusy">Retire</button>
+                                            @if (genos.IsEmployed)
                                             {
-                                                <button class="btn btn-outline-secondary" type="button" @onclick="() => PromoteAsync(sim.NetworkId)" disabled="@isBusy">Promote</button>
+                                                <button class="btn btn-outline-secondary" type="button" @onclick="() => PromoteAsync(genos.NetworkId)" disabled="@isBusy">Promote</button>
                                             }
                                         }
-                                        <button class="btn btn-outline-primary" type="button" @onclick="() => CareAsync(sim.NetworkId)" disabled="@isBusy">Care</button>
+                                        <button class="btn btn-outline-primary" type="button" @onclick="() => CareAsync(genos.NetworkId)" disabled="@isBusy">Care</button>
                                     </div>
                                 }
                             </td>
@@ -243,7 +243,7 @@
                 </tbody>
             </table>
         </div>
-        <div class="small text-muted mt-2">Showing @FilteredSims.Count() of @sims.Count sims.</div>
+        <div class="small text-muted mt-2">Showing @FilteredGenoses.Count() of @genoses.Count genoses.</div>
     </div></div>
 
     <div class="row g-3 mb-4">
@@ -340,7 +340,7 @@
     <div class="card mb-4"><div class="card-body">
         <h2 class="h6 text-uppercase text-muted">Admin lifecycle controls</h2>
         <div class="row g-2 align-items-end">
-            <div class="col-6 col-md-2"><label class="form-label small mb-1">Sim network id</label><input class="form-control form-control-sm" type="number" min="1" @bind="adminSimId" /></div>
+            <div class="col-6 col-md-2"><label class="form-label small mb-1">Genos network id</label><input class="form-control form-control-sm" type="number" min="1" @bind="adminGenosId" /></div>
             <div class="col-6 col-md-2"><label class="form-label small mb-1">Force stage</label>
                 <select class="form-select form-select-sm" @bind="adminStage">
                     <option value="Education">Education</option>
@@ -380,7 +380,7 @@
                 <h2 class="h6 text-uppercase text-muted">Recent deaths</h2>
                 <div class="table-responsive" style="max-height: 18rem;">
                     <table class="table table-sm mb-0">
-                        <thead><tr><th>Tick</th><th>Sim</th><th>Age</th><th>Cause</th><th>Wealth</th></tr></thead>
+                        <thead><tr><th>Tick</th><th>Genos</th><th>Age</th><th>Cause</th><th>Wealth</th></tr></thead>
                         <tbody>
                             @foreach (var death in lifecycle.Mortality.Take(25))
                             {
@@ -423,7 +423,7 @@
 
 @code {
     private LifecycleData? lifecycle;
-    private List<SimLifecycleData> sims = new();
+    private List<GenosLifecycleData> genoses = new();
     private Timer? timer;
     private bool isLoading;
     private bool isBusy;
@@ -453,19 +453,19 @@
     private decimal editSchoolCost = 50m;
     private string editSchoolEmphasis = "Programming";
 
-    private ulong adminSimId;
+    private ulong adminGenosId;
     private string adminStage = "Work";
     private bool benefitEligible = true;
     private string deathCause = "Other";
 
     private ulong? FirstSchoolId => lifecycle?.Schools.FirstOrDefault()?.NetworkId;
 
-    private IEnumerable<SimLifecycleData> FilteredSims => sims
-        .Where(sim => string.IsNullOrEmpty(stageFilter) || sim.Stage == stageFilter)
-        .Where(sim => string.IsNullOrWhiteSpace(nameFilter) ||
-                      sim.Name.Contains(nameFilter, StringComparison.OrdinalIgnoreCase))
-        .OrderBy(sim => sim.Stage)
-        .ThenBy(sim => sim.Age)
+    private IEnumerable<GenosLifecycleData> FilteredGenoses => genoses
+        .Where(genos => string.IsNullOrEmpty(stageFilter) || genos.Stage == stageFilter)
+        .Where(genos => string.IsNullOrWhiteSpace(nameFilter) ||
+                      genos.Name.Contains(nameFilter, StringComparison.OrdinalIgnoreCase))
+        .OrderBy(genos => genos.Stage)
+        .ThenBy(genos => genos.Age)
         .Take(200);
 
     protected override async Task OnInitializedAsync()
@@ -488,7 +488,7 @@
         try
         {
             lifecycle = await GameData.GetLifecycleAsync();
-            sims = await GameData.GetLifecycleSimsAsync();
+            genoses = await GameData.GetLifecycleGenosesAsync();
             targetPopulation = lifecycle.Status.Immigration.TargetPopulation;
             loadedAt = DateTimeOffset.Now;
         }
@@ -524,54 +524,54 @@
         }
     }
 
-    private Task GraduateAsync(ulong simId) =>
-        RunAsync(() => GameData.GraduateAsync(simId), "Graduation queued.");
+    private Task GraduateAsync(ulong genosId) =>
+        RunAsync(() => GameData.GraduateAsync(genosId), "Graduation queued.");
 
-    private Task RetireAsync(ulong simId) =>
-        RunAsync(() => GameData.RetireAsync(simId), "Retirement queued.");
+    private Task RetireAsync(ulong genosId) =>
+        RunAsync(() => GameData.RetireAsync(genosId), "Retirement queued.");
 
-    private Task CareAsync(ulong simId) =>
-        RunAsync(() => GameData.GrantCareAsync(simId), "Care queued.");
+    private Task CareAsync(ulong genosId) =>
+        RunAsync(() => GameData.GrantCareAsync(genosId), "Care queued.");
 
     private Task CreateSchoolAsync() =>
         RunAsync(
             () => GameData.CreateSchoolAsync(schoolName, schoolDistrict, schoolCapacity, schoolEmphasis, schoolCost),
             "School creation queued.");
 
-    private Task EnrollAsync(SimLifecycleData sim)
+    private Task EnrollAsync(GenosLifecycleData genos)
     {
-        var schoolId = sim.SchoolNetworkId ?? FirstSchoolId;
+        var schoolId = genos.SchoolNetworkId ?? FirstSchoolId;
         return schoolId is null
             ? Task.CompletedTask
-            : RunAsync(() => GameData.EnrollAsync(schoolId.Value, sim.NetworkId), "Enrollment queued.");
+            : RunAsync(() => GameData.EnrollAsync(schoolId.Value, genos.NetworkId), "Enrollment queued.");
     }
 
-    private Task UnenrollAsync(SimLifecycleData sim)
+    private Task UnenrollAsync(GenosLifecycleData genos)
     {
-        var schoolId = sim.SchoolNetworkId ?? FirstSchoolId;
+        var schoolId = genos.SchoolNetworkId ?? FirstSchoolId;
         return schoolId is null
             ? Task.CompletedTask
-            : RunAsync(() => GameData.UnenrollAsync(schoolId.Value, sim.NetworkId), "Unenrollment queued.");
+            : RunAsync(() => GameData.UnenrollAsync(schoolId.Value, genos.NetworkId), "Unenrollment queued.");
     }
 
-    private Task PromoteAsync(ulong simId) =>
-        RunAsync(() => GameData.PromoteAsync(simId), "Promotion queued.");
+    private Task PromoteAsync(ulong genosId) =>
+        RunAsync(() => GameData.PromoteAsync(genosId), "Promotion queued.");
 
     private Task PromoteAdminAsync() =>
-        RunAsync(() => GameData.PromoteAsync(adminSimId), "Promotion queued.");
+        RunAsync(() => GameData.PromoteAsync(adminGenosId), "Promotion queued.");
 
     private Task ForceStageAsync() =>
-        RunAsync(() => GameData.ForceStageAsync(adminSimId, adminStage), "Stage override queued.");
+        RunAsync(() => GameData.ForceStageAsync(adminGenosId, adminStage), "Stage override queued.");
 
     private Task AdvanceAgeAsync() =>
-        RunAsync(() => GameData.AdvanceAgeAsync(adminSimId, 5), "Age advance queued.");
+        RunAsync(() => GameData.AdvanceAgeAsync(adminGenosId, 5), "Age advance queued.");
 
     private Task ForceDeathAsync() =>
-        RunAsync(() => GameData.ForceDeathAsync(adminSimId, deathCause), "Death queued.");
+        RunAsync(() => GameData.ForceDeathAsync(adminGenosId, deathCause), "Death queued.");
 
     private Task ApplyBenefitAsync() =>
         RunAsync(
-            () => GameData.SetBenefitEligibilityAsync(adminSimId, benefitEligible),
+            () => GameData.SetBenefitEligibilityAsync(adminGenosId, benefitEligible),
             "Benefit eligibility updated.");
 
     private Task PausePopulationAsync() =>

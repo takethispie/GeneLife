@@ -12,10 +12,10 @@ public class HeirResolverTests
     public void PartnerAndChildrenShareTheEstate()
     {
         var context = new Context();
-        var deceased = context.Sim(60, 1);
-        var partner = context.Sim(58, 2);
-        var adultChild = context.Sim(35, 3);
-        var minorChild = context.Sim(10, 4);
+        var deceased = context.Genos(60, 1);
+        var partner = context.Genos(58, 2);
+        var adultChild = context.Genos(35, 3);
+        var minorChild = context.Genos(10, 4);
         context.Partners(deceased, partner);
         context.Parent(deceased, adultChild);
         context.Parent(deceased, minorChild);
@@ -33,9 +33,9 @@ public class HeirResolverTests
     public void ChildrenTakeEverythingWhenThereIsNoPartner()
     {
         var context = new Context();
-        var deceased = context.Sim(60, 1);
-        var first = context.Sim(30, 2);
-        var second = context.Sim(28, 3);
+        var deceased = context.Genos(60, 1);
+        var first = context.Genos(30, 2);
+        var second = context.Genos(28, 3);
         context.Parent(deceased, first);
         context.Parent(deceased, second);
 
@@ -50,10 +50,10 @@ public class HeirResolverTests
     public void PartnerWithoutChildrenLeavesResidualToParentsOrSiblings()
     {
         var context = new Context();
-        var deceased = context.Sim(60, 1);
-        var partner = context.Sim(58, 2);
-        var parent = context.Sim(85, 3);
-        var sibling = context.Sim(55, 4);
+        var deceased = context.Genos(60, 1);
+        var partner = context.Genos(58, 2);
+        var parent = context.Genos(85, 3);
+        var sibling = context.Genos(55, 4);
         context.Partners(deceased, partner);
         context.Parent(parent, deceased);
         context.Parent(parent, sibling);
@@ -71,7 +71,7 @@ public class HeirResolverTests
     public void NoRelativesYieldsNoAllocations()
     {
         var context = new Context();
-        var deceased = context.Sim(60, 1);
+        var deceased = context.Genos(60, 1);
 
         var plan = HeirResolver.Resolve(context.World, context.Index, deceased);
 
@@ -82,9 +82,9 @@ public class HeirResolverTests
     public void ExPartnerCountsAsSurvivingPartner()
     {
         var context = new Context();
-        var deceased = context.Sim(60, 1);
-        var partner = context.Sim(58, 2);
-        var child = context.Sim(20, 3);
+        var deceased = context.Genos(60, 1);
+        var partner = context.Genos(58, 2);
+        var child = context.Genos(20, 3);
         context.Partners(deceased, partner);
         context.Parent(deceased, child);
         context.Service.EndPartnership(deceased, partner, 10);
@@ -108,7 +108,7 @@ public class HeirResolverTests
             Service = new RelationshipService(World, Index);
         }
 
-        public Entity Sim(int age, ulong networkId) =>
+        public Entity Genos(int age, ulong networkId) =>
             World.Create(new Alive(age), new NetworkId(networkId));
 
         public void Partners(Entity first, Entity second) =>

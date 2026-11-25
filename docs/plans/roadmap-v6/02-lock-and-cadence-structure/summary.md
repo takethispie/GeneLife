@@ -13,7 +13,7 @@ Reduce how long the tick thread holds the global world lock, and stop the monthl
 
 ## Baseline
 
-- `SimulationEngine.Tick` holds one global `lock (@lock)` for the entire tick (`Genelife.API/Services/SimulationEngine.cs:526`). The same lock is taken by `World`, `Economy`, `MapVersion`, `CurrentTick`, `GetPlayerSimNetworkId`, `BuildMapStatus` and `ExecuteWithWorld`. Any HTTP or broadcast call that touches the world blocks the tick thread and vice versa.
+- `SimulationEngine.Tick` holds one global `lock (@lock)` for the entire tick (`Genelife.API/Services/SimulationEngine.cs:526`). The same lock is taken by `World`, `Economy`, `MapVersion`, `CurrentTick`, `GetPlayerGenosNetworkId`, `BuildMapStatus` and `ExecuteWithWorld`. Any HTTP or broadcast call that touches the world blocks the tick thread and vice versa.
 - `Cadence.ShouldRun` is `tick % Interval == 0` (`Genelife/Systems/ISimulationSystem.cs:20`). Every monthly system fires on the same tick, as do pay-cycle systems. That is a periodic thundering herd.
 - `DecisionSystem`, `NeedsDecaySystem`, `ActionSystem`, `MovementSystem`, `PathfindingSystem`, `NeedsDeathSystem` and `VenuePresenceSystem` all run `Cadence.EveryTick` and each walks the world.
 - `SystemRegistry.Update` calls `GC.GetAllocatedBytesForCurrentThread()` and `Stopwatch.GetTimestamp()` twice per system per tick, and `Metrics.RecordSystem` takes a shared lock per system per tick (`Genelife.API/Services/Metrics.cs:63-79`).

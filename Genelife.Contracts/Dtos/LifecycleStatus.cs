@@ -2,7 +2,7 @@ namespace Genelife.Api.DTOs;
 
 public sealed class LifecycleStatus
 {
-    public int TotalSims { get; set; }
+    public int TotalGenoses { get; set; }
     public int Education { get; set; }
     public int Work { get; set; }
     public int Retirement { get; set; }
@@ -71,7 +71,7 @@ public sealed class SchoolStatus
     public string Owner { get; set; } = string.Empty;
 }
 
-public sealed class SimLifecycleStatus
+public sealed class GenosLifecycleStatus
 {
     public ulong NetworkId { get; set; }
     public string Name { get; set; } = string.Empty;
@@ -146,7 +146,7 @@ public sealed class PensionMemberStatus
 public sealed class MortalityRecordStatus
 {
     public long Tick { get; set; }
-    public ulong SimNetworkId { get; set; }
+    public ulong GenosNetworkId { get; set; }
     public string Name { get; set; } = string.Empty;
     public int Age { get; set; }
     public string Cause { get; set; } = string.Empty;

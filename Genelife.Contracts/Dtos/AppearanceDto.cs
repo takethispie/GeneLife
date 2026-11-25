@@ -2,7 +2,7 @@ namespace Genelife.Api.DTOs;
 
 /// <summary>
 /// Compact appearance block. Every field is numeric and fixed-size; no traits,
-/// family data, strings or per-sim assets are included.
+/// family data, strings or per-genos assets are included.
 /// </summary>
 public sealed record AppearanceDto
 {

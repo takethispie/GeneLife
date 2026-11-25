@@ -3,7 +3,7 @@ import type { HudDock } from "../hud-dock";
 export interface VenueOccupant {
   playerId: string;
   displayName: string | null;
-  simNetworkId: number;
+  genosNetworkId: number;
 }
 
 export interface VenueActivityNotice {

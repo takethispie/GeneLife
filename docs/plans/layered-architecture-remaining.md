@@ -53,7 +53,7 @@ Defined in `Genelife.Application/Services`:
   explicitly.
 - `IEventConsumerProbe` — replaces the `IDocumentStore`/`IMessageBus`
   `hasEventConsumer` check in `SimulationEngine.Tick`.
-- `IReadModelStore` — replaces the direct Marten `SimDocument`/`CompanyDocument`
+- `IReadModelStore` — replaces the direct Marten `GenosDocument`/`CompanyDocument`
   queries in `SimulationManager`. Returns `null` when the store is unavailable so
   the manager keeps its snapshot/live-state fallback.
 
@@ -69,7 +69,7 @@ Persistence contracts that the application still needs were kept in
 ## File moves
 
 Moved to `Genelife.Application`:
-- `Commands/` (`AdminCommand`, `CommandQueue`, `ICommandQueue`, `SimCommand`)
+- `Commands/` (`AdminCommand`, `CommandQueue`, `ICommandQueue`, `GenosCommand`)
 - `Repositories/` (all in-memory ECS repositories)
 - `Snapshots/` (`AoiFilter`, `ReplicationTracker`, `SnapshotHistory`, `Viewport`,
   `ViewportRegistry`)
@@ -106,8 +106,8 @@ Two groups stay in `Genelife.API` because moving them would require the
 application/infrastructure assemblies to reference the hub type
 (`IHubContext<WorldHub>`) or ASP.NET Core:
 
-- `Handlers/` HTTP command handlers (`CreateSimHandler`, `DeleteSimHandler`,
-  `CreateCompanyHandler`, `DeleteCompanyHandler`, `SetSimActionHandler`) — they
+- `Handlers/` HTTP command handlers (`CreateGenosHandler`, `DeleteGenosHandler`,
+  `CreateCompanyHandler`, `DeleteCompanyHandler`, `SetGenosActionHandler`) — they
   return `IResult`/`Results`, so they are presentation adapters.
 - `Handlers/Push/` and `Services/SnapshotBroadcastService` — SignalR adapters
   bound to `WorldHub`.

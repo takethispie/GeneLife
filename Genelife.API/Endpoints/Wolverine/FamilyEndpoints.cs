@@ -22,9 +22,9 @@ public static class FamilyEndpoints
     [Authorize(Policy = AuthPolicies.Admin)]
     public static TraitDistributionStatus Traits(SimulationEngine engine) => engine.BuildTraitDistribution();
 
-    [WolverineGet("/api/family/sims")]
+    [WolverineGet("/api/family/genoses")]
     [Authorize(Policy = AuthPolicies.Admin)]
-    public static FamilySimPage Sims(
+    public static FamilyGenosPage Genoses(
         SimulationEngine engine,
         int take = 100,
         int skip = 0,
@@ -33,16 +33,16 @@ public static class FamilyEndpoints
         bool? hasChildren = null,
         ulong? householdId = null,
         string? name = null) =>
-        engine.BuildFamilySims(take, skip, stage, partnered, hasChildren, householdId, name);
+        engine.BuildFamilyGenoses(take, skip, stage, partnered, hasChildren, householdId, name);
 
-    [WolverineGet("/api/family/sims/{simId}")]
+    [WolverineGet("/api/family/genoses/{genosId}")]
     [Authorize(Policy = AuthPolicies.Admin)]
-    public static IResult Sim(SimulationEngine engine, ulong simId)
+    public static IResult Genos(SimulationEngine engine, ulong genosId)
     {
-        var sim = engine.BuildFamilySim(simId);
-        return sim is null
-            ? Results.NotFound(new { message = "Sim not found." })
-            : Results.Ok(sim);
+        var genos = engine.BuildFamilyGenos(genosId);
+        return genos is null
+            ? Results.NotFound(new { message = "Genos not found." })
+            : Results.Ok(genos);
     }
 
     [WolverineGet("/api/family/households")]
@@ -54,20 +54,20 @@ public static class FamilyEndpoints
     [Authorize(Policy = AuthPolicies.Admin)]
     public static FamilyRelationshipPage Relationships(
         SimulationEngine engine,
-        ulong? simId = null,
+        ulong? genosId = null,
         string? kind = null,
         string? source = null,
         int take = 100,
         int skip = 0) =>
-        engine.BuildFamilyRelationships(simId, kind, source, take, skip);
+        engine.BuildFamilyRelationships(genosId, kind, source, take, skip);
 
     [WolverineGet("/api/family/attraction")]
     [Authorize(Policy = AuthPolicies.Admin)]
     public static AttractionExplanationStatus Attraction(
         SimulationEngine engine,
-        ulong simId,
+        ulong genosId,
         ulong candidateId) =>
-        engine.BuildAttractionExplanation(simId, candidateId);
+        engine.BuildAttractionExplanation(genosId, candidateId);
 
     [WolverineGet("/api/family/pregnancies")]
     [Authorize(Policy = AuthPolicies.Admin)]
@@ -131,8 +131,8 @@ public static class FamilyEndpoints
         return Enqueue(engine, new ForcePartnershipCommand(
             Guid.NewGuid(),
             http.User.Identity?.Name ?? "admin",
-            request.SimAId,
-            request.SimBId,
+            request.GenosAId,
+            request.GenosBId,
             request.OverrideEligibility,
             request.Reason));
     }
@@ -150,8 +150,8 @@ public static class FamilyEndpoints
         return Enqueue(engine, new EndPartnershipCommand(
             Guid.NewGuid(),
             http.User.Identity?.Name ?? "admin",
-            request.SimAId,
-            request.SimBId,
+            request.GenosAId,
+            request.GenosBId,
             request.Reason));
     }
 
@@ -235,12 +235,12 @@ public static class FamilyEndpoints
 }
 
 public sealed record ForcePartnershipRequest(
-    ulong SimAId,
-    ulong SimBId,
+    ulong GenosAId,
+    ulong GenosBId,
     string Reason,
     bool OverrideEligibility = false);
 
-public sealed record EndPartnershipRequest(ulong SimAId, ulong SimBId, string Reason);
+public sealed record EndPartnershipRequest(ulong GenosAId, ulong GenosBId, string Reason);
 
 public sealed record StartPregnancyRequest(ulong CarryingParentId, ulong OtherParentId, string Reason);
 

@@ -10,7 +10,7 @@ namespace Genelife.Family;
 
 /// <summary>
 /// Player-keyed partnership and cohabitation invitations. Invitations survive
-/// heir continuation; acceptance resolves the current controlled sims and
+/// heir continuation; acceptance resolves the current controlled genoses and
 /// revalidates before it touches the V4 relationship index or housing registry.
 /// </summary>
 public sealed class PlayerRelationshipService
@@ -65,8 +65,8 @@ public sealed class PlayerRelationshipService
                 return PlayerRelationshipResult.Reject("suspended", "Your invitations are currently restricted.");
             if (social.IsBlocked(fromPlayerId, toPlayerId))
                 return PlayerRelationshipResult.Reject("blocked", "You cannot invite that player.");
-            if (!TryResolve(fromPlayerId, out var fromSim) || !TryResolve(toPlayerId, out var toSim))
-                return PlayerRelationshipResult.Reject("not_available", "Both players need an active sim.");
+            if (!TryResolve(fromPlayerId, out var fromGenos) || !TryResolve(toPlayerId, out var toGenos))
+                return PlayerRelationshipResult.Reject("not_available", "Both players need an active genos.");
             if (IsOnCooldown(fromPlayerId, toPlayerId, tick))
                 return PlayerRelationshipResult.Reject("cooldown", "That invitation was declined recently.");
             if (HasPendingLocked(fromPlayerId, toPlayerId, FamilyInvitationKind.Partnership)
@@ -76,8 +76,8 @@ public sealed class PlayerRelationshipService
             var eligibility = EligibilityPolicy.Evaluate(
                 world,
                 relationships,
-                fromSim,
-                toSim,
+                fromGenos,
+                toGenos,
                 relationshipOptions);
             if (!eligibility.Eligible)
                 return PlayerRelationshipResult.Reject(
@@ -87,8 +87,8 @@ public sealed class PlayerRelationshipService
             return CreateInvitationLocked(
                 fromPlayerId,
                 toPlayerId,
-                fromSim,
-                toSim,
+                fromGenos,
+                toGenos,
                 FamilyInvitationKind.Partnership,
                 tick);
         }
@@ -109,24 +109,24 @@ public sealed class PlayerRelationshipService
                 return PlayerRelationshipResult.Reject("suspended", "Your invitations are currently restricted.");
             if (social.IsBlocked(fromPlayerId, toPlayerId))
                 return PlayerRelationshipResult.Reject("blocked", "You cannot invite that player.");
-            if (!TryResolve(fromPlayerId, out var fromSim) || !TryResolve(toPlayerId, out var toSim))
-                return PlayerRelationshipResult.Reject("not_available", "Both players need an active sim.");
-            if (!relationships.PartnersOf(fromSim).Contains(toSim)
-                || !relationships.PartnersOf(toSim).Contains(fromSim))
+            if (!TryResolve(fromPlayerId, out var fromGenos) || !TryResolve(toPlayerId, out var toGenos))
+                return PlayerRelationshipResult.Reject("not_available", "Both players need an active genos.");
+            if (!relationships.PartnersOf(fromGenos).Contains(toGenos)
+                || !relationships.PartnersOf(toGenos).Contains(fromGenos))
                 return PlayerRelationshipResult.Reject("not_partner", "You need an active partnership first.");
             if (IsOnCooldown(fromPlayerId, toPlayerId, tick))
                 return PlayerRelationshipResult.Reject("cooldown", "That invitation was declined recently.");
             if (HasPendingLocked(fromPlayerId, toPlayerId, FamilyInvitationKind.Cohabitation)
                 || HasAnyPendingFromLocked(fromPlayerId, FamilyInvitationKind.Cohabitation))
                 return PlayerRelationshipResult.Reject("request_pending", "A cohabitation invitation is already pending.");
-            if (SameHousehold(fromSim, toSim))
+            if (SameHousehold(fromGenos, toGenos))
                 return PlayerRelationshipResult.Reject("already_cohoused", "You already share a household.");
 
             return CreateInvitationLocked(
                 fromPlayerId,
                 toPlayerId,
-                fromSim,
-                toSim,
+                fromGenos,
+                toGenos,
                 FamilyInvitationKind.Cohabitation,
                 tick);
         }
@@ -165,12 +165,12 @@ public sealed class PlayerRelationshipService
                 return PlayerRelationshipResult.Success("Invitation declined.", invitation);
             }
 
-            if (!TryResolve(invitation.FromPlayerId, out var fromSim)
-                || !TryResolve(invitation.ToPlayerId, out var toSim))
+            if (!TryResolve(invitation.FromPlayerId, out var fromGenos)
+                || !TryResolve(invitation.ToPlayerId, out var toGenos))
             {
                 SetStatusLocked(invitation, FamilyInvitationStatus.Expired);
                 EmitResponded(invitation, accepted: false, code: "not_available", tick);
-                return PlayerRelationshipResult.Reject("not_available", "One of the players has no active sim.");
+                return PlayerRelationshipResult.Reject("not_available", "One of the players has no active genos.");
             }
 
             if (social.AreInvitationsBlocked(actorPlayerId, tick))
@@ -188,8 +188,8 @@ public sealed class PlayerRelationshipService
 
             return invitation.Kind switch
             {
-                FamilyInvitationKind.Partnership => AcceptPartnershipLocked(invitation, fromSim, toSim, tick),
-                FamilyInvitationKind.Cohabitation => AcceptCohabitationLocked(invitation, fromSim, toSim, tick),
+                FamilyInvitationKind.Partnership => AcceptPartnershipLocked(invitation, fromGenos, toGenos, tick),
+                FamilyInvitationKind.Cohabitation => AcceptCohabitationLocked(invitation, fromGenos, toGenos, tick),
                 _ => PlayerRelationshipResult.Reject("not_available", "That invitation kind is not supported.")
             };
         }
@@ -207,22 +207,22 @@ public sealed class PlayerRelationshipService
         lock (gate)
         {
             RefreshLocked(tick);
-            if (!TryResolve(playerId, out var sim) || !TryResolve(partnerPlayerId, out var partner))
-                return PlayerRelationshipResult.Reject("not_available", "Both players need an active sim.");
+            if (!TryResolve(playerId, out var genos) || !TryResolve(partnerPlayerId, out var partner))
+                return PlayerRelationshipResult.Reject("not_available", "Both players need an active genos.");
 
-            if (!relationships.PartnersOf(sim).Contains(partner)
-                || !relationships.PartnersOf(partner).Contains(sim))
+            if (!relationships.PartnersOf(genos).Contains(partner)
+                || !relationships.PartnersOf(partner).Contains(genos))
                 return PlayerRelationshipResult.Reject("not_partner", "No active partnership exists.");
 
-            var firstId = NetworkIdOf(sim);
+            var firstId = NetworkIdOf(genos);
             var secondId = NetworkIdOf(partner);
-            if (!relationshipService.EndPartnership(sim, partner, tick))
+            if (!relationshipService.EndPartnership(genos, partner, tick))
                 return PlayerRelationshipResult.Reject("invalid_state", "The partnership could not be ended.");
 
             economy.Emit(new PartnershipEnded(firstId, secondId, "player-ended", tick));
 
             if (splitHousehold)
-                SplitHouseholdLocked(sim, partner, tick);
+                SplitHouseholdLocked(genos, partner, tick);
 
             return PlayerRelationshipResult.Success("Partnership ended.");
         }
@@ -233,19 +233,19 @@ public sealed class PlayerRelationshipService
         lock (gate)
         {
             RefreshLocked(tick);
-            if (!TryResolve(playerId, out var sim))
+            if (!TryResolve(playerId, out var genos))
                 return new PlayerRelationshipStatus(
                     playerId, null, null, null, false, false, Array.Empty<PlayerRelationshipInvitation>());
 
-            var partner = relationships.PartnersOf(sim).FirstOrDefault(candidate =>
+            var partner = relationships.PartnersOf(genos).FirstOrDefault(candidate =>
                 world.IsAlive(candidate) && !world.Has<Dead>(candidate));
-            var partnerPlayerId = partner != Entity.Null && players.TryGetBySim(partner, out var partnerProfile)
+            var partnerPlayerId = partner != Entity.Null && players.TryGetByGenos(partner, out var partnerProfile)
                 ? partnerProfile.PlayerId
                 : null;
             var partnerName = partner != Entity.Null && world.Has<GenName>(partner)
                 ? world.Get<GenName>(partner).Name
                 : null;
-            var sharesHousehold = partner != Entity.Null && SameHousehold(sim, partner);
+            var sharesHousehold = partner != Entity.Null && SameHousehold(genos, partner);
             var pending = invitations.Values
                 .Where(invitation => Same(invitation.FromPlayerId, playerId)
                     || Same(invitation.ToPlayerId, playerId))
@@ -308,8 +308,8 @@ public sealed class PlayerRelationshipService
     private PlayerRelationshipResult CreateInvitationLocked(
         string fromPlayerId,
         string toPlayerId,
-        Entity fromSim,
-        Entity toSim,
+        Entity fromGenos,
+        Entity toGenos,
         FamilyInvitationKind kind,
         long tick)
     {
@@ -325,8 +325,8 @@ public sealed class PlayerRelationshipService
         };
         invitations[invitation.Id] = invitation;
         economy.Emit(new PlayerInvited(
-            NetworkIdOf(fromSim),
-            NetworkIdOf(toSim),
+            NetworkIdOf(fromGenos),
+            NetworkIdOf(toGenos),
             invitation.Id,
             kind.ToString(),
             invitation.ExpiresTick,
@@ -336,15 +336,15 @@ public sealed class PlayerRelationshipService
 
     private PlayerRelationshipResult AcceptPartnershipLocked(
         PlayerRelationshipInvitation invitation,
-        Entity fromSim,
-        Entity toSim,
+        Entity fromGenos,
+        Entity toGenos,
         long tick)
     {
         var eligibility = EligibilityPolicy.Evaluate(
             world,
             relationships,
-            fromSim,
-            toSim,
+            fromGenos,
+            toGenos,
             relationshipOptions);
         if (!eligibility.Eligible)
         {
@@ -356,8 +356,8 @@ public sealed class PlayerRelationshipService
         }
 
         if (!relationshipService.TryCreatePair(
-                fromSim,
-                toSim,
+                fromGenos,
+                toGenos,
                 RelationshipKind.Partner,
                 RelationshipSource.Player,
                 tick,
@@ -370,30 +370,30 @@ public sealed class PlayerRelationshipService
             return PlayerRelationshipResult.Reject("invalid_state", "The partnership could not be formed.");
         }
 
-        economy.Emit(new PartnershipFormed(NetworkIdOf(fromSim), NetworkIdOf(toSim), 0, tick));
+        economy.Emit(new PartnershipFormed(NetworkIdOf(fromGenos), NetworkIdOf(toGenos), 0, tick));
         SetStatusLocked(invitation, FamilyInvitationStatus.Accepted);
         EmitResponded(invitation, accepted: true, code: null, tick);
         return PlayerRelationshipResult.Success("Invitation accepted.", invitation, new
         {
-            partnerSimNetworkId = NetworkIdOf(toSim)
+            partnerGenosNetworkId = NetworkIdOf(toGenos)
         });
     }
 
     private PlayerRelationshipResult AcceptCohabitationLocked(
         PlayerRelationshipInvitation invitation,
-        Entity fromSim,
-        Entity toSim,
+        Entity fromGenos,
+        Entity toGenos,
         long tick)
     {
-        if (!relationships.PartnersOf(fromSim).Contains(toSim)
-            || !relationships.PartnersOf(toSim).Contains(fromSim))
+        if (!relationships.PartnersOf(fromGenos).Contains(toGenos)
+            || !relationships.PartnersOf(toGenos).Contains(fromGenos))
         {
             SetStatusLocked(invitation, FamilyInvitationStatus.Cancelled);
             EmitResponded(invitation, accepted: false, code: "not_partner", tick);
             return PlayerRelationshipResult.Reject("not_partner", "The partnership is no longer active.");
         }
 
-        if (SameHousehold(fromSim, toSim))
+        if (SameHousehold(fromGenos, toGenos))
         {
             SetStatusLocked(invitation, FamilyInvitationStatus.Accepted);
             EmitResponded(invitation, accepted: true, code: null, tick);
@@ -404,8 +404,8 @@ public sealed class PlayerRelationshipService
         }
 
         if (!households.TryMergePartners(
-                fromSim,
-                toSim,
+                fromGenos,
+                toGenos,
                 out _,
                 out _,
                 out var fromHouseholdId,
@@ -486,16 +486,16 @@ public sealed class PlayerRelationshipService
     private bool IsOnCooldown(string fromPlayerId, string toPlayerId, long tick) =>
         declineCooldowns.TryGetValue((fromPlayerId, toPlayerId), out var until) && tick < until;
 
-    private bool TryResolve(string playerId, out Entity sim)
+    private bool TryResolve(string playerId, out Entity genos)
     {
-        sim = Entity.Null;
+        genos = Entity.Null;
         if (!players.TryGet(playerId, out var profile)
-            || profile.ControlledSim == Entity.Null
-            || !world.IsAlive(profile.ControlledSim)
-            || world.Has<Dead>(profile.ControlledSim))
+            || profile.ControlledGenos == Entity.Null
+            || !world.IsAlive(profile.ControlledGenos)
+            || world.Has<Dead>(profile.ControlledGenos))
             return false;
 
-        sim = profile.ControlledSim;
+        genos = profile.ControlledGenos;
         return true;
     }
 
@@ -511,8 +511,8 @@ public sealed class PlayerRelationshipService
         string? code,
         long tick)
     {
-        var fromId = TryResolve(invitation.FromPlayerId, out var fromSim) ? NetworkIdOf(fromSim) : 0;
-        var toId = TryResolve(invitation.ToPlayerId, out var toSim) ? NetworkIdOf(toSim) : 0;
+        var fromId = TryResolve(invitation.FromPlayerId, out var fromGenos) ? NetworkIdOf(fromGenos) : 0;
+        var toId = TryResolve(invitation.ToPlayerId, out var toGenos) ? NetworkIdOf(toGenos) : 0;
         economy.Emit(new PlayerInvitationResponded(
             fromId,
             toId,

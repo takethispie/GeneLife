@@ -77,7 +77,7 @@ public class MortalitySystem : ISimulationSystem
             if (modifier.IsHomeless)
                 housingRisk = 0.01f;
         }
-        else if (!economy.Housing.HouseholdBySim.ContainsKey(entity))
+        else if (!economy.Housing.HouseholdByGenos.ContainsKey(entity))
         {
             housingRisk = 0.01f;
         }

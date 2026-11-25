@@ -9,17 +9,17 @@ namespace Genelife.UnitTests.Repositories;
 public class NetworkIdRepositoryTests
 {
     [Fact]
-    public void SimRepository_Add_AssignsNetworkIdToStatus()
+    public void GenosRepository_Add_AssignsNetworkIdToStatus()
     {
         var world = World.Create();
         var registry = new NetworkIdRegistry();
-        var repository = new SimRepository(world, registry);
+        var repository = new GenosRepository(world, registry);
 
         repository.Add("Alice", 30);
 
-        var sim = Assert.Single(repository.GetAll());
-        Assert.NotEqual(0UL, sim.NetworkId);
-        Assert.True(registry.TryGetEntity(new NetworkId(sim.NetworkId), out var entity));
+        var genos = Assert.Single(repository.GetAll());
+        Assert.NotEqual(0UL, genos.NetworkId);
+        Assert.True(registry.TryGetEntity(new NetworkId(genos.NetworkId), out var entity));
         Assert.True(world.IsAlive(entity));
     }
 

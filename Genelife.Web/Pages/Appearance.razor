@@ -12,7 +12,7 @@
         <p class="text-muted mb-0">Deterministic trait-derived descriptors, layered portraits and family resemblance.</p>
     </div>
     <div class="d-flex align-items-center gap-3">
-        <input class="form-control" style="min-width: 18rem" @bind="search" @bind:event="oninput" placeholder="Search sim name or network id" />
+        <input class="form-control" style="min-width: 18rem" @bind="search" @bind:event="oninput" placeholder="Search genos name or network id" />
         <button class="btn btn-primary" type="button" @onclick="LoadAsync" disabled="@isLoading">Search</button>
     </div>
 </div>
@@ -26,21 +26,21 @@
     <div class="col-12 col-xl-4">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <span>Sims</span>
+                <span>Genoses</span>
                 <span class="small text-muted">@(page?.Total ?? 0) living</span>
             </div>
             <div class="list-group list-group-flush" style="max-height: 34rem; overflow-y: auto;">
                 @if (page is not null)
                 {
-                    @foreach (var sim in page.Items)
+                    @foreach (var genos in page.Items)
                     {
-                        <button type="button" class="list-group-item list-group-item-action d-flex align-items-center gap-3 @(focal?.NetworkId == sim.NetworkId ? "active" : null)" @onclick="() => SelectAsync(sim)">
-                            <span style="width: 42px; height: 56px; display: block;">@((MarkupString)AppearanceSvgRenderer.Render(sim, 42, 56))</span>
+                        <button type="button" class="list-group-item list-group-item-action d-flex align-items-center gap-3 @(focal?.NetworkId == genos.NetworkId ? "active" : null)" @onclick="() => SelectAsync(genos)">
+                            <span style="width: 42px; height: 56px; display: block;">@((MarkupString)AppearanceSvgRenderer.Render(genos, 42, 56))</span>
                             <span class="flex-grow-1">
-                                <span class="d-block fw-semibold">@sim.Name</span>
-                                <span class="small opacity-75">#@sim.NetworkId · age @sim.Age · @sim.Stage</span>
+                                <span class="d-block fw-semibold">@genos.Name</span>
+                                <span class="small opacity-75">#@genos.NetworkId · age @genos.Age · @genos.Stage</span>
                             </span>
-                            @if (sim.IsPlayerControlled)
+                            @if (genos.IsPlayerControlled)
                             {
                                 <span class="badge text-bg-info">Player</span>
                             }
@@ -54,7 +54,7 @@
     <div class="col-12 col-xl-8">
         @if (focal is null)
         {
-            <div class="alert alert-secondary">Select a sim to preview its descriptor and layers.</div>
+            <div class="alert alert-secondary">Select a genos to preview its descriptor and layers.</div>
         }
         else
         {
@@ -107,9 +107,9 @@
                         <div class="col-6 col-md-4">
                             <div class="card h-100">
                                 <div class="card-body text-center">
-                                    <div style="width: 90px; height: 120px; margin: 0 auto;">@((MarkupString)AppearanceSvgRenderer.Render(member.Sim, 90, 120))</div>
-                                    <div class="fw-semibold mt-2">@member.Sim.Name</div>
-                                    <div class="small text-muted">@member.Relation · age @member.Sim.Age</div>
+                                    <div style="width: 90px; height: 120px; margin: 0 auto;">@((MarkupString)AppearanceSvgRenderer.Render(member.Genos, 90, 120))</div>
+                                    <div class="fw-semibold mt-2">@member.Genos.Name</div>
+                                    <div class="small text-muted">@member.Relation · age @member.Genos.Age</div>
                                     <div class="small mt-2">Shared genes: @member.SharedFields / 4</div>
                                     <div class="small text-muted">skin @(member.SharesSkinTone ? "yes" : "no") · face @(member.SharesFaceShape ? "yes" : "no") · hair @(member.SharesHairColor ? "yes" : "no") · eyes @(member.SharesEyeColor ? "yes" : "no")</div>
                                     <div class="progress mt-2" style="height: 5px"><div class="progress-bar" style="width: @(member.ResemblanceScore * 100)%"></div></div>
@@ -138,7 +138,7 @@
 
 @code {
     private AppearancePageData? page;
-    private AppearanceSimData? focal;
+    private AppearanceGenosData? focal;
     private AppearanceFamilyData? family;
     private string search = string.Empty;
     private bool isLoading;
@@ -173,13 +173,13 @@
         }
     }
 
-    private async Task SelectAsync(AppearanceSimData sim)
+    private async Task SelectAsync(AppearanceGenosData genos)
     {
         error = null;
         try
         {
-            focal = await GameData.GetAppearanceAsync(sim.NetworkId);
-            family = await GameData.GetAppearanceFamilyAsync(sim.NetworkId);
+            focal = await GameData.GetAppearanceAsync(genos.NetworkId);
+            family = await GameData.GetAppearanceFamilyAsync(genos.NetworkId);
             missingDiagnostics.Clear();
             foreach (var part in AllParts(focal))
             {
@@ -198,15 +198,15 @@
         part.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_') &&
         part.Contains('-', StringComparison.Ordinal);
 
-    private static IEnumerable<string> AllParts(AppearanceSimData sim)
+    private static IEnumerable<string> AllParts(AppearanceGenosData genos)
     {
-        yield return sim.Layers.BodyPart;
-        yield return sim.Layers.SkinPalette;
-        yield return sim.Layers.FacePart;
-        yield return sim.Layers.EyePart;
-        yield return sim.Layers.HairPart;
-        yield return sim.Layers.OutfitPart;
-        yield return sim.Layers.ExpressionPart;
+        yield return genos.Layers.BodyPart;
+        yield return genos.Layers.SkinPalette;
+        yield return genos.Layers.FacePart;
+        yield return genos.Layers.EyePart;
+        yield return genos.Layers.HairPart;
+        yield return genos.Layers.OutfitPart;
+        yield return genos.Layers.ExpressionPart;
     }
 
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;

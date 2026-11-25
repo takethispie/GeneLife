@@ -4,7 +4,7 @@ import { IntentClient, MemorySequenceStore } from "./intent-client";
 
 const base = {
   playerId: () => "player-1",
-  ownSimNetworkId: () => 7
+  ownGenosNetworkId: () => 7
 };
 
 describe("IntentClient", () => {
@@ -27,7 +27,7 @@ describe("IntentClient", () => {
     expect(sent[0]).toMatchObject({
       type: "move",
       playerId: "player-1",
-      simNetworkId: 7,
+      genosNetworkId: 7,
       targetTileX: 3,
       targetTileY: 4,
       sequence: 1
@@ -59,7 +59,7 @@ describe("IntentClient", () => {
       expect.objectContaining({
         type: "useBuilding",
         buildingNetworkId: 7002,
-        simNetworkId: 7
+        genosNetworkId: 7
       })
     );
   });
@@ -74,7 +74,7 @@ describe("IntentClient", () => {
     expect(invoke).toHaveBeenCalledWith(
       expect.objectContaining({
         type: "playerAction",
-        simNetworkId: 7,
+        genosNetworkId: 7,
         kind: "InvitePartner",
         payload: { targetPlayerId: "player-2" }
       })
@@ -93,9 +93,9 @@ describe("IntentClient", () => {
     expect(invoke).toHaveBeenCalledTimes(1);
   });
 
-  it("fails closed when the sim is not ready", async () => {
+  it("fails closed when the genos is not ready", async () => {
     const invoke = vi.fn(async () => ({ success: true }));
-    const client = new IntentClient({ ...base, ownSimNetworkId: () => 0, invoke });
+    const client = new IntentClient({ ...base, ownGenosNetworkId: () => 0, invoke });
     const outcome = await client.moveTo(1, 1);
     expect(outcome.status).toBe("not-ready");
     expect(invoke).not.toHaveBeenCalled();

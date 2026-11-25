@@ -38,37 +38,37 @@ public sealed class EmploymentRepository
         this.economy = economy;
     }
 
-    public bool Fire(ulong simNetworkId, long tick, bool companyInitiated = true)
-        => Separate(simNetworkId, tick, companyInitiated);
+    public bool Fire(ulong genosNetworkId, long tick, bool companyInitiated = true)
+        => Separate(genosNetworkId, tick, companyInitiated);
 
-    public bool Resign(ulong simNetworkId, long tick)
-        => Separate(simNetworkId, tick, companyInitiated: false);
+    public bool Resign(ulong genosNetworkId, long tick)
+        => Separate(genosNetworkId, tick, companyInitiated: false);
 
-    private bool Separate(ulong simNetworkId, long tick, bool companyInitiated)
+    private bool Separate(ulong genosNetworkId, long tick, bool companyInitiated)
     {
-        if (!networkIds.TryGetEntity(new NetworkId(simNetworkId), out var sim) ||
-            !world.IsAlive(sim) ||
-            !world.Has<Employee>(sim))
+        if (!networkIds.TryGetEntity(new NetworkId(genosNetworkId), out var genos) ||
+            !world.IsAlive(genos) ||
+            !world.Has<Employee>(genos))
             return false;
 
-        var employee = world.Get<Employee>(sim);
+        var employee = world.Get<Employee>(genos);
         var company = employee.Company;
         var severance = companyInitiated
             ? employee.SalaryPerCycle * (economy?.Options.SeveranceCycles ?? 2)
             : Money.Zero;
 
-        LifeSystemHelpers.RemoveEmployment(world, index, economy, sim, tick);
+        LifeSystemHelpers.RemoveEmployment(world, index, economy, genos, tick);
 
-        if (!world.Has<Wallet>(sim))
-            world.Add(sim, new Wallet(Money.Zero));
+        if (!world.Has<Wallet>(genos))
+            world.Add(genos, new Wallet(Money.Zero));
 
-        var isWorkStage = !world.Has<Lifecycle>(sim) || world.Get<Lifecycle>(sim).Stage == LifeStage.Work;
-        if (isWorkStage && !world.Has<JobSeeker>(sim))
+        var isWorkStage = !world.Has<Lifecycle>(genos) || world.Get<Lifecycle>(genos).Stage == LifeStage.Work;
+        if (isWorkStage && !world.Has<JobSeeker>(genos))
         {
-            var profile = world.Has<SkillProfile>(sim) ? world.Get<SkillProfile>(sim) : new SkillProfile();
+            var profile = world.Has<SkillProfile>(genos) ? world.Get<SkillProfile>(genos) : new SkillProfile();
             var desired = (employee.SalaryPerCycle * 0.9m)
                 .Max(economy?.Life.Careers.MinimumSalary ?? Money.FromUnits(500m));
-            world.Add(sim, new JobSeeker(true, profile.ToMask(), desired));
+            world.Add(genos, new JobSeeker(true, profile.ToMask(), desired));
         }
 
         var paid = Money.Zero;
@@ -81,42 +81,42 @@ public sealed class EmploymentRepository
                     severance,
                     LedgerKind.SeverancePaid,
                     Guid.NewGuid(),
-                    CompanyAccountService.NetworkIdOf(world, sim),
+                    CompanyAccountService.NetworkIdOf(world, genos),
                     "severance",
                     tick);
-                ref var wallet = ref world.Get<Wallet>(sim);
+                ref var wallet = ref world.Get<Wallet>(genos);
                 wallet.Balance += severance;
                 paid = severance;
             }
             else if (severance.IsPositive)
             {
-                AddSeveranceClaim(sim, company, severance, tick);
+                AddSeveranceClaim(genos, company, severance, tick);
             }
         }
 
         economy?.Emit(new EmployeeFired(
             CompanyAccountService.NetworkIdOf(world, company),
-            simNetworkId));
+            genosNetworkId));
 
         if (!companyInitiated)
             economy?.Emit(new EmployeeResigned(
                 CompanyAccountService.NetworkIdOf(world, company),
-                simNetworkId));
+                genosNetworkId));
 
         return true;
     }
 
-    private void AddSeveranceClaim(Entity sim, Entity company, Money severance, long tick)
+    private void AddSeveranceClaim(Entity genos, Entity company, Money severance, long tick)
     {
-        if (world.Has<WageClaim>(sim))
+        if (world.Has<WageClaim>(genos))
         {
-            ref var claim = ref world.Get<WageClaim>(sim);
+            ref var claim = ref world.Get<WageClaim>(genos);
             claim.Severance += severance;
             claim.Company = company;
             return;
         }
 
-        world.Add(sim, new WageClaim(company, Money.Zero, Money.Zero, tick)
+        world.Add(genos, new WageClaim(company, Money.Zero, Money.Zero, tick)
         {
             Severance = severance
         });

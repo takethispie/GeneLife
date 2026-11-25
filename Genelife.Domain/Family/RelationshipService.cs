@@ -8,7 +8,7 @@ public enum RelationshipError
 {
     None,
     SelfEdge,
-    MissingSim,
+    MissingGenos,
     Duplicate,
     SecondPartner,
     AncestryCycle,
@@ -68,7 +68,7 @@ public sealed class RelationshipService
 
         if (!world.IsAlive(from) || !world.IsAlive(to))
         {
-            error = RelationshipError.MissingSim;
+            error = RelationshipError.MissingGenos;
             return false;
         }
 
@@ -126,13 +126,13 @@ public sealed class RelationshipService
         return true;
     }
 
-    public int RemoveEdgesForSim(Entity sim)
+    public int RemoveEdgesForGenos(Entity genos)
     {
         var edges = new List<Entity>();
         world.Query(in new QueryDescription().WithAll<Relationship>(),
             (Entity entity, ref Relationship relationship) =>
             {
-                if (relationship.From == sim || relationship.To == sim)
+                if (relationship.From == genos || relationship.To == genos)
                     edges.Add(entity);
             });
 

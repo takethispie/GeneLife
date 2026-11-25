@@ -1,13 +1,13 @@
-# Genelife - Sims-Like Simulation with Arch ECS
+# Genelife - Genos-Style Simulation with Arch ECS
 
-A barebones Sims-like simulation library built with .NET and Arch ECS.
+A barebones Genos-style simulation library built with .NET and Arch ECS.
 
 ## Features
 
 ### Components
 - **Needs**: Tracks Hunger, Energy, Hygiene, and Bladder (0-100 scale)
-- **CurrentAction**: Tracks what action a Sim is currently performing
-- **SimName**: Identifies each Sim
+- **CurrentAction**: Tracks what action a Genos is currently performing
+- **GenName**: Identifies each Genos
 
 ### Systems
 - **NeedsDecaySystem**: Decreases needs over time at different rates
@@ -34,9 +34,9 @@ Then access the Swagger UI at: https://localhost:5001/swagger
 
 - `POST /api/simulation/start` - Start the simulation
 - `POST /api/simulation/stop` - Stop the simulation
-- `GET /api/simulation/status` - Get simulation status and all Sims
-- `POST /api/simulation/sims` - Add a new Sim (body: `{"name": "SimName"}`)
-- `GET /api/simulation/sims` - Get all Sims
+- `GET /api/simulation/status` - Get simulation status and all Genoses
+- `POST /api/simulation/genoses` - Add a new Genos (body: `{"name": "GenosName"}`)
+- `GET /api/simulation/genoses` - Get all Genoses
 
 ## Project Structure
 
@@ -45,7 +45,7 @@ Genelife/                    (Class Library)
 ├── Components/
 │   ├── Needs.cs
 │   ├── CurrentAction.cs
-│   └── SimName.cs
+│   └── GenName.cs
 └── Systems/
     ├── NeedsDecaySystem.cs
     ├── ActionSystem.cs

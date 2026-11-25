@@ -19,7 +19,7 @@ public class FamilyReproductionAdminTests
 
         engine.ExecuteWithWorld(world =>
         {
-            var repository = new SimRepository(world, engine.NetworkIds, engine.Economy);
+            var repository = new GenosRepository(world, engine.NetworkIds, engine.Economy);
             firstId = repository.Add("First", 30).Value;
             secondId = repository.Add("Second", 31).Value;
             childId = repository.Add("Baby", 0).Value;

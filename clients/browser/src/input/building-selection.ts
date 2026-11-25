@@ -5,7 +5,7 @@ import type { NotificationKind } from "../ui/notifications";
 
 export interface BuildingSelectionOptions {
   getMap: () => DecodedMap | null;
-  getOwnSimTile: () => { x: number; y: number } | null;
+  getOwnGenosTile: () => { x: number; y: number } | null;
   intent: IntentClient;
   onChanged: (building: MapBuilding | null) => void;
   notify: (kind: NotificationKind, code: string, message: string) => void;
@@ -58,10 +58,10 @@ export class BuildingSelectionController {
 
   nearEntry(): boolean {
     const building = this.selected;
-    const simTile = this.options.getOwnSimTile();
-    if (building === null || simTile === null) return false;
+    const genosTile = this.options.getOwnGenosTile();
+    if (building === null || genosTile === null) return false;
     return (
-      Math.max(Math.abs(simTile.x - building.entryX), Math.abs(simTile.y - building.entryY)) <=
+      Math.max(Math.abs(genosTile.x - building.entryX), Math.abs(genosTile.y - building.entryY)) <=
       this.nearEntryRadius
     );
   }

@@ -41,13 +41,13 @@ interface Elements {
   dock: HudDock;
   connection: HTMLElement;
   player: HTMLElement;
-  ownSim: HTMLElement;
+  ownGenos: HTMLElement;
   map: HTMLElement;
   tick: HTMLElement;
   version: HTMLElement;
   fps: HTMLElement;
   frame: HTMLElement;
-  sims: HTMLElement;
+  genoses: HTMLElement;
   viewport: HTMLElement;
   buffer: HTMLElement;
   interp: HTMLElement;
@@ -155,13 +155,13 @@ export class Hud {
     e.connectionCard.dataset.connection = state.connection;
     e.dock.setConnection(state.connection);
     setText(e.player, state.playerId || "not signed in");
-    setText(e.ownSim, state.ownSimNetworkId > 0 ? String(state.ownSimNetworkId) : "—");
+    setText(e.ownGenos, state.ownGenosNetworkId > 0 ? String(state.ownGenosNetworkId) : "—");
     setText(e.map, state.mapId || "—");
     setText(e.version, String(state.mapVersion));
     setText(e.tick, String(state.tick));
     setText(e.fps, state.fps.toFixed(0));
     setText(e.frame, `${state.frameTimeMs.toFixed(1)} ms`);
-    setText(e.sims, `${state.visibleSims}/${state.totalSims}`);
+    setText(e.genoses, `${state.visibleGenoses}/${state.totalGenoses}`);
     setText(e.viewport, String(state.viewportRadius));
     setText(e.buffer, String(state.bufferFrames));
     setText(e.interp, `${state.interpolationDelayMs} ms`);
@@ -288,15 +288,15 @@ function buildDom(options: HudOptions): Elements {
   const connectionCard = div("connection-card");
   const connection = div("value");
   const player = div("value");
-  const ownSim = div("value");
-  connectionCard.append(row("Connection", connection), row("Player", player), row("Sim", ownSim));
+  const ownGenos = div("value");
+  connectionCard.append(row("Connection", connection), row("Player", player), row("Genos", ownGenos));
 
   const map = div("value");
   const version = div("value");
   const tick = div("value");
   const fps = div("value");
   const frame = div("value");
-  const sims = div("value");
+  const genoses = div("value");
   const viewport = div("value");
   const buffer = div("value");
   const interp = div("value");
@@ -314,7 +314,7 @@ function buildDom(options: HudOptions): Elements {
       row("Map", map),
       row("Version", version),
       row("Tick", tick),
-      row("Sims", sims),
+      row("Genoses", genoses),
       row("Viewport r", viewport),
       row("Renderer", renderer)
     ),
@@ -455,13 +455,13 @@ function buildDom(options: HudOptions): Elements {
     dock,
     connection,
     player,
-    ownSim,
+    ownGenos,
     map,
     version,
     tick,
     fps,
     frame,
-    sims,
+    genoses,
     viewport,
     buffer,
     interp,

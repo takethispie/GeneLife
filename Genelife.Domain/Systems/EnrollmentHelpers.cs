@@ -11,12 +11,12 @@ namespace Genelife.Systems;
 /// </summary>
 public static class EnrollmentHelpers
 {
-    public static bool ReleaseSeat(World world, Entity sim, LifecycleIndex? index)
+    public static bool ReleaseSeat(World world, Entity genos, LifecycleIndex? index)
     {
-        if (!world.IsAlive(sim) || !world.Has<Enrollment>(sim))
+        if (!world.IsAlive(genos) || !world.Has<Enrollment>(genos))
             return false;
 
-        var enrollment = world.Get<Enrollment>(sim);
+        var enrollment = world.Get<Enrollment>(genos);
         if (!enrollment.IsUnenrolled && world.IsAlive(enrollment.School) &&
             world.Has<School>(enrollment.School))
         {
@@ -25,7 +25,7 @@ public static class EnrollmentHelpers
         }
 
         index?.OnUnenrolled(enrollment.School, enrollment.IsUnenrolled);
-        world.Remove<Enrollment>(sim);
+        world.Remove<Enrollment>(genos);
         return true;
     }
 }

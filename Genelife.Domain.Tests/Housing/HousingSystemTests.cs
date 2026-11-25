@@ -23,31 +23,31 @@ public class HousingSystemTests
         var economy = new EconomyContext(world);
         economy.UtilityOptions.SubsidyBasisPoints = 0;
         var (_, unit) = TestHousing.CreateUnit(world, economy, 10, 11);
-        var sim = TestHousing.Sim(world, 1, 1000m);
-        var household = TestHousing.Household(world, economy.Housing, sim, unit, 120m);
+        var genos = TestHousing.Genos(world, 1, 1000m);
+        var household = TestHousing.Household(world, economy.Housing, genos, unit, 120m);
         var system = new RentSystem(world, economy);
 
-        var before = world.Get<Wallet>(sim).Balance;
+        var before = world.Get<Wallet>(genos).Balance;
         system.Update(100, SimulationClock.Default);
 
-        var after = world.Get<Wallet>(sim).Balance;
+        var after = world.Get<Wallet>(genos).Balance;
         Assert.True(after < before);
         Assert.True(economy.Government.Balance.IsPositive);
         Assert.Equal(Money.Zero, world.Get<Household>(household).RentArrears);
         Assert.Equal(100, world.Get<Household>(household).LastRentTick);
 
-        var paidOnce = world.Get<Wallet>(sim).Balance;
+        var paidOnce = world.Get<Wallet>(genos).Balance;
         system.Update(100, SimulationClock.Default);
-        Assert.Equal(paidOnce, world.Get<Wallet>(sim).Balance);
+        Assert.Equal(paidOnce, world.Get<Wallet>(genos).Balance);
 
-        world.Get<Wallet>(sim).Balance = Money.Zero;
+        world.Get<Wallet>(genos).Balance = Money.Zero;
         system.Update(200, SimulationClock.Default);
         var missed = world.Get<Household>(household);
         Assert.True(missed.RentArrears.IsPositive);
         Assert.Equal(1, missed.ArrearsCycles);
         Assert.True(missed.UtilityArrears.IsPositive);
 
-        world.Get<Wallet>(sim).Balance = new Money(500_00);
+        world.Get<Wallet>(genos).Balance = new Money(500_00);
         system.Update(300, SimulationClock.Default);
         var cleared = world.Get<Household>(household);
         Assert.Equal(Money.Zero, cleared.RentArrears);
@@ -84,20 +84,20 @@ public class HousingSystemTests
         var world = World.Create();
         var economy = new EconomyContext(world);
         var (_, unit) = TestHousing.CreateUnit(world, economy, 10, 11, HousingTier.Basic);
-        var sim = TestHousing.Sim(world, 1, 500m);
-        var household = TestHousing.Household(world, economy.Housing, sim, unit, 120m);
+        var genos = TestHousing.Genos(world, 1, 500m);
+        var household = TestHousing.Household(world, economy.Housing, genos, unit, 120m);
         var system = new HousingModifierSystem(world, economy.Housing);
 
         system.Update();
-        Assert.True(world.Has<NeedsModifier>(sim));
-        var basic = world.Get<NeedsModifier>(sim);
+        Assert.True(world.Has<NeedsModifier>(genos));
+        var basic = world.Get<NeedsModifier>(genos);
         Assert.Equal(0.8f, basic.SleepRecovery);
         Assert.False(basic.IsHomeless);
 
         economy.Housing.MoveOut(unit, household);
         system.Update();
-        Assert.True(world.Get<NeedsModifier>(sim).IsHomeless);
-        Assert.True(world.Get<NeedsModifier>(sim).HealthDrift < 0f);
+        Assert.True(world.Get<NeedsModifier>(genos).IsHomeless);
+        Assert.True(world.Get<NeedsModifier>(genos).HealthDrift < 0f);
     }
 
     [Fact]
@@ -107,8 +107,8 @@ public class HousingSystemTests
         var economy = new EconomyContext(world);
         var (_, oldUnit) = TestHousing.CreateUnit(world, economy, 10, 11);
         var (_, newUnit) = TestHousing.CreateUnit(world, economy, 20, 21);
-        var sim = TestHousing.Sim(world, 1, 1000m);
-        var household = TestHousing.Household(world, economy.Housing, sim, oldUnit, 120m);
+        var genos = TestHousing.Genos(world, 1, 1000m);
+        var household = TestHousing.Household(world, economy.Housing, genos, oldUnit, 120m);
 
         var data = world.Get<Household>(household);
         data.ArrearsCycles = 3;

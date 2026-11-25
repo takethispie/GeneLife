@@ -23,7 +23,7 @@ describe("SimulationStore world replication", () => {
     const result = store.applySnapshot(world, 0);
     expect(result.status).toBe("applied");
     expect(store.tick).toBe(100);
-    expect(store.sims.size).toBe(5);
+    expect(store.genoses.size).toBe(5);
     expect(store.companies.size).toBe(1);
     expect(store.getStats().fullSnapshots).toBe(1);
   });
@@ -34,9 +34,9 @@ describe("SimulationStore world replication", () => {
     const result = store.applyDelta(delta, 40);
     expect(result.status).toBe("applied");
     expect(store.tick).toBe(101);
-    expect(store.sims.has(5)).toBe(false);
-    expect(store.sims.get(1)?.x).toBe(0.5);
-    expect(store.sims.get(2)?.x).toBe(3.9);
+    expect(store.genoses.has(5)).toBe(false);
+    expect(store.genoses.get(1)?.x).toBe(0.5);
+    expect(store.genoses.get(2)?.x).toBe(3.9);
     expect(store.getStats().appliedDeltas).toBe(1);
   });
 
@@ -63,11 +63,11 @@ describe("SimulationStore world replication", () => {
     const store = storeWithMap();
     store.applySnapshot(world, 0);
     const result = store.applyDelta(
-      { ...delta, full: true, sinceTick: 0, sims: world.sims, companies: world.companies, removedSims: [] },
+      { ...delta, full: true, sinceTick: 0, genoses: world.genoses, companies: world.companies, removedGenoses: [] },
       40
     );
     expect(result.status).toBe("applied");
-    expect(store.sims.size).toBe(5);
+    expect(store.genoses.size).toBe(5);
   });
 
   it("ignores an older full snapshot", () => {
@@ -97,7 +97,7 @@ describe("SimulationStore map coordination", () => {
     const snapshotResult = store.applySnapshot(world, 0);
     expect(snapshotResult.status).toBe("map-stale");
     expect(snapshotResult.requestMapSnapshot).toBe(true);
-    expect(store.sims.size).toBe(0);
+    expect(store.genoses.size).toBe(0);
 
     store.applyMapSnapshot({ ...map, version: 4 });
     expect(store.isMapStale).toBe(false);
@@ -120,9 +120,9 @@ describe("SimulationStore interpolation", () => {
     expect(state).not.toBeNull();
     expect(state?.frameCount).toBe(2);
     // target tick 100.5: Ada moves 0 -> 0.5
-    expect(state?.sims.get(1)?.x).toBeCloseTo(0.25, 5);
-    expect(state?.sims.get(1)?.interpolated).toBe(true);
-    expect(state?.sims.has(5)).toBe(false);
+    expect(state?.genoses.get(1)?.x).toBeCloseTo(0.25, 5);
+    expect(state?.genoses.get(1)?.interpolated).toBe(true);
+    expect(state?.genoses.has(5)).toBe(false);
   });
 
   it("never extrapolates past the newest tick", () => {
@@ -135,7 +135,7 @@ describe("SimulationStore interpolation", () => {
       interpolationDelayMs: 0
     });
     expect(state?.targetTick).toBe(101);
-    expect(state?.sims.get(1)?.x).toBe(0.5);
+    expect(state?.genoses.get(1)?.x).toBe(0.5);
   });
 
   it("returns latest positions in reduced-motion mode", () => {
@@ -147,8 +147,8 @@ describe("SimulationStore interpolation", () => {
       interpolationDelayMs: 120,
       reducedMotion: true
     });
-    expect(state?.sims.get(1)?.x).toBe(0.5);
-    expect(state?.sims.get(1)?.interpolated).toBe(false);
+    expect(state?.genoses.get(1)?.x).toBe(0.5);
+    expect(state?.genoses.get(1)?.interpolated).toBe(false);
   });
 
   it("snaps instead of interpolating across a large correction", () => {
@@ -157,7 +157,7 @@ describe("SimulationStore interpolation", () => {
     store.applyDelta(
       {
         ...delta,
-        sims: [{ ...delta.sims[0]!, x: 50, y: 0, tileX: 50 }]
+        genoses: [{ ...delta.genoses[0]!, x: 50, y: 0, tileX: 50 }]
       },
       1040
     );
@@ -166,28 +166,28 @@ describe("SimulationStore interpolation", () => {
       interpolationDelayMs: 40,
       snapDistance: 3
     });
-    expect(state?.sims.get(1)?.snapped).toBe(true);
-    expect(state?.sims.get(1)?.x).toBe(50);
+    expect(state?.genoses.get(1)?.snapped).toBe(true);
+    expect(state?.genoses.get(1)?.x).toBe(50);
   });
 
-  it("applies a 2000-sim snapshot within the frame budget", () => {
+  it("applies a 2000-genos snapshot within the frame budget", () => {
     const store = storeWithMap();
     const big = validateWorldSnapshot(world2000Fixture);
     const started = performance.now();
     const result = store.applySnapshot(big, 0);
     const elapsed = performance.now() - started;
     expect(result.status).toBe("applied");
-    expect(store.sims.size).toBe(2000);
+    expect(store.genoses.size).toBe(2000);
     expect(elapsed).toBeLessThan(200);
   });
 });
 
 describe("SimulationStore ownership and reset", () => {
-  it("tracks the player's own sim id", () => {
+  it("tracks the player's own genos id", () => {
     const store = storeWithMap();
     store.applySnapshot(world, 0);
-    store.setOwnSim(1);
-    expect(store.ownSimId).toBe(1);
+    store.setOwnGenos(1);
+    expect(store.ownGenosId).toBe(1);
     expect(store.positionOf(1)).toMatchObject({ tileX: 0, tileY: 0 });
     expect(store.positionOf(999)).toBeNull();
   });
@@ -195,12 +195,12 @@ describe("SimulationStore ownership and reset", () => {
   it("resets all state", () => {
     const store = storeWithMap();
     store.applySnapshot(world, 0);
-    store.setOwnSim(1);
+    store.setOwnGenos(1);
     store.reset();
     expect(store.map).toBeNull();
     expect(store.tick).toBe(0);
-    expect(store.sims.size).toBe(0);
-    expect(store.ownSimId).toBe(0);
+    expect(store.genoses.size).toBe(0);
+    expect(store.ownGenosId).toBe(0);
     expect(store.getStats().appliedTicks).toBe(0);
   });
 });

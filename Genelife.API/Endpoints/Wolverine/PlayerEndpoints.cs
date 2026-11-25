@@ -27,7 +27,7 @@ public static class PlayerEndpoints
         var admission = commands.Admit(
             playerId,
             request.Kind,
-            request.SimNetworkId,
+            request.GenosNetworkId,
             request.Payload,
             request.Sequence,
             request.CommandId);
@@ -75,12 +75,12 @@ public static class PlayerEndpoints
         if (string.IsNullOrWhiteSpace(playerId))
             return Results.Unauthorized();
 
-        if (engine.GetPlayerSimNetworkId(playerId) == 0)
-            engine.EnsurePlayerSim(playerId);
+        if (engine.GetPlayerGenosNetworkId(playerId) == 0)
+            engine.EnsurePlayerGenos(playerId);
 
         var life = engine.BuildPlayerLife(playerId);
         if (life is null)
-            return Results.NotFound(new { message = "Player sim is not available yet." });
+            return Results.NotFound(new { message = "Player genos is not available yet." });
 
         return Results.Ok(new PlayerMeStatus(
             life,
@@ -169,7 +169,7 @@ public static class PlayerEndpoints
         if (string.IsNullOrWhiteSpace(request.Reason))
             return Results.BadRequest(new { message = "A reason is required." });
 
-        return Enqueue(engine, new DetachPlayerSimCommand(
+        return Enqueue(engine, new DetachPlayerGenosCommand(
             Guid.NewGuid(),
             http.User.Identity?.Name ?? "admin",
             playerId,
@@ -186,7 +186,7 @@ public static class PlayerEndpoints
 
 public sealed record PlayerActionRequest(
     PlayerActionKind Kind,
-    ulong SimNetworkId,
+    ulong GenosNetworkId,
     JsonElement Payload,
     long Sequence,
     Guid? CommandId = null);

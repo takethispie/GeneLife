@@ -27,8 +27,8 @@ public static class AppearanceEndpoints
     [Authorize(Policy = AuthPolicies.Player)]
     public static IResult Me(SimulationEngine engine, HttpContext http)
     {
-        if (engine.GetPlayerSimNetworkId(http.User.GetPlayerId() ?? string.Empty) == 0)
-            engine.EnsurePlayerSim(http.User.GetPlayerId() ?? string.Empty);
+        if (engine.GetPlayerGenosNetworkId(http.User.GetPlayerId() ?? string.Empty) == 0)
+            engine.EnsurePlayerGenos(http.User.GetPlayerId() ?? string.Empty);
 
         var status = engine.BuildOwnAppearance(http.User.GetPlayerId() ?? string.Empty);
         return status is null
@@ -36,23 +36,23 @@ public static class AppearanceEndpoints
             : Results.Ok(status);
     }
 
-    [WolverineGet("/api/appearance/{simNetworkId:long}")]
+    [WolverineGet("/api/appearance/{genosNetworkId:long}")]
     [Authorize(Policy = AuthPolicies.Admin)]
-    public static IResult Get(ulong simNetworkId, SimulationEngine engine)
+    public static IResult Get(ulong genosNetworkId, SimulationEngine engine)
     {
-        var status = engine.BuildAppearance(simNetworkId);
+        var status = engine.BuildAppearance(genosNetworkId);
         return status is null
-            ? Results.NotFound(new { message = "Sim not found." })
+            ? Results.NotFound(new { message = "Genos not found." })
             : Results.Ok(status);
     }
 
-    [WolverineGet("/api/appearance/{simNetworkId:long}/family")]
+    [WolverineGet("/api/appearance/{genosNetworkId:long}/family")]
     [Authorize(Policy = AuthPolicies.Admin)]
-    public static IResult Family(ulong simNetworkId, SimulationEngine engine)
+    public static IResult Family(ulong genosNetworkId, SimulationEngine engine)
     {
-        var status = engine.BuildAppearanceFamily(simNetworkId);
+        var status = engine.BuildAppearanceFamily(genosNetworkId);
         return status is null
-            ? Results.NotFound(new { message = "Sim not found." })
+            ? Results.NotFound(new { message = "Genos not found." })
             : Results.Ok(status);
     }
 }

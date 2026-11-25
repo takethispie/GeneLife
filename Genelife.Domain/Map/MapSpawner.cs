@@ -46,32 +46,32 @@ public static class MapSpawner
         return center;
     }
 
-    public static void PlaceSim(World world, Entity sim, MapContext map, ulong sequence)
+    public static void PlaceGenos(World world, Entity genos, MapContext map, ulong sequence)
     {
         var tile = FindSpawn(map, sequence);
-        if (world.Has<TilePosition>(sim))
-            world.Get<TilePosition>(sim) = new TilePosition(tile);
+        if (world.Has<TilePosition>(genos))
+            world.Get<TilePosition>(genos) = new TilePosition(tile);
         else
-            world.Add(sim, new TilePosition(tile));
+            world.Add(genos, new TilePosition(tile));
 
         var (x, y) = map.Options.ToWorld(tile);
-        if (world.Has<Location>(sim))
-            world.Get<Location>(sim) = new Location(x, y);
+        if (world.Has<Location>(genos))
+            world.Get<Location>(genos) = new Location(x, y);
         else
-            world.Add(sim, new Location(x, y));
+            world.Add(genos, new Location(x, y));
     }
 
-    public static void PlaceSimAt(World world, Entity sim, MapContext map, TileCoord tile)
+    public static void PlaceGenosAt(World world, Entity genos, MapContext map, TileCoord tile)
     {
-        if (world.Has<TilePosition>(sim))
-            world.Get<TilePosition>(sim) = new TilePosition(tile);
+        if (world.Has<TilePosition>(genos))
+            world.Get<TilePosition>(genos) = new TilePosition(tile);
         else
-            world.Add(sim, new TilePosition(tile));
+            world.Add(genos, new TilePosition(tile));
 
         var (x, y) = map.Options.ToWorld(tile);
-        if (world.Has<Location>(sim))
-            world.Get<Location>(sim) = new Location(x, y);
+        if (world.Has<Location>(genos))
+            world.Get<Location>(genos) = new Location(x, y);
         else
-            world.Add(sim, new Location(x, y));
+            world.Add(genos, new Location(x, y));
     }
 }

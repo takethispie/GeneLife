@@ -152,7 +152,7 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
       if (state.status === "authenticated") return state.playerId;
       return useFixtures ? playerId : null;
     },
-    ownSimNetworkId: () => store.ownSimId,
+    ownGenosNetworkId: () => store.ownGenosId,
     onResult: (sent, result) => {
       if (!result.success) {
         notify("error", "intent_admission", result.error ?? "Action not accepted");
@@ -173,9 +173,9 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
 
   const selection = new BuildingSelectionController({
     getMap: () => store.map,
-    getOwnSimTile: () => {
-      const sim = store.sims.get(store.ownSimId);
-      return sim === undefined ? null : { x: sim.tileX, y: sim.tileY };
+    getOwnGenosTile: () => {
+      const genos = store.genoses.get(store.ownGenosId);
+      return genos === undefined ? null : { x: genos.tileX, y: genos.tileY };
     },
     intent,
     onChanged: (building) => {
@@ -409,24 +409,24 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
       if (notice.playerId !== ui.getState().playerId) return;
 
       if (notice.kind === "died") {
-        store.setOwnSim(0);
+        store.setOwnGenos(0);
         centeredOnPlayer = false;
-        ui.patch({ ownSimNetworkId: 0 });
+        ui.patch({ ownGenosNetworkId: 0 });
         if (notice.canRespawn) {
           respawnPopin.show({
-            name: notice.name ?? "Your sim",
+            name: notice.name ?? "Your genos",
             age: notice.age,
             cause: notice.cause
           });
         } else {
-          notify("warning", "awaiting_continuation", "Your sim is awaiting continuation.");
+          notify("warning", "awaiting_continuation", "Your genos is awaiting continuation.");
         }
         return;
       }
 
-      store.setOwnSim(notice.simNetworkId);
+      store.setOwnGenos(notice.genosNetworkId);
       centeredOnPlayer = false;
-      ui.patch({ ownSimNetworkId: notice.simNetworkId });
+      ui.patch({ ownGenosNetworkId: notice.genosNetworkId });
       respawnPopin.hide();
       if (notice.name !== null) {
         notify("success", "respawned", `You are now ${notice.name}.`);
@@ -440,7 +440,7 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
       selection.select(null);
       targeting.clearAll();
       ui.patch({
-        ownSimNetworkId: 0,
+        ownGenosNetworkId: 0,
         mapId: reset.mapId,
         mapVersion: reset.mapVersion,
         tick: reset.tick
@@ -497,16 +497,16 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
         body: "{}"
       });
       const body = (await response.json().catch(() => null)) as
-        | { code?: string; message?: string; simNetworkId?: number; name?: string }
+        | { code?: string; message?: string; genosNetworkId?: number; name?: string }
         | null;
 
-      if (!response.ok || body === null || typeof body.simNetworkId !== "number") {
+      if (!response.ok || body === null || typeof body.genosNetworkId !== "number") {
         return { ok: false, message: body?.message ?? "Could not respawn." };
       }
 
-      store.setOwnSim(body.simNetworkId);
+      store.setOwnGenos(body.genosNetworkId);
       centeredOnPlayer = false;
-      ui.patch({ ownSimNetworkId: body.simNetworkId });
+      ui.patch({ ownGenosNetworkId: body.genosNetworkId });
       notify("success", "respawned", `You are now ${body.name ?? "your child"}.`);
       return { ok: true };
     } catch (error) {
@@ -524,8 +524,8 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
       out_of_range: "Walk to the entrance first",
       role_not_allowed: "You cannot use this building",
       building_not_found: "That building no longer exists",
-      sim_not_found: "Your sim is not available",
-      not_owner: "You do not control that sim",
+      genos_not_found: "Your genos is not available",
+      not_owner: "You do not control that genos",
       stale_sequence: "That action was already handled"
     };
     return message !== "" ? message : (messages[code] ?? "Action not accepted");
@@ -543,7 +543,7 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
       centerOnPlayerOnce();
       ui.patch({
         tick,
-        totalSims: store.sims.size,
+        totalGenoses: store.genoses.size,
         mapId: store.map?.mapId ?? "",
         mapVersion: store.map?.version ?? 0
       });
@@ -560,10 +560,10 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
   }
 
   function centerOnPlayerOnce(): void {
-    if (centeredOnPlayer || store.ownSimId <= 0) return;
-    const sim = store.sims.get(store.ownSimId);
-    if (sim === undefined) return;
-    camera.centerOnTile(sim.tileX, sim.tileY);
+    if (centeredOnPlayer || store.ownGenosId <= 0) return;
+    const genos = store.genoses.get(store.ownGenosId);
+    if (genos === undefined) return;
+    camera.centerOnTile(genos.tileX, genos.tileY);
     camera.setZoom(GAME_CONSTANTS.pixelsPerTile);
     centeredOnPlayer = true;
   }
@@ -585,10 +585,10 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
       loading.fail(`Server protocol ${welcome.protocolVersion} is not supported by this client`);
       return;
     }
-    store.setOwnSim(welcome.simNetworkId);
+    store.setOwnGenos(welcome.genosNetworkId);
     renderer?.setTickInterval(welcome.tickIntervalMs);
     ui.patch({
-      ownSimNetworkId: welcome.simNetworkId,
+      ownGenosNetworkId: welcome.genosNetworkId,
       mapId: welcome.mapId,
       mapVersion: welcome.mapVersion,
       tick: welcome.tick
@@ -597,8 +597,8 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
     if (welcome.awaitingRespawn) {
       centeredOnPlayer = false;
       respawnPopin.show({
-        name: welcome.lastSimName ?? "Your sim",
-        age: welcome.lastSimAge ?? 0
+        name: welcome.lastGenosName ?? "Your genos",
+        age: welcome.lastGenosAge ?? 0
       });
     } else {
       respawnPopin.hide();
@@ -615,8 +615,8 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
     ui.patch({
       fps: stats.fps,
       frameTimeMs: stats.frameTimeMs,
-      visibleSims: stats.visibleSims,
-      totalSims: stats.totalSims,
+      visibleGenoses: stats.visibleGenoses,
+      totalGenoses: stats.totalGenoses,
       tick: stats.tick,
       bufferFrames: stats.bufferFrames,
       interpolationDelayMs: stats.interpolationDelayMs,
@@ -645,8 +645,8 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
       zoom: state.cameraZoom,
       visibleTiles: stats?.visibleTiles ?? 0,
       visibleBuildings: stats?.visibleBuildings ?? 0,
-      visibleSims: state.visibleSims,
-      totalSims: state.totalSims,
+      visibleGenoses: state.visibleGenoses,
+      totalGenoses: state.totalGenoses,
       tick: state.tick,
       bufferFrames: state.bufferFrames,
       interpolationDelayMs: state.interpolationDelayMs,
@@ -749,19 +749,19 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
       }
       const map = validateMapSnapshot(await mapResponse.json());
       const snapshot = validateWorldSnapshot(await snapshotResponse.json());
-      const own = snapshot.sims.find((sim) => sim.isPlayerControlled);
-      store.setOwnSim(own?.networkId ?? 0);
+      const own = snapshot.genoses.find((genos) => genos.isPlayerControlled);
+      store.setOwnGenos(own?.networkId ?? 0);
       const decoded = store.applyMapSnapshot(map);
       camera.setMap(decoded);
       store.applySnapshot(snapshot, performance.now());
       ui.patch({
         connection: "connected",
         playerId: player,
-        ownSimNetworkId: own?.networkId ?? 0,
+        ownGenosNetworkId: own?.networkId ?? 0,
         mapId: map.mapId,
         mapVersion: map.version,
         tick: snapshot.tick,
-        totalSims: snapshot.sims.length
+        totalGenoses: snapshot.genoses.length
       });
       centeredOnPlayer = false;
       centerOnPlayerOnce();

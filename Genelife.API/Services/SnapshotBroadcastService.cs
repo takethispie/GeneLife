@@ -9,7 +9,7 @@ namespace Genelife.Api.Services;
 /// Pushes the latest world state to every connected client. Clients that have
 /// acknowledged a tick still inside <see cref="SnapshotHistory"/> receive a
 /// delta; everyone else receives a full snapshot. Optional viewport
-/// subscriptions filter the dynamic sim payload.
+/// subscriptions filter the dynamic genos payload.
 /// </summary>
 public sealed class SnapshotBroadcastService : BackgroundService, IWorldResetNotifier
 {
@@ -165,13 +165,13 @@ public sealed class SnapshotBroadcastService : BackgroundService, IWorldResetNot
 
             var viewport = viewports.TryGet(connectionId, out var active) ? active : (Viewport?)null;
             registry.TryGetPlayerId(connectionId, out var playerId);
-            var ownSim = playerId is null ? 0 : engine.GetPlayerSimNetworkId(playerId);
+            var ownGenos = playerId is null ? 0 : engine.GetPlayerGenosNetworkId(playerId);
 
             WorldSnapshotDelta? delta;
             if (forceFull)
             {
                 var full = viewport is { } forcedViewport
-                    ? AoiFilter.FilterSnapshotByViewport(snapshot, forcedViewport, ownSim)
+                    ? AoiFilter.FilterSnapshotByViewport(snapshot, forcedViewport, ownGenos)
                     : snapshot;
                 delta = new WorldSnapshotDelta
                 {
@@ -179,7 +179,7 @@ public sealed class SnapshotBroadcastService : BackgroundService, IWorldResetNot
                     SinceTick = 0,
                     Version = full.Version,
                     Full = true,
-                    Sims = full.Sims,
+                    Genoses = full.Genoses,
                     Companies = full.Companies
                 };
             }
@@ -194,7 +194,7 @@ public sealed class SnapshotBroadcastService : BackgroundService, IWorldResetNot
                 delta = baseDelta is null
                     ? null
                     : viewport is { } activeViewport
-                        ? AoiFilter.FilterDeltaByViewport(baseDelta, activeViewport, ownSim)
+                        ? AoiFilter.FilterDeltaByViewport(baseDelta, activeViewport, ownGenos)
                         : baseDelta;
             }
 
@@ -203,7 +203,7 @@ public sealed class SnapshotBroadcastService : BackgroundService, IWorldResetNot
 
             if (delta.Full)
             {
-                var full = new WorldSnapshot(delta.Tick, delta.Version, delta.Sims, delta.Companies);
+                var full = new WorldSnapshot(delta.Tick, delta.Version, delta.Genoses, delta.Companies);
                 var bytes = ReplicationMetrics.EstimateBytes(full);
                 replicationMetrics.Record(connectionId, full: true, bytes);
                 await hubContext.Clients.Client(connectionId)
@@ -212,9 +212,9 @@ public sealed class SnapshotBroadcastService : BackgroundService, IWorldResetNot
                 continue;
             }
 
-            if (delta.Sims.Count == 0
+            if (delta.Genoses.Count == 0
                 && delta.Companies.Count == 0
-                && delta.RemovedSims.Count == 0
+                && delta.RemovedGenoses.Count == 0
                 && delta.RemovedCompanies.Count == 0)
                 continue;
 

@@ -11,12 +11,12 @@ public class PlayerCommandTests
         Guid commandId,
         string policy,
         long sequence,
-        ulong simNetworkId = 0) =>
+        ulong genosNetworkId = 0) =>
         new()
         {
             PlayerId = "p1",
             Sequence = sequence,
-            SimNetworkId = simNetworkId,
+            GenosNetworkId = genosNetworkId,
             Kind = PlayerActionKind.ChooseContinuation,
             Payload = JsonSerializer.SerializeToElement(new { policy }),
             CommandId = commandId
@@ -28,12 +28,12 @@ public class PlayerCommandTests
         var queue = new CommandQueue();
         using var engine = new SimulationEngine(commandQueue: queue);
         engine.Initialize();
-        var simId = engine.EnsurePlayerSim("p1");
+        var genosId = engine.EnsurePlayerGenos("p1");
         var newerId = Guid.NewGuid();
         var staleId = Guid.NewGuid();
 
-        Assert.True(queue.TryEnqueue(ChooseContinuation(newerId, "Observer", 2, simId), out _));
-        Assert.True(queue.TryEnqueue(ChooseContinuation(staleId, "NewSim", 1, simId), out _));
+        Assert.True(queue.TryEnqueue(ChooseContinuation(newerId, "Observer", 2, genosId), out _));
+        Assert.True(queue.TryEnqueue(ChooseContinuation(staleId, "NewGenos", 1, genosId), out _));
         engine.Tick(1f / 20f);
 
         var newer = engine.GetPlayerCommandResult(newerId);
@@ -53,11 +53,11 @@ public class PlayerCommandTests
         var queue = new CommandQueue();
         using var engine = new SimulationEngine(commandQueue: queue);
         engine.Initialize();
-        var simId = engine.EnsurePlayerSim("p1");
+        var genosId = engine.EnsurePlayerGenos("p1");
         var id = Guid.NewGuid();
 
-        Assert.True(queue.TryEnqueue(ChooseContinuation(id, "Observer", 1, simId), out _));
-        Assert.True(queue.TryEnqueue(ChooseContinuation(id, "NewSim", 2, simId), out _));
+        Assert.True(queue.TryEnqueue(ChooseContinuation(id, "Observer", 1, genosId), out _));
+        Assert.True(queue.TryEnqueue(ChooseContinuation(id, "NewGenos", 2, genosId), out _));
         engine.Tick(1f / 20f);
 
         Assert.Single(engine.GetPlayerCommandAudit("p1"));
@@ -72,10 +72,10 @@ public class PlayerCommandTests
         var queue = new CommandQueue();
         using var engine = new SimulationEngine(commandQueue: queue);
         engine.Initialize();
-        var simId = engine.EnsurePlayerSim("p1");
+        var genosId = engine.EnsurePlayerGenos("p1");
         var id = Guid.NewGuid();
 
-        Assert.True(queue.TryEnqueue(ChooseContinuation(id, "Observer", 1, simId), out _));
+        Assert.True(queue.TryEnqueue(ChooseContinuation(id, "Observer", 1, genosId), out _));
         engine.MarkPlayerDisconnected("p1");
         engine.Tick(1f / 20f);
 
@@ -93,19 +93,19 @@ public class PlayerCommandTests
         var queue = new CommandQueue();
         using var engine = new SimulationEngine(commandQueue: queue);
         engine.Initialize();
-        var simId = engine.EnsurePlayerSim("p1");
+        var genosId = engine.EnsurePlayerGenos("p1");
         using var cache = new MemoryCache(new MemoryCacheOptions());
         var service = new PlayerCommandService(engine, new RequestRateLimiter(cache), queue);
         var payload = JsonSerializer.SerializeToElement(new { policy = "Heir" });
 
         for (var i = 0; i < 8; i++)
         {
-            var accepted = service.Admit("p1", PlayerActionKind.ChooseContinuation, simId, payload, i + 1, Guid.NewGuid());
+            var accepted = service.Admit("p1", PlayerActionKind.ChooseContinuation, genosId, payload, i + 1, Guid.NewGuid());
             Assert.True(accepted.Accepted, accepted.Code);
         }
 
         var rejected = service.Admit(
-            "p1", PlayerActionKind.ChooseContinuation, simId, payload, 9, Guid.NewGuid());
+            "p1", PlayerActionKind.ChooseContinuation, genosId, payload, 9, Guid.NewGuid());
         Assert.False(rejected.Accepted);
         Assert.Equal("rate_limited", rejected.Code);
     }
@@ -116,14 +116,14 @@ public class PlayerCommandTests
         var queue = new CommandQueue();
         using var engine = new SimulationEngine(commandQueue: queue);
         engine.Initialize();
-        var simId = engine.EnsurePlayerSim("p1");
+        var genosId = engine.EnsurePlayerGenos("p1");
         using var cache = new MemoryCache(new MemoryCacheOptions());
         var service = new PlayerCommandService(engine, new RequestRateLimiter(cache), queue);
 
         var result = service.Admit(
             "p1",
             PlayerActionKind.ChooseContinuation,
-            simId,
+            genosId,
             JsonSerializer.SerializeToElement(new[] { 1, 2, 3 }),
             1,
             Guid.NewGuid());

@@ -138,7 +138,7 @@ public sealed class MapCreationEndpointTests : IClassFixture<TestApplicationFact
         var world = await client.GetFromJsonAsync<WorldDataStatus>("/api/data", CancellationToken);
         Assert.NotNull(world);
         Assert.True(world!.IsRunning);
-        Assert.True(world.Sims.Count >= result.Population);
+        Assert.True(world.Genoses.Count >= result.Population);
     }
 
     [Fact]

@@ -35,7 +35,7 @@ describe("WorldHubClient", () => {
         type: "move",
         playerId: "p",
         sequence: 1,
-        simNetworkId: 1,
+        genosNetworkId: 1,
         targetTileX: 1,
         targetTileY: 1
       })

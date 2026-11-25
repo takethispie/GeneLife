@@ -3,7 +3,7 @@ using Genelife.Enums;
 namespace Genelife.Components.Life;
 
 /// <summary>
-/// Single source of truth for a living sim's lifecycle state. AgeTicks is the
+/// Single source of truth for a living genos's lifecycle state. AgeTicks is the
 /// authoritative accumulator; <see cref="Components.Gen.Alive.Age"/> remains the
 /// public integer age used by existing code and read models.
 /// </summary>

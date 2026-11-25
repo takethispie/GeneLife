@@ -24,23 +24,23 @@ public static class LifeSystemHelpers
         World world,
         EmploymentIndex index,
         EconomyContext? economy,
-        Entity sim,
+        Entity genos,
         long tick,
         bool retire = false)
     {
-        if (!world.IsAlive(sim) || !world.Has<Employee>(sim))
+        if (!world.IsAlive(genos) || !world.Has<Employee>(genos))
             return;
 
-        var employee = world.Get<Employee>(sim);
-        world.Remove<Employee>(sim);
-        index.Remove(sim);
+        var employee = world.Get<Employee>(genos);
+        world.Remove<Employee>(genos);
+        index.Remove(genos);
 
-        if (world.Has<WorkSchedule>(sim))
-            world.Remove<WorkSchedule>(sim);
-        if (world.Has<EmploymentRecord>(sim))
-            world.Remove<EmploymentRecord>(sim);
-        if (world.Has<CurrentAction>(sim))
-            world.Get<CurrentAction>(sim).Type = Enums.ActionType.Idle;
+        if (world.Has<WorkSchedule>(genos))
+            world.Remove<WorkSchedule>(genos);
+        if (world.Has<EmploymentRecord>(genos))
+            world.Remove<EmploymentRecord>(genos);
+        if (world.Has<CurrentAction>(genos))
+            world.Get<CurrentAction>(genos).Type = Enums.ActionType.Idle;
 
         RepostSeat(world, economy, employee, tick);
         OfficeSeatAccounting.RefreshUsedSeats(world, employee.Office);
@@ -48,7 +48,7 @@ public static class LifeSystemHelpers
         if (retire)
         {
             economy?.Emit(new EmployeeRetired(
-                NetworkIdOf(world, sim),
+                NetworkIdOf(world, genos),
                 NetworkIdOf(world, employee.Company),
                 employee.Position,
                 tick));
@@ -95,25 +95,25 @@ public static class LifeSystemHelpers
             1));
     }
 
-    public static void RemoveJobSearch(World world, Entity sim)
+    public static void RemoveJobSearch(World world, Entity genos)
     {
-        if (world.IsAlive(sim) && world.Has<JobSeeker>(sim))
-            world.Remove<JobSeeker>(sim);
+        if (world.IsAlive(genos) && world.Has<JobSeeker>(genos))
+            world.Remove<JobSeeker>(genos);
     }
 
-    public static void EnsureWallet(World world, Entity sim, Money initial = default)
+    public static void EnsureWallet(World world, Entity genos, Money initial = default)
     {
-        if (!world.IsAlive(sim) || world.Has<Wallet>(sim))
+        if (!world.IsAlive(genos) || world.Has<Wallet>(genos))
             return;
-        world.Add(sim, new Wallet(initial));
+        world.Add(genos, new Wallet(initial));
     }
 
-    public static Entity HouseholdOf(World world, EconomyContext economy, Entity sim)
+    public static Entity HouseholdOf(World world, EconomyContext economy, Entity genos)
     {
-        if (economy.Housing.HouseholdBySim.TryGetValue(sim, out var household))
+        if (economy.Housing.HouseholdByGenos.TryGetValue(genos, out var household))
             return household;
-        if (world.IsAlive(sim) && world.Has<Components.Housing.HouseholdMember>(sim))
-            return world.Get<Components.Housing.HouseholdMember>(sim).Household;
+        if (world.IsAlive(genos) && world.Has<Components.Housing.HouseholdMember>(genos))
+            return world.Get<Components.Housing.HouseholdMember>(genos).Household;
         return Entity.Null;
     }
 }

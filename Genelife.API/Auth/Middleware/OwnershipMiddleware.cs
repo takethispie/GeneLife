@@ -35,14 +35,14 @@ public class OwnershipMiddleware
             return;
 
         var message = context.Envelope?.Message;
-        if (message is DeleteSim deleteSim)
+        if (message is DeleteGenos deleteGenos)
         {
-            if (!await OwnsSim(deleteSim.NetworkId, playerId))
+            if (!await OwnsGenos(deleteGenos.NetworkId, playerId))
                 await WriteForbidden(httpContext);
         }
-        else if (message is SetSimAction setAction)
+        else if (message is SetGenosAction setAction)
         {
-            if (!await OwnsSim(setAction.NetworkId, playerId))
+            if (!await OwnsGenos(setAction.NetworkId, playerId))
                 await WriteForbidden(httpContext);
         }
     }
@@ -54,7 +54,7 @@ public class OwnershipMiddleware
         await httpContext.Response.WriteAsync("""{"message":"Access denied"}""");
     }
 
-    private static Task<bool> OwnsSim(ulong networkId, string? playerId)
+    private static Task<bool> OwnsGenos(ulong networkId, string? playerId)
     {
         return Task.FromResult(true);
     }

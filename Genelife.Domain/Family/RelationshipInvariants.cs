@@ -22,7 +22,7 @@ public static class RelationshipInvariants
 
                 if (relationship.From == relationship.To)
                     issues.Add(new Issue("relationship.self", "Fail",
-                        $"Relationship {entity.Id} starts and ends at the same sim"));
+                        $"Relationship {entity.Id} starts and ends at the same genos"));
                 if (!world.IsAlive(relationship.From) || !world.IsAlive(relationship.To))
                     issues.Add(new Issue("relationship.endpoint", "Fail",
                         $"Relationship {entity.Id} has a destroyed endpoint"));
@@ -36,10 +36,10 @@ public static class RelationshipInvariants
                     case RelationshipKind.Partner:
                         if (index.PartnersOf(relationship.From).Count > 1)
                             issues.Add(new Issue("partner.multiple", "Fail",
-                                $"Sim {relationship.From.Id} has more than one partner"));
+                                $"Genos {relationship.From.Id} has more than one partner"));
                         if (!index.PartnersOf(relationship.From).Contains(relationship.To))
                             issues.Add(new Issue("partner.index", "Fail",
-                                $"Sim {relationship.From.Id} partner index is missing {relationship.To.Id}"));
+                                $"Genos {relationship.From.Id} partner index is missing {relationship.To.Id}"));
                         break;
                     case RelationshipKind.Parent:
                         if (index.IsAncestorOf(relationship.To, relationship.From))

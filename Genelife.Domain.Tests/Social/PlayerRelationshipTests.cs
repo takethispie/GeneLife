@@ -152,14 +152,14 @@ public sealed class PlayerRelationshipTests : IDisposable
     }
 
     [Fact]
-    public void InvitationsSurviveContinuationAndResolveTheCurrentSim()
+    public void InvitationsSurviveContinuationAndResolveTheCurrentGenos()
     {
         var invite = service.InvitePartner("alice", "bob", tick: 10);
         Assert.True(invite.Applied, invite.Code);
 
-        var heir = CreateSim("Alice Heir", 300, Sex.Female);
+        var heir = CreateGenos("Alice Heir", 300, Sex.Female);
         Assert.True(players.TryGet("alice", out var profile));
-        players.AttachSim(profile, heir);
+        players.AttachGenos(profile, heir);
 
         var accepted = service.Respond("bob", invite.Invitation!.Id, accept: true, tick: 11);
 
@@ -184,14 +184,14 @@ public sealed class PlayerRelationshipTests : IDisposable
 
     private Entity CreatePlayer(string playerId, string name, ulong networkId, Sex sex)
     {
-        var sim = CreateSim(name, networkId, sex);
-        players.GetOrCreate(playerId, sim, 0);
-        return sim;
+        var genos = CreateGenos(name, networkId, sex);
+        players.GetOrCreate(playerId, genos, 0);
+        return genos;
     }
 
-    private Entity CreateSim(string name, ulong networkId, Sex sex)
+    private Entity CreateGenos(string name, ulong networkId, Sex sex)
     {
-        var sim = world.Create(
+        var genos = world.Create(
             new GenName(name),
             new Needs(),
             new Alive(30),
@@ -200,9 +200,9 @@ public sealed class PlayerRelationshipTests : IDisposable
             new Health(100f),
             new Lifecycle(LifeStage.Work, 0, 0),
             new Traits { Sex = sex });
-        world.Add(sim, new NetworkId(networkId));
-        networkIds.AllocateWithValue(sim, new NetworkId(networkId));
-        return sim;
+        world.Add(genos, new NetworkId(networkId));
+        networkIds.AllocateWithValue(genos, new NetworkId(networkId));
+        return genos;
     }
 
     private Entity CreateHousehold(Entity head, int capacity)

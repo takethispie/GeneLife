@@ -24,7 +24,7 @@ public class AsyncSnapshotTests
             engine.ExecuteWithWorld(world =>
             {
                 world.Create(
-                    new GenName("AsyncSim"),
+                    new GenName("AsyncGenos"),
                     new Needs { Hunger = 50f },
                     new CurrentAction(ActionType.Idle, 0f),
                     new Alive(20));
@@ -44,7 +44,7 @@ public class AsyncSnapshotTests
             }
 
             Assert.NotNull(snapshot);
-            Assert.Contains(snapshot.Sims, sim => sim.Name == "AsyncSim");
+            Assert.Contains(snapshot.Genoses, genos => genos.Name == "AsyncGenos");
         }
         finally
         {

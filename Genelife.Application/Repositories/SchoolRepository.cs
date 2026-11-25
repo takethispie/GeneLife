@@ -101,25 +101,25 @@ public sealed class SchoolRepository
         return true;
     }
 
-    public bool SetEnrollment(ulong simId, ulong schoolId, bool enrolled)
+    public bool SetEnrollment(ulong genosId, ulong schoolId, bool enrolled)
     {
-        if (!networkIds.TryGetEntity(new NetworkId(simId), out var sim) ||
-            !world.IsAlive(sim))
+        if (!networkIds.TryGetEntity(new NetworkId(genosId), out var genos) ||
+            !world.IsAlive(genos))
             return false;
 
         if (enrolled)
         {
-            var educationStage = world.Has<Lifecycle>(sim)
-                ? world.Get<Lifecycle>(sim).Stage == LifeStage.Education
-                : world.Has<Alive>(sim) &&
-                  LifecycleClassifier.Classify(world.Get<Alive>(sim).Age) == LifeStage.Education;
+            var educationStage = world.Has<Lifecycle>(genos)
+                ? world.Get<Lifecycle>(genos).Stage == LifeStage.Education
+                : world.Has<Alive>(genos) &&
+                  LifecycleClassifier.Classify(world.Get<Alive>(genos).Age) == LifeStage.Education;
             if (!educationStage)
                 return false;
         }
 
         if (!enrolled)
         {
-            EnrollmentHelpers.ReleaseSeat(world, sim, economy?.Life.Index);
+            EnrollmentHelpers.ReleaseSeat(world, genos, economy?.Life.Index);
             return true;
         }
 
@@ -130,16 +130,16 @@ public sealed class SchoolRepository
         if (!target.HasCapacity)
             return false;
 
-        if (world.Has<Enrollment>(sim))
+        if (world.Has<Enrollment>(genos))
         {
-            var current = world.Get<Enrollment>(sim);
+            var current = world.Get<Enrollment>(genos);
             if (!current.IsUnenrolled && current.School == schoolEntity)
                 return true;
-            EnrollmentHelpers.ReleaseSeat(world, sim, economy?.Life.Index);
+            EnrollmentHelpers.ReleaseSeat(world, genos, economy?.Life.Index);
         }
 
         target.Enrolled++;
-        world.Add(sim, new Enrollment(schoolEntity, 0, 1f));
+        world.Add(genos, new Enrollment(schoolEntity, 0, 1f));
         economy?.Life.Index.OnEnrolled(schoolEntity, unenrolled: false);
         return true;
     }

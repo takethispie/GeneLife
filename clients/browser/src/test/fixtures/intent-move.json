@@ -2,7 +2,7 @@
   "type": "move",
   "playerId": "player-1",
   "sequence": 42,
-  "simNetworkId": 1,
+  "genosNetworkId": 1,
   "targetTileX": 12,
   "targetTileY": -4
 }

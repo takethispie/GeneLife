@@ -14,7 +14,7 @@ public sealed partial class PlayerProjection : EventProjection
     public async Task Project(PlayerProfileCreated e, IDocumentOperations ops)
     {
         var doc = await GetOrCreate(ops, e.PlayerId);
-        doc.SimNetworkId = e.SimNetworkId;
+        doc.GenosNetworkId = e.GenosNetworkId;
         doc.UpdatedTick = e.Tick;
         doc.UpdatedAt = DateTimeOffset.UtcNow;
         ops.Store(doc);
@@ -22,7 +22,7 @@ public sealed partial class PlayerProjection : EventProjection
 
     public async Task Project(PlayerHired e, IDocumentOperations ops)
     {
-        var doc = await GetOrCreate(ops, await PlayerIdForSim(ops, e.SimNetworkId));
+        var doc = await GetOrCreate(ops, await PlayerIdForGenos(ops, e.GenosNetworkId));
         doc.Employed = true;
         doc.CompanyNetworkId = e.CompanyNetworkId;
         doc.OfficeNetworkId = e.OfficeNetworkId;
@@ -35,7 +35,7 @@ public sealed partial class PlayerProjection : EventProjection
 
     public async Task Project(PlayerQuitJob e, IDocumentOperations ops)
     {
-        var doc = await GetOrCreate(ops, await PlayerIdForSim(ops, e.SimNetworkId));
+        var doc = await GetOrCreate(ops, await PlayerIdForGenos(ops, e.GenosNetworkId));
         doc.Employed = false;
         doc.Position = string.Empty;
         doc.SalaryCents = 0;
@@ -46,7 +46,7 @@ public sealed partial class PlayerProjection : EventProjection
 
     public async Task Project(PlayerTerminated e, IDocumentOperations ops)
     {
-        var doc = await GetOrCreate(ops, await PlayerIdForSim(ops, e.SimNetworkId));
+        var doc = await GetOrCreate(ops, await PlayerIdForGenos(ops, e.GenosNetworkId));
         doc.Employed = false;
         doc.Position = string.Empty;
         doc.SalaryCents = 0;
@@ -57,7 +57,7 @@ public sealed partial class PlayerProjection : EventProjection
 
     public async Task Project(PlayerLeaseStarted e, IDocumentOperations ops)
     {
-        var doc = await GetOrCreate(ops, await PlayerIdForSim(ops, e.SimNetworkId));
+        var doc = await GetOrCreate(ops, await PlayerIdForGenos(ops, e.GenosNetworkId));
         doc.Housed = true;
         doc.HouseholdNetworkId = e.HouseholdNetworkId;
         doc.UnitNetworkId = e.UnitNetworkId;
@@ -69,7 +69,7 @@ public sealed partial class PlayerProjection : EventProjection
 
     public async Task Project(PlayerMoved e, IDocumentOperations ops)
     {
-        var doc = await GetOrCreate(ops, await PlayerIdForSim(ops, e.SimNetworkId));
+        var doc = await GetOrCreate(ops, await PlayerIdForGenos(ops, e.GenosNetworkId));
         doc.HouseholdNetworkId = e.HouseholdNetworkId;
         doc.UnitNetworkId = e.ToUnitNetworkId;
         doc.Housed = e.ToUnitNetworkId != 0;
@@ -94,7 +94,7 @@ public sealed partial class PlayerProjection : EventProjection
         var doc = await GetOrCreate(ops, e.PlayerId);
         doc.AwaitingContinuation = false;
         doc.Observer = e.Policy == "observer";
-        doc.SimNetworkId = e.NewSimNetworkId;
+        doc.GenosNetworkId = e.NewGenosNetworkId;
         doc.Employed = false;
         doc.Housed = false;
         doc.UpdatedTick = e.Tick;
@@ -105,7 +105,7 @@ public sealed partial class PlayerProjection : EventProjection
     public async Task Project(PlayerCommandApplied e, IDocumentOperations ops)
     {
         var doc = await GetOrCreate(ops, e.PlayerId);
-        doc.SimNetworkId = e.SimNetworkId;
+        doc.GenosNetworkId = e.GenosNetworkId;
         doc.LastCommandId = e.CommandId;
         doc.LastCommandKind = e.Kind;
         doc.LastCommandStatus = e.Status;
@@ -143,11 +143,11 @@ public sealed partial class PlayerProjection : EventProjection
         return doc;
     }
 
-    private static async Task<string> PlayerIdForSim(IDocumentOperations ops, ulong simNetworkId)
+    private static async Task<string> PlayerIdForGenos(IDocumentOperations ops, ulong genosNetworkId)
     {
         var players = await ops.Query<PlayerDocument>()
-            .Where(doc => doc.SimNetworkId == simNetworkId)
+            .Where(doc => doc.GenosNetworkId == genosNetworkId)
             .ToListAsync();
-        return players.Count > 0 ? players[^1].Id : $"sim-{simNetworkId}";
+        return players.Count > 0 ? players[^1].Id : $"genos-{genosNetworkId}";
     }
 }

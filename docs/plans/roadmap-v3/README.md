@@ -2,7 +2,7 @@
 
 **Scope:** a browser-only 2D game client built on the V2 server and replication contracts. No Godot, no native desktop shell, no engine rewrite, no client-authoritative simulation.
 
-**Target:** a playable browser client that renders the deterministic map, shows nearby sims and buildings, moves the player through server-authoritative intents, survives reconnects, and gives enough HUD feedback to run a vertical slice with real players.
+**Target:** a playable browser client that renders the deterministic map, shows nearby genoses and buildings, moves the player through server-authoritative intents, survives reconnects, and gives enough HUD feedback to run a vertical slice with real players.
 
 **Builds on:** V1 economy, housing and life stages; V2 map, placement, movement and replication; the `Genelife.Contracts` assembly; `WorldHub`; `/api/auth/token`; `MapSnapshot`; `SendSnapshot`/`SendSnapshotDelta`; viewport subscriptions and reconnect acknowledgements.
 
@@ -33,7 +33,7 @@ Feature-level detail was removed after V3 shipped; recover it from git history i
 | Auth | `POST /api/auth/token` issues a player JWT; hub accepts `access_token` on `/hubs/world` |
 | Transport | SignalR JSON hub at `/hubs/world`; REST for auth and read models |
 | Map | `SendMapSnapshot` on connect; `MapSnapshot` with per-row RLE tiles and a separate building list |
-| Dynamic state | `SendSnapshot` and `SendSnapshotDelta`; `WorldSnapshotDelta` carries sims, companies and removals |
+| Dynamic state | `SendSnapshot` and `SendSnapshotDelta`; `WorldSnapshotDelta` carries genoses, companies and removals |
 | Viewport | `SetViewport(SetViewportRequest)` returns `ViewportResult`; default viewport derives from the player tile |
 | Reconnect | `RequestSnapshot(long? sinceTick)`, `AcknowledgeSnapshot(long tick)`, force-full after viewport changes |
 | Map refresh | `RequestMapSnapshot`, map deltas and `/api/map/snapshot` (player policy, rate-limited) |
@@ -42,9 +42,9 @@ Feature-level detail was removed after V3 shipped; recover it from git history i
 
 The two client-blocking contract additions in the original plan are now implemented:
 
-- `Welcome` is sent on connect with the player's own sim `NetworkId`, tick interval, protocol version and map version.
+- `Welcome` is sent on connect with the player's own genos `NetworkId`, tick interval, protocol version and map version.
 - `IntentRejected` is delivered with sequence + code when movement or interaction validation fails after `SubmitIntent` has returned success.
-- A new browser player gets a controllable sim on connect, and browser CORS allows credentials for SignalR negotiate.
+- A new browser player gets a controllable genos on connect, and browser CORS allows credentials for SignalR negotiate.
 
 The roadmap focus remains client integration, rendering, input, UX and release work, not new simulation features. See [STATUS.md](STATUS.md).
 
@@ -81,7 +81,7 @@ There are three separate stores, and they must not be merged:
 
 | Store | Frequency | Owner | Contents |
 |---|---|---|---|
-| Simulation store | 25 Hz | Network/render layer | sims by `NetworkId`, interpolation buffer, map cache, local player, viewport |
+| Simulation store | 25 Hz | Network/render layer | genoses by `NetworkId`, interpolation buffer, map cache, local player, viewport |
 | Session store | low | Auth/connection layer | token, player id, connection state, map id/version, last ack |
 | UI store | low | HUD layer | selected entity, panel state, notifications, settings, errors |
 
@@ -91,7 +91,7 @@ Rules:
 - PixiJS reads the simulation store directly on the render tick.
 - HUD receives coalesced updates at 4–10 Hz; it does not rerender for every delta.
 - A full snapshot replaces the simulation store; a delta mutates it in place.
-- `RemovedSims` deletes entities. Never keep orphan sprites.
+- `RemovedGenoses` deletes entities. Never keep orphan sprites.
 
 ### Transport contract
 
@@ -100,7 +100,7 @@ Rules:
 | Server → client | `SendMapSnapshot` | full static map on connect or refresh |
 | Server → client | `SendMapDelta` | building changes between map versions |
 | Server → client | `SendSnapshot` | full dynamic world, filtered by viewport if active |
-| Server → client | `SendSnapshotDelta` | changed/removed sims and companies since an acknowledged tick |
+| Server → client | `SendSnapshotDelta` | changed/removed genoses and companies since an acknowledged tick |
 | Server → client | `SnapshotRejected` | rate-limit or request rejection feedback |
 | Client → server | `SetViewport(SetViewportRequest)` | camera bounds in tile coordinates; returns `ViewportResult` |
 | Client → server | `ClearViewport()` | opt out of filtering |
@@ -134,7 +134,7 @@ The client sends targets and ticks, never authoritative positions or build state
 - Render at `serverTickTime - interpolationDelay` (start with 100–150 ms).
 - Interpolate position between the two surrounding ticks; do not extrapolate more than one tick.
 - Snap when the error exceeds a configured threshold, on teleport, on spawn, or after a full snapshot.
-- Always include and prioritise the local player’s sim.
+- Always include and prioritise the local player’s genos.
 - Own-player prediction is out of scope for the first slice; interpolation only.
 
 ### Viewport and reconnect
@@ -149,7 +149,7 @@ The client sends targets and ticks, never authoritative positions or build state
 ### Input and intents
 
 - Keyboard: WASD/arrows for camera or movement as configured; pointer for click-to-move and selection.
-- Send `MoveIntent` with `TargetTileX`, `TargetTileY`, `SimNetworkId`, `PlayerId`, and a monotonic `Sequence`.
+- Send `MoveIntent` with `TargetTileX`, `TargetTileY`, `GenosNetworkId`, `PlayerId`, and a monotonic `Sequence`.
 - Do not send legacy float `X`/`Y`.
 - Rate-limit locally to avoid server rejection; the server remains the final authority.
 - Surface `IntentResult` failures and asynchronous rejection codes in the HUD.
@@ -157,7 +157,7 @@ The client sends targets and ticks, never authoritative positions or build state
 
 ### Rendering rules
 
-- One Pixi application, one world container, layered containers for terrain, roads, buildings, sims, selection and effects.
+- One Pixi application, one world container, layered containers for terrain, roads, buildings, genoses, selection and effects.
 - Camera transform on a single container; do not reposition every sprite manually.
 - Cull by viewport; keep off-screen entity sprites pooled.
 - Use a texture atlas and tinting rather than one texture per variant.
@@ -181,7 +181,7 @@ The client sends targets and ticks, never authoritative positions or build state
 - No secrets in client code. The player token is obtained at runtime.
 - Unit tests: Vitest for the RLE decoder, replication store, interpolation and intent sequencing.
 - End-to-end: Playwright against a running API with a seeded world.
-- Performance: a synthetic 2,000-sim snapshot and a 256×256 map fixture.
+- Performance: a synthetic 2,000-genos snapshot and a 256×256 map fixture.
 
 ---
 
@@ -234,8 +234,8 @@ flowchart TD
 ```
 
 1. **Foundation** — a bootable client that authenticates, connects, loads contracts and assets, and renders an empty scene.
-2. **World rendering** — the map is visible, zoomable, cullable and readable before any live sim moves.
-3. **Realtime presence** — snapshots and deltas drive smooth sim sprites, viewport filtering and reconnect recovery.
+2. **World rendering** — the map is visible, zoomable, cullable and readable before any live genos moves.
+3. **Realtime presence** — snapshots and deltas drive smooth genos sprites, viewport filtering and reconnect recovery.
 4. **Input and HUD** — the player can move, select, interact and understand why an action failed.
 5. **Hardening and release** — repeatable tests, measured payload/frame budgets, a deployable static build and a release checklist.
 
@@ -257,13 +257,13 @@ Features are ordered, not strictly serial: the contract and auth work unblock Si
 
 ## Definition of done for V3
 
-- A new player can open the browser client, authenticate, connect and see the map and their own sim.
+- A new player can open the browser client, authenticate, connect and see the map and their own genos.
 - The map renders from `MapSnapshot` RLE with correct bounds, tile size, roads, buildings and entries.
-- Nearby sims move smoothly from `SendSnapshot`/`SendSnapshotDelta` with interpolation and no ghost sprites.
+- Nearby genoses move smoothly from `SendSnapshot`/`SendSnapshotDelta` with interpolation and no ghost sprites.
 - The camera pans and zooms; viewport updates are debounced, validated and reflected in server filtering.
 - WASD/click-to-move submits valid intents and the player moves under server authority.
 - Building interaction submits `UseBuildingIntent` and surfaces success or a typed rejection.
 - A dropped connection recovers with a full or delta snapshot, preserves the map cache, and never leaves the client in a half-applied state.
 - HUD shows connection, map version, tick, FPS, viewport radius, rejected intents and actionable errors.
-- The client passes unit, fixture, Playwright and 2,000-sim render-budget checks.
+- The client passes unit, fixture, Playwright and 2,000-genos render-budget checks.
 - A static production build deploys to a configured origin and works against the deployed API.

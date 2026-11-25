@@ -55,30 +55,30 @@ public sealed class MultiplayerAcceptanceTests : IClassFixture<TestApplicationFa
         return client;
     }
 
-    private static async Task AddSimsAsync(HttpClient client, int count, CancellationToken ct)
+    private static async Task AddGenosesAsync(HttpClient client, int count, CancellationToken ct)
     {
         for (var i = 0; i < count; i++)
         {
             var response = await client.PostAsJsonAsync(
-                "/api/simulation/sims",
-                new { name = $"AcceptanceSim_{i}", age = 25 },
+                "/api/simulation/genoses",
+                new { name = $"AcceptanceGenos_{i}", age = 25 },
                 ct);
             response.EnsureSuccessStatusCode();
         }
     }
 
-    private static async Task<List<SimStatus>> WaitForSimsAsync(HttpClient client, int minimum, CancellationToken ct)
+    private static async Task<List<GenosStatus>> WaitForGenosesAsync(HttpClient client, int minimum, CancellationToken ct)
     {
         for (var attempt = 0; attempt < 100; attempt++)
         {
-            var sims = await client.GetFromJsonAsync<List<SimStatus>>("/api/simulation/sims", ct);
-            if (sims is not null && sims.Count >= minimum)
-                return sims;
+            var genoses = await client.GetFromJsonAsync<List<GenosStatus>>("/api/simulation/genoses", ct);
+            if (genoses is not null && genoses.Count >= minimum)
+                return genoses;
 
             await Task.Delay(50, ct);
         }
 
-        throw new TimeoutException($"Expected at least {minimum} sims to appear in the snapshot");
+        throw new TimeoutException($"Expected at least {minimum} genoses to appear in the snapshot");
     }
 
     private HubConnection CreateConnection(string playerId)
@@ -104,8 +104,8 @@ public sealed class MultiplayerAcceptanceTests : IClassFixture<TestApplicationFa
     {
         var ct = CancellationToken;
         var client = await StartSimulationAsync();
-        await AddSimsAsync(client, PlayerCount, ct);
-        await WaitForSimsAsync(client, PlayerCount, ct);
+        await AddGenosesAsync(client, PlayerCount, ct);
+        await WaitForGenosesAsync(client, PlayerCount, ct);
 
         var snapshots = new List<(string PlayerId, TaskCompletionSource<WorldSnapshot> Snapshot)>();
         var started = new List<HubConnection>();
@@ -128,9 +128,9 @@ public sealed class MultiplayerAcceptanceTests : IClassFixture<TestApplicationFa
         foreach (var snapshot in received)
         {
             Assert.NotNull(snapshot);
-            Assert.True(snapshot.Sims.Count >= PlayerCount,
-                $"Expected at least {PlayerCount} sims, got {snapshot.Sims.Count}");
-            Assert.Equal(snapshot.Sims.Count, snapshot.Sims.Select(sim => sim.NetworkId).Distinct().Count());
+            Assert.True(snapshot.Genoses.Count >= PlayerCount,
+                $"Expected at least {PlayerCount} genoses, got {snapshot.Genoses.Count}");
+            Assert.Equal(snapshot.Genoses.Count, snapshot.Genoses.Select(genos => genos.NetworkId).Distinct().Count());
         }
 
         var intentResults = await Task.WhenAll(started.Select((connection, index) =>
@@ -157,8 +157,8 @@ public sealed class MultiplayerAcceptanceTests : IClassFixture<TestApplicationFa
     {
         var ct = CancellationToken;
         var client = await StartSimulationAsync();
-        await AddSimsAsync(client, 1, ct);
-        var seeded = await WaitForSimsAsync(client, 1, ct);
+        await AddGenosesAsync(client, 1, ct);
+        var seeded = await WaitForGenosesAsync(client, 1, ct);
         var expectedNetworkId = seeded[0].NetworkId;
 
         var playerId = "reconnect-player";
@@ -190,9 +190,9 @@ public sealed class MultiplayerAcceptanceTests : IClassFixture<TestApplicationFa
         Assert.Equal(acknowledgedTick, resumed.SinceTick);
         Assert.True(resumed.Tick >= acknowledgedTick);
 
-        var resumedSim = Assert.Single(resumed.Sims, sim => sim.NetworkId == expectedNetworkId);
-        Assert.True(resumedSim.X >= 0f);
-        Assert.True(resumedSim.Y >= 0f);
+        var resumedGenos = Assert.Single(resumed.Genoses, genos => genos.NetworkId == expectedNetworkId);
+        Assert.True(resumedGenos.X >= 0f);
+        Assert.True(resumedGenos.Y >= 0f);
     }
 
     [Fact]
@@ -200,8 +200,8 @@ public sealed class MultiplayerAcceptanceTests : IClassFixture<TestApplicationFa
     {
         var ct = CancellationToken;
         var client = await StartSimulationAsync();
-        await AddSimsAsync(client, 1, ct);
-        await WaitForSimsAsync(client, 1, ct);
+        await AddGenosesAsync(client, 1, ct);
+        await WaitForGenosesAsync(client, 1, ct);
 
         var playerId = "auto-resume-player";
         var first = CreateConnection(playerId);
@@ -238,9 +238,9 @@ public sealed class MultiplayerAcceptanceTests : IClassFixture<TestApplicationFa
     {
         var ct = CancellationToken;
         var client = await StartSimulationAsync();
-        const int simCount = 5;
-        await AddSimsAsync(client, simCount, ct);
-        var before = await WaitForSimsAsync(client, simCount, ct);
+        const int genosCount = 5;
+        await AddGenosesAsync(client, genosCount, ct);
+        var before = await WaitForGenosesAsync(client, genosCount, ct);
 
         var save = await client.PostAsync("/api/simulation/save", null, ct);
         save.EnsureSuccessStatusCode();
@@ -251,14 +251,14 @@ public sealed class MultiplayerAcceptanceTests : IClassFixture<TestApplicationFa
         var restore = await client.PostAsync("/api/simulation/restore", null, ct);
         restore.EnsureSuccessStatusCode();
 
-        var after = await WaitForSimsAsync(client, before.Count, ct);
+        var after = await WaitForGenosesAsync(client, before.Count, ct);
 
         Assert.True(after.Count >= before.Count,
-            $"Expected at least {before.Count} sims after restore, got {after.Count}");
-        Assert.All(after, sim => Assert.NotEqual(0UL, sim.NetworkId));
+            $"Expected at least {before.Count} genoses after restore, got {after.Count}");
+        Assert.All(after, genos => Assert.NotEqual(0UL, genos.NetworkId));
 
-        var beforeById = before.ToDictionary(sim => sim.NetworkId);
-        var afterById = after.ToDictionary(sim => sim.NetworkId);
+        var beforeById = before.ToDictionary(genos => genos.NetworkId);
+        var afterById = after.ToDictionary(genos => genos.NetworkId);
         foreach (var (networkId, saved) in beforeById)
         {
             Assert.True(afterById.TryGetValue(networkId, out var restored),

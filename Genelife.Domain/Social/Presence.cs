@@ -11,7 +11,7 @@ public enum PresenceScope : byte { Nearby, Venue, Friend }
 public sealed record PublicPresence(
     string PlayerId,
     string? DisplayName,
-    ulong SimNetworkId,
+    ulong GenosNetworkId,
     int TileX,
     int TileY,
     ulong? BuildingNetworkId,
@@ -33,7 +33,7 @@ public sealed record SocialPrivacySetting(
 
 /// <summary>
 /// Player privacy settings, persisted with schema 15. Display names are derived
-/// from the sim and never stored as real names or external identifiers.
+/// from the genos and never stored as real names or external identifiers.
 /// </summary>
 public sealed class SocialPrivacyRegistry
 {

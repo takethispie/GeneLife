@@ -2,7 +2,7 @@
 
 **Scope:** server simulation, player-facing browser client, persistence, read models and admin surfaces. No Godot or native client, no real-money economy, no client-authoritative simulation.
 
-**Target:** a player can live a full life in the simulated town — hold a job, earn and spend money, keep a home, form a family, be visually distinguishable from NPCs and relatives, interact with other players, and feel water, electricity and grocery constraints — while the economy remains stable at 1k–2k sims and the 32-player world stays server-authoritative.
+**Target:** a player can live a full life in the simulated town — hold a job, earn and spend money, keep a home, form a family, be visually distinguishable from NPCs and relatives, interact with other players, and feel water, electricity and grocery constraints — while the economy remains stable at 1k–2k genoses and the 32-player world stays server-authoritative.
 
 **Builds on:** V1 economy/housing/life stages, V2 spatial world and indices, V3 browser client and replication, V4 traits/relationships/reproduction/inheritance, the 2026-11 balance pass, `SimulationRandom`, `PlayerControlled`, `Wallet`, `HousingRegistry`, `RelationshipIndex`, `FamilyHouseholdSystem`, `EstateSettlementSystem`, and `PersistedWorldState` schema 11.
 
@@ -28,17 +28,17 @@ Feature-level detail was removed after V5 shipped; recover it from git history i
 
 | Area | Current implementation |
 |---|---|
-| Player | Player sims are auto-created on connect. Typed `PlayerActionIntent` commands add job apply/accept/quit, rent/lease/move, shop/consume, partner invitations/consent, child naming and continuation policy. Player sims remain excluded from autonomous decisions, job seeking and work scheduling; presence at their own office counts toward monthly attendance. |
+| Player | Player genoses are auto-created on connect. Typed `PlayerActionIntent` commands add job apply/accept/quit, rent/lease/move, shop/consume, partner invitations/consent, child naming and continuation policy. Player genoses remain excluded from autonomous decisions, job seeking and work scheduling; presence at their own office counts toward monthly attendance. |
 | Economy | Integer-cent `Money`, ledger, company accounts, wages, rent, metered utility billing, grocery revenue, universal basic income, taxes, credit and insolvency. Default utility tariffs are municipality-subsidised to keep the strict balance bands green. |
 | Housing | Households, `HousingRegistry`, capacity, rent, arrears, eviction, construction and ownership, plus water/electricity service links, household meters, service levels and outage consequences. |
 | Family | Traits, relationship edges, eligibility, attraction, pairing, pregnancy, birth, childhood, guardianship, inheritance and the admin family page. |
-| Appearance | `SkinTone` and `FaceShape` extend inheritable traits; `AppearanceDescriptor` derives hair style/color, body frame, height, age band and expression; layered shared-part sprites and an admin SVG preview render it. Browser sims are no longer single tinted circles. |
+| Appearance | `SkinTone` and `FaceShape` extend inheritable traits; `AppearanceDescriptor` derives hair style/color, body frame, height, age band and expression; layered shared-part sprites and an admin SVG preview render it. Browser genoses are no longer single tinted circles. |
 | Social | One shared world with up to 32 players, bounded nearby/same-venue presence, a privacy-safe player directory, display-name privacy and an admin presence list. No chat, emotes, social graph, reports or moderation tools yet. |
 | Consumption | Versioned grocery catalog, per-store inventory, deterministic price/stock pressure, funded restock, spoilage, player purchase/consume path and nutrition state. NPC shopping trips and meal composition remain open. |
 | Client | `clients/browser`: TypeScript, Vite, PixiJS, SignalR, DOM HUD, interpolation, viewport, reconnect and an admin Playwright suite. |
 | Persistence | `PersistedWorldState.CurrentSchemaVersion` is 14 with traits, appearance, relationships, pregnancies, trusts, state care, player state, utility networks/links/meters, grocery inventory, catalog version and nutrition. |
 | Admin | Data, Economy, Housing, Lifecycle, Family, Map, Players, Appearance and Consumption pages. |
-| Tests | 577 server tests / 0 failed / 2 skipped and 154 browser tests green; 2,000-sim ten-year run at p95 ~3.1 ms; 30-year continuity run; 60- and 200-sim ten-year balance bands green. |
+| Tests | 577 server tests / 0 failed / 2 skipped and 154 browser tests green; 2,000-genos ten-year run at p95 ~3.1 ms; 30-year continuity run; 60- and 200-genos ten-year balance bands green. |
 | Architecture | Hybrid ECS + Wolverine/Marten is the single path: H16 keeps collect→decide→apply, H19 migrated the remaining endpoints, H20 removed the flags, and MP05 is documented as complete. |
 
 V4 ends with a rich NPC society and a player who can walk through it. V5 closes that gap without giving the browser authority over the world.
@@ -88,23 +88,23 @@ All new systems are registered by explicit order and must respect the collect �
 
 ### Player agency
 
-- `PlayerControlled` sims stay excluded from `DecisionSystem` and `WorkScheduleSystem`. The player is the decision source, not an autonomous NPC.
+- `PlayerControlled` genoses stay excluded from `DecisionSystem` and `WorkScheduleSystem`. The player is the decision source, not an autonomous NPC.
 - Player actions are typed intents, drained at tick start under the write lock, and applied through the same domain services as NPC systems.
 - The browser sends targets, choices and ticks, never authoritative balances, positions, relationships or family state.
-- Player sims obey the same economy, housing, health, consumption and family rules as NPCs. The only approved creation sources remain initial company capital, initial household cash and universal basic income.
-- A disconnected player sim remains in the world and idle. It does not start making autonomous decisions, take a job or form relationships while the player is offline.
+- Player genoses obey the same economy, housing, health, consumption and family rules as NPCs. The only approved creation sources remain initial company capital, initial household cash and universal basic income.
+- A disconnected player genos remains in the world and idle. It does not start making autonomous decisions, take a job or form relationships while the player is offline.
 - Player-to-player and player-to-NPC family actions require an explicit invitation and acceptance path. There is no silent pairing.
-- Player death is a first-class state: the player can continue as an eligible heir, start a new sim in the same world, or observe until the next life. The chosen policy is recorded in feature 01.
+- Player death is a first-class state: the player can continue as an eligible heir, start a new genos in the same world, or observe until the next life. The chosen policy is recorded in feature 01.
 
 ### Appearance
 
 - Appearance is derived deterministically from `Traits`, `Alive.Age` and `Sex`. It is not a second source of genetic truth.
-- V5 adds `SkinTone` and `FaceShape` to the trait schema as append-only enum values, with a deterministic backfill for legacy sims.
-- The client composes sprites and portraits from layered atlas parts plus palette/tint. It never downloads one texture per sim.
+- V5 adds `SkinTone` and `FaceShape` to the trait schema as append-only enum values, with a deterministic backfill for legacy genoses.
+- The client composes sprites and portraits from layered atlas parts plus palette/tint. It never downloads one texture per genos.
 - Family resemblance is a consequence of inherited traits, not a separate family portrait rule.
 - Aging changes proportions, hair colour and posture within the same trait identity.
 - Appearance descriptors are cached and invalidated by trait, age-band or appearance-version changes.
-- The admin can preview any sim's appearance; players see appearance only through the world and their own profile.
+- The admin can preview any genos's appearance; players see appearance only through the world and their own profile.
 
 ### Consumption and utilities
 
@@ -177,7 +177,7 @@ Player actions themselves are commands drained at tick start, not systems. Exist
 - New events are immutable records in `Genelife.Messages/Events` and are written asynchronously by `SimulationEventWriter`.
 - Projections are idempotent and rebuildable. Chat moderation and social reports use Marten documents with retention.
 - The browser never accesses the world directly; it reads polling DTOs, hub messages and command results.
-- Player-visible reads are scoped to the player's own sim and public world state. Traits, family details and moderation notes stay admin-only.
+- Player-visible reads are scoped to the player's own genos and public world state. Traits, family details and moderation notes stay admin-only.
 
 ### Performance
 
@@ -185,7 +185,7 @@ Player actions themselves are commands drained at tick start, not systems. Exist
 - Appearance composition is cached per trait/age-band combination and pooled in the client.
 - Utility networks and grocery stock are indexed by building/household; no full-world scan per household.
 - Social presence and chat are off the tick loop; chat never allocates in simulation systems.
-- V5 acceptance runs the 2,000-sim decade, the 30-year continuity run, a 32-player social soak and a live preview smoke test inside the existing tick budgets.
+- V5 acceptance runs the 2,000-genos decade, the 30-year continuity run, a 32-player social soak and a live preview smoke test inside the existing tick budgets.
 
 ### Security and privacy
 
@@ -215,7 +215,7 @@ flowchart TD
     S --> H
 ```
 
-1. **Player life and household** — turns the player sim into a full participant in the existing economy and family graph. It is the anchor feature.
+1. **Player life and household** — turns the player genos into a full participant in the existing economy and family graph. It is the anchor feature.
 2. **Appearance and visual identity** — makes V4 genetics visible and gives players a reason to care about family resemblance. It can start immediately from V4 traits and the browser renderer.
 3. **Consumption and utilities** — adds the remaining resource depth from the product backlog and performs the economy recalibration that unblocks cohabitation.
 4. **Social and multiplayer** — connects players to each other once there is a life worth sharing.
@@ -229,7 +229,7 @@ Features are ordered, not strictly serial: appearance can proceed while player l
 
 | Page | Feature | Main actions |
 |---|---|---|
-| Player Life | 01 | inspect player sims, jobs, wallets, households, family links, action history, death and heir state; force a safe transition |
+| Player Life | 01 | inspect player genoses, jobs, wallets, households, family links, action history, death and heir state; force a safe transition |
 | Appearance | 02 | preview trait-driven appearance, family resemblance and aging; inspect appearance versions and cache state |
 | Consumption | 03 | inspect utility networks, capacity, load, outages, household meters, grocery stock, prices, spoilage and nutrition |
 | Social | 04 | inspect presence, chat reports, blocks, friendships, player partnerships and moderation actions |
@@ -262,7 +262,7 @@ All pages use the existing polling read model, `EmptyState`, command result patt
 ## Open questions
 
 1. **Same-sex pairing and reproduction.** `AllowSameSexPairing` and `AllowSameSexCarryingPair` exist but default to false. V5 must decide the policy before enabling player or NPC paths, and update eligibility, conception, tests and admin docs together.
-2. **Player death and continuation.** Does the player continue as an heir, respawn as a new sim, or become an observer? What happens to property, partnerships and debts? Feature 01 records the chosen policy.
+2. **Player death and continuation.** Does the player continue as an heir, respawn as a new genos, or become an observer? What happens to property, partnerships and debts? Feature 01 records the chosen policy.
 3. **Player–NPC family consent.** NPCs need a deterministic consent policy that cannot be coerced by repeated requests. The exact acceptance rule is an open design question.
 4. **Chat retention and moderation.** How long is chat retained, who can read it, and what is the report/appeal path? Feature 04 must answer before launch.
 5. **Appearance scope.** Are `SkinTone` and `FaceShape` enough, or does V5 need a small character creator? The default is trait-derived appearance with no creator.
@@ -277,10 +277,10 @@ All pages use the existing polling read model, `EmptyState`, command result patt
 
 - A player can join, get a job, earn and spend money, rent a home, shop, form a family and continue after death, all under server authority.
 - Player actions are typed, rate-limited, audited and visible in the admin Player Life page.
-- Every sim has a deterministic appearance derived from traits; family resemblance and aging are visible in the browser.
+- Every genos has a deterministic appearance derived from traits; family resemblance and aging are visible in the browser.
 - Water and electricity are real networks with capacity, load, billing and outages; grocery has stock, prices, spoilage and nutrition.
 - `CohabitOnPairing` can default to true with the strict balance bands and the 30-year continuity scenario still green.
 - Players can see each other, chat, form friendships and consensual partnerships, block/report, and be moderated without exposing private state.
 - Schema 11 → 15 migration, restore, double restore and replay pass for NPC-only and player worlds.
-- The 2,000-sim decade, 30-year continuity, 32-player social soak and live preview smoke test pass inside the tick budget.
+- The 2,000-genos decade, 30-year continuity, 32-player social soak and live preview smoke test pass inside the tick budget.
 - The release checklist is complete and the evidence is recorded.

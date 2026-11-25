@@ -25,14 +25,14 @@ const schema = {
   TraitCategoryStatus: {
     values: ["TraitValueStatus"]
   },
-  FamilySimPage: {
-    sims: ["FamilySimStatus"]
+  FamilyGenosPage: {
+    genoses: ["FamilyGenosStatus"]
   },
-  FamilySimStatus: {
+  FamilyGenosStatus: {
     traits: ["TraitValueStatus"]
   },
-  FamilySimDetailStatus: {
-    sim: "FamilySimStatus",
+  FamilyGenosDetailStatus: {
+    genos: "FamilyGenosStatus",
     relationships: ["FamilyRelationshipStatus"],
     pregnancies: ["PregnancyStatusDto"],
     children: ["ChildStatusDto"],
@@ -58,9 +58,9 @@ const failures = [];
 
 const checks = [
   [fixtures.familyOverview, "FamilyStatus", "familyOverview"],
-  [fixtures.familySim, "FamilySimStatus", "familySim"],
-  [fixtures.familySimsPage, "FamilySimPage", "familySimsPage"],
-  [fixtures.familySimDetail, "FamilySimDetailStatus", "familySimDetail"],
+  [fixtures.familyGenos, "FamilyGenosStatus", "familyGenos"],
+  [fixtures.familyGenosesPage, "FamilyGenosPage", "familyGenosesPage"],
+  [fixtures.familyGenosDetail, "FamilyGenosDetailStatus", "familyGenosDetail"],
   [fixtures.familyRelationshipsPage, "FamilyRelationshipPage", "familyRelationshipsPage"],
   [fixtures.familyAttraction, "AttractionExplanationStatus", "familyAttraction"],
   [fixtures.familyPregnanciesPage, "PregnancyPageStatus", "familyPregnanciesPage"],

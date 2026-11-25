@@ -6,7 +6,7 @@ namespace Genelife.Life;
 
 public sealed record MortalityRecord(
     long Tick,
-    ulong SimNetworkId,
+    ulong GenosNetworkId,
     string Name,
     int Age,
     DeathCause Cause,
@@ -57,13 +57,13 @@ public sealed record DeathCauseCount(string Cause, int Count);
 
 public sealed class EstateRequest
 {
-    public Entity Sim { get; init; }
+    public Entity Genos { get; init; }
     public Entity Household { get; init; }
     public Entity OwnedUnit { get; init; }
     public Entity Unit { get; init; }
     public long Tick { get; init; }
     public string Name { get; init; } = string.Empty;
-    public ulong SimNetworkId { get; init; }
+    public ulong GenosNetworkId { get; init; }
     public int Age { get; init; }
     public DeathCause Cause { get; init; }
     public List<Entity> Heirs { get; init; } = new();

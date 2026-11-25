@@ -56,7 +56,7 @@ public class EstateSettlementSystem : ISimulationSystem
     public void Update(long tick)
     {
         var requests = economy.Life.EstateQueue
-            .OrderBy(request => request.SimNetworkId)
+            .OrderBy(request => request.GenosNetworkId)
             .ToList();
         economy.Life.EstateQueue.Clear();
 
@@ -66,23 +66,23 @@ public class EstateSettlementSystem : ISimulationSystem
 
     private void Settle(EstateRequest request, long tick)
     {
-        var sim = request.Sim;
-        if (!world.IsAlive(sim))
+        var genos = request.Genos;
+        if (!world.IsAlive(genos))
         {
             // The entity was destroyed before settlement. Remove any family link
             // that still points at it so a snapshot cannot persist a dangling edge.
-            relationshipService?.RemoveEdgesForSim(sim);
+            relationshipService?.RemoveEdgesForGenos(genos);
             return;
         }
 
-        var cash = world.Has<Wallet>(sim) ? world.Get<Wallet>(sim).Balance : Money.Zero;
-        var savings = world.Has<SavingsAccount>(sim) ? world.Get<SavingsAccount>(sim).Balance : Money.Zero;
+        var cash = world.Has<Wallet>(genos) ? world.Get<Wallet>(genos).Balance : Money.Zero;
+        var savings = world.Has<SavingsAccount>(genos) ? world.Get<SavingsAccount>(genos).Balance : Money.Zero;
         var assets = cash + savings;
 
-        if (world.Has<Wallet>(sim))
-            world.Get<Wallet>(sim).Balance = Money.Zero;
-        if (world.Has<SavingsAccount>(sim))
-            world.Get<SavingsAccount>(sim).Balance = Money.Zero;
+        if (world.Has<Wallet>(genos))
+            world.Get<Wallet>(genos).Balance = Money.Zero;
+        if (world.Has<SavingsAccount>(genos))
+            world.Get<SavingsAccount>(genos).Balance = Money.Zero;
 
         var funeral = assets.Min(FuneralCost);
         var remaining = assets - funeral;
@@ -94,7 +94,7 @@ public class EstateSettlementSystem : ISimulationSystem
                 Guid.NewGuid(),
                 tick,
                 LedgerKind.FuneralCost,
-                request.SimNetworkId,
+                request.GenosNetworkId,
                 EconomyAccountIds.Government,
                 funeral,
                 "estate.funeral");
@@ -121,19 +121,19 @@ public class EstateSettlementSystem : ISimulationSystem
             ? HeirResolver.Resolve(
                     world,
                     relationshipIndex,
-                    sim,
+                    genos,
                     inheritanceOptions,
                     economy.Life.Policy)
                 .Allocations
                 .Where(allocation =>
-                    allocation.Heir != sim &&
+                    allocation.Heir != genos &&
                     world.IsAlive(allocation.Heir) &&
                     !world.Has<Dead>(allocation.Heir))
                 .DistinctBy(allocation => allocation.Heir)
                 .OrderBy(allocation => LifeSystemHelpers.NetworkIdOf(world, allocation.Heir))
                 .ToList()
             : request.Heirs
-                .Where(heir => heir != sim && world.IsAlive(heir) && !world.Has<Dead>(heir))
+                .Where(heir => heir != genos && world.IsAlive(heir) && !world.Has<Dead>(heir))
                 .Distinct()
                 .OrderBy(heir => LifeSystemHelpers.NetworkIdOf(world, heir))
                 .Select(heir => new HeirAllocation(
@@ -173,12 +173,12 @@ public class EstateSettlementSystem : ISimulationSystem
             }
         }
 
-        relationshipService?.RemoveEdgesForSim(sim);
+        relationshipService?.RemoveEdgesForGenos(genos);
 
-        if (request.SimNetworkId != 0)
+        if (request.GenosNetworkId != 0)
         {
             economy.Emit(new EstateSettled(
-                request.SimNetworkId,
+                request.GenosNetworkId,
                 assets.Cents,
                 debtsPaid.Cents,
                 funeral.Cents,
@@ -208,7 +208,7 @@ public class EstateSettlementSystem : ISimulationSystem
             ? economy.Housing.EffectiveOwner(unit)
             : Entity.Null;
 
-        if (landlord == request.Sim)
+        if (landlord == request.Genos)
             return;
 
         if (landlord != Entity.Null && world.IsAlive(landlord) && world.Has<CompanyName>(landlord))
@@ -244,14 +244,14 @@ public class EstateSettlementSystem : ISimulationSystem
         Entity newOwner = Entity.Null;
         if (relationshipIndex is not null)
         {
-            newOwner = relationshipIndex.ExPartnersOf(request.Sim)
-                .Concat(relationshipIndex.PartnersOf(request.Sim))
+            newOwner = relationshipIndex.ExPartnersOf(request.Genos)
+                .Concat(relationshipIndex.PartnersOf(request.Genos))
                 .FirstOrNull(candidate =>
-                    candidate != request.Sim && world.IsAlive(candidate) && !world.Has<Dead>(candidate));
+                    candidate != request.Genos && world.IsAlive(candidate) && !world.Has<Dead>(candidate));
 
             if (newOwner == Entity.Null)
             {
-                var minor = relationshipIndex.ChildrenOf(request.Sim)
+                var minor = relationshipIndex.ChildrenOf(request.Genos)
                     .FirstOrNull(child =>
                         world.IsAlive(child) &&
                         world.Has<Alive>(child) &&
@@ -273,7 +273,7 @@ public class EstateSettlementSystem : ISimulationSystem
         if (newOwner == Entity.Null)
         {
             newOwner = request.Heirs.FirstOrNull(heir =>
-                heir != request.Sim && world.IsAlive(heir) && !world.Has<Dead>(heir));
+                heir != request.Genos && world.IsAlive(heir) && !world.Has<Dead>(heir));
         }
 
         economy.Housing.TransferUnit(request.OwnedUnit, newOwner);
@@ -294,7 +294,7 @@ public class EstateSettlementSystem : ISimulationSystem
         if (isMinor && trusts is not null)
         {
             var trust = trusts.Create(
-                heir, guardian, amount, request.SimNetworkId, tick, releaseAgeTicks);
+                heir, guardian, amount, request.GenosNetworkId, tick, releaseAgeTicks);
             if (trust == Entity.Null)
                 return;
         }
@@ -307,7 +307,7 @@ public class EstateSettlementSystem : ISimulationSystem
                 Guid.NewGuid(),
                 tick,
                 LedgerKind.Inheritance,
-                request.SimNetworkId,
+                request.GenosNetworkId,
                 LifeSystemHelpers.NetworkIdOf(world, heir),
                 amount,
                 "estate.inheritance");
@@ -316,7 +316,7 @@ public class EstateSettlementSystem : ISimulationSystem
         distributed += amount;
         economy.Life.InheritancePaidThisYear += amount;
         economy.Emit(new InheritancePaid(
-            request.SimNetworkId,
+            request.GenosNetworkId,
             LifeSystemHelpers.NetworkIdOf(world, heir),
             amount.Cents,
             tick));
@@ -329,11 +329,11 @@ public class EstateSettlementSystem : ISimulationSystem
             Guid.NewGuid(),
             tick,
             LedgerKind.Inheritance,
-            request.SimNetworkId,
+            request.GenosNetworkId,
             EconomyAccountIds.Government,
             amount,
             "estate.escheat");
-        economy.Emit(new EscheatRecorded(request.SimNetworkId, amount.Cents, tick));
+        economy.Emit(new EscheatRecorded(request.GenosNetworkId, amount.Cents, tick));
     }
 
     private static long[] AllocateCents(long pool, IReadOnlyList<HeirAllocation> allocations)

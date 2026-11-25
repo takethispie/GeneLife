@@ -34,7 +34,7 @@ public sealed class OwnershipAuthorizationTests : IDisposable
             engine.ExecuteWithWorld(world =>
             {
                 var e1 = world.Create(
-                    new GenName("Player1Sim"),
+                    new GenName("Player1Genos"),
                     new Needs(),
                     new CurrentAction(ActionType.Idle, 0f),
                     new Alive(30),
@@ -42,7 +42,7 @@ public sealed class OwnershipAuthorizationTests : IDisposable
                     new NetworkId(1));
 
                 var e2 = world.Create(
-                    new GenName("Player2Sim"),
+                    new GenName("Player2Genos"),
                     new Needs(),
                     new CurrentAction(ActionType.Idle, 0f),
                     new Alive(25),
@@ -50,7 +50,7 @@ public sealed class OwnershipAuthorizationTests : IDisposable
                     new NetworkId(2));
 
                 world.Create(
-                    new GenName("UnownedSim"),
+                    new GenName("UnownedGenos"),
                     new Needs(),
                     new CurrentAction(ActionType.Idle, 0f),
                     new Alive(40),
@@ -67,7 +67,7 @@ public sealed class OwnershipAuthorizationTests : IDisposable
     }
 
     [Fact]
-    public void Own_sim_move_command_succeeds()
+    public void Own_genos_move_command_succeeds()
     {
         EnsureInitialized();
 
@@ -91,7 +91,7 @@ public sealed class OwnershipAuthorizationTests : IDisposable
     }
 
     [Fact]
-    public void Own_sim_interact_command_succeeds()
+    public void Own_genos_interact_command_succeeds()
     {
         EnsureInitialized();
 
@@ -124,7 +124,7 @@ public sealed class OwnershipAuthorizationTests : IDisposable
     }
 
     [Fact]
-    public void Own_sim_use_command_succeeds()
+    public void Own_genos_use_command_succeeds()
     {
         EnsureInitialized();
 
@@ -171,7 +171,7 @@ public sealed class OwnershipAuthorizationTests : IDisposable
     }
 
     [Fact]
-    public void Admin_can_act_on_any_player_sim()
+    public void Admin_can_act_on_any_player_genos()
     {
         EnsureInitialized();
 
@@ -182,7 +182,7 @@ public sealed class OwnershipAuthorizationTests : IDisposable
     }
 
     [Fact]
-    public void Admin_can_act_on_other_player_sim()
+    public void Admin_can_act_on_other_player_genos()
     {
         EnsureInitialized();
 
@@ -193,7 +193,7 @@ public sealed class OwnershipAuthorizationTests : IDisposable
     }
 
     [Fact]
-    public void Unowned_sim_action_rejected_for_player()
+    public void Unowned_genos_action_rejected_for_player()
     {
         EnsureInitialized();
 
@@ -205,7 +205,7 @@ public sealed class OwnershipAuthorizationTests : IDisposable
     }
 
     [Fact]
-    public void Admin_can_act_on_unowned_sim()
+    public void Admin_can_act_on_unowned_genos()
     {
         EnsureInitialized();
 
@@ -224,7 +224,7 @@ public sealed class OwnershipAuthorizationTests : IDisposable
         engine.ExecuteWithWorld(world =>
         {
             deadEntity = world.Create(
-                new GenName("DeadSim"),
+                new GenName("DeadGenos"),
                 new Needs(),
                 new CurrentAction(ActionType.Idle, 0f),
                 new Alive(0),
@@ -249,7 +249,7 @@ public sealed class OwnershipAuthorizationTests : IDisposable
         engine.ExecuteWithWorld(world =>
         {
             var e = world.Create(
-                new GenName("DeadSim"),
+                new GenName("DeadGenos"),
                 new Needs(),
                 new CurrentAction(ActionType.Idle, 0f),
                 new Alive(0),
@@ -415,7 +415,7 @@ public sealed class OwnershipAuthorizationTests : IDisposable
         engine.ExecuteWithWorld(world =>
         {
             var e = world.Create(
-                new GenName("NewSim"),
+                new GenName("NewGenos"),
                 new Needs(),
                 new CurrentAction(ActionType.Idle, 0f),
                 new Alive(30),
@@ -450,7 +450,7 @@ public sealed class OwnershipAuthorizationTests : IDisposable
         engine.ExecuteWithWorld(world =>
         {
             var e = world.Create(
-                new GenName("OwnedSim"),
+                new GenName("OwnedGenos"),
                 new Needs(),
                 new CurrentAction(ActionType.Idle, 0f),
                 new Alive(30),

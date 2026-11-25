@@ -2,9 +2,9 @@ using Arch.Core;
 
 namespace Genelife.Family;
 
-public readonly record struct ScoredCandidate(Entity Sim, int Score);
+public readonly record struct ScoredCandidate(Entity Genos, int Score);
 
-public readonly record struct RejectedCandidate(Entity Sim, string Reason);
+public readonly record struct RejectedCandidate(Entity Genos, string Reason);
 
 /// <summary>
 /// Monthly/quarterly relationship caches. Never persisted; rebuilt after
@@ -25,11 +25,11 @@ public sealed class RelationshipCache
         CooldownUntil.Clear();
     }
 
-    public void Invalidate(Entity sim)
+    public void Invalidate(Entity genos)
     {
-        Candidates.Remove(sim);
-        Rejections.Remove(sim);
-        Scored.Remove(sim);
+        Candidates.Remove(genos);
+        Rejections.Remove(genos);
+        Scored.Remove(genos);
     }
 
     public bool InCooldown(Entity first, Entity second, long tick) =>

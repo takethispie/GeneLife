@@ -22,7 +22,7 @@ public sealed class PersistedWorldState
     public List<PersistedPlacement> Placements { get; set; } = [];
     public bool HousingMigrated { get; set; }
     public bool LifecycleMigrated { get; set; }
-    public List<PersistedSim> Sims { get; set; } = [];
+    public List<PersistedGenos> Genoses { get; set; } = [];
     public List<PersistedCompany> Companies { get; set; } = [];
     public List<PersistedOffice> Offices { get; set; } = [];
     public List<PersistedPosting> Postings { get; set; } = [];
@@ -114,7 +114,7 @@ public sealed class PersistedPlayerRelationshipInvitation
     public long ExpiresTick { get; set; }
 }
 
-public sealed class PersistedSim
+public sealed class PersistedGenos
 {    public string Name { get; set; } = string.Empty;
     public int Age { get; set; }
     public ulong NetworkId { get; set; }
@@ -318,7 +318,7 @@ public sealed class PersistedDeathCauseCount
 public sealed class PersistedMortalityRecord
 {
     public long Tick { get; set; }
-    public ulong SimNetworkId { get; set; }
+    public ulong GenosNetworkId { get; set; }
     public string Name { get; set; } = string.Empty;
     public int Age { get; set; }
     public string Cause { get; set; } = "Other";
@@ -327,7 +327,7 @@ public sealed class PersistedMortalityRecord
 
 public sealed class PersistedEstateRequest
 {
-    public ulong SimNetworkId { get; set; }
+    public ulong GenosNetworkId { get; set; }
     public ulong HouseholdNetworkId { get; set; }
     public ulong UnitNetworkId { get; set; }
     public ulong OwnedUnitNetworkId { get; set; }
@@ -442,7 +442,7 @@ public sealed class PersistedLoan
 public sealed class PersistedPendingRevenue
 {
     public ulong CompanyNetworkId { get; set; }
-    public ulong SimNetworkId { get; set; }
+    public ulong GenosNetworkId { get; set; }
     public string Category { get; set; } = string.Empty;
     public long AmountCents { get; set; }
     public long Tick { get; set; }
@@ -546,7 +546,7 @@ public sealed class PersistedHousehold
 
 public sealed class PersistedHouseholdMember
 {
-    public ulong SimNetworkId { get; set; }
+    public ulong GenosNetworkId { get; set; }
     public ulong HouseholdNetworkId { get; set; }
     public string Role { get; set; } = string.Empty;
 }
@@ -554,8 +554,8 @@ public sealed class PersistedHouseholdMember
 public sealed class PersistedRelationship
 {
     public ulong NetworkId { get; set; }
-    public ulong FromSimNetworkId { get; set; }
-    public ulong ToSimNetworkId { get; set; }
+    public ulong FromGenosNetworkId { get; set; }
+    public ulong ToGenosNetworkId { get; set; }
     public string Kind { get; set; } = string.Empty;
     public string Source { get; set; } = string.Empty;
     public long SinceTick { get; set; }
@@ -684,7 +684,7 @@ public sealed class PersistedTrust
     public long BalanceCents { get; set; }
     public long CreatedTick { get; set; }
     public long ReleaseAgeTicks { get; set; }
-    public ulong SourceSimNetworkId { get; set; }
+    public ulong SourceGenosNetworkId { get; set; }
 }
 
 public sealed class PersistedPregnancy
@@ -712,24 +712,24 @@ public sealed class PersistedPregnancy
 public sealed class PersistedPlayerProfile
 {
     public string PlayerId { get; set; } = string.Empty;
-    public ulong SimNetworkId { get; set; }
+    public ulong GenosNetworkId { get; set; }
     public string ContinuationPolicy { get; set; } = "Respawn";
     public bool AwaitingContinuation { get; set; }
     public bool Observer { get; set; }
     public long CreatedTick { get; set; }
     public long LastActionTick { get; set; }
     public long LastSequence { get; set; }
-    public string? LastSimName { get; set; }
-    public int LastSimAge { get; set; }
-    public Genelife.Components.Gen.Traits? LastSimTraits { get; set; }
-    public ulong LastSimHouseholdNetworkId { get; set; }
-    public long LastSimDeathTick { get; set; }
-    public ulong PendingRespawnSimNetworkId { get; set; }
+    public string? LastGenosName { get; set; }
+    public int LastGenosAge { get; set; }
+    public Genelife.Components.Gen.Traits? LastGenosTraits { get; set; }
+    public ulong LastGenosHouseholdNetworkId { get; set; }
+    public long LastGenosDeathTick { get; set; }
+    public ulong PendingRespawnGenosNetworkId { get; set; }
 }
 
 public sealed class PersistedPlayerLife
 {
-    public ulong SimNetworkId { get; set; }
+    public ulong GenosNetworkId { get; set; }
     public ulong HouseholdNetworkId { get; set; }
     public ulong UnitNetworkId { get; set; }
     public long LeaseStartTick { get; set; }
@@ -764,8 +764,8 @@ public sealed class PersistedFamilyInvitation
 {
     public ulong NetworkId { get; set; }
     public Guid Id { get; set; }
-    public ulong FromSimNetworkId { get; set; }
-    public ulong ToSimNetworkId { get; set; }
+    public ulong FromGenosNetworkId { get; set; }
+    public ulong ToGenosNetworkId { get; set; }
     public string Kind { get; set; } = "Partnership";
     public string Status { get; set; } = "Pending";
     public long CreatedTick { get; set; }
@@ -820,7 +820,7 @@ public sealed class PersistedStoreInventory
 
 public sealed class PersistedNutrition
 {
-    public ulong SimNetworkId { get; set; }
+    public ulong GenosNetworkId { get; set; }
     public int Balance { get; set; }
     public int ConsecutivePoorDays { get; set; }
     public long LastMealTick { get; set; }

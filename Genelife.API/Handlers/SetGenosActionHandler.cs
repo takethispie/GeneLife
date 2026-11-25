@@ -4,13 +4,13 @@ using Microsoft.AspNetCore.Http;
 
 namespace Genelife.Api.Handlers;
 
-public static class SetSimActionHandler
+public static class SetGenosActionHandler
 {
-    public static IResult Handle(SetSimAction command, SimulationManager simulationManager)
+    public static IResult Handle(SetGenosAction command, SimulationManager simulationManager)
     {
         try
         {
-            simulationManager.SetSimAction(command.NetworkId, command.ActionType);
+            simulationManager.SetGenosAction(command.NetworkId, command.ActionType);
             return Results.Accepted();
         }
         catch (InvalidOperationException ex)

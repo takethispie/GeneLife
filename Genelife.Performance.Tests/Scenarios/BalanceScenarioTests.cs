@@ -25,7 +25,7 @@ public class BalanceScenarioTests
     [InlineData(200, 21)]
     [InlineData(1000, 21)]
     [InlineData(2000, 21)]
-    public void Ten_year_balance_report(int sims, int seed)
+    public void Ten_year_balance_report(int genoses, int seed)
     {
         using var engine = new SimulationEngine();
         engine.Initialize(new EconomyOptions(), new HousingOptions());
@@ -40,7 +40,7 @@ public class BalanceScenarioTests
                 relationshipIndex: engine.Relationships,
                 relationshipService: engine.RelationshipService!,
                 relationshipOptions: engine.RelationshipOptions);
-            generator.Generate(sims, seed: seed);
+            generator.Generate(genoses, seed: seed);
             return 0;
         });
 
@@ -64,10 +64,10 @@ public class BalanceScenarioTests
 
         engine.Tick(1f / 20f);
 
-        var report = BuildReport(engine, sims, seed, startSupply, startSource, startSink, startLiving, flows);
+        var report = BuildReport(engine, genoses, seed, startSupply, startSource, startSink, startLiving, flows);
         var dir = Path.Combine(AppContext.BaseDirectory, "balance-reports");
         Directory.CreateDirectory(dir);
-        var path = Path.Combine(dir, $"balance-{sims}-{seed}.json");
+        var path = Path.Combine(dir, $"balance-{genoses}-{seed}.json");
         File.WriteAllText(path, JsonSerializer.Serialize(report, new JsonSerializerOptions
         {
             WriteIndented = true
@@ -81,7 +81,7 @@ public class BalanceScenarioTests
 
         // 1k–2k target misses are recorded in the report rather than hidden, so
         // the release decision can see them; the strict CI bands stay on 200.
-        if (sims == 200)
+        if (genoses == 200)
             AssertTargetBands(report);
     }
 
@@ -134,7 +134,7 @@ public class BalanceScenarioTests
 
     private static BalanceReport BuildReport(
         SimulationEngine engine,
-        int requestedSims,
+        int requestedGenoses,
         int seed,
         Money startSupply,
         Money startSource,
@@ -235,7 +235,7 @@ public class BalanceScenarioTests
             : 0m;
 
         return new BalanceReport(
-            requestedSims,
+            requestedGenoses,
             seed,
             startLiving,
             economy.Life.Index.TotalLiving,
@@ -264,7 +264,7 @@ public class BalanceScenarioTests
     }
 
     private sealed record BalanceReport(
-        int RequestedSims,
+        int RequestedGenoses,
         int Seed,
         int StartLiving,
         int EndLiving,

@@ -3,14 +3,14 @@ import {
   computeRenderTick,
   interpolateFrames,
   pickFrames,
-  type SimFrame
+  type GenosFrame
 } from "./interpolation";
 
 function frame(
   tick: number,
   arrivedAt: number,
   positions: Array<[number, number, number, number, number]>
-): SimFrame {
+): GenosFrame {
   return {
     tick,
     arrivedAt,
@@ -88,14 +88,14 @@ describe("interpolateFrames", () => {
       1.5
     );
     if (pair === null) throw new Error("expected frames");
-    const sims = interpolateFrames(pair, options);
-    expect(sims.get(1)?.x).toBeCloseTo(0.5, 5);
-    expect(sims.get(1)?.y).toBeCloseTo(1, 5);
-    expect(sims.get(1)?.tileX).toBe(1);
-    expect(sims.get(1)?.interpolated).toBe(true);
+    const genoses = interpolateFrames(pair, options);
+    expect(genoses.get(1)?.x).toBeCloseTo(0.5, 5);
+    expect(genoses.get(1)?.y).toBeCloseTo(1, 5);
+    expect(genoses.get(1)?.tileX).toBe(1);
+    expect(genoses.get(1)?.interpolated).toBe(true);
   });
 
-  it("drops removed sims and snaps new sims", () => {
+  it("drops removed genoses and snaps new genoses", () => {
     const pair = pickFrames(
       [
         frame(1, 0, [[1, 0, 0, 0, 0], [2, 2, 2, 2, 2]]),
@@ -104,10 +104,10 @@ describe("interpolateFrames", () => {
       1.5
     );
     if (pair === null) throw new Error("expected frames");
-    const sims = interpolateFrames(pair, options);
-    expect(sims.has(2)).toBe(false);
-    expect(sims.get(3)?.snapped).toBe(true);
-    expect(sims.get(3)?.x).toBe(5);
+    const genoses = interpolateFrames(pair, options);
+    expect(genoses.has(2)).toBe(false);
+    expect(genoses.get(3)?.snapped).toBe(true);
+    expect(genoses.get(3)?.x).toBe(5);
   });
 
   it("snaps on distance and frame gaps", () => {

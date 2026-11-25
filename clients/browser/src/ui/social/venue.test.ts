@@ -11,7 +11,7 @@ const venue = (overrides: Record<string, unknown> = {}) => ({
   isClosed: false,
   activities: "Sit, Talk, ShareMeal, Cheer",
   occupants: [
-    { playerId: "bob", displayName: "Bob", simNetworkId: 22 }
+    { playerId: "bob", displayName: "Bob", genosNetworkId: 22 }
   ],
   recentActivities: [
     { playerId: "bob", displayName: "Bob", activity: "Talk", tick: 8 }

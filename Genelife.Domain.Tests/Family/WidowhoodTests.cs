@@ -107,8 +107,8 @@ public class WidowhoodTests
 
         context.Death.Update(10);
 
-        context.Service.RemoveEdgesForSim(context.Deceased);
-        context.Service.RemoveEdgesForSim(context.Surviving);
+        context.Service.RemoveEdgesForGenos(context.Deceased);
+        context.Service.RemoveEdgesForGenos(context.Surviving);
 
         Assert.Empty(context.Relationships.ParentsOf(context.Child));
         Assert.True(context.World.Has<StateCare>(context.Child));

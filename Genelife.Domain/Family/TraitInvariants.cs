@@ -34,7 +34,7 @@ public static class TraitInvariants
             issues.Add(new Issue(
                 "traits.missing",
                 "Fail",
-                $"{living - withTraits} living sims have no Traits component"));
+                $"{living - withTraits} living genoses have no Traits component"));
         }
 
         if (invalid > 0)
@@ -42,7 +42,7 @@ public static class TraitInvariants
             issues.Add(new Issue(
                 "traits.invalid",
                 "Fail",
-                $"{invalid} living sims have undefined trait values"));
+                $"{invalid} living genoses have undefined trait values"));
         }
 
         if (withTraits == 0)
@@ -50,7 +50,7 @@ public static class TraitInvariants
             issues.Add(new Issue(
                 "traits.none",
                 "Warn",
-                "No living sim has a generated trait set"));
+                "No living genos has a generated trait set"));
             return issues;
         }
 
@@ -63,7 +63,7 @@ public static class TraitInvariants
                 issues.Add(new Issue(
                     $"traits.distribution.{trait}",
                     "Warn",
-                    $"Trait '{trait}' has collapsed to a single value across {withTraits} sims"));
+                    $"Trait '{trait}' has collapsed to a single value across {withTraits} genoses"));
             }
         }
 

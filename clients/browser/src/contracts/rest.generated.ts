@@ -100,16 +100,16 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/simulation/sims": {
+    "/api/simulation/genoses": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["GetAllSims"];
+        get: operations["GetAllGenoses"];
         put?: never;
-        post: operations["AddSim"];
+        post: operations["AddGenos"];
         delete?: never;
         options?: never;
         head?: never;
@@ -504,7 +504,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/companies/{companyId}/employees/{simId}/fire": {
+    "/api/companies/{companyId}/employees/{genosId}/fire": {
         parameters: {
             query?: never;
             header?: never;
@@ -514,17 +514,17 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * POST_api_companies_companyId_employees_simId_fire
-         * @description POST_api_companies_companyId_employees_simId_fire
+         * POST_api_companies_companyId_employees_genosId_fire
+         * @description POST_api_companies_companyId_employees_genosId_fire
          */
-        post: operations["POST_api_companies_companyId_employees_simId_fire"];
+        post: operations["POST_api_companies_companyId_employees_genosId_fire"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/companies/{companyId}/employees/{simId}/resign": {
+    "/api/companies/{companyId}/employees/{genosId}/resign": {
         parameters: {
             query?: never;
             header?: never;
@@ -534,10 +534,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * POST_api_companies_companyId_employees_simId_resign
-         * @description POST_api_companies_companyId_employees_simId_resign
+         * POST_api_companies_companyId_employees_genosId_resign
+         * @description POST_api_companies_companyId_employees_genosId_resign
          */
-        post: operations["POST_api_companies_companyId_employees_simId_resign"];
+        post: operations["POST_api_companies_companyId_employees_genosId_resign"];
         delete?: never;
         options?: never;
         head?: never;
@@ -976,7 +976,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/housing/households/{householdId}/members/{simId}": {
+    "/api/housing/households/{householdId}/members/{genosId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -987,10 +987,10 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * DELETE_api_housing_households_householdId_members_simId
-         * @description DELETE_api_housing_households_householdId_members_simId
+         * DELETE_api_housing_households_householdId_members_genosId
+         * @description DELETE_api_housing_households_householdId_members_genosId
          */
-        delete: operations["DELETE_api_housing_households_householdId_members_simId"];
+        delete: operations["DELETE_api_housing_households_householdId_members_genosId"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1076,7 +1076,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/lifecycle/sims": {
+    "/api/lifecycle/genoses": {
         parameters: {
             query?: never;
             header?: never;
@@ -1084,10 +1084,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * GET_api_lifecycle_sims
-         * @description GET_api_lifecycle_sims
+         * GET_api_lifecycle_genoses
+         * @description GET_api_lifecycle_genoses
          */
-        get: operations["GET_api_lifecycle_sims"];
+        get: operations["GET_api_lifecycle_genoses"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1264,7 +1264,7 @@ export interface paths {
         patch: operations["PATCH_api_schools_schoolId"];
         trace?: never;
     };
-    "/api/sims/{simId}/stage": {
+    "/api/genoses/{genosId}/stage": {
         parameters: {
             query?: never;
             header?: never;
@@ -1274,17 +1274,17 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * POST_api_sims_simId_stage
-         * @description POST_api_sims_simId_stage
+         * POST_api_genoses_genosId_stage
+         * @description POST_api_genoses_genosId_stage
          */
-        post: operations["POST_api_sims_simId_stage"];
+        post: operations["POST_api_genoses_genosId_stage"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/sims/{simId}/graduate": {
+    "/api/genoses/{genosId}/graduate": {
         parameters: {
             query?: never;
             header?: never;
@@ -1294,17 +1294,17 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * POST_api_sims_simId_graduate
-         * @description POST_api_sims_simId_graduate
+         * POST_api_genoses_genosId_graduate
+         * @description POST_api_genoses_genosId_graduate
          */
-        post: operations["POST_api_sims_simId_graduate"];
+        post: operations["POST_api_genoses_genosId_graduate"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/sims/{simId}/retire": {
+    "/api/genoses/{genosId}/retire": {
         parameters: {
             query?: never;
             header?: never;
@@ -1314,17 +1314,17 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * POST_api_sims_simId_retire
-         * @description POST_api_sims_simId_retire
+         * POST_api_genoses_genosId_retire
+         * @description POST_api_genoses_genosId_retire
          */
-        post: operations["POST_api_sims_simId_retire"];
+        post: operations["POST_api_genoses_genosId_retire"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/sims/{simId}/advance-age": {
+    "/api/genoses/{genosId}/advance-age": {
         parameters: {
             query?: never;
             header?: never;
@@ -1334,17 +1334,17 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * POST_api_sims_simId_advance_age
-         * @description POST_api_sims_simId_advance_age
+         * POST_api_genoses_genosId_advance_age
+         * @description POST_api_genoses_genosId_advance_age
          */
-        post: operations["POST_api_sims_simId_advance_age"];
+        post: operations["POST_api_genoses_genosId_advance_age"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/employment/{simId}/promote": {
+    "/api/employment/{genosId}/promote": {
         parameters: {
             query?: never;
             header?: never;
@@ -1354,17 +1354,17 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * POST_api_employment_simId_promote
-         * @description POST_api_employment_simId_promote
+         * POST_api_employment_genosId_promote
+         * @description POST_api_employment_genosId_promote
          */
-        post: operations["POST_api_employment_simId_promote"];
+        post: operations["POST_api_employment_genosId_promote"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/lifecycle/unemployment/{simId}/eligibility": {
+    "/api/lifecycle/unemployment/{genosId}/eligibility": {
         parameters: {
             query?: never;
             header?: never;
@@ -1374,10 +1374,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * POST_api_lifecycle_unemployment_simId_eligibility
-         * @description POST_api_lifecycle_unemployment_simId_eligibility
+         * POST_api_lifecycle_unemployment_genosId_eligibility
+         * @description POST_api_lifecycle_unemployment_genosId_eligibility
          */
-        post: operations["POST_api_lifecycle_unemployment_simId_eligibility"];
+        post: operations["POST_api_lifecycle_unemployment_genosId_eligibility"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1404,7 +1404,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/lifecycle/sims/{simId}/death": {
+    "/api/lifecycle/genoses/{genosId}/death": {
         parameters: {
             query?: never;
             header?: never;
@@ -1414,10 +1414,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * POST_api_lifecycle_sims_simId_death
-         * @description POST_api_lifecycle_sims_simId_death
+         * POST_api_lifecycle_genoses_genosId_death
+         * @description POST_api_lifecycle_genoses_genosId_death
          */
-        post: operations["POST_api_lifecycle_sims_simId_death"];
+        post: operations["POST_api_lifecycle_genoses_genosId_death"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1504,7 +1504,7 @@ export interface paths {
         patch: operations["PATCH_api_lifecycle_schools_schoolId"];
         trace?: never;
     };
-    "/api/schools/{schoolId}/enroll/{simId}": {
+    "/api/schools/{schoolId}/enroll/{genosId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1514,21 +1514,21 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * POST_api_schools_schoolId_enroll_simId
-         * @description POST_api_schools_schoolId_enroll_simId
+         * POST_api_schools_schoolId_enroll_genosId
+         * @description POST_api_schools_schoolId_enroll_genosId
          */
-        post: operations["POST_api_schools_schoolId_enroll_simId"];
+        post: operations["POST_api_schools_schoolId_enroll_genosId"];
         /**
-         * DELETE_api_schools_schoolId_enroll_simId
-         * @description DELETE_api_schools_schoolId_enroll_simId
+         * DELETE_api_schools_schoolId_enroll_genosId
+         * @description DELETE_api_schools_schoolId_enroll_genosId
          */
-        delete: operations["DELETE_api_schools_schoolId_enroll_simId"];
+        delete: operations["DELETE_api_schools_schoolId_enroll_genosId"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/lifecycle/sims/{simId}/stage": {
+    "/api/lifecycle/genoses/{genosId}/stage": {
         parameters: {
             query?: never;
             header?: never;
@@ -1538,17 +1538,17 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * POST_api_lifecycle_sims_simId_stage
-         * @description POST_api_lifecycle_sims_simId_stage
+         * POST_api_lifecycle_genoses_genosId_stage
+         * @description POST_api_lifecycle_genoses_genosId_stage
          */
-        post: operations["POST_api_lifecycle_sims_simId_stage"];
+        post: operations["POST_api_lifecycle_genoses_genosId_stage"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/lifecycle/sims/{simId}/graduate": {
+    "/api/lifecycle/genoses/{genosId}/graduate": {
         parameters: {
             query?: never;
             header?: never;
@@ -1558,17 +1558,17 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * POST_api_lifecycle_sims_simId_graduate
-         * @description POST_api_lifecycle_sims_simId_graduate
+         * POST_api_lifecycle_genoses_genosId_graduate
+         * @description POST_api_lifecycle_genoses_genosId_graduate
          */
-        post: operations["POST_api_lifecycle_sims_simId_graduate"];
+        post: operations["POST_api_lifecycle_genoses_genosId_graduate"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/lifecycle/sims/{simId}/retire": {
+    "/api/lifecycle/genoses/{genosId}/retire": {
         parameters: {
             query?: never;
             header?: never;
@@ -1578,17 +1578,17 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * POST_api_lifecycle_sims_simId_retire
-         * @description POST_api_lifecycle_sims_simId_retire
+         * POST_api_lifecycle_genoses_genosId_retire
+         * @description POST_api_lifecycle_genoses_genosId_retire
          */
-        post: operations["POST_api_lifecycle_sims_simId_retire"];
+        post: operations["POST_api_lifecycle_genoses_genosId_retire"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/lifecycle/sims/{simId}/care": {
+    "/api/lifecycle/genoses/{genosId}/care": {
         parameters: {
             query?: never;
             header?: never;
@@ -1598,10 +1598,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * POST_api_lifecycle_sims_simId_care
-         * @description POST_api_lifecycle_sims_simId_care
+         * POST_api_lifecycle_genoses_genosId_care
+         * @description POST_api_lifecycle_genoses_genosId_care
          */
-        post: operations["POST_api_lifecycle_sims_simId_care"];
+        post: operations["POST_api_lifecycle_genoses_genosId_care"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1828,7 +1828,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/sims": {
+    "/api/genoses": {
         parameters: {
             query?: never;
             header?: never;
@@ -1836,23 +1836,23 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * GET_api_sims
-         * @description GET_api_sims
+         * GET_api_genoses
+         * @description GET_api_genoses
          */
-        get: operations["GET_api_sims"];
+        get: operations["GET_api_genoses"];
         put?: never;
         /**
-         * POST_api_sims
-         * @description POST_api_sims
+         * POST_api_genoses
+         * @description POST_api_genoses
          */
-        post: operations["POST_api_sims"];
+        post: operations["POST_api_genoses"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/sims/{networkId}": {
+    "/api/genoses/{networkId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1860,23 +1860,23 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * GET_api_sims_networkId
-         * @description GET_api_sims_networkId
+         * GET_api_genoses_networkId
+         * @description GET_api_genoses_networkId
          */
-        get: operations["GET_api_sims_networkId"];
+        get: operations["GET_api_genoses_networkId"];
         put?: never;
         post?: never;
         /**
-         * DELETE_api_sims_networkId
-         * @description DELETE_api_sims_networkId
+         * DELETE_api_genoses_networkId
+         * @description DELETE_api_genoses_networkId
          */
-        delete: operations["DELETE_api_sims_networkId"];
+        delete: operations["DELETE_api_genoses_networkId"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/sims/{networkId}/action": {
+    "/api/genoses/{networkId}/action": {
         parameters: {
             query?: never;
             header?: never;
@@ -1886,10 +1886,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * POST_api_sims_networkId_action
-         * @description POST_api_sims_networkId_action
+         * POST_api_genoses_networkId_action
+         * @description POST_api_genoses_networkId_action
          */
-        post: operations["POST_api_sims_networkId_action"];
+        post: operations["POST_api_genoses_networkId_action"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1902,10 +1902,10 @@ export interface components {
     schemas: {
         AddHouseholdMemberRequest: {
             /** Format: int64 */
-            simId?: number;
+            genosId?: number;
             role?: string | null;
         };
-        AddSimRequest: {
+        AddGenosRequest: {
             name?: string | null;
             /** Format: int32 */
             age?: number;
@@ -1960,7 +1960,7 @@ export interface components {
         };
         CreateHouseholdRequest: {
             /** Format: int64 */
-            headSimId?: number;
+            headGenosId?: number;
         };
         CreateOfficeRequest: {
             /** Format: int64 */
@@ -1999,7 +1999,7 @@ export interface components {
             /** Format: int64 */
             ownerId?: number | null;
         };
-        CreateSim: {
+        CreateGenos: {
             name?: string | null;
             /** Format: int32 */
             age?: number;
@@ -2124,7 +2124,7 @@ export interface components {
         };
         GeneratePopulationRequest: {
             /** Format: int32 */
-            totalSims?: number;
+            totalGenoses?: number;
             /** Format: int32 */
             seed?: number;
             /** Format: int32 */
@@ -2425,7 +2425,7 @@ export interface components {
         };
         LifecycleStatus: {
             /** Format: int32 */
-            totalSims?: number;
+            totalGenoses?: number;
             /** Format: int32 */
             education?: number;
             /** Format: int32 */
@@ -2589,7 +2589,7 @@ export interface components {
             /** Format: int64 */
             tick?: number;
             /** Format: int64 */
-            simNetworkId?: number;
+            genosNetworkId?: number;
             name?: string | null;
             /** Format: int32 */
             age?: number;
@@ -2789,12 +2789,12 @@ export interface components {
             /** Format: int64 */
             buyerHouseholdId?: number;
         };
-        SetSimAction: {
+        SetGenosAction: {
             /** Format: int64 */
             networkId?: number;
             actionType?: string | null;
         };
-        SimLifecycleStatus: {
+        GenosLifecycleStatus: {
             /** Format: int64 */
             networkId?: number;
             name?: string | null;
@@ -2842,7 +2842,7 @@ export interface components {
             /** Format: int64 */
             householdNetworkId?: number | null;
         };
-        SimStatus: {
+        GenosStatus: {
             /** Format: int64 */
             networkId?: number;
             name?: string | null;
@@ -3081,7 +3081,7 @@ export interface operations {
             };
         };
     };
-    GetAllSims: {
+    GetAllGenoses: {
         parameters: {
             query?: never;
             header?: never;
@@ -3099,7 +3099,7 @@ export interface operations {
             };
         };
     };
-    AddSim: {
+    AddGenos: {
         parameters: {
             query?: never;
             header?: never;
@@ -3108,7 +3108,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AddSimRequest"];
+                "application/json": components["schemas"]["AddGenosRequest"];
             };
         };
         responses: {
@@ -3794,13 +3794,13 @@ export interface operations {
             };
         };
     };
-    POST_api_companies_companyId_employees_simId_fire: {
+    POST_api_companies_companyId_employees_genosId_fire: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 companyId: number;
-                simId: number;
+                genosId: number;
             };
             cookie?: never;
         };
@@ -3824,13 +3824,13 @@ export interface operations {
             };
         };
     };
-    POST_api_companies_companyId_employees_simId_resign: {
+    POST_api_companies_companyId_employees_genosId_resign: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 companyId: number;
-                simId: number;
+                genosId: number;
             };
             cookie?: never;
         };
@@ -4570,13 +4570,13 @@ export interface operations {
             };
         };
     };
-    DELETE_api_housing_households_householdId_members_simId: {
+    DELETE_api_housing_households_householdId_members_genosId: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 householdId: number;
-                simId: number;
+                genosId: number;
             };
             cookie?: never;
         };
@@ -4716,7 +4716,7 @@ export interface operations {
             };
         };
     };
-    GET_api_lifecycle_sims: {
+    GET_api_lifecycle_genoses: {
         parameters: {
             query?: {
                 take?: number;
@@ -4735,7 +4735,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SimLifecycleStatus"][];
+                    "application/json": components["schemas"]["GenosLifecycleStatus"][];
                 };
             };
             /** @description Not Found */
@@ -5035,12 +5035,12 @@ export interface operations {
             };
         };
     };
-    POST_api_sims_simId_stage: {
+    POST_api_genoses_genosId_stage: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                simId: number;
+                genosId: number;
             };
             cookie?: never;
         };
@@ -5068,12 +5068,12 @@ export interface operations {
             };
         };
     };
-    POST_api_sims_simId_graduate: {
+    POST_api_genoses_genosId_graduate: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                simId: number;
+                genosId: number;
             };
             cookie?: never;
         };
@@ -5097,12 +5097,12 @@ export interface operations {
             };
         };
     };
-    POST_api_sims_simId_retire: {
+    POST_api_genoses_genosId_retire: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                simId: number;
+                genosId: number;
             };
             cookie?: never;
         };
@@ -5126,12 +5126,12 @@ export interface operations {
             };
         };
     };
-    POST_api_sims_simId_advance_age: {
+    POST_api_genoses_genosId_advance_age: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                simId: number;
+                genosId: number;
             };
             cookie?: never;
         };
@@ -5159,12 +5159,12 @@ export interface operations {
             };
         };
     };
-    POST_api_employment_simId_promote: {
+    POST_api_employment_genosId_promote: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                simId: number;
+                genosId: number;
             };
             cookie?: never;
         };
@@ -5188,12 +5188,12 @@ export interface operations {
             };
         };
     };
-    POST_api_lifecycle_unemployment_simId_eligibility: {
+    POST_api_lifecycle_unemployment_genosId_eligibility: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                simId: number;
+                genosId: number;
             };
             cookie?: never;
         };
@@ -5252,12 +5252,12 @@ export interface operations {
             };
         };
     };
-    POST_api_lifecycle_sims_simId_death: {
+    POST_api_lifecycle_genoses_genosId_death: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                simId: number;
+                genosId: number;
             };
             cookie?: never;
         };
@@ -5403,13 +5403,13 @@ export interface operations {
             };
         };
     };
-    POST_api_schools_schoolId_enroll_simId: {
+    POST_api_schools_schoolId_enroll_genosId: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 schoolId: number;
-                simId: number;
+                genosId: number;
             };
             cookie?: never;
         };
@@ -5433,13 +5433,13 @@ export interface operations {
             };
         };
     };
-    DELETE_api_schools_schoolId_enroll_simId: {
+    DELETE_api_schools_schoolId_enroll_genosId: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 schoolId: number;
-                simId: number;
+                genosId: number;
             };
             cookie?: never;
         };
@@ -5463,12 +5463,12 @@ export interface operations {
             };
         };
     };
-    POST_api_lifecycle_sims_simId_stage: {
+    POST_api_lifecycle_genoses_genosId_stage: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                simId: number;
+                genosId: number;
             };
             cookie?: never;
         };
@@ -5496,12 +5496,12 @@ export interface operations {
             };
         };
     };
-    POST_api_lifecycle_sims_simId_graduate: {
+    POST_api_lifecycle_genoses_genosId_graduate: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                simId: number;
+                genosId: number;
             };
             cookie?: never;
         };
@@ -5525,12 +5525,12 @@ export interface operations {
             };
         };
     };
-    POST_api_lifecycle_sims_simId_retire: {
+    POST_api_lifecycle_genoses_genosId_retire: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                simId: number;
+                genosId: number;
             };
             cookie?: never;
         };
@@ -5554,12 +5554,12 @@ export interface operations {
             };
         };
     };
-    POST_api_lifecycle_sims_simId_care: {
+    POST_api_lifecycle_genoses_genosId_care: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                simId: number;
+                genosId: number;
             };
             cookie?: never;
         };
@@ -5909,7 +5909,7 @@ export interface operations {
             };
         };
     };
-    GET_api_sims: {
+    GET_api_genoses: {
         parameters: {
             query?: never;
             header?: never;
@@ -5924,7 +5924,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SimStatus"][];
+                    "application/json": components["schemas"]["GenosStatus"][];
                 };
             };
             /** @description Not Found */
@@ -5936,7 +5936,7 @@ export interface operations {
             };
         };
     };
-    POST_api_sims: {
+    POST_api_genoses: {
         parameters: {
             query?: never;
             header?: never;
@@ -5945,7 +5945,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreateSim"];
+                "application/json": components["schemas"]["CreateGenos"];
             };
         };
         responses: {
@@ -5967,7 +5967,7 @@ export interface operations {
             };
         };
     };
-    GET_api_sims_networkId: {
+    GET_api_genoses_networkId: {
         parameters: {
             query?: never;
             header?: never;
@@ -5996,7 +5996,7 @@ export interface operations {
             };
         };
     };
-    DELETE_api_sims_networkId: {
+    DELETE_api_genoses_networkId: {
         parameters: {
             query?: never;
             header?: never;
@@ -6025,7 +6025,7 @@ export interface operations {
             };
         };
     };
-    POST_api_sims_networkId_action: {
+    POST_api_genoses_networkId_action: {
         parameters: {
             query?: never;
             header?: never;
@@ -6036,7 +6036,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["SetSimAction"];
+                "application/json": components["schemas"]["SetGenosAction"];
             };
         };
         responses: {

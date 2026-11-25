@@ -2,7 +2,7 @@ namespace Genelife.Family;
 
 /// <summary>
 /// Directional relationship kinds. Every edge has a mirror edge of the paired
-/// kind on the other sim.
+/// kind on the other genos.
 /// </summary>
 public enum RelationshipKind : byte
 {

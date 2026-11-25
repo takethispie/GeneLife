@@ -8,7 +8,7 @@ namespace Genelife.UnitTests.Release;
 
 /// <summary>
 /// Records the before/after cohabitation comparison required before flipping
-/// `CohabitOnPairing`. Both runs use the same 200-sim seed and 30-year horizon;
+/// `CohabitOnPairing`. Both runs use the same 200-genos seed and 30-year horizon;
 /// the test records the result and asserts invariants, not a preferred policy.
 /// </summary>
 [Trait("Category", "Release")]
@@ -27,7 +27,7 @@ public class CohabitationComparisonTests
         {
             scenario = nameof(ThirtyYearCohabitationComparison),
             seed = Seed,
-            sims = 200,
+            genoses = 200,
             years = 30,
             cohabitOff = off,
             cohabitOn = on

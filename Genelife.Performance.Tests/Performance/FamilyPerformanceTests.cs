@@ -9,7 +9,7 @@ namespace Genelife.UnitTests.Performance;
 public class FamilyPerformanceTests
 {
     [Fact]
-    public void TwoThousandSimsStayInsideTheTickBudgetAndCandidateCap()
+    public void TwoThousandGenosesStayInsideTheTickBudgetAndCandidateCap()
     {
         using var engine = Build(2_000, seed: 21);
         Run(engine, years: 1);
@@ -19,14 +19,14 @@ public class FamilyPerformanceTests
 
         Assert.True(status.Population > 1_000, $"population collapsed to {status.Population}");
         Assert.True(metrics.P95TickMilliseconds <= 15,
-            $"tick p95 {metrics.P95TickMilliseconds:F2}ms exceeds 15ms at 2,000 sims");
+            $"tick p95 {metrics.P95TickMilliseconds:F2}ms exceeds 15ms at 2,000 genoses");
         Assert.True(status.Performance.CandidateMax <= status.Performance.CandidateCap,
             $"candidate max {status.Performance.CandidateMax} exceeds cap {status.Performance.CandidateCap}");
         Assert.True(status.Performance.CandidateAverage <= status.Performance.CandidateCap);
     }
 
     [Fact]
-    public void FiveThousandSimSmokeDoesNotThrow()
+    public void FiveThousandGenosSmokeDoesNotThrow()
     {
         using var engine = Build(5_000, seed: 7);
         for (var i = 0; i < 200; i++)
@@ -36,14 +36,14 @@ public class FamilyPerformanceTests
     }
 
     [Fact]
-    public void CandidateCapHoldsForADecadeAtTwoHundredSims()
+    public void CandidateCapHoldsForADecadeAtTwoHundredGenoses()
     {
         using var engine = Build(200, seed: 21);
         Run(engine, years: 10);
 
         var status = engine.BuildFamilyStatus();
         Assert.True(status.Performance.CandidateMax <= status.Performance.CandidateCap);
-        Assert.True(status.Performance.CandidateSims <= status.Population);
+        Assert.True(status.Performance.CandidateGenoses <= status.Population);
         Assert.Empty(RelationshipInvariants.Verify(engine.World!, engine.Relationships));
     }
 
@@ -70,7 +70,7 @@ public class FamilyPerformanceTests
     }
 
     [Fact]
-    public void SnapshotSizeAtTwoThousandSimsStaysWithinBudget()
+    public void SnapshotSizeAtTwoThousandGenosesStaysWithinBudget()
     {
         using var engine = Build(2_000, seed: 21);
         Run(engine, years: 1);
@@ -78,11 +78,11 @@ public class FamilyPerformanceTests
         var json = JsonSerializer.Serialize(state);
 
         Assert.True(json.Length < 50_000_000,
-            $"snapshot is {json.Length:N0} bytes at 2,000 sims");
+            $"snapshot is {json.Length:N0} bytes at 2,000 genoses");
         Assert.True(state.Relationships.Count >= 0);
     }
 
-    private static SimulationEngine Build(int sims, int seed)
+    private static SimulationEngine Build(int genoses, int seed)
     {
         var engine = new SimulationEngine();
         engine.Initialize();
@@ -93,7 +93,7 @@ public class FamilyPerformanceTests
                 relationshipIndex: engine.Relationships,
                 relationshipService: engine.RelationshipService!,
                 relationshipOptions: engine.RelationshipOptions);
-            generator.Generate(sims, seed: seed);
+            generator.Generate(genoses, seed: seed);
             return 0;
         });
         return engine;

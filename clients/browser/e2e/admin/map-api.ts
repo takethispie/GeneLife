@@ -56,7 +56,7 @@ const world = {
   month: 1,
   isRunning: true,
   capturedAt: new Date().toISOString(),
-  sims: [
+  genoses: [
     {
       networkId: 1,
       name: "Alice",

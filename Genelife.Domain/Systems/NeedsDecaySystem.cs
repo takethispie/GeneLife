@@ -5,7 +5,7 @@ using Genelife.Components.Gen;
 namespace Genelife.Systems;
 
 /// <summary>
-/// Decays needs for every living sim. The update is per-entity and reads only
+/// Decays needs for every living genos. The update is per-entity and reads only
 /// immutable/read-only components, so it is safe to run across Arch chunks in
 /// parallel. Small worlds keep the serial query to avoid scheduling overhead.
 /// </summary>

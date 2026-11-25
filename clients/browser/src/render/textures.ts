@@ -5,7 +5,7 @@ export interface SceneTextures {
   white: Texture;
   circle: Texture;
   ring: Texture;
-  sim: AppearanceTextures;
+  genos: AppearanceTextures;
 }
 
 /**
@@ -20,7 +20,7 @@ export function createSceneTextures(renderer: Renderer): SceneTextures {
     ring: generate(renderer, (graphics) =>
       graphics.circle(10, 10, 10).stroke({ width: 3, color: 0xffffff })
     ),
-    sim: createAppearanceTextures(renderer)
+    genos: createAppearanceTextures(renderer)
   };
 }
 
@@ -28,7 +28,7 @@ export function destroyTextures(textures: SceneTextures): void {
   for (const texture of [textures.circle, textures.ring]) {
     if (texture !== Texture.WHITE) texture.destroy(true);
   }
-  for (const texture of Object.values(textures.sim)) {
+  for (const texture of Object.values(textures.genos)) {
     if (texture !== Texture.WHITE) texture.destroy(true);
   }
 }

@@ -131,8 +131,8 @@ public class SimulationManager : IHostedService, IDisposable
         var state = engine.CaptureState(networkIds);
         store.Save(state);
         LastSaveTime = DateTime.UtcNow;
-        logger?.LogDebug("Snapshot saved at tick {Tick} with {SimCount} sims, {CompanyCount} companies",
-            state.Tick, state.Sims.Count, state.Companies.Count);
+        logger?.LogDebug("Snapshot saved at tick {Tick} with {GenosCount} genoses, {CompanyCount} companies",
+            state.Tick, state.Genoses.Count, state.Companies.Count);
         return state;
     }
 
@@ -240,7 +240,7 @@ public class SimulationManager : IHostedService, IDisposable
                     networkIds.Clear();
                     logger?.LogError(
                         ex,
-                        "World creation failed while generating a population for {Population} sims (issued by {IssuedBy})",
+                        "World creation failed while generating a population for {Population} genoses (issued by {IssuedBy})",
                         request.Population,
                         issuedBy);
                     throw new InvalidOperationException(
@@ -249,13 +249,13 @@ public class SimulationManager : IHostedService, IDisposable
                 }
             }
 
-            var playerSimIds = new Dictionary<string, ulong>(StringComparer.Ordinal);
+            var playerGenosIds = new Dictionary<string, ulong>(StringComparer.Ordinal);
             foreach (var playerId in playerIds)
             {
-                var simNetworkId = engine.EnsurePlayerSim(playerId);
+                var genosNetworkId = engine.EnsurePlayerGenos(playerId);
                 engine.EnsurePlayerSpawn(playerId);
-                if (simNetworkId != 0)
-                    playerSimIds[playerId] = simNetworkId;
+                if (genosNetworkId != 0)
+                    playerGenosIds[playerId] = genosNetworkId;
             }
 
             foreach (var networkId in oldPlacementIds)
@@ -274,7 +274,7 @@ public class SimulationManager : IHostedService, IDisposable
                 mapStatus.Height,
                 mapStatus.Buildings,
                 population?.Total ?? 0,
-                playerSimIds.Count,
+                playerGenosIds.Count,
                 (long)Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds);
 
             worldResetNotifier?.NotifyWorldReset(new WorldResetMessage
@@ -303,33 +303,33 @@ public class SimulationManager : IHostedService, IDisposable
         }
     }
 
-    public ulong AddSim(string name, int age)
+    public ulong AddGenos(string name, int age)
     {
         var result = ExecuteAdminSync(
-            new Genelife.Api.Commands.CreateSimCommand(Guid.NewGuid(), "system", name, age));
+            new Genelife.Api.Commands.CreateGenosCommand(Guid.NewGuid(), "system", name, age));
 
         if (!result.Accepted || result.Payload is not ulong networkId)
-            throw new InvalidOperationException(result.Error ?? "Failed to add sim.");
+            throw new InvalidOperationException(result.Error ?? "Failed to add genos.");
 
         return networkId;
     }
 
-    public async Task<List<SimStatus>> GetAllSimsAsync()
+    public async Task<List<GenosStatus>> GetAllGenosesAsync()
     {
         if (readModelStore != null)
         {
-            var sims = await readModelStore.TryGetAllSimsAsync();
-            if (sims != null)
-                return sims.ToList();
+            var genoses = await readModelStore.TryGetAllGenosesAsync();
+            if (genoses != null)
+                return genoses.ToList();
         }
 
         var snapshot = engine.GetLatestSnapshot();
         if (snapshot != null)
-            return snapshot.Sims;
+            return snapshot.Genoses;
 
         return engine.ExecuteWithWorld(world =>
         {
-            var repository = new SimRepository(world, networkIds, engine.Economy, engine.MapContext);
+            var repository = new GenosRepository(world, networkIds, engine.Economy, engine.MapContext);
             return repository.GetAll();
         });
     }
@@ -416,24 +416,24 @@ public class SimulationManager : IHostedService, IDisposable
         });
     }
 
-    public bool DeleteSim(ulong networkId)
+    public bool DeleteGenos(ulong networkId)
     {
         var result = ExecuteAdminSync(
-            new Genelife.Api.Commands.DeleteSimCommand(Guid.NewGuid(), "system", networkId));
+            new Genelife.Api.Commands.DeleteGenosCommand(Guid.NewGuid(), "system", networkId));
 
         if (!result.Accepted)
-            throw new InvalidOperationException(result.Error ?? "Failed to delete sim.");
+            throw new InvalidOperationException(result.Error ?? "Failed to delete genos.");
 
         return result.Payload is bool deleted && deleted;
     }
 
-    public void SetSimAction(ulong networkId, string actionType)
+    public void SetGenosAction(ulong networkId, string actionType)
     {
         var result = ExecuteAdminSync(
-            new Genelife.Api.Commands.SetSimActionCommand(Guid.NewGuid(), "system", networkId, actionType));
+            new Genelife.Api.Commands.SetGenosActionCommand(Guid.NewGuid(), "system", networkId, actionType));
 
         if (!result.Accepted)
-            throw new InvalidOperationException(result.Error ?? "Failed to set sim action.");
+            throw new InvalidOperationException(result.Error ?? "Failed to set genos action.");
     }
 
     private Genelife.Api.Commands.CommandResult ExecuteAdminSync(Genelife.Api.Commands.AdminCommand command)

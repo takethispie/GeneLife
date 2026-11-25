@@ -6,11 +6,11 @@ Version: `0.1.0` · Client protocol: `1` · Roadmap: `docs/plans/roadmap-v3`
 
 - [x] `clients/browser` workspace with TypeScript, Vite, PixiJS and SignalR.
 - [x] Hub DTOs validated at runtime; recorded fixtures for every payload.
-- [x] `Welcome` exposes the player's own sim, tick interval, protocol and map version.
+- [x] `Welcome` exposes the player's own genos, tick interval, protocol and map version.
 - [x] Post-admission `IntentRejected` reaches the player's active connections.
 - [x] Map snapshot/delta cache with version-gap recovery.
 - [x] Snapshot/delta store with acknowledged ticks, gap recovery and stale rejection.
-- [x] Tile/building/sim rendering, culling, pooling, camera, labels and entry markers.
+- [x] Tile/building/genos rendering, culling, pooling, camera, labels and entry markers.
 - [x] Interpolation buffer with bounded delay and snap rules.
 - [x] Debounced viewport sync that trusts `ViewportResult`.
 - [x] Reconnect recovery with auth refresh and full-snapshot fallback.
@@ -62,7 +62,7 @@ Last local result:
 ## Performance
 
 - Budgets and measured results: `clients/browser/docs/performance.md`.
-- 2,000-sim interpolation, 2,000-sim snapshot apply and 256×256 decode are
+- 2,000-genos interpolation, 2,000-genos snapshot apply and 256×256 decode are
   enforced in tests.
 - Record the device, resolution and visible counts when adding new budget claims.
 

@@ -51,7 +51,7 @@ Goal: Let an admin create a new world map from the admin interface. If a map alr
   - Schools: `EnsureSchools` `:422-445`.
   - Companies/offices: `EnsureCompanies` `:486-561`.
   - Housing/properties: `EnsureHousing` `:563-596`.
-- Player sims are created on hub connection and via `EnsurePlayerSim`/`EnsurePlayerSpawn`:
+- Player genoses are created on hub connection and via `EnsurePlayerGenos`/`EnsurePlayerSpawn`:
   - `Genelife.API/Hubs/WorldHub.cs:88-90`.
   - `SimulationEngine.cs:1605-1650` and `:1813-1834`.
 - The repository already has a canonical reset sequence in `tools/preview/reset.sh`: stop, start (new map), generate population, save snapshot. This feature productizes that flow.
@@ -74,7 +74,7 @@ These must be handled or a reset will leave live clients stale:
 - `SnapshotBroadcastService` only emits map deltas and skips work when `engine.MapVersion` is unchanged (`Genelife.API/Services/SnapshotBroadcastService.cs:212-252`).
 - `MapProjection.Project(MapGenerated)` only creates a `MapDocument` when none exists; otherwise it updates `Version`/`UpdatedAt` only (`Genelife.Infrastructure/Projections/MapProjection.cs:14-41`), leaving stale seed/dimensions after a resize.
 - `NetworkIdRegistry.Clear()` clears mappings but **does not reset the id counter** (`Genelife.Application/Services/NetworkIdRegistry.cs:91-95`), so new worlds in the same process get fresh network ids and do not collide with old building documents.
-- The browser client only learns its new player sim id from `Welcome` (`clients/browser/src/app/bootstrap.ts:553-576`).
+- The browser client only learns its new player genos id from `Welcome` (`clients/browser/src/app/bootstrap.ts:553-576`).
 
 ---
 
@@ -103,7 +103,7 @@ To avoid a new client epoch/versioning system:
 - Preserve tick monotonicity across the reset: add an optional `startTick` to `Initialize` and start the new world at `previousTick + 1`.
 - Keep `MapId = "world"` for storage continuity, but set `MapOptions.Version` to `previousMapVersion + 1` so map versions are monotonic and a full map snapshot can be distinguished from a delta.
 - After reset, broadcast a **full** map snapshot (layout changed) and let the normal snapshot broadcast deliver a full world snapshot because `SnapshotHistory` was cleared.
-- Add an explicit reset notification so connected browser clients can refresh their `Welcome`/own-sim id and request map/world snapshots.
+- Add an explicit reset notification so connected browser clients can refresh their `Welcome`/own-genos id and request map/world snapshots.
 
 ---
 
@@ -120,7 +120,7 @@ Suggested defaults:
 
 - `seed` = current map seed once `MapStatus.Seed` is added; otherwise `1`.
 - `width`/`height` = current `map.Width`/`map.Height`; default `256`.
-- `population` = current living sim count (clamp to a safe minimum such as `500` when zero or unknown).
+- `population` = current living genos count (clamp to a safe minimum such as `500` when zero or unknown).
 - `populationSeed` = same as map seed.
 - `adults`/`children` = omitted (generator defaults).
 
@@ -258,13 +258,13 @@ Implementation sequence (all inside the gate):
    - Add `long startTick = 0` to `SimulationEngine.Initialize(...)` and set `tick = startTick` instead of `0`. Call `engine.Initialize(startTick: previousTick + 1)`.
    - `StartPeriodicSave()`.
 5. **Recreate buildings/NPCs**
-   - Add a public `SimulationEngine.GeneratePopulation(int totalSims, int seed, int? adults, int? children)` that takes the engine write lock and reuses the existing `PopulationGenerator` code from the `GeneratePopulationCommand` case (`SimulationEngine.cs:2144-2162`). Refactor the command case to call it so there is one path.
+   - Add a public `SimulationEngine.GeneratePopulation(int totalGenoses, int seed, int? adults, int? children)` that takes the engine write lock and reuses the existing `PopulationGenerator` code from the `GeneratePopulationCommand` case (`SimulationEngine.cs:2144-2162`). Refactor the command case to call it so there is one path.
    - Call it only when `Population > 0`.
    - On placement failure (`PopulationGenerator` throws when a school/office/property cannot be placed), catch, `engine.Shutdown()`, and return a clear error. The old world is already gone; the admin must retry with a different seed or larger map. Surface this in the dialog copy.
 6. **Recreate player characters**
-   - For each distinct player id: `engine.EnsurePlayerSim(playerId)` then `engine.EnsurePlayerSpawn(playerId)`.
-   - `PlayerRegistry` is cleared by `Initialize`, so these create fresh sims. If no players are connected/known, zero players are created.
-   - Record the new sim network ids for the reset notification.
+   - For each distinct player id: `engine.EnsurePlayerGenos(playerId)` then `engine.EnsurePlayerSpawn(playerId)`.
+   - `PlayerRegistry` is cleared by `Initialize`, so these create fresh genoses. If no players are connected/known, zero players are created.
+   - Record the new genos network ids for the reset notification.
 7. **Persist**
    - `SaveSnapshot()` so the reset survives an API restart (matches `reset.sh`).
    - `await SaveWorldDocumentsAsync()` so Marten world documents are updated (optional if the event writer catches up; do it for determinism).
@@ -275,7 +275,7 @@ Implementation sequence (all inside the gate):
    - Call a reset notification (`IWorldResetNotifier`/`SnapshotBroadcastService.NotifyWorldReset(...)`).
    - The notifier broadcasts a `WorldReset` payload and/or a full `SendMapSnapshot`; the next broadcast sends a full world snapshot because `SnapshotHistory` was cleared.
 10. **Build and return `CreateMapResult`**
-    - Use `engine.BuildMapStatus()` after population generation for building/unplaced counts, `engine.GetLatestSnapshot()?.Sims.Count`/life index for population, and the captured new player ids.
+    - Use `engine.BuildMapStatus()` after population generation for building/unplaced counts, `engine.GetLatestSnapshot()?.Genoses.Count`/life index for population, and the captured new player ids.
 
 ### 5.4 Engine changes
 
@@ -304,7 +304,7 @@ In `Genelife.Application/Services/SimulationEngine.cs`:
 **Connected game clients (required for a live world)**
 
 - Add a `WorldReset` hub event and a `RequestWelcome` hub method (extract the `Welcome` construction from `WorldHub.OnConnectedAsync` into a reusable helper).
-- Server: after reset, broadcast `WorldReset` with `mapId`, `mapVersion`, `layoutVersion`, `seed`, `tick`, and the new player sim ids where possible. For per-player sim ids, either:
+- Server: after reset, broadcast `WorldReset` with `mapId`, `mapVersion`, `layoutVersion`, `seed`, `tick`, and the new player genos ids where possible. For per-player genos ids, either:
   - send a personalized `Welcome` to each connection, or
   - have clients call `RequestWelcome` when they receive `WorldReset`.
 - Browser client: on `WorldReset`, clear/replace local map and world state, call `RequestWelcome`, `RequestMapSnapshot`, and `RequestSnapshot(null)`, and re-run the loading/selection reconciliation.
@@ -344,7 +344,7 @@ In `Genelife.Application/Services/SimulationEngine.cs`:
 | Simulation stopped / no map | No dialog; create, start, populate, save. `HasMap` is false. |
 | Map exists | Dialog required; server `409` without `confirm=true`. |
 | No connected/known players | `Players = 0`; NPC population still generated if requested. |
-| `Population = 0` | Map only; no buildings/NPCs; player sims still recreated. |
+| `Population = 0` | Map only; no buildings/NPCs; player genoses still recreated. |
 | Map too small for generated buildings | Population generator throws on placement; shut down the new world and return a clear error. Recommend a different seed/larger map. |
 | Pending admin/player commands from old world | Cleared by `ClearTransientState` before rebuilding. |
 | Periodic save running during reset | Stop the save timer before `Shutdown`; restart after `Initialize`; save once at the end. |
@@ -365,8 +365,8 @@ In `Genelife.Application/Services/SimulationEngine.cs`:
 Add `Genelife.Domain.Tests/Services/MapCreationTests.cs` (Domain.Tests references the API/Application assemblies):
 
 1. `CreateMap` with a new seed produces a map with that `MapOptions.Seed`, a larger `Version`, and `HasMap == true`.
-2. Population generation creates buildings and NPCs; `BuildMapStatus().BuildingList` is non-empty and the sim count matches the request (subject to generator result).
-3. Player ids passed in produce new `PlayerControlled` sims and spawn positions after reset.
+2. Population generation creates buildings and NPCs; `BuildMapStatus().BuildingList` is non-empty and the genos count matches the request (subject to generator result).
+3. Player ids passed in produce new `PlayerControlled` genoses and spawn positions after reset.
 4. Old placement network ids are no longer in `MapContext.Map.Placements`; explicit removals are emitted if implemented.
 5. Tick monotonicity: new world tick > previous tick.
 6. Pending admin commands are not applied after reset.
@@ -476,7 +476,7 @@ Manual smoke:
 ## 11. Open questions / decisions to confirm
 
 1. **Population policy**: Should "create map" always regenerate the NPC population, or should it support a map-only reset (no NPCs)? This plan fills the population by default and exposes `Population = 0` as an explicit map-only option.
-2. **Manual entities**: Confirm that discarding admin-created companies/sims is acceptable. If not, the feature needs a "re-place existing entities" mode, which is significantly more complex because placement can fail on the new layout.
+2. **Manual entities**: Confirm that discarding admin-created companies/genoses is acceptable. If not, the feature needs a "re-place existing entities" mode, which is significantly more complex because placement can fail on the new layout.
 3. **Tick semantics**: This plan preserves tick monotonicity for replication compatibility (the new world starts at the old tick + 1). If the product needs a true year-0 reset, add a world epoch to snapshots and reset the client/broadcast cursors instead.
 4. **Live client handling**: Is the browser client expected to stay connected through a map reset? If yes, implement `WorldReset`/`RequestWelcome`; if no, require a page reload and document it.
 5. **Map tuning**: Should the admin UI expose water fraction, road spacing, and zone shares now, or keep defaults for v1? This plan keeps defaults and can extend `CreateMapRequest` later.

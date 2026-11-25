@@ -48,7 +48,7 @@ public class FamilyAcceptanceTests
         engine.Initialize();
         engine.ExecuteWithWorld(world =>
         {
-            var repository = new SimRepository(world, engine.NetworkIds, engine.Economy);
+            var repository = new GenosRepository(world, engine.NetworkIds, engine.Economy);
             repository.Add("First", 30);
             repository.Add("Second", 31);
             return 0;
@@ -71,7 +71,7 @@ public class FamilyAcceptanceTests
         }
     }
 
-    private static SimulationEngine Build(int sims, int seed)
+    private static SimulationEngine Build(int genoses, int seed)
     {
         var engine = new SimulationEngine();
         engine.Initialize();
@@ -82,7 +82,7 @@ public class FamilyAcceptanceTests
                 relationshipIndex: engine.Relationships,
                 relationshipService: engine.RelationshipService!,
                 relationshipOptions: engine.RelationshipOptions);
-            generator.Generate(sims, seed: seed);
+            generator.Generate(genoses, seed: seed);
             return 0;
         });
         return engine;

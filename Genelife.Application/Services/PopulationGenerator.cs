@@ -75,20 +75,20 @@ public sealed class PopulationGenerator
     }
 
     public PopulationGenerationResult Generate(
-        int totalSims,
+        int totalGenoses,
         int seed = 1,
         int? adults = null,
         int? children = null,
         long tick = 0)
     {
-        if (totalSims <= 0)
-            throw new ArgumentOutOfRangeException(nameof(totalSims), "Total sims must be positive.");
+        if (totalGenoses <= 0)
+            throw new ArgumentOutOfRangeException(nameof(totalGenoses), "Total genoses must be positive.");
 
         worldSeed = seed;
         var random = new Random(seed);
         if (!economy.Government.Balance.IsPositive)
         {
-            var endowment = economy.Options.SeededGovernmentFundPerSim * totalSims;
+            var endowment = economy.Options.SeededGovernmentFundPerGenos * totalGenoses;
             if (endowment.IsPositive)
             {
                 economy.Government.Balance = endowment;
@@ -103,7 +103,7 @@ public sealed class PopulationGenerator
             }
         }
 
-        var pensionSeed = economy.Options.SeededPensionFundPerSim * totalSims;
+        var pensionSeed = economy.Options.SeededPensionFundPerGenos * totalGenoses;
         if (!economy.Pension.Balance.IsPositive && pensionSeed.IsPositive &&
             economy.Government.Balance >= pensionSeed)
         {
@@ -119,10 +119,10 @@ public sealed class PopulationGenerator
                 "population.pension.seed");
         }
 
-        var childCount = children ?? Math.Max(0, totalSims * 22 / 100);
-        var adultCount = adults ?? Math.Max(0, totalSims - childCount);
-        if (childCount + adultCount > totalSims)
-            adultCount = Math.Max(0, totalSims - childCount);
+        var childCount = children ?? Math.Max(0, totalGenoses * 22 / 100);
+        var adultCount = adults ?? Math.Max(0, totalGenoses - childCount);
+        if (childCount + adultCount > totalGenoses)
+            adultCount = Math.Max(0, totalGenoses - childCount);
 
         var retirementCount = adultCount * 20 / 100;
         var elderlyCount = adultCount * 10 / 100;
@@ -140,28 +140,28 @@ public sealed class PopulationGenerator
         for (var i = 0; i < childCount; i++)
         {
             var age = random.Next(economy.Life.Policy.SchoolStartAge, economy.Life.Policy.WorkStartAge);
-            education.Add(CreateSim($"Student {i + 1}", age, LifeStage.Education, random, tick,
+            education.Add(CreateGenos($"Student {i + 1}", age, LifeStage.Education, random, tick,
                 new Money(0), profile: ChildProfile(random)));
         }
 
         for (var i = 0; i < workCount; i++)
         {
             var age = random.Next(economy.Life.Policy.WorkStartAge, economy.Life.Policy.RetirementAge);
-            workers.Add(CreateSim($"Worker {i + 1}", age, LifeStage.Work, random, tick,
+            workers.Add(CreateGenos($"Worker {i + 1}", age, LifeStage.Work, random, tick,
                 Money.FromUnits(400 + random.Next(0, 200)), profile: AdultProfile(random), lookingForWork: true));
         }
 
         for (var i = 0; i < retirementCount; i++)
         {
             var age = random.Next(economy.Life.Policy.RetirementAge, economy.Life.Policy.ElderlyAge);
-            retirees.Add(CreateSim($"Retiree {i + 1}", age, LifeStage.Retirement, random, tick,
+            retirees.Add(CreateGenos($"Retiree {i + 1}", age, LifeStage.Retirement, random, tick,
                 Money.FromUnits(400 + random.Next(0, 400)), profile: AdultProfile(random), retired: true));
         }
 
         for (var i = 0; i < elderlyCount; i++)
         {
             var age = random.Next(economy.Life.Policy.ElderlyAge, Math.Min(96, economy.Life.Policy.MaxAge));
-            elders.Add(CreateSim($"Elder {i + 1}", age, LifeStage.Elderly, random, tick,
+            elders.Add(CreateGenos($"Elder {i + 1}", age, LifeStage.Elderly, random, tick,
                 Money.FromUnits(200 + random.Next(0, 400)), profile: AdultProfile(random), retired: true));
         }
 
@@ -205,11 +205,11 @@ public sealed class PopulationGenerator
         economy.Emit(new PopulationHealthCheck(
             "generator",
             "Pass",
-            $"{result.Total} sims, {companyCount} companies, {result.Housed}/{result.Employed + result.Retirement + result.Elderly} adults housed"));
+            $"{result.Total} genoses, {companyCount} companies, {result.Housed}/{result.Employed + result.Retirement + result.Elderly} adults housed"));
         return result;
     }
 
-    private Entity CreateSim(
+    private Entity CreateGenos(
         string name,
         int age,
         LifeStage stage,
@@ -239,8 +239,8 @@ public sealed class PopulationGenerator
         AptitudeSkills.ApplyStartingBonus(ref profile, traits.Aptitude);
         world.Get<SkillProfile>(entity) = profile;
         if (map is not null)
-            MapSpawner.PlaceSim(world, entity, map, networkId.Value);
-        economy.Emit(new SimCreated(networkId.Value, name, age));
+            MapSpawner.PlaceGenos(world, entity, map, networkId.Value);
+        economy.Emit(new GenosCreated(networkId.Value, name, age));
 
         if (cash.IsPositive)
         {
@@ -644,9 +644,9 @@ public sealed class PopulationGenerator
     private int CountHoused()
     {
         var count = 0;
-        foreach (var (sim, household) in economy.Housing.HouseholdBySim)
+        foreach (var (genos, household) in economy.Housing.HouseholdByGenos)
         {
-            if (!world.IsAlive(sim) || !world.Has<Alive>(sim) || world.Get<Alive>(sim).Age < economy.Life.Policy.WorkStartAge)
+            if (!world.IsAlive(genos) || !world.Has<Alive>(genos) || world.Get<Alive>(genos).Age < economy.Life.Policy.WorkStartAge)
                 continue;
             if (economy.Housing.UnitOf(household) != Entity.Null)
                 count++;

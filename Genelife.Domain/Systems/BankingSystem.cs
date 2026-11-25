@@ -16,7 +16,7 @@ public class BankingSystem : ISimulationSystem
 {
     private readonly World world;
     private readonly EconomyContext economy;
-    private readonly QueryDescription simQuery;
+    private readonly QueryDescription genosQuery;
     private readonly int interval;
 
     public BankingSystem(World world, EconomyContext economy, int? interval = null)
@@ -24,7 +24,7 @@ public class BankingSystem : ISimulationSystem
         this.world = world;
         this.economy = economy;
         this.interval = interval ?? economy.Clock.TicksPerPayCycle;
-        simQuery = new QueryDescription().WithAll<GenName, Wallet>().WithNone<Components.Gen.Dead>();
+        genosQuery = new QueryDescription().WithAll<GenName, Wallet>().WithNone<Components.Gen.Dead>();
     }
 
     public string Name => "Banking";
@@ -35,19 +35,19 @@ public class BankingSystem : ISimulationSystem
 
     public void Update(long tick)
     {
-        var sims = new List<Entity>();
-        world.Query(in simQuery, (Entity entity, ref GenName _, ref Wallet _) => sims.Add(entity));
+        var genoses = new List<Entity>();
+        world.Query(in genosQuery, (Entity entity, ref GenName _, ref Wallet _) => genoses.Add(entity));
 
-        foreach (var sim in sims)
+        foreach (var genos in genoses)
         {
-            if (!world.IsAlive(sim))
+            if (!world.IsAlive(genos))
                 continue;
 
-            if (!world.Has<SavingsAccount>(sim))
-                world.Add(sim, new SavingsAccount());
+            if (!world.Has<SavingsAccount>(genos))
+                world.Add(genos, new SavingsAccount());
 
-            ref var wallet = ref world.Get<Wallet>(sim);
-            ref var savings = ref world.Get<SavingsAccount>(sim);
+            ref var wallet = ref world.Get<Wallet>(genos);
+            ref var savings = ref world.Get<SavingsAccount>(genos);
 
             var buffer = economy.Options.SavingsBuffer;
             var minimum = economy.Options.MinimumCash;
@@ -62,12 +62,12 @@ public class BankingSystem : ISimulationSystem
                     Guid.NewGuid(),
                     tick,
                     LedgerKind.SavingsDeposit,
-                    CompanyAccountService.NetworkIdOf(world, sim),
-                    CompanyAccountService.NetworkIdOf(world, sim),
+                    CompanyAccountService.NetworkIdOf(world, genos),
+                    CompanyAccountService.NetworkIdOf(world, genos),
                     deposit,
                     "savings.deposit");
                 economy.Emit(new SavingsDeposited(
-                    CompanyAccountService.NetworkIdOf(world, sim),
+                    CompanyAccountService.NetworkIdOf(world, genos),
                     deposit.Cents,
                     tick));
             }
@@ -82,12 +82,12 @@ public class BankingSystem : ISimulationSystem
                     Guid.NewGuid(),
                     tick,
                     LedgerKind.SavingsWithdrawal,
-                    CompanyAccountService.NetworkIdOf(world, sim),
-                    CompanyAccountService.NetworkIdOf(world, sim),
+                    CompanyAccountService.NetworkIdOf(world, genos),
+                    CompanyAccountService.NetworkIdOf(world, genos),
                     withdraw,
                     "savings.withdrawal");
                 economy.Emit(new SavingsWithdrawn(
-                    CompanyAccountService.NetworkIdOf(world, sim),
+                    CompanyAccountService.NetworkIdOf(world, genos),
                     withdraw.Cents,
                     tick));
             }
@@ -112,7 +112,7 @@ public class BankingSystem : ISimulationSystem
             return;
 
         var pool = economy.Bank.InterestPool;
-        var payouts = new List<(Entity Sim, Money Amount)>();
+        var payouts = new List<(Entity Genos, Money Amount)>();
         var allocated = Money.Zero;
 
         world.Query(in savingsQuery, (Entity entity, ref SavingsAccount savings) =>
@@ -131,12 +131,12 @@ public class BankingSystem : ISimulationSystem
         if (remainder.IsPositive && payouts.Count > 0)
         {
             var first = payouts[0];
-            payouts[0] = (first.Sim, first.Amount + remainder);
+            payouts[0] = (first.Genos, first.Amount + remainder);
         }
 
-        foreach (var (sim, amount) in payouts)
+        foreach (var (genos, amount) in payouts)
         {
-            ref var savings = ref world.Get<SavingsAccount>(sim);
+            ref var savings = ref world.Get<SavingsAccount>(genos);
             savings.Balance += amount;
             savings.InterestEarned += amount;
             savings.LastInterestTick = tick;
@@ -146,11 +146,11 @@ public class BankingSystem : ISimulationSystem
                 tick,
                 LedgerKind.SavingsInterest,
                 EconomyAccountIds.Bank,
-                CompanyAccountService.NetworkIdOf(world, sim),
+                CompanyAccountService.NetworkIdOf(world, genos),
                 amount,
                 "savings.interest");
             economy.Emit(new SavingsInterestPaid(
-                CompanyAccountService.NetworkIdOf(world, sim),
+                CompanyAccountService.NetworkIdOf(world, genos),
                 amount.Cents,
                 tick));
         }

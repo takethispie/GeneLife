@@ -57,7 +57,7 @@ public sealed class AuthorizationTests : IClassFixture<TestApplicationFactory>
     [InlineData("/api/companies/1")]
     [InlineData("/api/data")]
     [InlineData("/api/simulation/status")]
-    [InlineData("/api/simulation/sims")]
+    [InlineData("/api/simulation/genoses")]
     public async Task Anonymous_read_endpoints_return_401(string path)
     {
         var response = await CreateClient().GetAsync(path, CancellationToken);
@@ -70,7 +70,7 @@ public sealed class AuthorizationTests : IClassFixture<TestApplicationFactory>
     [Theory]
     [InlineData("POST", "/api/simulation/start")]
     [InlineData("POST", "/api/simulation/stop")]
-    [InlineData("POST", "/api/simulation/sims")]
+    [InlineData("POST", "/api/simulation/genoses")]
     [InlineData("POST", "/api/companies")]
     [InlineData("DELETE", "/api/companies/1")]
     [InlineData("GET", "/api/social/admin/overview")]
@@ -91,7 +91,7 @@ public sealed class AuthorizationTests : IClassFixture<TestApplicationFactory>
     [InlineData("/api/companies/1")]
     [InlineData("/api/data")]
     [InlineData("/api/simulation/status")]
-    [InlineData("/api/simulation/sims")]
+    [InlineData("/api/simulation/genoses")]
     public async Task Player_can_call_read_endpoints(string path)
     {
         await EnsureSimulationRunning(CreateClient(AdminToken()));
@@ -106,7 +106,7 @@ public sealed class AuthorizationTests : IClassFixture<TestApplicationFactory>
     [Theory]
     [InlineData("POST", "/api/simulation/start")]
     [InlineData("POST", "/api/simulation/stop")]
-    [InlineData("POST", "/api/simulation/sims")]
+    [InlineData("POST", "/api/simulation/genoses")]
     [InlineData("POST", "/api/companies")]
     [InlineData("DELETE", "/api/companies/1")]
     [InlineData("GET", "/api/social/admin/overview")]
@@ -146,13 +146,13 @@ public sealed class AuthorizationTests : IClassFixture<TestApplicationFactory>
     }
 
     [Fact]
-    public async Task Admin_can_add_sim()
+    public async Task Admin_can_add_genos()
     {
         var client = CreateClient(AdminToken());
         await EnsureSimulationRunning(client);
 
         var response = await client.PostAsJsonAsync(
-            "/api/simulation/sims",
+            "/api/simulation/genoses",
             new { name = "Alice", age = 30 },
             CancellationToken);
 

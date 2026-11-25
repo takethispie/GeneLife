@@ -20,7 +20,7 @@ public enum FamilyInvitationStatus : byte
 }
 
 /// <summary>
-/// An expiring consent request between two sims. An invitation is an entity so
+/// An expiring consent request between two genoses. An invitation is an entity so
 /// it can be persisted, audited and projected; acceptance is the only path that
 /// creates a relationship edge.
 /// </summary>

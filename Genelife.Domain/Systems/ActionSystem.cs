@@ -67,8 +67,8 @@ public class ActionSystem : ISimulationSystem
         var canFulfill = CanFulfill(world, entity, action.Type);
 
         // Apply action effects while performing. Eating and hygiene require a
-        // household purchase for sims that have a ConsumptionState component;
-        // legacy/test sims without one keep the free-restoration behaviour.
+        // household purchase for genoses that have a ConsumptionState component;
+        // legacy/test genoses without one keep the free-restoration behaviour.
         if (canFulfill)
         {
             switch (action.Type)

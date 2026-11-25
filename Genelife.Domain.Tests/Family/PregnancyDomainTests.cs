@@ -13,8 +13,8 @@ public class PregnancyDomainTests
     public void StartCreatesNetworkIdActiveEntryAndHistory()
     {
         var context = new Context();
-        var carrying = context.Sim(30, Sex.Female, 1);
-        var other = context.Sim(31, Sex.Male, 2);
+        var carrying = context.Genos(30, Sex.Female, 1);
+        var other = context.Genos(31, Sex.Male, 2);
 
         Assert.True(context.Service.TryStart(
             carrying, other, conceivedTick: 100, dueTick: 1_000, healthAtConception: 95,
@@ -35,8 +35,8 @@ public class PregnancyDomainTests
     public void DuplicateActivePregnancyIsRejected()
     {
         var context = new Context();
-        var carrying = context.Sim(30, Sex.Female, 1);
-        var other = context.Sim(31, Sex.Male, 2);
+        var carrying = context.Genos(30, Sex.Female, 1);
+        var other = context.Genos(31, Sex.Male, 2);
         context.Start(carrying, other);
 
         var started = context.Service.TryStart(
@@ -51,15 +51,15 @@ public class PregnancyDomainTests
     public void MinorAndDependentCarryingParentsAreRejected()
     {
         var context = new Context();
-        var minor = context.Sim(16, Sex.Female, 1);
-        var other = context.Sim(31, Sex.Male, 2);
+        var minor = context.Genos(16, Sex.Female, 1);
+        var other = context.Genos(31, Sex.Male, 2);
 
         Assert.False(context.Service.TryStart(
             minor, other, 100, 1_000, 95, PregnancySource.Conception,
             new ReproductionOptions(), out _, out var minorError));
         Assert.Equal(PregnancyError.NotAdult, minorError);
 
-        var dependent = context.Sim(30, Sex.Female, 3);
+        var dependent = context.Genos(30, Sex.Female, 3);
         var household = context.World.Create(new Household { Head = other });
         context.World.Add(dependent, new HouseholdMember(household, HouseholdRole.Child));
 
@@ -73,8 +73,8 @@ public class PregnancyDomainTests
     public void ResolveKeepsHistoryAndUpdatesIndex()
     {
         var context = new Context();
-        var carrying = context.Sim(30, Sex.Female, 1);
-        var other = context.Sim(31, Sex.Male, 2);
+        var carrying = context.Genos(30, Sex.Female, 1);
+        var other = context.Genos(31, Sex.Male, 2);
         var pregnancy = context.Start(carrying, other, dueTick: 1_000);
 
         Assert.True(context.Service.Complete(pregnancy, 1_000));
@@ -90,8 +90,8 @@ public class PregnancyDomainTests
     public void RebuildRestoresActiveAndHistoricalLookups()
     {
         var context = new Context();
-        var carrying = context.Sim(30, Sex.Female, 1);
-        var other = context.Sim(31, Sex.Male, 2);
+        var carrying = context.Genos(30, Sex.Female, 1);
+        var other = context.Genos(31, Sex.Male, 2);
         var lost = context.Start(carrying, other, dueTick: 1_000);
         context.Service.Lose(lost, 1_500);
         var active = context.Start(carrying, other, dueTick: 2_000);
@@ -117,9 +117,9 @@ public class PregnancyDomainTests
             Service = new PregnancyService(World, Index);
         }
 
-        public Entity Sim(int age, Sex sex, ulong networkId) =>
+        public Entity Genos(int age, Sex sex, ulong networkId) =>
             World.Create(
-                new GenName($"Sim {networkId}"),
+                new GenName($"Genos {networkId}"),
                 new Alive(age),
                 new Traits { Sex = sex },
                 new NetworkId(networkId));

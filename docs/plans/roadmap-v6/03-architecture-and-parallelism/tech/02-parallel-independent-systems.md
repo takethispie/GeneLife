@@ -2,7 +2,7 @@
 
 ## Context
 
-`SystemRegistry.Update` runs systems serially on the tick thread. Arch supports chunk iteration, and some systems read/write disjoint components. Parallelizing those is the biggest potential win at 2,000+ sims, but it carries the most determinism risk.
+`SystemRegistry.Update` runs systems serially on the tick thread. Arch supports chunk iteration, and some systems read/write disjoint components. Parallelizing those is the biggest potential win at 2,000+ genoses, but it carries the most determinism risk.
 
 ## Design
 

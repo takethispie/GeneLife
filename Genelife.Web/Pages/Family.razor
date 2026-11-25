@@ -88,7 +88,7 @@
                 <div class="card h-100"><div class="card-body">
                     <h2 class="h6 text-uppercase text-muted">Trait distribution</h2>
                     <div class="small text-muted mb-2">
-                        @family.Traits.WithTraits of @family.Traits.Population sims have traits
+                        @family.Traits.WithTraits of @family.Traits.Population genoses have traits
                         (@family.Traits.MissingTraits missing, @family.Traits.Migrated migrated) &middot;
                         female share @Percent(family.Traits.FemaleShare)
                     </div>
@@ -176,7 +176,7 @@
         </div></div>
     }
 
-    @if (activeTab == "Sims")
+    @if (activeTab == "Genoses")
     {
         <div class="card mb-3"><div class="card-body">
             <div class="d-flex flex-wrap gap-2 align-items-end">
@@ -210,60 +210,60 @@
                     <label class="form-label small mb-1">Name</label>
                     <input class="form-control form-control-sm" @bind="nameFilter" placeholder="Filter by name" />
                 </div>
-                <button class="btn btn-sm btn-outline-primary" type="button" @onclick="LoadSimsAsync">Apply</button>
+                <button class="btn btn-sm btn-outline-primary" type="button" @onclick="LoadGenosesAsync">Apply</button>
             </div>
         </div></div>
 
         <div class="card mb-4"><div class="card-body">
             <div class="table-responsive">
                 <table class="table table-sm table-striped align-middle mb-0">
-                    <thead><tr><th>Sim</th><th>Age</th><th>Stage</th><th>Household</th><th>Partner</th><th>Children</th><th>Flags</th><th></th></tr></thead>
+                    <thead><tr><th>Genos</th><th>Age</th><th>Stage</th><th>Household</th><th>Partner</th><th>Children</th><th>Flags</th><th></th></tr></thead>
                     <tbody>
-                        @foreach (var sim in sims)
+                        @foreach (var genos in genoses)
                         {
                             <tr>
-                                <td>@sim.Name <span class="small text-muted">#@sim.NetworkId</span></td>
-                                <td>@sim.Age</td>
-                                <td>@sim.Stage</td>
-                                <td>@sim.Household</td>
-                                <td>@(sim.PartnerName ?? "—")</td>
-                                <td>@sim.ChildCount</td>
+                                <td>@genos.Name <span class="small text-muted">#@genos.NetworkId</span></td>
+                                <td>@genos.Age</td>
+                                <td>@genos.Stage</td>
+                                <td>@genos.Household</td>
+                                <td>@(genos.PartnerName ?? "—")</td>
+                                <td>@genos.ChildCount</td>
                                 <td>
-                                    @if (sim.IsOrphan)
+                                    @if (genos.IsOrphan)
                                     {
                                         <span class="badge text-bg-danger">Orphan</span>
                                     }
-                                    @if (sim.InStateCare)
+                                    @if (genos.InStateCare)
                                     {
                                         <span class="badge text-bg-warning">State care</span>
                                     }
-                                    @if (sim.IsPaired)
+                                    @if (genos.IsPaired)
                                     {
                                         <span class="badge text-bg-primary">Partnered</span>
                                     }
                                 </td>
-                                <td><button class="btn btn-sm btn-outline-secondary" type="button" @onclick="() => SelectSimAsync(sim.NetworkId)">Open</button></td>
+                                <td><button class="btn btn-sm btn-outline-secondary" type="button" @onclick="() => SelectGenosAsync(genos.NetworkId)">Open</button></td>
                             </tr>
                         }
-                        @if (sims.Count == 0)
+                        @if (genoses.Count == 0)
                         {
-                            <tr><td colspan="8" class="text-muted">No sims match the filters.</td></tr>
+                            <tr><td colspan="8" class="text-muted">No genoses match the filters.</td></tr>
                         }
                     </tbody>
                 </table>
             </div>
         </div></div>
 
-        @if (simDetail is not null)
+        @if (genosDetail is not null)
         {
             <div class="card mb-4"><div class="card-body">
-                <h2 class="h6 text-uppercase text-muted">@simDetail.Sim.Name <span class="small">#@simDetail.Sim.NetworkId</span></h2>
+                <h2 class="h6 text-uppercase text-muted">@genosDetail.Genos.Name <span class="small">#@genosDetail.Genos.NetworkId</span></h2>
                 <div class="small text-muted mb-2">
-                    @simDetail.Sim.Age years &middot; @simDetail.Sim.Stage &middot; @simDetail.Sim.Sex &middot;
-                    @simDetail.Sim.Household &middot; partner @(simDetail.Sim.PartnerName ?? "none")
+                    @genosDetail.Genos.Age years &middot; @genosDetail.Genos.Stage &middot; @genosDetail.Genos.Sex &middot;
+                    @genosDetail.Genos.Household &middot; partner @(genosDetail.Genos.PartnerName ?? "none")
                 </div>
                 <div class="d-flex flex-wrap gap-2 mb-3">
-                    @foreach (var trait in simDetail.Sim.Traits)
+                    @foreach (var trait in genosDetail.Genos.Traits)
                     {
                         <span class="badge text-bg-light">@trait.Value</span>
                     }
@@ -274,7 +274,7 @@
                     <table class="table table-sm align-middle mb-0">
                         <thead><tr><th>Kind</th><th>From</th><th>To</th><th>Source</th><th>Since</th></tr></thead>
                         <tbody>
-                            @foreach (var relationship in simDetail.Relationships)
+                            @foreach (var relationship in genosDetail.Relationships)
                             {
                                 <tr>
                                     <td>@relationship.Kind</td>
@@ -289,12 +289,12 @@
                 </div>
 
                 <h3 class="h6 text-uppercase text-muted">Household</h3>
-                @if (simDetail.Household is not null)
+                @if (genosDetail.Household is not null)
                 {
                     <div class="small text-muted mb-3">
-                        #@simDetail.Household.NetworkId &middot; @simDetail.Household.Members members &middot;
-                        @simDetail.Household.Children children &middot; @simDetail.Household.Dependants dependants &middot;
-                        capacity @simDetail.Household.OccupantCount / @simDetail.Household.Capacity
+                        #@genosDetail.Household.NetworkId &middot; @genosDetail.Household.Members members &middot;
+                        @genosDetail.Household.Children children &middot; @genosDetail.Household.Dependants dependants &middot;
+                        capacity @genosDetail.Household.OccupantCount / @genosDetail.Household.Capacity
                     </div>
                 }
                 else
@@ -303,14 +303,14 @@
                 }
 
                 <h3 class="h6 text-uppercase text-muted">Children</h3>
-                @if (simDetail.Children.Count == 0)
+                @if (genosDetail.Children.Count == 0)
                 {
                     <div class="text-muted small mb-3">No children.</div>
                 }
                 else
                 {
                     <div class="small mb-3">
-                        @foreach (var child in simDetail.Children)
+                        @foreach (var child in genosDetail.Children)
                         {
                             <span class="badge text-bg-light me-1">@child.Name (#@child.NetworkId, @child.Age)</span>
                         }
@@ -318,14 +318,14 @@
                 }
 
                 <h3 class="h6 text-uppercase text-muted">Pregnancies</h3>
-                @if (simDetail.Pregnancies.Count == 0)
+                @if (genosDetail.Pregnancies.Count == 0)
                 {
                     <div class="text-muted small">No pregnancies.</div>
                 }
                 else
                 {
                     <div class="small">
-                        @foreach (var pregnancy in simDetail.Pregnancies)
+                        @foreach (var pregnancy in genosDetail.Pregnancies)
                         {
                             <span class="badge text-bg-light me-1">@pregnancy.Status · due @pregnancy.DueTick · risk @pregnancy.RiskBasisPoints bp</span>
                         }
@@ -340,12 +340,12 @@
                     <h2 class="h6 text-uppercase text-muted">Partnership operations</h2>
                     <div class="row g-2">
                         <div class="col-6">
-                            <label class="form-label small mb-1">Sim A</label>
-                            <input class="form-control form-control-sm" type="number" @bind="operationSimA" />
+                            <label class="form-label small mb-1">Genos A</label>
+                            <input class="form-control form-control-sm" type="number" @bind="operationGenosA" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small mb-1">Sim B</label>
-                            <input class="form-control form-control-sm" type="number" @bind="operationSimB" />
+                            <label class="form-label small mb-1">Genos B</label>
+                            <input class="form-control form-control-sm" type="number" @bind="operationGenosB" />
                         </div>
                         <div class="col-12">
                             <label class="form-label small mb-1">Reason (required)</label>
@@ -420,8 +420,8 @@
                     </select>
                 </div>
                 <div class="flex-grow-1">
-                    <label class="form-label small mb-1">Sim id</label>
-                    <input class="form-control form-control-sm" type="number" @bind="relationshipSimId" />
+                    <label class="form-label small mb-1">Genos id</label>
+                    <input class="form-control form-control-sm" type="number" @bind="relationshipGenosId" />
                 </div>
                 <button class="btn btn-sm btn-outline-primary" type="button" @onclick="LoadRelationshipsAsync">Apply</button>
             </div>
@@ -437,8 +437,8 @@
                             <tr>
                                 <td>#@relationship.NetworkId</td>
                                 <td>@relationship.Kind</td>
-                                <td>@relationship.FromName <span class="small text-muted">#@relationship.FromSimId</span></td>
-                                <td>@relationship.ToName <span class="small text-muted">#@relationship.ToSimId</span></td>
+                                <td>@relationship.FromName <span class="small text-muted">#@relationship.FromGenosId</span></td>
+                                <td>@relationship.ToName <span class="small text-muted">#@relationship.ToGenosId</span></td>
                                 <td>@relationship.Source</td>
                                 <td>@relationship.SinceTick</td>
                             </tr>
@@ -458,8 +458,8 @@
         <div class="card mb-3"><div class="card-body">
             <div class="d-flex flex-wrap gap-2 align-items-end">
                 <div>
-                    <label class="form-label small mb-1">Sim</label>
-                    <input class="form-control form-control-sm" type="number" @bind="attractionSimId" />
+                    <label class="form-label small mb-1">Genos</label>
+                    <input class="form-control form-control-sm" type="number" @bind="attractionGenosId" />
                 </div>
                 <div>
                     <label class="form-label small mb-1">Candidate</label>
@@ -575,7 +575,7 @@
                 </div>
                 <div>
                     <label class="form-label small mb-1">Guardian id</label>
-                    <input class="form-control form-control-sm" type="number" @bind="guardianSimId" />
+                    <input class="form-control form-control-sm" type="number" @bind="guardianGenosId" />
                 </div>
                 <div>
                     <label class="form-label small mb-1">Reason</label>
@@ -690,11 +690,11 @@
 }
 
 @code {
-    private static readonly string[] Tabs = ["Overview", "Sims", "Relationships", "Attraction", "Pregnancies", "Children", "Health"];
+    private static readonly string[] Tabs = ["Overview", "Genoses", "Relationships", "Attraction", "Pregnancies", "Children", "Health"];
 
     private FamilyData? family;
-    private List<FamilySimData> sims = new();
-    private FamilySimDetailData? simDetail;
+    private List<FamilyGenosData> genoses = new();
+    private FamilyGenosDetailData? genosDetail;
     private List<FamilyRelationshipData> relationships = new();
     private List<FamilyPregnancyData> pregnancies = new();
     private List<FamilyChildData> children = new();
@@ -717,9 +717,9 @@
 
     private string relationshipKindFilter = string.Empty;
     private string relationshipSourceFilter = string.Empty;
-    private ulong? relationshipSimId;
+    private ulong? relationshipGenosId;
 
-    private ulong attractionSimId;
+    private ulong attractionGenosId;
     private ulong attractionCandidateId;
 
     private bool activeOnlyPregnancies;
@@ -727,12 +727,12 @@
 
     private string ageBandFilter = string.Empty;
     private ulong guardianChildId;
-    private ulong guardianSimId;
+    private ulong guardianGenosId;
     private ulong releaseTrustId;
     private bool confirmDestructive;
 
-    private ulong operationSimA;
-    private ulong operationSimB;
+    private ulong operationGenosA;
+    private ulong operationGenosB;
     private ulong carryingParentId;
     private ulong otherParentId;
     private string operationReason = "admin-review";
@@ -773,8 +773,8 @@
                 case "Health":
                     family = await GameData.GetFamilyAsync();
                     break;
-                case "Sims":
-                    await LoadSimsAsync();
+                case "Genoses":
+                    await LoadGenosesAsync();
                     break;
                 case "Relationships":
                     await LoadRelationshipsAsync();
@@ -800,23 +800,23 @@
         }
     }
 
-    private Task LoadSimsAsync() =>
+    private Task LoadGenosesAsync() =>
         LoadAsync(async () =>
         {
-            var page = await GameData.GetFamilySimsAsync(
+            var page = await GameData.GetFamilyGenosesAsync(
                 take: 200,
                 stage: string.IsNullOrWhiteSpace(stageFilter) ? null : stageFilter,
                 partnered: ParseBool(partneredFilter),
                 hasChildren: ParseBool(childrenFilter),
                 name: string.IsNullOrWhiteSpace(nameFilter) ? null : nameFilter);
-            sims = page.Sims;
+            genoses = page.Genoses;
         });
 
     private Task LoadRelationshipsAsync() =>
         LoadAsync(async () =>
         {
             var page = await GameData.GetFamilyRelationshipsAsync(
-                simId: relationshipSimId,
+                genosId: relationshipGenosId,
                 kind: string.IsNullOrWhiteSpace(relationshipKindFilter) ? null : relationshipKindFilter,
                 source: string.IsNullOrWhiteSpace(relationshipSourceFilter) ? null : relationshipSourceFilter);
             relationships = page.Relationships;
@@ -849,12 +849,12 @@
         }
     }
 
-    private async Task SelectSimAsync(ulong simId)
+    private async Task SelectGenosAsync(ulong genosId)
     {
         try
         {
-            simDetail = await GameData.GetFamilySimAsync(simId);
-            operationSimA = simId;
+            genosDetail = await GameData.GetFamilyGenosAsync(genosId);
+            operationGenosA = genosId;
         }
         catch (Exception ex)
         {
@@ -868,7 +868,7 @@
         error = null;
         try
         {
-            attraction = await GameData.GetFamilyAttractionAsync(attractionSimId, attractionCandidateId);
+            attraction = await GameData.GetFamilyAttractionAsync(attractionGenosId, attractionCandidateId);
         }
         catch (Exception ex)
         {
@@ -882,12 +882,12 @@
 
     private Task ForcePartnershipAsync() =>
         RunAsync(
-            () => GameData.ForcePartnershipAsync(operationSimA, operationSimB, operationReason, overrideEligibility),
+            () => GameData.ForcePartnershipAsync(operationGenosA, operationGenosB, operationReason, overrideEligibility),
             "Partnership queued.");
 
     private Task EndPartnershipAsync() =>
         RunAsync(
-            () => GameData.EndPartnershipAsync(operationSimA, operationSimB, operationReason),
+            () => GameData.EndPartnershipAsync(operationGenosA, operationGenosB, operationReason),
             "Partnership end queued.");
 
     private Task StartPregnancyAsync() =>
@@ -902,7 +902,7 @@
 
     private Task AssignGuardianAsync() =>
         RunAsync(
-            () => GameData.AssignGuardianAsync(guardianChildId, guardianSimId, operationReason),
+            () => GameData.AssignGuardianAsync(guardianChildId, guardianGenosId, operationReason),
             "Guardian assignment queued.");
 
     private Task ReleaseTrustAsync() =>

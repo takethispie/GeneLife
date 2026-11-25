@@ -1,11 +1,11 @@
 import { Container, Sprite, Text } from "pixi.js";
 import type { Camera } from "./camera";
-import type { RenderSim } from "../simulation/interpolation";
+import type { RenderGenos } from "../simulation/interpolation";
 import type { RenderState } from "../simulation/store";
 import { AppearanceSpritePool } from "./appearance/sprite-pool";
 import type { SceneTextures } from "./textures";
 
-export interface SimLayerStats {
+export interface GenosLayerStats {
   visible: number;
   total: number;
   localVisible: boolean;
@@ -16,18 +16,18 @@ const LOCAL_COLOR = 0x67e8f9;
 const DEAD_COLOR = 0x6b7280;
 
 /**
- * Renders interpolated sims as pooled layered appearance sprites. The same
+ * Renders interpolated genoses as pooled layered appearance sprites. The same
  * descriptor hash composes the same layers; position and scale are updated per
  * frame without reallocating textures.
  */
-export class SimLayer {
+export class GenosLayer {
   private readonly appearance: AppearanceSpritePool;
   private readonly ring: Sprite;
   private readonly label: Text;
 
   constructor(container: Container, textures: SceneTextures) {
     container.sortableChildren = true;
-    this.appearance = new AppearanceSpritePool(container, textures.sim);
+    this.appearance = new AppearanceSpritePool(container, textures.genos);
 
     this.ring = new Sprite(textures.ring);
     this.ring.anchor.set(0.5);
@@ -51,30 +51,30 @@ export class SimLayer {
 
   render(
     state: RenderState | null,
-    ownSimId: number,
-    ownSimName: string,
+    ownGenosId: number,
+    ownGenosName: string,
     camera: Camera,
     tileSize: number
-  ): SimLayerStats {
+  ): GenosLayerStats {
     this.appearance.begin();
     const baseSize = tileSize * 0.9;
     let visible = 0;
     let localVisible = false;
-    let local: RenderSim | null = null;
+    let local: RenderGenos | null = null;
 
-    for (const sim of state?.sims.values() ?? []) {
-      if (!camera.isWorldVisible(sim.x, sim.y, tileSize)) continue;
+    for (const genos of state?.genoses.values() ?? []) {
+      if (!camera.isWorldVisible(genos.x, genos.y, tileSize)) continue;
 
-      const isLocal = sim.networkId === ownSimId;
-      const isPlayer = sim.isPlayerControlled === true || isLocal;
+      const isLocal = genos.networkId === ownGenosId;
+      const isPlayer = genos.isPlayerControlled === true || isLocal;
       const size = isLocal ? baseSize * 1.15 : baseSize;
-      const { container } = this.appearance.acquire(sim.appearance, size, isPlayer, isLocal);
-      container.position.set(sim.x, sim.y);
+      const { container } = this.appearance.acquire(genos.appearance, size, isPlayer, isLocal);
+      container.position.set(genos.x, genos.y);
       visible++;
 
       if (isLocal) {
         localVisible = true;
-        local = sim;
+        local = genos;
       }
     }
 
@@ -87,7 +87,7 @@ export class SimLayer {
       this.ring.height = tileSize * 1.45;
 
       this.label.visible = true;
-      this.label.text = ownSimName === "" ? "You" : ownSimName;
+      this.label.text = ownGenosName === "" ? "You" : ownGenosName;
       this.label.position.set(local.x, local.y - tileSize * 0.95);
       this.label.scale.set(1 / camera.zoom);
     } else {
@@ -97,12 +97,12 @@ export class SimLayer {
 
     return {
       visible,
-      total: state?.sims.size ?? 0,
+      total: state?.genoses.size ?? 0,
       localVisible
     };
   }
 
-  renderNoWorld(): SimLayerStats {
+  renderNoWorld(): GenosLayerStats {
     this.appearance.begin();
     this.appearance.end();
     this.ring.visible = false;

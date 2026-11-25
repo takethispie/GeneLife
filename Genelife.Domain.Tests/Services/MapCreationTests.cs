@@ -7,7 +7,7 @@ namespace Genelife.UnitTests.Services;
 
 /// <summary>
 /// Covers the destructive world reset orchestration: a new map, a fresh
-/// population, recreated player sims and replication-compatible ticking.
+/// population, recreated player genoses and replication-compatible ticking.
 /// </summary>
 public class MapCreationTests
 {
@@ -77,8 +77,8 @@ public class MapCreationTests
             "test");
 
         Assert.Equal(2, result.Players);
-        Assert.NotEqual(0ul, engine.GetPlayerSimNetworkId("alice"));
-        Assert.NotEqual(0ul, engine.GetPlayerSimNetworkId("bob"));
+        Assert.NotEqual(0ul, engine.GetPlayerGenosNetworkId("alice"));
+        Assert.NotEqual(0ul, engine.GetPlayerGenosNetworkId("bob"));
     }
 
     [Fact]
@@ -131,7 +131,7 @@ public class MapCreationTests
         using var manager = new SimulationManager(engine, new InMemorySnapshotStore());
         manager.StartSimulation();
 
-        var command = new CreateSimCommand(Guid.NewGuid(), "test", "Ghost", 30);
+        var command = new CreateGenosCommand(Guid.NewGuid(), "test", "Ghost", 30);
         engine.EnqueueAdminCommand(command);
 
         await manager.CreateMap(Request(seed: 8), Array.Empty<string>(), "test");

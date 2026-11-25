@@ -145,7 +145,7 @@ const largeMap = mapSnapshot({
   buildings: largeBuildings
 });
 
-function sim(networkId, name, tileX, tileY, options = {}) {
+function genos(networkId, name, tileX, tileY, options = {}) {
   return {
     networkId,
     name,
@@ -196,12 +196,12 @@ const company = {
 const worldSnapshot = {
   tick: 100,
   version: 2,
-  sims: [
-    sim(1, "Ada", 0, 0, { isPlayerControlled: true }),
-    sim(2, "Boris", 3, 4, { x: 3.4, y: 4.25 }),
-    sim(3, "Cleo", -5, 2),
-    sim(4, "Dmitri", 8, -8),
-    sim(5, "Eve", -2, 6)
+  genoses: [
+    genos(1, "Ada", 0, 0, { isPlayerControlled: true }),
+    genos(2, "Boris", 3, 4, { x: 3.4, y: 4.25 }),
+    genos(3, "Cleo", -5, 2),
+    genos(4, "Dmitri", 8, -8),
+    genos(5, "Eve", -2, 6)
   ],
   companies: [company]
 };
@@ -211,26 +211,26 @@ const worldDelta = {
   sinceTick: 100,
   version: 2,
   full: false,
-  sims: [
-    sim(1, "Ada", 1, 0, { isPlayerControlled: true, x: 0.5, y: 0 }),
-    sim(2, "Boris", 4, 4, { x: 3.9, y: 4.1 })
+  genoses: [
+    genos(1, "Ada", 1, 0, { isPlayerControlled: true, x: 0.5, y: 0 }),
+    genos(2, "Boris", 4, 4, { x: 3.9, y: 4.1 })
   ],
   companies: [],
-  removedSims: [5],
+  removedGenoses: [5],
   removedCompanies: []
 };
 
-const sims2000 = [];
+const genoses2000 = [];
 for (let i = 0; i < 2000; i++) {
   const tileX = (i % 64) - 32;
   const tileY = Math.floor(i / 64) - 16;
-  sims2000.push(sim(10000 + i, `Sim_${i}`, tileX, tileY));
+  genoses2000.push(genos(10000 + i, `Genos_${i}`, tileX, tileY));
 }
 
 const worldSnapshot2000 = {
   tick: 500,
   version: 2,
-  sims: sims2000,
+  genoses: genoses2000,
   companies: [company]
 };
 
@@ -266,7 +266,7 @@ write("intent-move.json", {
   type: "move",
   playerId: "player-1",
   sequence: 42,
-  simNetworkId: 1,
+  genosNetworkId: 1,
   targetTileX: 12,
   targetTileY: -4
 });
@@ -274,7 +274,7 @@ write("intent-use-building.json", {
   type: "useBuilding",
   playerId: "player-1",
   sequence: 43,
-  simNetworkId: 1,
+  genosNetworkId: 1,
   buildingNetworkId: 7002
 });
 write("snapshot-rejected.json", {
@@ -282,7 +282,7 @@ write("snapshot-rejected.json", {
 });
 write("welcome.json", {
   playerId: "player-1",
-  simNetworkId: 1,
+  genosNetworkId: 1,
   mapId: "world",
   mapVersion: 3,
   tick: 100,

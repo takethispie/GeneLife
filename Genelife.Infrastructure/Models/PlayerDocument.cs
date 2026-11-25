@@ -7,7 +7,7 @@ namespace Genelife.Api.Models;
 public sealed class PlayerDocument
 {
     public string Id { get; set; } = string.Empty;
-    public ulong SimNetworkId { get; set; }
+    public ulong GenosNetworkId { get; set; }
     public string ContinuationPolicy { get; set; } = "Respawn";
     public bool AwaitingContinuation { get; set; }
     public bool Observer { get; set; }

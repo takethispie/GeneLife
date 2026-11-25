@@ -5,7 +5,7 @@ public sealed class FamilyStatus
     public int Population { get; set; }
     public int Adults { get; set; }
     public int Minors { get; set; }
-    public int PairedSims { get; set; }
+    public int PairedGenoses { get; set; }
     public int SingleAdults { get; set; }
     public int Partnerships { get; set; }
     public int ParentEdges { get; set; }
@@ -37,7 +37,7 @@ public sealed class FamilyPerformanceStatus
     public double P95TickMilliseconds { get; set; }
     public double P99TickMilliseconds { get; set; }
     public double AllocatedBytesPerTick { get; set; }
-    public int CandidateSims { get; set; }
+    public int CandidateGenoses { get; set; }
     public int CandidateAverage { get; set; }
     public int CandidateP95 { get; set; }
     public int CandidateMax { get; set; }
@@ -92,9 +92,9 @@ public sealed class ProjectionStalenessStatus
 public sealed class FamilyRelationshipStatus
 {
     public ulong NetworkId { get; set; }
-    public ulong FromSimId { get; set; }
+    public ulong FromGenosId { get; set; }
     public string FromName { get; set; } = string.Empty;
-    public ulong ToSimId { get; set; }
+    public ulong ToGenosId { get; set; }
     public string ToName { get; set; } = string.Empty;
     public string Kind { get; set; } = string.Empty;
     public string Source { get; set; } = string.Empty;
@@ -109,7 +109,7 @@ public sealed class FamilyRelationshipPage
     public List<FamilyRelationshipStatus> Relationships { get; set; } = new();
 }
 
-public sealed class FamilySimStatus
+public sealed class FamilyGenosStatus
 {
     public ulong NetworkId { get; set; }
     public string Name { get; set; } = string.Empty;
@@ -130,17 +130,17 @@ public sealed class FamilySimStatus
     public List<TraitValueStatus> Traits { get; set; } = new();
 }
 
-public sealed class FamilySimPage
+public sealed class FamilyGenosPage
 {
     public int Total { get; set; }
     public int Skip { get; set; }
     public int Take { get; set; }
-    public List<FamilySimStatus> Sims { get; set; } = new();
+    public List<FamilyGenosStatus> Genoses { get; set; } = new();
 }
 
-public sealed class FamilySimDetailStatus
+public sealed class FamilyGenosDetailStatus
 {
-    public FamilySimStatus Sim { get; set; } = new();
+    public FamilyGenosStatus Genos { get; set; } = new();
     public List<FamilyRelationshipStatus> Relationships { get; set; } = new();
     public List<PregnancyStatusDto> Pregnancies { get; set; } = new();
     public List<ChildStatusDto> Children { get; set; } = new();
@@ -157,7 +157,7 @@ public sealed class AttractionComponentStatus
 
 public sealed class AttractionExplanationStatus
 {
-    public ulong SimId { get; set; }
+    public ulong GenosId { get; set; }
     public ulong CandidateId { get; set; }
     public bool Eligible { get; set; }
     public string? ReasonCode { get; set; }

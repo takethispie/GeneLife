@@ -163,7 +163,7 @@ public class GroceryTests
 
         var result = fixture.Actions.Apply(
             "p1",
-            fixture.Sim,
+            fixture.Genos,
             Genelife.Api.Commands.PlayerActionKind.BuyItem,
             System.Text.Json.JsonSerializer.SerializeToElement(new
             {
@@ -189,9 +189,9 @@ public class GroceryTests
         public Entity Store { get; }
         public GroceryStoreService StoreService { get; }
         public ulong StoreNetworkId { get; }
-        public Entity Sim { get; }
+        public Entity Genos { get; }
         public int StockPerItem => GroceryOptions.Default.StockPerItem;
-        public Money Wallet => world.Get<Wallet>(Sim).Balance;
+        public Money Wallet => world.Get<Wallet>(Genos).Balance;
 
         public PlayerGroceryFixture()
         {
@@ -214,16 +214,16 @@ public class GroceryTests
             Register(company, 100);
             Store = world.Create(new Office("Store", company));
             StoreNetworkId = Register(Store, 101);
-            Sim = world.Create(
+            Genos = world.Create(
                 new Genelife.Components.Gen.GenName("Shopper"),
                 new Genelife.Components.Gen.Needs { Hunger = 20f },
                 new Genelife.Components.Gen.Alive(30),
                 new Genelife.Components.Gen.PlayerControlled("p1"),
                 new Wallet(Money.FromUnits(100m)),
                 new Genelife.Components.Life.Lifecycle(Genelife.Enums.LifeStage.Work, 0, 0));
-            Register(Sim, 102);
+            Register(Genos, 102);
             var players = new Genelife.Player.PlayerRegistry();
-            players.GetOrCreate("p1", Sim, 0);
+            players.GetOrCreate("p1", Genos, 0);
             Actions = new PlayerActionService(
                 world,
                 Economy,

@@ -20,8 +20,8 @@ public class HouseholdMergeTests
         HousingBootstrap.CreateProperty(world, economy, "Central", HousingTier.Basic, 4, 0.8f, 0.5f, 0);
         var allocator = new HousingAllocator(world, economy);
 
-        var first = CreateSim(world, 1, Money.FromUnits(800));
-        var second = CreateSim(world, 2, Money.FromUnits(900));
+        var first = CreateGenos(world, 1, Money.FromUnits(800));
+        var second = CreateGenos(world, 2, Money.FromUnits(900));
         var firstHousehold = CreateHousehold(world, economy, allocator, first, 1);
         var secondHousehold = CreateHousehold(world, economy, allocator, second, 2);
         var firstUnit = economy.Housing.UnitOf(firstHousehold);
@@ -55,10 +55,10 @@ public class HouseholdMergeTests
         HousingBootstrap.CreateProperty(world, economy, "Central", HousingTier.Basic, 4, 0.8f, 0.5f, 0);
         var allocator = new HousingAllocator(world, economy);
 
-        var first = CreateSim(world, 1, Money.FromUnits(800));
-        var second = CreateSim(world, 2, Money.FromUnits(800));
-        var extraA = CreateSim(world, 3, Money.FromUnits(800));
-        var extraB = CreateSim(world, 4, Money.FromUnits(800));
+        var first = CreateGenos(world, 1, Money.FromUnits(800));
+        var second = CreateGenos(world, 2, Money.FromUnits(800));
+        var extraA = CreateGenos(world, 3, Money.FromUnits(800));
+        var extraB = CreateGenos(world, 4, Money.FromUnits(800));
         var firstHousehold = CreateHousehold(world, economy, allocator, first, 1);
         var secondHousehold = CreateHousehold(world, economy, allocator, second, 2);
 
@@ -86,8 +86,8 @@ public class HouseholdMergeTests
         HousingBootstrap.CreateProperty(world, economy, "Central", HousingTier.Basic, 4, 0.8f, 0.5f, 0);
         var allocator = new HousingAllocator(world, economy);
 
-        var first = CreateSim(world, 1, Money.FromUnits(800));
-        var second = CreateSim(world, 2, Money.FromUnits(900));
+        var first = CreateGenos(world, 1, Money.FromUnits(800));
+        var second = CreateGenos(world, 2, Money.FromUnits(900));
         var firstHousehold = CreateHousehold(world, economy, allocator, first, 1);
         var secondHousehold = CreateHousehold(world, economy, allocator, second, 2);
         var service = new HouseholdMergeService(world, economy);
@@ -102,9 +102,9 @@ public class HouseholdMergeTests
         Assert.Empty(economy.Housing.Verify());
     }
 
-    private static Entity CreateSim(World world, ulong networkId, Money cash) =>
+    private static Entity CreateGenos(World world, ulong networkId, Money cash) =>
         world.Create(
-            new GenName($"Sim {networkId}"),
+            new GenName($"Genos {networkId}"),
             new Alive(30),
             new Traits { Sex = networkId % 2 == 0 ? Sex.Male : Sex.Female },
             new NetworkId(networkId),
