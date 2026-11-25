@@ -5,6 +5,7 @@ using Genelife.Components.Employment;
 using Genelife.Components.Gen;
 using Genelife.Enums;
 using Marten;
+using Microsoft.Extensions.Logging;
 
 namespace Genelife.Api.Services;
 

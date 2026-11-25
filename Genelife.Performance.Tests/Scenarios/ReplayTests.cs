@@ -79,8 +79,8 @@ public class ReplayTests
     public void FamilyCodeHasNoRandomSharedOrWallClockDependency()
     {
         var root = FindRepositoryRoot();
-        var files = Directory.GetFiles(Path.Combine(root, "Genelife", "Family"), "*.cs")
-            .Concat(Directory.GetFiles(Path.Combine(root, "Genelife", "Components", "Family"), "*.cs"))
+        var files = Directory.GetFiles(Path.Combine(root, "Genelife.Domain", "Family"), "*.cs")
+            .Concat(Directory.GetFiles(Path.Combine(root, "Genelife.Domain", "Components", "Family"), "*.cs"))
             .ToList();
 
         Assert.NotEmpty(files);

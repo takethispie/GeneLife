@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Marten" Version="9.62.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.13" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.13" />
+    <PackageReference Include="Npgsql" Version="9.0.4" />
+    <PackageReference Include="WolverineFx" Version="6.64.2" />
+    <PackageReference Include="WolverineFx.Marten" Version="6.64.2" />
+    <PackageReference Include="WolverineFx.SignalR" Version="6.64.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Genelife.Application\Genelife.Application.csproj" />
+    <ProjectReference Include="..\Genelife.Contracts\Genelife.Contracts.csproj" />
+    <ProjectReference Include="..\Genelife.Domain\Genelife.Domain.csproj" />
+    <ProjectReference Include="..\Genelife.Messages\Genelife.Messages.csproj" />
+  </ItemGroup>
+
+</Project>

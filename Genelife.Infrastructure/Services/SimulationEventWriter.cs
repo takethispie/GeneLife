@@ -1,6 +1,8 @@
 using System.Threading.Channels;
 using Genelife.Messages.Events;
 using Marten;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Genelife.Api.Services;
 

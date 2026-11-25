@@ -97,11 +97,12 @@ builder.Services.AddSingleton<Genelife.Api.Snapshots.ReplicationMetrics>();
 builder.Services.AddSingleton<Genelife.Api.Snapshots.ViewportRegistry>();
 builder.Services.AddSingleton<WorldRestoreService>();
 builder.Services.AddSingleton<WorldSaveService>();
+builder.Services.AddSingleton<IWorldPersistence>(provider => provider.GetRequiredService<WorldSaveService>());
+builder.Services.AddSingleton<IReadModelStore, MartenReadModelStore>();
+builder.Services.AddSingleton<IEventConsumerProbe, MartenEventConsumerProbe>();
 builder.Services.AddSingleton<Genelife.Api.Handlers.Push.SimStatePushHandler>();
 builder.Services.AddSingleton<Genelife.Api.Handlers.Push.CompanyStatePushHandler>();
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddSingleton<WorldRestoreService>();
-builder.Services.AddSingleton<WorldSaveService>();
 builder.Services.AddHostedService<SnapshotBroadcastService>();
 
 // Marten document store. Reads, projections and the event store are the only

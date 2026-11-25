@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Genelife\Genelife.csproj" />
+    <ProjectReference Include="..\Genelife.Domain\Genelife.Domain.csproj" />
     <ProjectReference Include="..\Genelife.API\Genelife.API.csproj" />
     <ProjectReference Include="..\Genelife.Messages\Genelife.Messages.csproj" />
     <ProjectReference Include="..\Genelife.TestSupport\Genelife.TestSupport.csproj" />

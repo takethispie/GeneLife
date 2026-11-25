@@ -1,10 +1,10 @@
 using Genelife.Api.DTOs;
-using Genelife.Api.Models;
 using Genelife.Api.Persistence;
 using Genelife.Api.Repositories;
 using Genelife.Components.Gen;
 using Genelife.Messages.Events;
-using Marten;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Genelife.Api.Services;
 
@@ -12,18 +12,18 @@ public class SimulationManager : IHostedService, IDisposable
 {
     private readonly SimulationEngine engine;
     private readonly ISnapshotStore store;
-    private readonly IDocumentStore? documentStore;
-    private readonly WorldSaveService? worldSaveService;
+    private readonly IReadModelStore? readModelStore;
+    private readonly IWorldPersistence? worldPersistence;
     private readonly ILogger<SimulationManager>? logger;
     private PeriodicTimer? saveTimer;
     private CancellationTokenSource? saveCts;
 
-    public SimulationManager(SimulationEngine engine, ISnapshotStore store, IDocumentStore? documentStore = null, WorldSaveService? worldSaveService = null, ILogger<SimulationManager>? logger = null)
+    public SimulationManager(SimulationEngine engine, ISnapshotStore store, IReadModelStore? readModelStore = null, IWorldPersistence? worldPersistence = null, ILogger<SimulationManager>? logger = null)
     {
         this.engine = engine;
         this.store = store;
-        this.documentStore = documentStore;
-        this.worldSaveService = worldSaveService;
+        this.readModelStore = readModelStore;
+        this.worldPersistence = worldPersistence;
         this.logger = logger;
     }
 
@@ -142,23 +142,11 @@ public class SimulationManager : IHostedService, IDisposable
 
     public async Task<List<SimStatus>> GetAllSimsAsync()
     {
-        if (documentStore != null)
+        if (readModelStore != null)
         {
-            try
-            {
-                await using var session = documentStore.LightweightSession();
-                var docs = await session.Query<SimDocument>().ToListAsync();
-                return docs
-                    .GroupBy(d => d.NetworkId)
-                    .Select(group => group.MaxBy(d => d.UpdatedAt)!)
-                    .Select(d => d.ToSimStatus())
-                    .OrderBy(sim => sim.NetworkId)
-                    .ToList();
-            }
-            catch (Exception ex)
-            {
-                logger?.LogWarning(ex, "Marten query for GetAllSims failed; falling back to snapshot");
-            }
+            var sims = await readModelStore.TryGetAllSimsAsync();
+            if (sims != null)
+                return sims.ToList();
         }
 
         var snapshot = engine.GetLatestSnapshot();
@@ -185,21 +173,11 @@ public class SimulationManager : IHostedService, IDisposable
 
     public async Task<CompanyStatus?> GetCompanyAsync(ulong networkId)
     {
-        if (documentStore != null)
+        if (readModelStore != null)
         {
-            try
-            {
-                await using var session = documentStore.LightweightSession();
-                var doc = await session.Query<CompanyDocument>()
-                    .OrderByDescending(d => d.UpdatedAt)
-                    .FirstOrDefaultAsync(d => d.NetworkId == (long)networkId);
-                if (doc != null)
-                    return doc.ToCompanyStatus();
-            }
-            catch (Exception ex)
-            {
-                logger?.LogWarning(ex, "Marten query for GetCompany failed; falling back to snapshot");
-            }
+            var company = await readModelStore.TryGetCompanyAsync(networkId);
+            if (company != null)
+                return company;
         }
 
         var snapshot = engine.GetLatestSnapshot();
@@ -237,23 +215,11 @@ public class SimulationManager : IHostedService, IDisposable
 
     public async Task<List<CompanyStatus>> GetAllCompaniesAsync()
     {
-        if (documentStore != null)
+        if (readModelStore != null)
         {
-            try
-            {
-                await using var session = documentStore.LightweightSession();
-                var docs = await session.Query<CompanyDocument>().ToListAsync();
-                return docs
-                    .GroupBy(d => d.NetworkId)
-                    .Select(group => group.MaxBy(d => d.UpdatedAt)!)
-                    .Select(d => d.ToCompanyStatus())
-                    .OrderBy(company => company.NetworkId)
-                    .ToList();
-            }
-            catch (Exception ex)
-            {
-                logger?.LogWarning(ex, "Marten query for GetAllCompanies failed; falling back to snapshot");
-            }
+            var companies = await readModelStore.TryGetAllCompaniesAsync();
+            if (companies != null)
+                return companies.ToList();
         }
 
         var snapshot = engine.GetLatestSnapshot();
@@ -363,14 +329,14 @@ public class SimulationManager : IHostedService, IDisposable
 
     private async Task SaveWorldDocumentsAsync()
     {
-        if (worldSaveService == null)
+        if (worldPersistence == null)
             return;
 
         try
         {
             var batch = engine.PrepareSave();
             if (batch != null)
-                await worldSaveService.SaveBatchAsync(batch);
+                await worldPersistence.SaveBatchAsync(batch);
         }
         catch (Exception ex)
         {

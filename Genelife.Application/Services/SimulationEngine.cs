@@ -35,8 +35,6 @@ using Genelife.Player;
 using Genelife.Social;
 using Genelife.Systems;
 using Genelife.Values;
-using Marten;
-using Wolverine;
 
 namespace Genelife.Api.Services;
 
@@ -148,8 +146,8 @@ private readonly NetworkIdRegistry networkIds = new();
     private readonly ConcurrentDictionary<string, byte> disconnectedPlayers = new(StringComparer.Ordinal);
     private const int MaxPendingPlayerCommands = 8;
     private const int MaxAuditRowsPerPlayer = 50;
-    private readonly IDocumentStore? documentStore;
-    private readonly WorldSaveService? worldSaveService;
+    private readonly IEventConsumerProbe? eventConsumerProbe;
+    private readonly IWorldPersistence? worldPersistence;
     private readonly Genelife.Social.SocialGraphService socialGraph;
     private readonly Genelife.Social.VenueOptions venueOptions;
     private readonly Genelife.Api.Auth.IConnectionRegistry? connections;
@@ -157,16 +155,16 @@ private readonly NetworkIdRegistry networkIds = new();
     private static readonly string[] ActionNames = Enum.GetNames<ActionType>();
 
     public SimulationEngine(
-        WorldSaveService? worldSaveService = null,
-        IDocumentStore? documentStore = null,
+        IWorldPersistence? worldPersistence = null,
+        IEventConsumerProbe? eventConsumerProbe = null,
         ICommandQueue? commandQueue = null,
         Genelife.Social.SocialGraphService? socialGraph = null,
         Genelife.Social.VenueOptions? venueOptions = null,
         Genelife.Api.Auth.IConnectionRegistry? connections = null,
         Genelife.Social.SocialPrivacyRegistry? socialPrivacy = null)
     {
-        this.worldSaveService = worldSaveService;
-        this.documentStore = documentStore;
+        this.worldPersistence = worldPersistence;
+        this.eventConsumerProbe = eventConsumerProbe;
         this.commandQueue = commandQueue;
         this.socialGraph = socialGraph ?? new Genelife.Social.SocialGraphService();
         this.venueOptions = venueOptions ?? new Genelife.Social.VenueOptions();
@@ -237,7 +235,6 @@ private readonly NetworkIdRegistry networkIds = new();
     /// leave it false and get a synchronous snapshot.
     /// </summary>
     public bool AsyncSnapshots { get; set; }
-    public IMessageBus? MessageBus { get; set; }
 
     public void EnqueueCommand(EnqueuedCommand command)
     {
@@ -542,15 +539,15 @@ private readonly NetworkIdRegistry networkIds = new();
         if (!@lock.IsWriteLockHeld)
             StopSnapshotConsumer();
 
-        WorldSaveBatch? batchToSave = null;
+        IWorldSaveBatch? batchToSave = null;
 
         using (WriteLock())
         {
             if (!isRunning)
                 return;
 
-            if (world != null && employmentIndex != null && worldSaveService != null)
-                batchToSave = worldSaveService.Build(world, employmentIndex);
+            if (world != null && employmentIndex != null && worldPersistence != null)
+                batchToSave = worldPersistence.Build(world, employmentIndex);
 
             metrics.Flush();
             world?.Dispose();
@@ -582,9 +579,9 @@ private readonly NetworkIdRegistry networkIds = new();
             isRunning = false;
         }
 
-        if (batchToSave != null && worldSaveService != null)
+        if (batchToSave != null && worldPersistence != null)
         {
-            worldSaveService.SaveBatchAsync(batchToSave).GetAwaiter().GetResult();
+            worldPersistence.SaveBatchAsync(batchToSave).GetAwaiter().GetResult();
         }
     }
 
@@ -592,14 +589,14 @@ private readonly NetworkIdRegistry networkIds = new();
     /// Captures a consistent world save batch under the simulation lock. The caller
     /// persists it off the tick thread.
     /// </summary>
-    public WorldSaveBatch? PrepareSave()
+    public IWorldSaveBatch? PrepareSave()
     {
         using (ReadLock())
         {
-            if (!isRunning || world == null || employmentIndex == null || worldSaveService == null)
+            if (!isRunning || world == null || employmentIndex == null || worldPersistence == null)
                 return null;
 
-            return worldSaveService.Build(world, employmentIndex);
+            return worldPersistence.Build(world, employmentIndex);
         }
     }
 
@@ -614,7 +611,7 @@ private readonly NetworkIdRegistry networkIds = new();
 
         var tickStart = Stopwatch.GetTimestamp();
         var allocatedStart = GC.GetAllocatedBytesForCurrentThread();
-        var hasEventConsumer = documentStore != null || MessageBus != null;
+        var hasEventConsumer = eventConsumerProbe?.HasConsumer == true;
 
         // Phase 1: mutate the world under the write lock only.
         World currentWorld;

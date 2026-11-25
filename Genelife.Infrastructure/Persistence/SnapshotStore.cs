@@ -113,5 +113,6 @@ public sealed class SnapshotStore : ISnapshotStore, IDisposable
     public void Dispose()
     {
         initialized = false;
+        SqliteConnection.ClearAllPools();
     }
 }

@@ -19,7 +19,6 @@
     <PackageReference Include="Marten" Version="9.62.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.1" />
     <PackageReference Include="WolverineFx" Version="6.64.2" />
     <PackageReference Include="WolverineFx.Http" Version="6.64.2" />
@@ -30,7 +29,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\GeneLife.ServiceDefaults\GeneLife.ServiceDefaults.csproj" />
-    <ProjectReference Include="..\Genelife\Genelife.csproj" />
+    <ProjectReference Include="..\Genelife.Application\Genelife.Application.csproj" />
+    <ProjectReference Include="..\Genelife.Domain\Genelife.Domain.csproj" />
+    <ProjectReference Include="..\Genelife.Infrastructure\Genelife.Infrastructure.csproj" />
     <ProjectReference Include="..\Genelife.Messages\Genelife.Messages.csproj" />
     <ProjectReference Include="..\Genelife.Contracts\Genelife.Contracts.csproj" />
   </ItemGroup>

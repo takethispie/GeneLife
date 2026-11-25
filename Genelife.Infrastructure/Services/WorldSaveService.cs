@@ -7,14 +7,15 @@ using Genelife.Components.Gen;
 using Genelife.Components.Housing;
 using Genelife.Enums;
 using Marten;
+using Microsoft.Extensions.Logging;
 
 namespace Genelife.Api.Services;
 
 public sealed record WorldSaveBatch(
     IReadOnlyList<SimDocument> Sims,
-    IReadOnlyList<CompanyDocument> Companies);
+    IReadOnlyList<CompanyDocument> Companies) : IWorldSaveBatch;
 
-public class WorldSaveService
+public class WorldSaveService : IWorldPersistence
 {
     private readonly IDocumentStore? documentStore;
     private readonly ILogger<WorldSaveService>? logger;
@@ -144,4 +145,10 @@ public class WorldSaveService
         logger?.LogInformation("World saved to Marten: {SimCount} sims, {CompanyCount} companies",
             batch.Sims.Count, batch.Companies.Count);
     }
+
+    IWorldSaveBatch? IWorldPersistence.Build(World world, EmploymentIndex employmentIndex) =>
+        Build(world, employmentIndex);
+
+    Task IWorldPersistence.SaveBatchAsync(IWorldSaveBatch batch) =>
+        SaveBatchAsync((WorldSaveBatch)batch);
 }

@@ -1,5 +1,7 @@
 using Genelife.Api.Services;
 using Genelife.Social;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Genelife.Api.Social;
 

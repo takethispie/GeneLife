@@ -98,7 +98,7 @@ public class DocsConsistencyTests
 public class CommandCoverageTests
 {
     private static string EngineSource() =>
-        File.ReadAllText(Path.Combine(DocsConsistencyTestsRepositoryRoot(), "Genelife.API/Services/SimulationEngine.cs"));
+        File.ReadAllText(Path.Combine(DocsConsistencyTestsRepositoryRoot(), "Genelife.Application/Services/SimulationEngine.cs"));
 
     [Fact]
     public void Every_admin_command_has_an_apply_case()

@@ -21,7 +21,7 @@ public class AttractionCalibrationTests
     public void GeneratedFixtureMatchesRuntimeCoefficients()
     {
         var root = FindRepositoryRoot();
-        var fixturePath = Path.Combine(root, "Genelife/Family/attraction-coefficients.json");
+        var fixturePath = Path.Combine(root, "Genelife.Domain/Family/attraction-coefficients.json");
         using var document = JsonDocument.Parse(File.ReadAllText(fixturePath));
         var fixture = document.RootElement;
         var coefficients = AttractionCoefficients.Default;
@@ -89,7 +89,8 @@ public class AttractionCalibrationTests
         var root = FindRepositoryRoot();
         foreach (var project in new[]
                  {
-                     "Genelife/Genelife.csproj",
+                     "Genelife.Domain/Genelife.Domain.csproj",
+                     "Genelife.Application/Genelife.Application.csproj",
                      "Genelife.API/Genelife.API.csproj",
                      "Genelife.Contracts/Genelife.Contracts.csproj"
                  })
@@ -100,7 +101,7 @@ public class AttractionCalibrationTests
 
         Assert.DoesNotContain(
             "Microsoft.ML",
-            File.ReadAllText(Path.Combine(root, "Genelife/Family/AttractionScorer.cs")),
+            File.ReadAllText(Path.Combine(root, "Genelife.Domain/Family/AttractionScorer.cs")),
             StringComparison.OrdinalIgnoreCase);
     }
 
