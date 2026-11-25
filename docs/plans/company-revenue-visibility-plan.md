@@ -2,8 +2,6 @@
 
 ## Context
 
-The verified analysis is in [Why companies show no revenue](../findings/2026-11-25-company-revenue-missing.md).
-
 Two independent root causes make per-company revenue appear as zero:
 
 1. **Same-tick reset.** `CompanyRevenueSystem` (order 450) adds settled revenue to `CompanyAccount.RevenueLastCycle`. Later in the same tick, `CorporateTaxSystem` (order 535) reads that value as a tax accumulator and then sets it to `Money.Zero` at `Genelife.Domain/Systems/CorporateTaxSystem.cs:121-124`. Snapshots and API reads only observe the world between ticks, so the non-zero value is never published. `WagesLastCycle`, `CostsLastCycle`, and `InterestPaidLastCycle` are reset by the same block.
