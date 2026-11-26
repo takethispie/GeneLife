@@ -148,7 +148,19 @@ public class ConsumerSpendingSystem : ISimulationSystem
             return genos;
 
         var guardian = ChildhoodPolicy.GuardianOf(world, economy, genos);
-        return guardian != Entity.Null && world.IsAlive(guardian) && world.Has<Wallet>(guardian) ? guardian : genos;
+        if (guardian == Entity.Null || !world.IsAlive(guardian) || !world.Has<Wallet>(guardian))
+            return genos;
+
+        // A dependent's purchase is charged to the guardian. When the guardian is
+        // already at zero that gated the whole household to "nothing bought" even
+        // though the dependent still holds its own cash, which starved both. Fall
+        // back to the dependent's own wallet so that money stays spendable.
+        if (!world.Get<Wallet>(guardian).Balance.IsPositive &&
+            world.Has<Wallet>(genos) &&
+            world.Get<Wallet>(genos).Balance.IsPositive)
+            return genos;
+
+        return guardian;
     }
 
     private void ExplicitlyWithdrawForConsumption(long tick, Entity genos, Money budget)
