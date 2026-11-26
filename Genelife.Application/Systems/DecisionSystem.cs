@@ -46,10 +46,11 @@ public class DecisionSystem : ISimulationSystem
         if (world.TryGet<WorkSchedule>(entity, out var schedule) && schedule.IsAtWork)
             return;
 
-        var threshold = world.TryGet<Lifecycle>(entity, out var lifecycle) &&
-                        lifecycle.Stage == LifeStage.Work
-            ? 15f
-            : CriticalThreshold;
+        // One threshold for every stage. The Work stage previously used 15, which let
+        // the largest part of the population decay to 15 before topping up and pulled
+        // the population averages down. Shift interruption keeps its own lower
+        // threshold in WorkScheduleSystem, so this does not cut shift output.
+        const float threshold = CriticalThreshold;
 
         var lowestNeed = GetLowestNeed(needs);
 
