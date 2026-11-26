@@ -69,7 +69,7 @@ Feature roadmaps (`roadmap-vN`) record delivered implementation only. Production
 - **Key decisions:** player actions as typed intents drained at tick start; appearance derived from traits/age/sex (`SkinTone`, `FaceShape`); utility networks + grocery catalog/stock/nutrition; text chat + presence + friendships + consensual partnerships; schema 11 → 15.
 - **Delivered:** player agency (jobs, housing, consumption, family actions, aging/death/heir continuation, schema 12, `/player` admin page); appearance (descriptor model, inheritance, layered sprites, `/appearance` preview, schema 13); consumption (networks, meters, tariffs, grocery, nutrition, schema 14, `/consumption` page); social (presence, chat/emotes, friendships/blocks/reports, player partnerships, venues, moderation, schema 15, `/social` page); live ops (Wolverine cleanup H16/H19/H20, relocation, live preview, audio/touch, prediction no-go, balance).
 - **Verification:** 560 domain + 69 API integration + 33 performance/release tests green; 178 browser tests; 2k decade p95 35.6 ms; 32-player p95 0.88 ms; 60/200-genos ten-year bands green.
-- **Open:** 1k rent burden **0.4619** vs 0.40 and 1k Gini **0.7699** vs 0.70 ceilings (regression bisected to `5ddc300`, which shipped in V5 — the 0.4284 recorded at release was stale); `CohabitOnPairing` still opt-in. Production release checks (30-minute live soak, schema 11→15 migration/rollback rehearsal, feature 02 frame-budget report, feature 03 shopping/meal + cohabitation evidence, release evidence record) live in [`release-roadmap-V5/`](release-roadmap-V5/README.md).
+- **Fixed post-release:** the 1k rent burden / Gini regression (bisected to `5ddc300`, shipped in V5) is fixed by the rent-burden rebalance (`ede655b`) — rent 0.4619 → 0.3359 and Gini 0.7699 → 0.57 at 1k. **Open:** `CohabitOnPairing` still opt-in. Production release checks (30-minute live soak, schema 11→15 migration/rollback rehearsal, feature 02 frame-budget report, feature 03 shopping/meal + cohabitation evidence, release evidence record) live in [`release-roadmap-V5/`](release-roadmap-V5/README.md).
 
 ## V6 — Tick Performance
 
@@ -97,6 +97,6 @@ Feature roadmaps (`roadmap-vN`) record delivered implementation only. Production
 
 - V1–V4: implemented and release-ready.
 - V5: released. Production release checks in [`release-roadmap-V5/`](release-roadmap-V5/README.md) are complete.
-- **V5 balance regression (open):** 1k rent burden **0.4619** vs 0.40 and Gini **0.7699** vs 0.70 — bisected to `5ddc300`, which shipped in V5 (the released 0.4284 figure was stale). Tracked by pedro's rent-burden rebalance; the perf-tier balance tests assert the target (red) until it lands.
+- **V5 balance regression — fixed:** 1k rent burden 0.4619 and Gini 0.7699 (bisected to `5ddc300`, which shipped in V5) are back inside the bands after the rent-burden rebalance (`ede655b`): rent 0.3359 and Gini 0.57 at 1k. Perf-tier bands green.
 - V6: implemented; `StaggerCadence` re-measured in Release — no gain, stays opt-in/off (`ParallelSystem`s removed in 3.2).
-- Next roadmap: none defined yet — the immediate open item is the V5 balance regression (rent burden/Gini); no V7 defined.
+- Next roadmap: none defined yet — no V7; the V5 balance regression is fixed.
