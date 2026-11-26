@@ -1,7 +1,7 @@
 {
   "title": "GeneLife — Team Board",
-  "updated": "2026-11-26T22:13Z",
-  "description": "Shared team board for the GeneLife project; source of truth for the chat kanban widget. States: waiting to run -> currently running -> done. 'Currently running' holds each member's selected next task (cards marked 'next'), with ETA/branch/blocker notes from the 2026-11-26 dispatch round. The V6 opt-in re-measurement is the only open release gate and the spine of the plan. Edit this file and regenerate the widget, or drag cards in the widget and press Save.",
+  "updated": "2026-11-26T22:14Z",
+  "description": "Shared team board for the GeneLife project; source of truth for the chat kanban widget. States: waiting to run -> currently running -> done. 'Currently running' holds each member's selected next task (cards marked 'next'), with ETA/branch/blocker notes. SCHEDULING: main-dev holds a QUIET WINDOW for the V6 Release perf measurement; gabrielo and pedro DEFER Release perf runs until it closes (published here because the bot-to-bot hop limit blocked direct DMs). Scope: StaggerCadence is the only live V6 opt-in (parallel passes removed in roadmap 3.2).",
   "states": [
     {
       "id": "waiting",
@@ -23,7 +23,7 @@
       "owner": "main-dev",
       "state": "running",
       "selected": true,
-      "note": "ETA ~3h · BLOCKED on a quiet machine: gabrielo/pedro probes running concurrently make wall-clock numbers non-comparable"
+      "note": "QUIET WINDOW GRANTED (serialized) · gabrielo/pedro defer Release perf runs until this closes · ETA ~3h · scope: StaggerCadence only"
     },
     {
       "id": "c2",
@@ -31,7 +31,7 @@
       "owner": "pedro",
       "state": "running",
       "selected": true,
-      "note": "ETA ~2-3h repro+attribution · hypothesis: staggering desyncs income->consumption->rent (Payroll +9 vs base-boundary spend/rent)"
+      "note": "DEFER Release perf runs while main-dev's quiet window is open (deterministic Debug repro is fine) · ETA ~2-3h repro+attribution · hypothesis: staggering desyncs income->consumption->rent"
     },
     {
       "id": "c3",
@@ -47,7 +47,7 @@
       "owner": "gabrielo",
       "state": "running",
       "selected": true,
-      "note": "ETA ~1-2h · into PR fast tier; needs pedro's target values to set the ratchet epsilon"
+      "note": "DEFER Release perf runs while main-dev's quiet window is open (band guardrails in the PR fast tier can proceed) · ETA ~1-2h · needs pedro's target values for the ratchet epsilon"
     },
     {
       "id": "c5",
