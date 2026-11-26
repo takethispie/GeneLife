@@ -108,6 +108,13 @@ public sealed class WorldHub : Hub
         var welcome = BuildWelcome(playerId);
         if (welcome.GenosNetworkId != 0)
             await Groups.AddToGroupAsync(Context.ConnectionId, $"genos:{welcome.GenosNetworkId}");
+
+        // The company push handler addresses company:{id}, so a client must belong to its
+        // employer's group or CompanyCreated/EmployeeHired/EmployeeFired/CompanyDeleted
+        // reach nobody. Employment changes mid-session are not re-subscribed here.
+        var life = engine.BuildPlayerLife(playerId);
+        if (life is { Employment.Employed: true } && life.Employment.CompanyId != 0)
+            await Groups.AddToGroupAsync(Context.ConnectionId, $"company:{life.Employment.CompanyId}");
         await Clients.Caller.SendAsync("Welcome", welcome);
 
         var map = engine.BuildMapSnapshot();
