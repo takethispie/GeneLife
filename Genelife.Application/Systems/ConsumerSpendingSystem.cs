@@ -102,9 +102,15 @@ public class ConsumerSpendingSystem : ISimulationSystem
         var requiredTarget = budget.Multiply(options.FoodShare + options.HygieneShare);
         var requiredBudget = available.Min(requiredTarget);
 
-        // Food first, then hygiene. The remainder is protected before leisure.
-        var foodBudget = requiredBudget.Min(budget.Multiply(options.FoodShare));
-        var hygieneBudget = (requiredBudget - foodBudget).Min(budget.Multiply(options.HygieneShare));
+        // Split the essential budget proportionally between food and hygiene.
+        // Giving food its full share first starved hygiene completely whenever the
+        // household had less than the food share available: the hygiene purchase
+        // flag stayed false for the month and blocked showering. The remainder is
+        // still protected before the discretionary categories.
+        var essentialShare = options.FoodShare + options.HygieneShare;
+        var foodRatio = essentialShare <= 0m ? 0m : options.FoodShare / essentialShare;
+        var foodBudget = requiredBudget.Multiply(foodRatio);
+        var hygieneBudget = requiredBudget - foodBudget;
 
         spent += Buy("Food", foodBudget, genos, payer, suppliers, random, ref state, ref unmet, tick);
         spent += Buy("Hygiene", hygieneBudget, genos, payer, suppliers, random, ref state, ref unmet, tick);

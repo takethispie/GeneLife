@@ -64,7 +64,11 @@ public class NeedFulfilmentReproTests
             world.Add(genos, new ConsumptionState
             {
                 FoodPurchased = foodPurchased,
-                HygienePurchased = foodPurchased
+                HygienePurchased = foodPurchased,
+                // Non-zero marks a household that has already had a monthly pass.
+                // LastSpendTick == 0 is the "no pass yet" cold-start case that
+                // CanFulfill deliberately leaves ungated.
+                LastSpendTick = 1
             });
         }
 

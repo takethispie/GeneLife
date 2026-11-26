@@ -109,6 +109,11 @@ public class ActionSystem : ISimulationSystem
         if (!world.TryGet<ConsumptionState>(entity, out var state))
             return true;
 
+        // No monthly pass has run yet (fresh world or a newborn), so the purchase
+        // flags have never been evaluated. Do not gate on them.
+        if (state.LastSpendTick == 0)
+            return true;
+
         return action switch
         {
             ActionType.Eating => state.FoodPurchased,
