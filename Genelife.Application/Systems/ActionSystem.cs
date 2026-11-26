@@ -63,7 +63,9 @@ public class ActionSystem : ISimulationSystem
                     needs.Energy = Math.Min(100f, needs.Energy + 5f * modifier.SleepRecovery * healthFactor * deltaTime);
                     break;
                 case ActionType.Showering:
-                    needs.Hygiene = Math.Min(100f, needs.Hygiene + 10f * modifier.HygieneRecovery * healthFactor * deltaTime);
+                    // Showering fills hygiene outright rather than trickling it in.
+                    // The action still occupies the genos for its full duration.
+                    needs.Hygiene = 100f;
                     break;
                 case ActionType.Eating:
                     needs.Hunger = Math.Min(100f, needs.Hunger + 8f * healthFactor * deltaTime);

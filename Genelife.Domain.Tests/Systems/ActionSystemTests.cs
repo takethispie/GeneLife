@@ -24,7 +24,7 @@ public class ActionSystemTests
     }
 
     [Fact]
-    public void Update_ShoweringRestoresHygiene()
+    public void Update_ShoweringFillsHygieneImmediately()
     {
         var world = World.Create();
         var entity = world.Create(
@@ -36,7 +36,12 @@ public class ActionSystemTests
         system.Update(1f);
 
         ref var needs = ref world.Get<Needs>(entity);
-        Assert.Equal(60f, needs.Hygiene, 3);
+        Assert.Equal(100f, needs.Hygiene);
+
+        // Filling outright must not shorten the action: it still occupies the genos.
+        ref var action = ref world.Get<CurrentAction>(entity);
+        Assert.Equal(ActionType.Showering, action.Type);
+        Assert.Equal(9f, action.TimeRemaining, 3);
     }
 
     [Fact]
