@@ -11,7 +11,7 @@ namespace Genelife.Application.Systems;
 /// </summary>
 public class DecisionSystem : ISimulationSystem
 {
-    private const float CriticalThreshold = 30f;
+    private const float CriticalThreshold = 50f;
 
     // Base decay per second, mirroring NeedsDecaySystem. Dividing a need's shortfall
     // by its own decay rate turns it into "seconds since this need was last full",
