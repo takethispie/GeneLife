@@ -150,23 +150,48 @@ public class ConsumerSpendingSystem : ISimulationSystem
 
     private Entity PayerFor(Entity genos)
     {
+        var designated = DesignatedPayer(genos);
+        if (world.Has<Wallet>(designated) && world.Get<Wallet>(designated).Balance.IsPositive)
+            return designated;
+
+        // Households share cash. A genos whose own wallet has just been emptied by rent
+        // or a utility bill is still fed by the household, so fall back to the richest
+        // solvent member rather than recording unmet demand for a household that can pay.
+        var household = LifeSystemHelpers.HouseholdOf(world, economy, genos);
+        if (household == Entity.Null)
+            return designated;
+
+        var solvent = Entity.Null;
+        var best = Money.Zero;
+        foreach (var member in economy.Housing.GetMembers(household))
+        {
+            if (!world.IsAlive(member) || !world.Has<Wallet>(member))
+                continue;
+
+            var balance = world.Get<Wallet>(member).Balance;
+            if (balance.IsPositive && balance > best)
+            {
+                solvent = member;
+                best = balance;
+            }
+        }
+
+        return solvent != Entity.Null ? solvent : designated;
+    }
+
+    /// <summary>
+    /// Who is supposed to pay before any household pooling is considered: the genos
+    /// itself, or its guardian when it is a dependent child.
+    /// </summary>
+    private Entity DesignatedPayer(Entity genos)
+    {
         if (!ChildhoodPolicy.IsDependentChild(world, genos, economy.Life.Policy))
             return genos;
 
         var guardian = ChildhoodPolicy.GuardianOf(world, economy, genos);
-        if (guardian == Entity.Null || !world.IsAlive(guardian) || !world.Has<Wallet>(guardian))
-            return genos;
-
-        // A dependent's purchase is charged to the guardian. When the guardian is
-        // already at zero that gated the whole household to "nothing bought" even
-        // though the dependent still holds its own cash, which starved both. Fall
-        // back to the dependent's own wallet so that money stays spendable.
-        if (!world.Get<Wallet>(guardian).Balance.IsPositive &&
-            world.Has<Wallet>(genos) &&
-            world.Get<Wallet>(genos).Balance.IsPositive)
-            return genos;
-
-        return guardian;
+        return guardian != Entity.Null && world.IsAlive(guardian) && world.Has<Wallet>(guardian)
+            ? guardian
+            : genos;
     }
 
     private void ExplicitlyWithdrawForConsumption(long tick, Entity genos, Money budget)
