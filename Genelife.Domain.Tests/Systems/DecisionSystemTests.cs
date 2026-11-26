@@ -133,4 +133,40 @@ public class DecisionSystemTests
         ref var action = ref world.Get<CurrentAction>(npc);
         Assert.Equal(ActionType.Eating, action.Type);
     }
+
+    [Fact]
+    public void Update_ServesStalestNeedNotLowestValue()
+    {
+        var world = World.Create();
+        // Hunger 25 is nominally the lower value, but hygiene at 28 has been draining
+        // far longer: (100-25)/0.5 = 150 s elapsed versus (100-28)/0.2 = 360 s.
+        var entity = world.Create(
+            new Needs { Hunger = 25f, Energy = 100f, Hygiene = 28f, Bladder = 100f },
+            new CurrentAction(ActionType.Idle, 0f)
+        );
+        var system = new DecisionSystem(world);
+
+        system.Update();
+
+        ref var action = ref world.Get<CurrentAction>(entity);
+        Assert.Equal(ActionType.Showering, action.Type);
+        Assert.Equal(3f, action.TimeRemaining);
+    }
+
+    [Fact]
+    public void Update_StillIgnoresNeedsAboveThreshold()
+    {
+        var world = World.Create();
+        // Hygiene is the stalest, but 90 is not due yet, so nothing should start.
+        var entity = world.Create(
+            new Needs { Hunger = 90f, Energy = 90f, Hygiene = 90f, Bladder = 90f },
+            new CurrentAction(ActionType.Idle, 0f)
+        );
+        var system = new DecisionSystem(world);
+
+        system.Update();
+
+        ref var action = ref world.Get<CurrentAction>(entity);
+        Assert.Equal(ActionType.Idle, action.Type);
+    }
 }

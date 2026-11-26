@@ -7,11 +7,19 @@ using Genelife.Enums;
 namespace Genelife.Application.Systems;
 
 /// <summary>
-/// Picks a critical-need action for idle genoses.
+/// Picks a need-fulfilling action for idle genoses.
 /// </summary>
 public class DecisionSystem : ISimulationSystem
 {
     private const float CriticalThreshold = 30f;
+
+    // Base decay per second, mirroring NeedsDecaySystem. Dividing a need's shortfall
+    // by its own decay rate turns it into "seconds since this need was last full",
+    // which is comparable across needs that drain at different speeds.
+    private const float HungerDecayPerSecond = 0.5f;
+    private const float EnergyDecayPerSecond = 0.3f;
+    private const float HygieneDecayPerSecond = 0.2f;
+    private const float BladderDecayPerSecond = 0.4f;
 
     private readonly World world;
     private readonly QueryDescription queryDescription;
@@ -46,50 +54,75 @@ public class DecisionSystem : ISimulationSystem
         if (world.TryGet<WorkSchedule>(entity, out var schedule) && schedule.IsAtWork)
             return;
 
-        // One threshold for every stage. The Work stage previously used 15, which let
-        // the largest part of the population decay to 15 before topping up and pulled
-        // the population averages down. Shift interruption keeps its own lower
-        // threshold in WorkScheduleSystem, so this does not cut shift output.
-        const float threshold = CriticalThreshold;
+        var modifier = world.TryGet<NeedsModifier>(entity, out var stored)
+            ? stored
+            : NeedsModifier.Neutral;
 
-        var lowestNeed = GetLowestNeed(needs);
+        var need = SelectNeed(in needs, in modifier, CriticalThreshold);
+        if (need.ActionType == ActionType.Idle)
+            return;
 
-        if (lowestNeed.Value < threshold)
-        {
-            action.Type = lowestNeed.ActionType;
-            action.TimeRemaining = lowestNeed.Duration;
-        }
+        action.Type = need.ActionType;
+        action.TimeRemaining = need.Duration;
     }
 
-    private static NeedInfo GetLowestNeed(Needs needs)
+    /// <summary>
+    /// Among the needs below <paramref name="threshold"/>, picks the one that has been
+    /// draining for the longest time. Selecting on absolute value alone starves the
+    /// slowest-decaying need: hunger (0.5/s) always undercuts hygiene (0.2/s), so
+    /// hygiene only ever got served last and sat far below the others on average.
+    /// Ranking by staleness instead gives every need the same service interval.
+    /// </summary>
+    private static NeedInfo SelectNeed(in Needs needs, in NeedsModifier modifier, float threshold)
     {
-        var lowestValue = needs.Hunger;
-        var lowestAction = ActionType.Eating;
-        var lowestDuration = 5f;
+        var selected = ActionType.Idle;
+        var duration = 0f;
+        var longest = 0f;
 
-        if (needs.Energy < lowestValue)
+        if (needs.Hunger < threshold)
         {
-            lowestValue = needs.Energy;
-            lowestAction = ActionType.Sleeping;
-            lowestDuration = 8f;
+            longest = Staleness(needs.Hunger, HungerDecayPerSecond * modifier.HungerDecay);
+            selected = ActionType.Eating;
+            duration = 5f;
         }
 
-        if (needs.Hygiene < lowestValue)
+        if (needs.Energy < threshold)
         {
-            lowestValue = needs.Hygiene;
-            lowestAction = ActionType.Showering;
-            lowestDuration = 3f;
+            var staleness = Staleness(needs.Energy, EnergyDecayPerSecond * modifier.EnergyDecay);
+            if (selected == ActionType.Idle || staleness > longest)
+            {
+                longest = staleness;
+                selected = ActionType.Sleeping;
+                duration = 8f;
+            }
         }
 
-        if (needs.Bladder < lowestValue)
+        if (needs.Hygiene < threshold)
         {
-            lowestValue = needs.Bladder;
-            lowestAction = ActionType.UsingToilet;
-            lowestDuration = 2f;
+            var staleness = Staleness(needs.Hygiene, HygieneDecayPerSecond * modifier.HygieneDecay);
+            if (selected == ActionType.Idle || staleness > longest)
+            {
+                longest = staleness;
+                selected = ActionType.Showering;
+                duration = 3f;
+            }
         }
 
-        return new NeedInfo(lowestValue, lowestAction, lowestDuration);
+        if (needs.Bladder < threshold)
+        {
+            var staleness = Staleness(needs.Bladder, BladderDecayPerSecond * modifier.BladderDecay);
+            if (selected == ActionType.Idle || staleness > longest)
+            {
+                selected = ActionType.UsingToilet;
+                duration = 2f;
+            }
+        }
+
+        return new NeedInfo(selected, duration);
     }
 
-    private readonly record struct NeedInfo(float Value, ActionType ActionType, float Duration);
+    private static float Staleness(float value, float rate)
+        => rate <= 0f ? 0f : MathF.Max(0f, 100f - value) / rate;
+
+    private readonly record struct NeedInfo(ActionType ActionType, float Duration);
 }
