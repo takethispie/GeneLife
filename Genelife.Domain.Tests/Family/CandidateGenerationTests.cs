@@ -4,7 +4,8 @@ using Genelife.Components.Housing;
 using Genelife.Economy;
 using Genelife.Enums;
 using Genelife.Family;
-using Genelife.Systems;
+using Genelife.Map;
+using Genelife.Application.Systems;
 
 namespace Genelife.UnitTests.Family;
 

@@ -1,7 +1,7 @@
 using Arch.Core;
 using Genelife.Components.Employment;
 using Genelife.Components.Gen;
-using Genelife.Systems;
+using Genelife.Application.Systems;
 using Genelife.Values;
 
 namespace Genelife.UnitTests.Systems;

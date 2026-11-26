@@ -141,7 +141,7 @@ public static class MapEndpoints
 
     [WolverineGet("/api/map/metrics")]
     [Authorize(Policy = AuthPolicies.Admin)]
-    public static IReadOnlyList<Genelife.Systems.MapMetricsSnapshot> GetMetrics(SimulationManager simulationManager) =>
+    public static IReadOnlyList<Genelife.Application.Systems.MapMetricsSnapshot> GetMetrics(SimulationManager simulationManager) =>
         simulationManager.GetMapMetrics();
 
     [WolverinePost("/api/map/buildings/{networkId}/relocate")]

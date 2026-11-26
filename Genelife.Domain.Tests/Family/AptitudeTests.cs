@@ -4,7 +4,7 @@ using Genelife.Components.Life;
 using Genelife.Enums;
 using Genelife.Family;
 using Genelife.Life;
-using Genelife.Systems;
+using Genelife.Application.Systems;
 
 namespace Genelife.UnitTests.Family;
 

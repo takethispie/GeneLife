@@ -4,7 +4,7 @@ using Genelife.Components.Company;
 using Genelife.Components.Consumption;
 using Genelife.Consumption;
 using Genelife.Economy;
-using Genelife.Systems;
+using Genelife.Application.Systems;
 using Genelife.Values;
 
 namespace Genelife.UnitTests.Consumption;

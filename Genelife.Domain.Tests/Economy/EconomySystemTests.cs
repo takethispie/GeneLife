@@ -4,7 +4,7 @@ using Genelife.Components.Employment;
 using Genelife.Components.Finance;
 using Genelife.Components.Gen;
 using Genelife.Economy;
-using Genelife.Systems;
+using Genelife.Application.Systems;
 using Genelife.Values;
 
 namespace Genelife.UnitTests.Economy;

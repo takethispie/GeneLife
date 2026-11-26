@@ -7,7 +7,7 @@ using Genelife.Components.Finance;
 using Genelife.Components.Gen;
 using Genelife.Components.Life;
 using Genelife.Enums;
-using Genelife.Systems;
+using Genelife.Application.Systems;
 using Genelife.Economy;
 using Genelife.Messages.Events;
 using Genelife.Values;

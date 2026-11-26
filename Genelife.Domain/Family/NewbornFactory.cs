@@ -145,7 +145,7 @@ public sealed class NewbornFactory
             new Alive(clampedAge),
             new Location(0f, 0f),
             LifecycleFactory.Create(clampedAge, tick, economy.Clock, economy.Life.Policy),
-            new Health(Genelife.Systems.HealthSystem.InitialForAge(clampedAge)),
+            new Health(HealthPolicy.InitialForAge(clampedAge)),
             new Wallet(Money.Zero),
             new SkillProfile());
 

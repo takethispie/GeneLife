@@ -6,6 +6,7 @@ using Genelife.Components.Life;
 using Genelife.Economy;
 using Genelife.Enums;
 using Genelife.Family;
+using Genelife.Application.Systems;
 
 namespace Genelife.UnitTests.Family;
 

@@ -2,7 +2,7 @@ using Arch.Core;
 using Genelife.Components.Gen;
 using Genelife.Components.Map;
 using Genelife.Map;
-using Genelife.Systems;
+using Genelife.Application.Systems;
 
 namespace Genelife.UnitTests.Map;
 

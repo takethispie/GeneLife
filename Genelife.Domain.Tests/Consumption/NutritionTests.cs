@@ -3,7 +3,7 @@ using Genelife.Components.Consumption;
 using Genelife.Components.Gen;
 using Genelife.Components.Life;
 using Genelife.Economy;
-using Genelife.Systems;
+using Genelife.Application.Systems;
 
 namespace Genelife.UnitTests.Consumption;
 

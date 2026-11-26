@@ -1,7 +1,7 @@
 using Arch.Core;
 using Genelife.Components.Gen;
 using Genelife.Enums;
-using Genelife.Systems;
+using Genelife.Application.Systems;
 
 namespace Genelife.UnitTests.Systems;
 

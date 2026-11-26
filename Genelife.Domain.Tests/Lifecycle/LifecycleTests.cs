@@ -12,7 +12,7 @@ using Genelife.Economy;
 using Genelife.Enums;
 using Genelife.Housing;
 using Genelife.Life;
-using Genelife.Systems;
+using Genelife.Application.Systems;
 using Genelife.Values;
 
 namespace Genelife.UnitTests.LifeStages;

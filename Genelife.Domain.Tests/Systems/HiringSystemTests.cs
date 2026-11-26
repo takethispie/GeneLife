@@ -3,7 +3,7 @@ using Genelife.Components.Company;
 using Genelife.Components.Employment;
 using Genelife.Components.Gen;
 using Genelife.Enums;
-using Genelife.Systems;
+using Genelife.Application.Systems;
 using Genelife.Values;
 
 namespace Genelife.UnitTests.Systems;

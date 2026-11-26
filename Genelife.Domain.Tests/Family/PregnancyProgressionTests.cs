@@ -7,6 +7,7 @@ using Genelife.Economy;
 using Genelife;
 using Genelife.Enums;
 using Genelife.Family;
+using Genelife.Application.Systems;
 using Genelife.Values;
 
 namespace Genelife.UnitTests.Family;

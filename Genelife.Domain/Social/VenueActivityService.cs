@@ -4,8 +4,8 @@ using Genelife.Components.Player;
 using Genelife.Components.Social;
 using Genelife.Economy;
 using Genelife.Messages.Events;
+using Genelife.Housing;
 using Genelife.Player;
-using Genelife.Systems;
 
 namespace Genelife.Social;
 
@@ -137,7 +137,7 @@ public sealed class VenueActivityService
 
     private bool TryConsumeMeal(Entity genos)
     {
-        var household = LifeSystemHelpers.HouseholdOf(world, economy, genos);
+        var household = HouseholdLookup.HouseholdOf(world, economy, genos);
         if (household == Entity.Null ||
             !world.IsAlive(household) ||
             !world.Has<HouseholdPantry>(household))

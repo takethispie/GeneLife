@@ -37,7 +37,7 @@ public class GenosRepository
             new Alive(age),
             new Location(0f, 0f),
             new SkillProfile(),
-            new Health(Genelife.Systems.HealthSystem.InitialForAge(age)),
+            new Health(Genelife.Application.Systems.HealthSystem.InitialForAge(age)),
             LifecycleFactory.Create(age, economy?.Tick ?? 0, economy?.Clock ?? SimulationClock.Default, economy?.Life.Policy)
         );
 
@@ -60,7 +60,7 @@ public class GenosRepository
             new PlayerControlled(playerId),
             new Location(0f, 0f),
             new SkillProfile(),
-            new Health(Genelife.Systems.HealthSystem.InitialForAge(age)),
+            new Health(Genelife.Application.Systems.HealthSystem.InitialForAge(age)),
             LifecycleFactory.Create(age, economy?.Tick ?? 0, economy?.Clock ?? SimulationClock.Default, economy?.Life.Policy)
         );
 
@@ -98,7 +98,7 @@ public class GenosRepository
         if (economy is not null && world.Has<Lifecycle>(entity))
         {
             economy.Life.Index.OnDied(world.Get<Lifecycle>(entity).Stage);
-            Genelife.Systems.EnrollmentHelpers.ReleaseSeat(world, entity, economy.Life.Index);
+            Genelife.Application.Systems.EnrollmentHelpers.ReleaseSeat(world, entity, economy.Life.Index);
         }
 
         networkIds.Remove(new NetworkId(networkId));

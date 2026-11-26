@@ -1,6 +1,7 @@
 using System.Numerics;
 using Arch.Core;
-using Genelife.Systems;
+using Genelife.Map;
+using Genelife.Application.Systems;
 
 namespace Genelife.UnitTests.Systems;
 

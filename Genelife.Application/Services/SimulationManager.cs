@@ -380,7 +380,7 @@ public class SimulationManager : IHostedService, IDisposable
 
     public MapHealthStatus GetMapHealth() => engine.BuildMapHealth();
 
-    public IReadOnlyList<Genelife.Systems.MapMetricsSnapshot> GetMapMetrics() => engine.MapMetricsHistory;
+    public IReadOnlyList<Genelife.Application.Systems.MapMetricsSnapshot> GetMapMetrics() => engine.MapMetricsHistory;
 
     public MapViewportStatus? GetMapViewport(int minX, int minY, int maxX, int maxY) =>
         engine.BuildMapViewport(minX, minY, maxX, maxY);
