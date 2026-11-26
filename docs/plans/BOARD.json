@@ -1,6 +1,6 @@
 {
   "title": "GeneLife — Team Board",
-  "updated": "2026-11-26T23:30Z",
+  "updated": "2026-11-26T23:50Z",
   "description": "Shared team board for the GeneLife project; source of truth for the chat kanban widget. States: waiting to run -> currently running -> done. 'Currently running' holds each member's selected next task (cards marked 'next'), with ETA/branch/blocker notes. Status: the V5 balance regression (rent burden / Gini) is FIXED (rent-burden rebalance merged); the V6 opt-in question is CLOSED (StaggerCadence stays opt-in/off).",
   "states": [
     {
@@ -59,9 +59,8 @@
       "id": "c6",
       "title": "Exploratory visual + accessibility pass on Genelife.Web",
       "owner": "donatello",
-      "state": "running",
-      "selected": true,
-      "note": "ETA ~2h · 12 pages (confirmed: Home + NotFound + 10 sections)"
+      "state": "done",
+      "note": "DELIVERED - report: donatello/cache/scratch/genelife-admin-visual-a11y-pass.md (F1-F5 + verified-clean list + withdrawn false positives); F1/F2 fix merged 6b14573"
     },
     {
       "id": "c7",
@@ -107,9 +106,9 @@
     {
       "id": "c13",
       "title": "Admin visual-regression baseline for Genelife.Web",
-      "owner": "unassigned",
+      "owner": "donatello",
       "state": "waiting",
-      "note": "proposed by @adriano and @donatello"
+      "note": "proposed by @donatello and now owned by him - the gap that let the Dashboard stub and F1 stay invisible to 35 green tests"
     },
     {
       "id": "c14",
@@ -202,6 +201,13 @@
       "title": "V5 production release — release-roadmap-V5 checklist complete",
       "owner": "tech-leader",
       "state": "done"
+    },
+    {
+      "id": "a11y",
+      "title": "Admin WebUI a11y: associate form labels + name filter controls (F1/F2)",
+      "owner": "ricardo",
+      "state": "done",
+      "note": "merged 6b14573 - 0 unnamed visible controls across 11 routes (was 17), 0 console errors; Web tests 35/35"
     }
   ]
 }
