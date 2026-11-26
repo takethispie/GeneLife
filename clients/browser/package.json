@@ -16,8 +16,12 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:admin": "playwright test --config playwright.admin.config.ts",
+    "test:visual": "playwright test --config playwright.visual.config.ts",
+    "test:visual:update": "playwright test --config playwright.visual.config.ts --update-snapshots",
     "check:admin-fixtures": "node scripts/check-admin-fixtures.mjs",
     "fixtures:generate": "node scripts/generate-fixtures.mjs",
+    "fixtures:appearance": "node scripts/generate-appearance-fixtures.mjs",
+    "frame-budget": "node scripts/frame-budget.mjs",
     "contracts:rest": "npx --yes openapi-typescript@7 http://localhost:5288/swagger/v1/swagger.json -o src/contracts/rest.generated.ts",
     "preview": "vite preview",
     "soak": "node scripts/soak.mjs"

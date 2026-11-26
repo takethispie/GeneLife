@@ -13,7 +13,23 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     watch: {
-      ignored: ["**/coverage/**", "**/dist/**", "**/playwright-report/**", "**/test-results/**"]
+      // Playwright writes traces/screenshots into these directories while the
+      // dev server is running. Without the wildcards a new output directory
+      // (test-results-visual, playwright-report-admin, ...) is watched, and the
+      // resulting HMR reloads reset the page mid-test. Each pattern is listed
+      // twice: the bare form ignores the directory itself, the /** form its
+      // contents — ignoring only the contents still leaves a watcher open on
+      // the directory, which then blocks Playwright from recreating it.
+      ignored: [
+        "**/coverage",
+        "**/coverage/**",
+        "**/dist",
+        "**/dist/**",
+        "**/playwright-report*",
+        "**/playwright-report*/**",
+        "**/test-results*",
+        "**/test-results*/**"
+      ]
     }
   },
   preview: {
