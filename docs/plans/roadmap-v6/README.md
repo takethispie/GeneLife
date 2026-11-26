@@ -8,12 +8,12 @@
 
 ## What "dropped ticks" means here
 
-`FixedStepScheduler.Advance` accumulates elapsed frame time and returns at most `MaxCatchUpTicks = 5` steps. Any backlog left over is discarded and counted as dropped ticks (`Genelife.API/Services/FixedStepScheduler.cs:32-57`, `Genelife.API/Services/SimulationLoop.cs:81-98`). A dropped tick is lost simulated time: the loop cannot keep a real-time 20 Hz cadence.
+`FixedStepScheduler.Advance` accumulates elapsed frame time and returns at most `MaxCatchUpTicks = 5` steps. Any backlog left over is discarded and counted as dropped ticks (`Genelife.API/Services/FixedStepScheduler.cs:32-57`, `Genelife.Application/Services/SimulationLoop.cs:81-98`). A dropped tick is lost simulated time: the loop cannot keep a real-time 20 Hz cadence.
 
 Dropped ticks are a symptom. There are two causes:
 
 1. **Tick cost exceeds the budget.** The work inside `SimulationEngine.Tick` takes longer than 50 ms (`FixedDeltaTime = 1/20 s`).
-2. **The tick thread is starved.** The loop runs on a thread-pool thread shared with ASP.NET, and `Tick` holds one global `lock (@lock)` for its whole duration (`Genelife.API/Services/SimulationEngine.cs:526`). Request and broadcast threads contend for that lock.
+2. **The tick thread is starved.** The loop runs on a thread-pool thread shared with ASP.NET, and `Tick` holds one global `lock (@lock)` for its whole duration (`Genelife.Application/Services/SimulationEngine.cs:526`). Request and broadcast threads contend for that lock.
 
 The three features below attack those causes in order of risk.
 

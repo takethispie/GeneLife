@@ -2,9 +2,9 @@
 
 ## Context
 
-`SimulationLoop.LogOverrun` calls `engine.GetMetricsSnapshot()` on every overrun tick (`Genelife.API/Services/SimulationLoop.cs:102-116`). That call takes the metrics lock, sorts systems and builds strings. During a sustained overrun this becomes a self-inflicted cost: the act of reporting the overrun makes the next tick slower.
+`SimulationLoop.LogOverrun` calls `engine.GetMetricsSnapshot()` on every overrun tick (`Genelife.Application/Services/SimulationLoop.cs:102-116`). That call takes the metrics lock, sorts systems and builds strings. During a sustained overrun this becomes a self-inflicted cost: the act of reporting the overrun makes the next tick slower.
 
-The dropped-tick path already throttles its warning to at most once every 5 s (`Genelife.API/Services/SimulationLoop.cs:81-98`). The overrun path does not.
+The dropped-tick path already throttles its warning to at most once every 5 s (`Genelife.Application/Services/SimulationLoop.cs:81-98`). The overrun path does not.
 
 ## Design
 
@@ -23,7 +23,7 @@ Reuse the same throttle pattern as the dropped-tick warning:
 
 ## Files
 
-- `Genelife.API/Services/SimulationLoop.cs`
+- `Genelife.Application/Services/SimulationLoop.cs`
 
 ## Contracts
 

@@ -2,7 +2,7 @@
 
 ## Context
 
-`SimulationEngine.Tick` allocates `List<object> events = new()` every tick (`Genelife.API/Services/SimulationEngine.cs:520`). It also builds `TickCompleted` even when there is no `documentStore` or `MessageBus` consumer. At 20 ticks per second this is steady, avoidable allocation.
+`SimulationEngine.Tick` allocates `List<object> events = new()` every tick (`Genelife.Application/Services/SimulationEngine.cs:520`). It also builds `TickCompleted` even when there is no `documentStore` or `MessageBus` consumer. At 20 ticks per second this is steady, avoidable allocation.
 
 ## Design
 
@@ -19,7 +19,7 @@
 
 ## Files
 
-- `Genelife.API/Services/SimulationEngine.cs`
+- `Genelife.Application/Services/SimulationEngine.cs`
 
 ## Contracts
 

@@ -2,7 +2,7 @@
 
 ## Context
 
-`Cadence.ShouldRun` is `tick % Interval == 0` (`Genelife/Systems/ISimulationSystem.cs:20`). Every monthly system (`RelationshipExposure`, `Conception`, `Birth`, `FamilyHousehold`, `StateCare`, `Trust`, `Pregnancy`) fires on the same tick, as do pay-cycle systems. That produces a periodic spike each month — a thundering herd.
+`Cadence.ShouldRun` is `tick % Interval == 0` (`Genelife.Application/Systems/ISimulationSystem.cs:20`). Every monthly system (`RelationshipExposure`, `Conception`, `Birth`, `FamilyHousehold`, `StateCare`, `Trust`, `Pregnancy`) fires on the same tick, as do pay-cycle systems. That produces a periodic spike each month — a thundering herd.
 
 ## Design
 
@@ -25,9 +25,9 @@ public bool ShouldRun(long tick) => (tick + Offset) % Interval == 0;
 
 ## Files
 
-- `Genelife/Systems/ISimulationSystem.cs`
-- `Genelife/Systems/SystemRegistry.cs`
-- Affected system registrations in `Genelife/Systems`
+- `Genelife.Application/Systems/ISimulationSystem.cs`
+- `Genelife.Application/Systems/SystemRegistry.cs`
+- Affected system registrations in `Genelife.Application/Systems`
 
 ## Contracts
 

@@ -21,7 +21,7 @@ Use `ReaderWriterLockSlim` for accessors that read world state, or read the publ
 
 ## Files
 
-- `Genelife.API/Services/SimulationEngine.cs`
+- `Genelife.Application/Services/SimulationEngine.cs`
 - `Genelife.API/Services/SnapshotBroadcastService.cs`
 
 ## Contracts

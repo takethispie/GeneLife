@@ -8,7 +8,7 @@
 
 | Area | Status | Evidence |
 |---|---|---|
-| Map coordinates and components | Implemented | `Genelife/Map`, `Genelife/Components/Map` |
+| Map coordinates and components | Implemented | `Genelife.Domain/Map`, `Genelife.Domain/Components/Map` |
 | Deterministic generation | Implemented | `MapGenerator`, canonical signature tests |
 | Occupancy and placement service | Implemented | `WorldMap`, `BuildingPlacementService`, placement tests |
 | Building bootstrap and creation paths | Implemented | Housing bootstrap, repositories, construction, HQ/school generation |

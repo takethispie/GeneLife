@@ -22,8 +22,8 @@ Do not parallelize anything that creates, adds, removes or destroys entities, or
 
 ## Files
 
-- `Genelife/Systems/SystemRegistry.cs`
-- Affected systems in `Genelife/Systems`
+- `Genelife.Application/Systems/SystemRegistry.cs`
+- Affected systems in `Genelife.Application/Systems`
 
 ## Contracts
 

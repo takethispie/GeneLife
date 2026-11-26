@@ -2,7 +2,7 @@
 
 ## Context
 
-`BuildGenosSnapshots` calls `AppearanceMapper.TryDerive` for every genos every tick (`Genelife.API/Services/SimulationEngine.cs:5854`). Appearance is derived deterministically from traits, age band and sex, so it only changes when those inputs change. Deriving it every tick is repeated work.
+`BuildGenosSnapshots` calls `AppearanceMapper.TryDerive` for every genos every tick (`Genelife.Application/Services/SimulationEngine.cs:5854`). Appearance is derived deterministically from traits, age band and sex, so it only changes when those inputs change. Deriving it every tick is repeated work.
 
 ## Design
 
@@ -24,7 +24,7 @@ The cache lives in the engine and is rebuilt on restore. It is not persisted.
 
 ## Files
 
-- `Genelife.API/Services/SimulationEngine.cs`
+- `Genelife.Application/Services/SimulationEngine.cs`
 - `Genelife.API/Appearance/AppearanceMapper.cs` (read path only)
 
 ## Contracts

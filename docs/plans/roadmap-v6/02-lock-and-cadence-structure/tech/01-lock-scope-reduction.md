@@ -2,7 +2,7 @@
 
 ## Context
 
-`SimulationEngine.Tick` holds one global `lock (@lock)` for the entire tick (`Genelife.API/Services/SimulationEngine.cs:526`). The same lock is taken by `World`, `Economy`, `MapVersion`, `CurrentTick`, `GetPlayerGenosNetworkId`, `BuildMapStatus` and `ExecuteWithWorld`. Request and broadcast threads contend with the tick thread.
+`SimulationEngine.Tick` holds one global `lock (@lock)` for the entire tick (`Genelife.Application/Services/SimulationEngine.cs:526`). The same lock is taken by `World`, `Economy`, `MapVersion`, `CurrentTick`, `GetPlayerGenosNetworkId`, `BuildMapStatus` and `ExecuteWithWorld`. Request and broadcast threads contend with the tick thread.
 
 ## Design
 
@@ -25,8 +25,8 @@ This is the foundation for the reader/writer accessor step and the async snapsho
 
 ## Files
 
-- `Genelife.API/Services/SimulationEngine.cs`
-- `Genelife.API/Services/SimulationLoop.cs`
+- `Genelife.Application/Services/SimulationEngine.cs`
+- `Genelife.Application/Services/SimulationLoop.cs`
 
 ## Contracts
 

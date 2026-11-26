@@ -19,8 +19,8 @@
 
 ## Files
 
-- `Genelife.API/Services/SimulationLoop.cs`
-- `Genelife.API/Services/SimulationEngine.cs`
+- `Genelife.Application/Services/SimulationLoop.cs`
+- `Genelife.Application/Services/SimulationEngine.cs`
 - Command queue and request handlers in `Genelife.API`
 
 ## Contracts

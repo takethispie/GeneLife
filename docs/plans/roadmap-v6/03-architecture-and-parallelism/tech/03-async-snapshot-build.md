@@ -2,7 +2,7 @@
 
 ## Context
 
-`SimulationEngine.Tick` builds `BuildGenosSnapshots` and `BuildCompanySnapshots` inside the tick (`Genelife.API/Services/SimulationEngine.cs:5832-5905`). Snapshot construction counts against the 50 ms tick budget. The tick only needs to publish the tick's world state; a consumer thread can build the snapshot and delta.
+`SimulationEngine.Tick` builds `BuildGenosSnapshots` and `BuildCompanySnapshots` inside the tick (`Genelife.Application/Services/SimulationEngine.cs:5832-5905`). Snapshot construction counts against the 50 ms tick budget. The tick only needs to publish the tick's world state; a consumer thread can build the snapshot and delta.
 
 ## Design
 
@@ -20,7 +20,7 @@
 
 ## Files
 
-- `Genelife.API/Services/SimulationEngine.cs`
+- `Genelife.Application/Services/SimulationEngine.cs`
 - `Genelife.API/Services/SnapshotBroadcastService.cs`
 - `Genelife.API/Snapshots/SnapshotHistory.cs`
 

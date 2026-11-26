@@ -16,10 +16,10 @@ This feature is the first pass. It should be shippable in one change set with no
 ## Baseline
 
 - `Genelife.API.csproj` has no GC, PGO or globalization settings. The API runs with workstation GC defaults.
-- `SimulationLoop.LogOverrun` calls `engine.GetMetricsSnapshot()` on every overrun tick (`Genelife.API/Services/SimulationLoop.cs:102-116`). During a sustained overrun this takes the metrics lock, sorts systems and builds strings every tick.
-- `BuildCompanySnapshots` runs an `Office` query inside the per-company loop (`Genelife.API/Services/SimulationEngine.cs:5897-5905`), so its cost is O(companies × offices).
-- `BuildGenosSnapshots` calls `AppearanceMapper.TryDerive` for every genos every tick (`Genelife.API/Services/SimulationEngine.cs:5854`).
-- `Tick` allocates `List<object> events = new()` every tick and builds `TickCompleted` even when no consumer exists (`Genelife.API/Services/SimulationEngine.cs:520`).
+- `SimulationLoop.LogOverrun` calls `engine.GetMetricsSnapshot()` on every overrun tick (`Genelife.Application/Services/SimulationLoop.cs:102-116`). During a sustained overrun this takes the metrics lock, sorts systems and builds strings every tick.
+- `BuildCompanySnapshots` runs an `Office` query inside the per-company loop (`Genelife.Application/Services/SimulationEngine.cs:5897-5905`), so its cost is O(companies × offices).
+- `BuildGenosSnapshots` calls `AppearanceMapper.TryDerive` for every genos every tick (`Genelife.Application/Services/SimulationEngine.cs:5854`).
+- `Tick` allocates `List<object> events = new()` every tick and builds `TickCompleted` even when no consumer exists (`Genelife.Application/Services/SimulationEngine.cs:520`).
 
 ## Deliverables
 

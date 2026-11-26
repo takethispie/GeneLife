@@ -1,60 +1,37 @@
-# Genelife - Genos-Style Simulation with Arch ECS
+# Genelife.Domain — domain model
 
-A barebones Genos-style simulation library built with .NET and Arch ECS.
+The domain layer of the GeneLife simulation: the Arch ECS components, value
+types, policies, indices and deterministic primitives that model the world.
+It depends only on `Genelife.Messages` — never on Application, Infrastructure,
+API or persistence.
 
-## Features
+> **Simulation systems do not live here.** Any class implementing
+> `ISimulationSystem` belongs to the application layer
+> (`Genelife.Application/Systems`, namespace `Genelife.Application.Systems`).
+> Domain holds the *model* those systems operate on, plus the pure helpers the
+> model itself needs.
 
-### Components
-- **Needs**: Tracks Hunger, Energy, Hygiene, and Bladder (0-100 scale)
-- **CurrentAction**: Tracks what action a Genos is currently performing
-- **GenName**: Identifies each Genos
+## Layout
 
-### Systems
-- **NeedsDecaySystem**: Decreases needs over time at different rates
-- **DecisionSystem**: Makes autonomous decisions based on critical needs (< 30)
-- **ActionSystem**: Executes actions and restores needs
+| Area | Contents |
+|---|---|
+| `Components/` | Arch ECS components grouped by domain: `Company`, `Consumption`, `Employment`, `Family`, `Finance`, `Gen`, `Housing`, `Life`, `Map`, `Player`, `Social` |
+| `Economy/` | `EconomyContext`, money, company accounts, ledger |
+| `Housing/` | Households, housing registry, `HouseholdLookup` |
+| `Family/` | Traits, relationship graph, attraction/reproduction policies, `NewbornFactory` and indices — the model side; the family systems that drive it live in Application |
+| `Life/` | Life stages, lifecycle policies, `HealthPolicy` |
+| `Map/` | Tiles, pathfinding (`TilePathfinder`, `MovementOptions`), `SpatialIndex` |
+| `Appearance/`, `Consumption/`, `Player/`, `Social/`, `Values/`, `Enums/` | Appearance descriptors, nutrition/pantry model, player state, social graph, value types (`Money`, `NetworkId`), enums |
+| `SimulationClock.cs`, `SimulationRandom.cs`, `PopulationPlan.cs` | Deterministic clock, named RNG streams, population plan |
 
-### Actions
-- **Idle**: Default state
-- **Sleeping**: Restores Energy
-- **Showering**: Restores Hygiene
-- **Eating**: Restores Hunger
-- **UsingToilet**: Restores Bladder
+## Determinism
 
-## Running the Web API
+`Random.Shared` is banned. Use `SimulationRandom` named streams and the
+`SimulationClock`; keep iteration order stable. Persist ticks and `NetworkId`,
+never entity handles.
 
-```bash
-cd Genelife.Api
-dotnet run
-```
+## Related layers
 
-Then access the Swagger UI at: https://localhost:5001/swagger
-
-### API Endpoints
-
-- `POST /api/simulation/start` - Start the simulation
-- `POST /api/simulation/stop` - Stop the simulation
-- `GET /api/simulation/status` - Get simulation status and all Genoses
-- `POST /api/simulation/genoses` - Add a new Genos (body: `{"name": "GenosName"}`)
-- `GET /api/simulation/genoses` - Get all Genoses
-
-## Project Structure
-
-```
-Genelife/                    (Class Library)
-├── Components/
-│   ├── Needs.cs
-│   ├── CurrentAction.cs
-│   └── GenName.cs
-└── Systems/
-    ├── NeedsDecaySystem.cs
-    ├── ActionSystem.cs
-    └── DecisionSystem.cs
-
-Genelife.Api/               (Web API)
-├── Controllers/
-│   └── SimulationController.cs
-├── Services/
-│   └── SimulationManager.cs
-└── Program.cs
-```
+- `Genelife.Application` — simulation systems, the engine, loop, services and read models.
+- `Genelife.Infrastructure` — Marten/PostgreSQL persistence, projections, event writing.
+- `Genelife.API` — HTTP and SignalR surface.

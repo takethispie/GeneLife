@@ -2,7 +2,7 @@
 
 ## Context
 
-`BuildCompanySnapshots` constructs and runs an `Office` query inside the per-company loop (`Genelife.API/Services/SimulationEngine.cs:5897-5905`). Its cost is O(companies × offices). At a few hundred companies and a few hundred offices this is a large, avoidable per-tick cost.
+`BuildCompanySnapshots` constructs and runs an `Office` query inside the per-company loop (`Genelife.Application/Services/SimulationEngine.cs:5897-5905`). Its cost is O(companies × offices). At a few hundred companies and a few hundred offices this is a large, avoidable per-tick cost.
 
 ## Design
 
@@ -22,7 +22,7 @@ The dictionary is local to the snapshot build and discarded after it. No new per
 
 ## Files
 
-- `Genelife.API/Services/SimulationEngine.cs`
+- `Genelife.Application/Services/SimulationEngine.cs`
 
 ## Contracts
 

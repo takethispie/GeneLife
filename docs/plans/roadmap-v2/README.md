@@ -28,10 +28,10 @@ Feature-level detail was removed after V2 shipped; recover it from git history i
 |---|---|
 | World | Arch ECS `World`; genoses, companies, properties, units, households, offices and schools are entities |
 | Tick loop | Fixed-step `SimulationLoop`; systems registered explicitly in `SimulationEngine.Initialize` |
-| Positions | `Location` is a `Vector2` on genoses (`Genelife/Components/Gen/Location.cs`) |
+| Positions | `Location` is a `Vector2` on genoses (`Genelife.Domain/Components/Gen/Location.cs`) |
 | Spawning | Genos creation paths write `new Location(0f, 0f)`; every genos starts at the same point |
 | Buildings | `Property`, `Office` and `School` carry `District` but no position or footprint |
-| Spatial index | `SpatialIndex` exists in `Genelife/Systems/SpatialIndex.cs` but is not wired into the tick loop |
+| Spatial index | `SpatialIndex` exists in `Genelife.Domain/Map/SpatialIndex.cs` but is not wired into the tick loop |
 | AOI | `AoiFilter` exists in `Genelife.API/Snapshots/AoiFilter.cs` but is not used by the broadcaster |
 | Player identity | `PlayerControlled { PlayerId }`; ownership is checked by `CommandAuthorizationService` |
 | Player intents | `MoveIntent` and `ICommandQueue` exist; `WorldHub.SubmitIntent` enqueues, but nothing drains the intent queue |
@@ -163,7 +163,7 @@ All pages follow the existing polling read model, `EmptyState` and command-resul
 
 ## Repository conventions
 
-- Backend domain: `Genelife/Map`, `Genelife/Components/Map`, `Genelife/Components/Gen`, `Genelife/Systems`.
+- Backend domain: `Genelife.Domain/Map`, `Genelife.Domain/Components/Map`, `Genelife.Domain/Components/Gen`, `Genelife.Application/Systems`.
 - Contracts and events: `Genelife.Messages`.
 - API, persistence, snapshots and hubs: `Genelife.API`.
 - Tests: `Genelife.UnitTests/{Map,Systems,Snapshots,Persistence,Integration,Performance}` using xUnit and `World.Create()`.

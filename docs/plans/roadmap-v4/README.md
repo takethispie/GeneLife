@@ -288,9 +288,9 @@ All pages use the existing polling read model, `EmptyState`, command result patt
 
 ## Repository conventions
 
-- Domain components: `Genelife/Components/Gen`, `Genelife/Components/Life`, `Genelife/Components/Housing`, new `Genelife/Components/Family`.
+- Domain components: `Genelife.Domain/Components/Gen`, `Genelife.Domain/Components/Life`, `Genelife.Domain/Components/Housing`, new `Genelife.Domain/Components/Family`.
 - Domain rules and policies: `Genelife/Family` (traits, genetics, attraction, eligibility, reproduction, inheritance).
-- Systems: `Genelife/Systems`.
+- Systems: `Genelife.Application/Systems`.
 - Events and commands: `Genelife.Messages`.
 - API, DTOs, projections, persistence and admin endpoints: `Genelife.API`; contracts and polling DTOs: `Genelife.Contracts`.
 - Tests: `Genelife.UnitTests/{Family,Systems,Persistence,Snapshots,Integration,Performance}` using xUnit and `World.Create()`.
