@@ -1,6 +1,6 @@
 # Roadmap V5 — Status
 
-**Status:** Features 01–04 implemented; feature 05 implementation complete. Release sign-off is conditional on the 30-minute live soak, a pre-V5 backup rehearsal and the outstanding feature 02/03 acceptance items.
+**Status:** Features 01–04 implemented; feature 05 implementation complete. Production release checks live in [`release-roadmap-V5/`](../release-roadmap-V5/README.md); this page records delivered implementation.
 **Builds on:** V1 economy/housing/life stages, V2 spatial world, V3 browser client, V4 traits/relationships/reproduction/inheritance
 **Scope:** player life and household, appearance and visual identity, consumption and utilities, social and multiplayer, live operations and scale
 **Primary risk:** player-facing systems touch the economy, housing, family graph, persistence and client at the same time; a small convenience shortcut can break server authority or money conservation
@@ -47,7 +47,7 @@
 | Audio and touch controls | Done (feature 05) | Synth cue set with mute/category settings, lazy unlock, pinch/pan/tap touch adapter, mobile Playwright gate |
 | Prediction decision and implementation | Done (feature 05) | Input-to-ack instrumentation; measured p95 51 ms locally; no-prediction decision recorded |
 | 1k–2k balance and performance | Done with one documented miss (feature 05) | 1k/2k decade reports; 2k p95 35.6 ms; 32-player p95 0.88 ms; 1k rent burden 0.4284 miss reported |
-| Release checklist and evidence | Implementation evidence recorded (feature 05) | Release evidence record populated; production sign-off and rollback rehearsal pending |
+| Release checklist and evidence | Implementation evidence recorded (feature 05) | Release evidence record populated; production release gates tracked in [`release-roadmap-V5/`](../release-roadmap-V5/README.md) |
 
 ## Verification plan
 
@@ -114,6 +114,4 @@
 2. Add the recorded-intent replay test and 32-player player-life soak for feature 01 acceptance.
 3. Add Playwright appearance visual smoke and a reference-hardware frame-budget report, then finish feature 02 acceptance.
 4. Finish feature 03 NPC shopping trips, meals and housing/consumption tuning before reconsidering `CohabitOnPairing`; the 30-year before/after comparison is recorded and currently argues against flipping.
-5. Run the 30-minute live preview soak and record the HUD input-ack p95 and `/api/simulation/metrics`.
-6. Rehearse schema 11 → 15 migration and rollback against a pre-V5 backup, then obtain reviewer sign-off in the release evidence record.
-7. Finish the feature 02 hardware frame-budget report and feature 03 NPC shopping/meal acceptance and cohabitation comparison before production release.
+5. Production release checks for V5 — the 30-minute live soak, the schema 11 → 15 migration/rollback rehearsal and reviewer sign-off, the feature 02 frame-budget report and the feature 03 shopping/meal and cohabitation evidence — live in [`release-roadmap-V5/`](../release-roadmap-V5/README.md), not on this page.

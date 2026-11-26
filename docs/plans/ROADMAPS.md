@@ -2,14 +2,17 @@
 
 Consolidated summary of the roadmaps in this folder. Each roadmap has its own `README.md` (plan) and `STATUS.md` (delivered state); this file is the quick-read index.
 
+Feature roadmaps (`roadmap-vN`) record delivered implementation only. Production release checks for a version live in a companion `release-roadmap-V{n}` roadmap — never in the feature roadmap.
+
 | Roadmap | Theme | Status |
 |---|---|---|
 | [V1](roadmap-v1/README.md) | Realistic population simulation (economy, housing, life stages) | Implemented |
 | [V2](roadmap-v2/README.md) | Spatial world, buildings and player presence | Implemented |
 | [V3](roadmap-v3/README.md) | Browser game client | Implemented (vertical slice) |
 | [V4](roadmap-v4/README.md) | Relationships, attraction and reproduction | Release-ready (one opt-in follow-up) |
-| [V5](roadmap-v5/README.md) | Playable society (player life, appearance, consumption, social, live ops) | Features 01–04 done; feature 05 implementation complete, sign-off pending |
+| [V5](roadmap-v5/README.md) | Playable society (player life, appearance, consumption, social, live ops) | Features 01–04 done; feature 05 implementation complete |
 | [V6](roadmap-v6/README.md) | Tick performance (dropped ticks, lock contention, parallelism) | Implemented |
+| [release-roadmap-V5](release-roadmap-V5/README.md) | V5 production release checks (soak, migration/rollback, evidence, sign-off) | Open |
 
 ---
 
@@ -66,7 +69,7 @@ Consolidated summary of the roadmaps in this folder. Each roadmap has its own `R
 - **Key decisions:** player actions as typed intents drained at tick start; appearance derived from traits/age/sex (`SkinTone`, `FaceShape`); utility networks + grocery catalog/stock/nutrition; text chat + presence + friendships + consensual partnerships; schema 11 → 15.
 - **Delivered:** player agency (jobs, housing, consumption, family actions, aging/death/heir continuation, schema 12, `/player` admin page); appearance (descriptor model, inheritance, layered sprites, `/appearance` preview, schema 13); consumption (networks, meters, tariffs, grocery, nutrition, schema 14, `/consumption` page); social (presence, chat/emotes, friendships/blocks/reports, player partnerships, venues, moderation, schema 15, `/social` page); live ops (Wolverine cleanup H16/H19/H20, relocation, live preview, audio/touch, prediction no-go, balance).
 - **Verification:** 560 domain + 69 API integration + 33 performance/release tests green; 178 browser tests; 2k decade p95 35.6 ms; 32-player p95 0.88 ms; 60/200-genos ten-year bands green.
-- **Open / pending sign-off:** 30-minute live soak; schema 11→15 migration/rollback rehearsal; feature 02 Playwright visual smoke + hardware frame-budget report; feature 03 NPC shopping trips/meals + cohabitation comparison; 1k rent burden 0.4284 vs 0.40 ceiling (documented miss); `CohabitOnPairing` still opt-in.
+- **Open:** 1k rent burden 0.4284 vs 0.40 ceiling (documented miss); `CohabitOnPairing` still opt-in. Production release checks (30-minute live soak, schema 11→15 migration/rollback rehearsal, feature 02 frame-budget report, feature 03 shopping/meal + cohabitation evidence, release evidence record) live in [`release-roadmap-V5/`](release-roadmap-V5/README.md).
 
 ## V6 — Tick Performance
 
@@ -93,6 +96,6 @@ Consolidated summary of the roadmaps in this folder. Each roadmap has its own `R
 ## Current state (as of V6)
 
 - V1–V4: implemented and release-ready.
-- V5: implementation complete; production sign-off pending the 30-minute live soak, migration/rollback rehearsal, and feature 02/03 acceptance items.
+- V5: implementation complete. Production release checks live in [`release-roadmap-V5/`](release-roadmap-V5/README.md).
 - V6: implemented; two opt-in changes (staggering, parallel passes) await Release-build re-measurement.
-- Next roadmap: none defined yet — V5 sign-off and V6 opt-in re-measurement are the immediate gates.
+- Next roadmap: none defined yet — V5 production release (`release-roadmap-V5`) and V6 opt-in re-measurement are the immediate gates.

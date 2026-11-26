@@ -6,7 +6,7 @@
 
 **Builds on:** V1 economy/housing/life stages, V2 spatial world and indices, V3 browser client and replication, V4 traits/relationships/reproduction/inheritance, the 2026-11 balance pass, `SimulationRandom`, `PlayerControlled`, `Wallet`, `HousingRegistry`, `RelationshipIndex`, `FamilyHouseholdSystem`, `EstateSettlementSystem`, and `PersistedWorldState` schema 11.
 
-> Implementation status: features 01, 02, 04 and 05 are implemented; feature 03 is core-complete with nutrition/trip and cohabitation evidence still in progress. Production V5 sign-off is pending the 30-minute live soak and migration/rollback rehearsal. See [STATUS.md](STATUS.md).
+> Implementation status: features 01, 02, 04 and 05 are implemented; feature 03 is core-complete with nutrition/trip and cohabitation evidence still in progress. Production release checks for V5 are tracked separately in [`release-roadmap-V5/`](../release-roadmap-V5/README.md) — this roadmap records implementation only. See [STATUS.md](STATUS.md).
 
 ---
 
@@ -283,4 +283,4 @@ All pages use the existing polling read model, `EmptyState`, command result patt
 - Players can see each other, chat, form friendships and consensual partnerships, block/report, and be moderated without exposing private state.
 - Schema 11 → 15 migration, restore, double restore and replay pass for NPC-only and player worlds.
 - The 2,000-genos decade, 30-year continuity, 32-player social soak and live preview smoke test pass inside the tick budget.
-- The release checklist is complete and the evidence is recorded.
+- Production release gates (live soak, migration/rollback rehearsal, appearance frame budget, release evidence record) are tracked in [`release-roadmap-V5/`](../release-roadmap-V5/README.md), not here.
