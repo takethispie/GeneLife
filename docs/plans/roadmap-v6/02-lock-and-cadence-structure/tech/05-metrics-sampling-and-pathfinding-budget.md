@@ -4,7 +4,7 @@
 
 `SystemRegistry.Update` calls `GC.GetAllocatedBytesForCurrentThread()` and `Stopwatch.GetTimestamp()` twice per system per tick. `Metrics.RecordSystem` takes a shared lock per system per tick (`Genelife.Application/Services/Metrics.cs:63-79`). At 20 Hz with many systems this is measurable overhead.
 
-`PathfindingSystem` runs every tick and calls `TilePathfinder.FindPath` with a `budget * 256` iteration limit (`Genelife.Application/Systems/PathfindingSystem.cs:37`). A single expensive path can blow the 50 ms budget.
+`PathfindingSystem` runs every tick and calls `TilePathfinder.FindPath` with a `budget * 256` iteration limit (`Genelife.Application/Systems/PathfindingSystem.cs:44`). A single expensive path can blow the 50 ms budget.
 
 ## Design
 

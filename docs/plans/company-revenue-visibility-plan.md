@@ -4,7 +4,7 @@
 
 Two independent root causes make per-company revenue appear as zero:
 
-1. **Same-tick reset.** `CompanyRevenueSystem` (order 450) adds settled revenue to `CompanyAccount.RevenueLastCycle`. Later in the same tick, `CorporateTaxSystem` (order 535) reads that value as a tax accumulator and then sets it to `Money.Zero` at `Genelife.Application/Systems/CorporateTaxSystem.cs:121-124`. Snapshots and API reads only observe the world between ticks, so the non-zero value is never published. `WagesLastCycle`, `CostsLastCycle`, and `InterestPaidLastCycle` are reset by the same block.
+1. **Same-tick reset.** `CompanyRevenueSystem` (order 450) adds settled revenue to `CompanyAccount.RevenueLastCycle`. Later in the same tick, `CorporateTaxSystem` (order 535) reads that value as a tax accumulator and then sets it to `Money.Zero` at `Genelife.Application/Systems/CorporateTaxSystem.cs:147-154`. Snapshots and API reads only observe the world between ticks, so the non-zero value is never published. `WagesLastCycle`, `CostsLastCycle`, and `InterestPaidLastCycle` are reset by the same block.
 2. **Sparse Marten read model.** `/api/companies` and `/api/companies/{networkId}` prefer `MartenReadModelStore`, whose `CompanyDocument.ToCompanyStatus()` copies only `NetworkId`, `Name`, and `EmployeeCount`. `CompanyDocument` has no balance, revenue, wages, arrears, solvency, or office fields, so that path always returns zeros or empty strings even when the simulation state is correct.
 
 The fix keeps the existing system order and cadence and separates the two roles of the cycle fields:

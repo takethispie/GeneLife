@@ -2,7 +2,7 @@
 
 ## Context
 
-`SimulationEngine.Tick` holds one global `lock (@lock)` for the entire tick (`Genelife.Application/Services/SimulationEngine.cs:526`). The same lock is taken by `World`, `Economy`, `MapVersion`, `CurrentTick`, `GetPlayerGenosNetworkId`, `BuildMapStatus` and `ExecuteWithWorld`. Request and broadcast threads contend with the tick thread.
+`SimulationEngine.Tick` holds one global `lock (@lock)` for the entire tick (`Genelife.Application/Services/SimulationEngine.cs:612`). The same lock is taken by `World`, `Economy`, `MapVersion`, `CurrentTick`, `GetPlayerGenosNetworkId`, `BuildMapStatus` and `ExecuteWithWorld`. Request and broadcast threads contend with the tick thread.
 
 ## Design
 

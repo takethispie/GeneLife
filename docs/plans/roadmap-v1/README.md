@@ -25,13 +25,13 @@ Feature-level detail was removed after V1 shipped; recover it from git history i
 | Entities | Arch ECS `World`; genoses and companies are entities with components |
 | Identity | `NetworkId` + `NetworkIdRegistry` |
 | Labour market | `Office`, `JobPosting`, `OpenPosition`, `JobApplication`, `Employee`, `EmploymentIndex` |
-| Hiring | `HiringSystem` (`Genelife.Application/Systems/HiringSystem.cs:20`), collect → decide → apply |
-| Payroll | `PayrollSystem` (`Genelife.Application/Systems/PayrollSystem.cs:11`), 300-tick cadence, pays from nothing |
+| Hiring | `HiringSystem` (`Genelife.Application/Systems/HiringSystem.cs:23`), collect → decide → apply |
+| Payroll | `PayrollSystem` (`Genelife.Application/Systems/PayrollSystem.cs:19`), 300-tick cadence, pays from nothing |
 | Money | `Wallet` float balance only; companies have no money |
 | Needs | `Needs`, `NeedsDecaySystem`, `DecisionSystem`, `ActionSystem` |
-| Read model | `WorldDataStatus` snapshot + `/api/data` (`Genelife.API/Endpoints/WorldDataEndpoints.cs:10`) |
+| Read model | `WorldDataStatus` snapshot + `/api/data` (`Genelife.API/Endpoints/Wolverine/WorldDataEndpoints.cs:10`) |
 | Admin UI | Blazor WebAssembly `Genelife.Web`, `Data.razor` tabs, `/api/data` polling |
-| Tick loop | 20 Hz fixed step (`SimulationLoop`), systems registered in `SimulationEngine.Initialize` (`Genelife.Application/Services/SimulationEngine.cs:91`) |
+| Tick loop | 20 Hz fixed step (`SimulationLoop`), systems registered in `SimulationEngine.Initialize` (`Genelife.Application/Services/SimulationEngine.cs:278`) |
 | Persistence | Snapshot file + Marten `GenosDocument` / `CompanyDocument`; event writer off the tick thread |
 
 Not present today: company accounts, offices creation API, job posting API, age progression, life stages, schools, housing, rent, pensions, health, mortality, households, population generation, economy/housing admin pages.

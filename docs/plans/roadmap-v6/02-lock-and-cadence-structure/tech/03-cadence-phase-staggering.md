@@ -2,7 +2,7 @@
 
 ## Context
 
-`Cadence.ShouldRun` is `tick % Interval == 0` (`Genelife.Application/Systems/ISimulationSystem.cs:20`). Every monthly system (`RelationshipExposure`, `Conception`, `Birth`, `FamilyHousehold`, `StateCare`, `Trust`, `Pregnancy`) fires on the same tick, as do pay-cycle systems. That produces a periodic spike each month — a thundering herd.
+`Cadence.ShouldRun` is `tick % Interval == 0` (`Genelife.Application/Systems/ISimulationSystem.cs:35`). Every monthly system (`RelationshipExposure`, `Conception`, `Birth`, `FamilyHousehold`, `StateCare`, `Trust`, `Pregnancy`) fires on the same tick, as do pay-cycle systems. That produces a periodic spike each month — a thundering herd.
 
 ## Design
 

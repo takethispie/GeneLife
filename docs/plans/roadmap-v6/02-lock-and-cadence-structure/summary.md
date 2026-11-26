@@ -13,11 +13,11 @@ Reduce how long the tick thread holds the global world lock, and stop the monthl
 
 ## Baseline
 
-- `SimulationEngine.Tick` holds one global `lock (@lock)` for the entire tick (`Genelife.Application/Services/SimulationEngine.cs:526`). The same lock is taken by `World`, `Economy`, `MapVersion`, `CurrentTick`, `GetPlayerGenosNetworkId`, `BuildMapStatus` and `ExecuteWithWorld`. Any HTTP or broadcast call that touches the world blocks the tick thread and vice versa.
-- `Cadence.ShouldRun` is `tick % Interval == 0` (`Genelife.Application/Systems/ISimulationSystem.cs:20`). Every monthly system fires on the same tick, as do pay-cycle systems. That is a periodic thundering herd.
+- `SimulationEngine.Tick` holds one global `lock (@lock)` for the entire tick (`Genelife.Application/Services/SimulationEngine.cs:612`). The same lock is taken by `World`, `Economy`, `MapVersion`, `CurrentTick`, `GetPlayerGenosNetworkId`, `BuildMapStatus` and `ExecuteWithWorld`. Any HTTP or broadcast call that touches the world blocks the tick thread and vice versa.
+- `Cadence.ShouldRun` is `tick % Interval == 0` (`Genelife.Application/Systems/ISimulationSystem.cs:35`). Every monthly system fires on the same tick, as do pay-cycle systems. That is a periodic thundering herd.
 - `DecisionSystem`, `NeedsDecaySystem`, `ActionSystem`, `MovementSystem`, `PathfindingSystem`, `NeedsDeathSystem` and `VenuePresenceSystem` all run `Cadence.EveryTick` and each walks the world.
 - `SystemRegistry.Update` calls `GC.GetAllocatedBytesForCurrentThread()` and `Stopwatch.GetTimestamp()` twice per system per tick, and `Metrics.RecordSystem` takes a shared lock per system per tick (`Genelife.Application/Services/Metrics.cs:63-79`).
-- `PathfindingSystem` runs every tick with a `budget * 256` iteration limit (`Genelife.Application/Systems/PathfindingSystem.cs:37`).
+- `PathfindingSystem` runs every tick with a `budget * 256` iteration limit (`Genelife.Application/Systems/PathfindingSystem.cs:44`).
 
 ## Deliverables
 

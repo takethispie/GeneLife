@@ -4,7 +4,7 @@
 
 `DecisionSystem`, `NeedsDecaySystem`, `ActionSystem`, `MovementSystem`, `PathfindingSystem`, `NeedsDeathSystem` and `VenuePresenceSystem` all run `Cadence.EveryTick` and each walks the world. Several do repeated queries for the same entities.
 
-`DecisionSystem` also does `world.Has<WorkSchedule>` then `world.Get<WorkSchedule>` per entity (`Genelife.Application/Systems/DecisionSystem.cs:38-39`).
+`DecisionSystem` also does `world.Has<WorkSchedule>` then `world.Get<WorkSchedule>` per entity (`Genelife.Application/Systems/DecisionSystem.cs:46`).
 
 ## Design
 

@@ -2,7 +2,7 @@
 
 ## Context
 
-`BuildGenosSnapshots` calls `AppearanceMapper.TryDerive` for every genos every tick (`Genelife.Application/Services/SimulationEngine.cs:5854`). Appearance is derived deterministically from traits, age band and sex, so it only changes when those inputs change. Deriving it every tick is repeated work.
+`BuildGenosSnapshots` calls `AppearanceMapper.TryDerive` for every genos every tick (`Genelife.Application/Services/SimulationEngine.cs:6549`). Appearance is derived deterministically from traits, age band and sex, so it only changes when those inputs change. Deriving it every tick is repeated work.
 
 ## Design
 
