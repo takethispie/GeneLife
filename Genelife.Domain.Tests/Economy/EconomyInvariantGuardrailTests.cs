@@ -128,6 +128,22 @@ public class EconomyInvariantGuardrailTests
             "no genos reached full hunger in a year of simulation - need restoration is disabled");
     }
 
+    /// <summary>
+    /// The V5 rent-burden / Gini bands are deliberately NOT asserted in the PR tier.
+    /// The default path currently misses them at every scale, so a hard target assert
+    /// here would fail the PR gate, block all work, and mask NEW failures. The RED
+    /// target assert lives in the nightly perf tier
+    /// (BalanceScenarioTests.AssertBalanceBands), which is non-gating; this PR tier
+    /// stays non-blocking. Replace this [Skip] with the real target assert once
+    /// pedro's rent-burden rebalance lands (board: rent-burden rebalance).
+    /// </summary>
+    [Fact(Skip = "Known miss: rent burden 0.4041 / Gini 0.7802 > 0.40 / 0.70 (seed 21). " +
+                 "RED target assert runs in the nightly perf tier; PR gate stays non-blocking. " +
+                 "Owner: pedro (board: rent-burden rebalance).")]
+    public void RentBurden_And_Gini_MeetV5Targets()
+    {
+    }
+
     private static SimulationEngine Seeded(int genoses, int seed)
     {
         var engine = new SimulationEngine();
