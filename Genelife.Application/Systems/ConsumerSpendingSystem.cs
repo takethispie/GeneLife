@@ -35,7 +35,7 @@ public class ConsumerSpendingSystem : ISimulationSystem
     }
 
     public string Name => "ConsumerSpending";
-    public int Order => 460;
+    public int Order => 506;
     public Cadence Cadence => new(interval <= 0 ? 1 : interval);
 
     void ISimulationSystem.Update(in SimulationContext context) => Update(context.Tick);
