@@ -8,6 +8,7 @@ using Genelife.Components.Consumption;
 using Genelife.Components.Housing;
 using Genelife.Components.Player;
 using Genelife.Economy;
+using Genelife.Enums;
 using Genelife.Family;
 using Genelife.Messages.Events;
 using Genelife.Values;
@@ -115,7 +116,11 @@ public class ConsumerSpendingSystem : ISimulationSystem
         spent += Buy("Food", foodBudget, genos, payer, suppliers, random, ref state, ref unmet, tick);
         spent += Buy("Hygiene", hygieneBudget, genos, payer, suppliers, random, ref state, ref unmet, tick);
 
-        var remaining = available - requiredBudget;
+        // Housing is a prior claim on the same monthly cash: RentSystem (Order 511)
+        // takes rent from whatever this pass leaves behind, so discretionary
+        // categories must not spend the rent obligation first. Food and hygiene
+        // stay protected above; only the discretionary pool is capped.
+        var remaining = available - requiredBudget - RentObligation(payer);
         if (remaining.IsPositive)
         {
             var leisureBudget = remaining.Min(budget.Multiply(options.LeisureShare));
@@ -226,6 +231,20 @@ public class ConsumerSpendingSystem : ISimulationSystem
             withdraw,
             "savings.consumption");
         economy.Emit(new SavingsWithdrawn(networkId, withdraw.Cents, tick));
+    }
+
+    /// <summary>
+    /// The household's monthly rent, which RentSystem takes later in the tick.
+    /// Discretionary consumption must not spend it first.
+    /// </summary>
+    private Money RentObligation(Entity payer)
+    {
+        var household = LifeSystemHelpers.HouseholdOf(world, economy, payer);
+        if (household == Entity.Null || !world.IsAlive(household) || !world.Has<Household>(household))
+            return Money.Zero;
+
+        var data = world.Get<Household>(household);
+        return data.Tenure == Tenure.Renter ? data.MonthlyRent : Money.Zero;
     }
 
     private Money Buy(
