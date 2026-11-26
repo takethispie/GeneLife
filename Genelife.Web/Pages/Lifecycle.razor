@@ -117,8 +117,8 @@
                 </div>
                 <div class="d-flex gap-2 align-items-end">
                     <div class="flex-grow-1">
-                        <label class="form-label small mb-1">Target population</label>
-                        <input class="form-control form-control-sm" type="number" min="0" @bind="targetPopulation" />
+                        <label class="form-label small mb-1" for="targetPopulation">Target population</label>
+                        <input id="targetPopulation" class="form-control form-control-sm" type="number" min="0" @bind="targetPopulation" />
                     </div>
                     <button class="btn btn-sm btn-outline-primary" type="button" @onclick="SetTargetAsync" disabled="@isBusy">Set</button>
                 </div>
@@ -126,8 +126,8 @@
                     <button class="btn btn-sm btn-outline-secondary" type="button" @onclick="PausePopulationAsync" disabled="@isBusy">Pause</button>
                     <button class="btn btn-sm btn-outline-secondary" type="button" @onclick="ResumePopulationAsync" disabled="@isBusy">Resume</button>
                     <div style="width: 7rem;">
-                        <label class="form-label small mb-1">Wave size</label>
-                        <input class="form-control form-control-sm" type="number" min="1" @bind="waveCount" />
+                        <label class="form-label small mb-1" for="waveCount">Wave size</label>
+                        <input id="waveCount" class="form-control form-control-sm" type="number" min="1" @bind="waveCount" />
                     </div>
                     <button class="btn btn-sm btn-outline-primary" type="button" @onclick="TriggerWaveAsync" disabled="@isBusy">Trigger wave</button>
                 </div>
@@ -139,14 +139,14 @@
         <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
             <h2 class="h6 text-uppercase text-muted mb-0">Genos lifecycle</h2>
             <div class="d-flex gap-2">
-                <select class="form-select form-select-sm" @bind="stageFilter">
+                <select class="form-select form-select-sm" aria-label="Filter by life stage" @bind="stageFilter">
                     <option value="">All stages</option>
                     <option value="Education">Education</option>
                     <option value="Work">Work</option>
                     <option value="Retirement">Retirement</option>
                     <option value="Elderly">Elderly</option>
                 </select>
-                <input class="form-control form-control-sm" placeholder="Filter name" @bind="nameFilter" />
+                <input class="form-control form-control-sm" aria-label="Filter by name" placeholder="Filter name" @bind="nameFilter" />
             </div>
         </div>
         <div class="table-responsive">
@@ -271,11 +271,11 @@
                     </table>
                 </div>
                 <div class="row g-2 align-items-end">
-                    <div class="col-6 col-md-3"><label class="form-label small mb-1">Name</label><input class="form-control form-control-sm" @bind="schoolName" /></div>
-                    <div class="col-6 col-md-2"><label class="form-label small mb-1">District</label><input class="form-control form-control-sm" @bind="schoolDistrict" /></div>
-                    <div class="col-4 col-md-2"><label class="form-label small mb-1">Capacity</label><input class="form-control form-control-sm" type="number" min="1" @bind="schoolCapacity" /></div>
-                    <div class="col-4 col-md-2"><label class="form-label small mb-1">Emphasis</label>
-                        <select class="form-select form-select-sm" @bind="schoolEmphasis">
+                    <div class="col-6 col-md-3"><label class="form-label small mb-1" for="schoolName">Name</label><input id="schoolName" class="form-control form-control-sm" @bind="schoolName" /></div>
+                    <div class="col-6 col-md-2"><label class="form-label small mb-1" for="schoolDistrict">District</label><input id="schoolDistrict" class="form-control form-control-sm" @bind="schoolDistrict" /></div>
+                    <div class="col-4 col-md-2"><label class="form-label small mb-1" for="schoolCapacity">Capacity</label><input id="schoolCapacity" class="form-control form-control-sm" type="number" min="1" @bind="schoolCapacity" /></div>
+                    <div class="col-4 col-md-2"><label class="form-label small mb-1" for="schoolEmphasis">Emphasis</label>
+                        <select id="schoolEmphasis" class="form-select form-select-sm" @bind="schoolEmphasis">
                             <option value="Programming">Programming</option>
                             <option value="Art">Art</option>
                             <option value="Cooking">Cooking</option>
@@ -284,7 +284,7 @@
                             <option value="Sales">Sales</option>
                         </select>
                     </div>
-                    <div class="col-4 col-md-2"><label class="form-label small mb-1">Cost</label><input class="form-control form-control-sm" type="number" min="0" @bind="schoolCost" /></div>
+                    <div class="col-4 col-md-2"><label class="form-label small mb-1" for="schoolCost">Cost</label><input id="schoolCost" class="form-control form-control-sm" type="number" min="0" @bind="schoolCost" /></div>
                     <div class="col-12 col-md-1"><button class="btn btn-sm btn-primary w-100" type="button" @onclick="CreateSchoolAsync" disabled="@isBusy">Add</button></div>
                 </div>
                 @if (editSchoolId is not null)
@@ -315,8 +315,8 @@
                 <h2 class="h6 text-uppercase text-muted">Population generator</h2>
                 <p class="small text-muted mb-2">Creates schools, companies, housing, households and an age pyramid. Additive.</p>
                 <div class="row g-2 align-items-end">
-                    <div class="col-4"><label class="form-label small mb-1">Total</label><input class="form-control form-control-sm" type="number" min="1" @bind="generateTotal" /></div>
-                    <div class="col-4"><label class="form-label small mb-1">Seed</label><input class="form-control form-control-sm" type="number" @bind="generateSeed" /></div>
+                    <div class="col-4"><label class="form-label small mb-1" for="generateTotal">Total</label><input id="generateTotal" class="form-control form-control-sm" type="number" min="1" @bind="generateTotal" /></div>
+                    <div class="col-4"><label class="form-label small mb-1" for="generateSeed">Seed</label><input id="generateSeed" class="form-control form-control-sm" type="number" @bind="generateSeed" /></div>
                     <div class="col-4"><button class="btn btn-sm btn-primary w-100" type="button" @onclick="GenerateAsync" disabled="@isBusy">Generate</button></div>
                 </div>
                 <hr />
@@ -328,8 +328,8 @@
                 <div class="small text-muted">Members @lifecycle.Pensions.Members &middot; average pension @Money(lifecycle.Pensions.AverageMonthlyPension) &middot; reduced @lifecycle.Pensions.ReducedThisCycle</div>
                 <div class="d-flex gap-2 align-items-end mt-2">
                     <div class="flex-grow-1">
-                        <label class="form-label small mb-1">Government top-up</label>
-                        <input class="form-control form-control-sm" type="number" min="1" @bind="pensionTopUp" />
+                        <label class="form-label small mb-1" for="pensionTopUp">Government top-up</label>
+                        <input id="pensionTopUp" class="form-control form-control-sm" type="number" min="1" @bind="pensionTopUp" />
                     </div>
                     <button class="btn btn-sm btn-outline-primary" type="button" @onclick="TopUpPensionAsync" disabled="@isBusy">Top up</button>
                 </div>
@@ -340,9 +340,9 @@
     <div class="card mb-4"><div class="card-body">
         <h2 class="h6 text-uppercase text-muted">Admin lifecycle controls</h2>
         <div class="row g-2 align-items-end">
-            <div class="col-6 col-md-2"><label class="form-label small mb-1">Genos network id</label><input class="form-control form-control-sm" type="number" min="1" @bind="adminGenosId" /></div>
-            <div class="col-6 col-md-2"><label class="form-label small mb-1">Force stage</label>
-                <select class="form-select form-select-sm" @bind="adminStage">
+            <div class="col-6 col-md-2"><label class="form-label small mb-1" for="adminGenosId">Genos network id</label><input id="adminGenosId" class="form-control form-control-sm" type="number" min="1" @bind="adminGenosId" /></div>
+            <div class="col-6 col-md-2"><label class="form-label small mb-1" for="adminStage">Force stage</label>
+                <select id="adminStage" class="form-select form-select-sm" @bind="adminStage">
                     <option value="Education">Education</option>
                     <option value="Work">Work</option>
                     <option value="Retirement">Retirement</option>
@@ -363,7 +363,7 @@
             </div>
             <div class="col-6 col-md-2"><button class="btn btn-sm btn-outline-primary w-100" type="button" @onclick="ApplyBenefitAsync" disabled="@isBusy">Apply</button></div>
             <div class="col-6 col-md-2">
-                <select class="form-select form-select-sm" @bind="deathCause">
+                <select class="form-select form-select-sm" aria-label="Cause of death" @bind="deathCause">
                     <option value="Age">Age</option>
                     <option value="Illness">Illness</option>
                     <option value="Starvation">Starvation</option>

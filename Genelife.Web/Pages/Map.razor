@@ -13,7 +13,7 @@
         <p class="text-muted mb-0">Generated world layout, building footprints and live player positions.</p>
     </div>
     <div class="d-flex align-items-center gap-3">
-        <select class="form-select form-select-sm" @bind="kindFilter">
+        <select class="form-select form-select-sm" aria-label="Filter by genos kind" @bind="kindFilter">
             <option value="">All kinds</option>
             @foreach (var kind in Kinds)
             {

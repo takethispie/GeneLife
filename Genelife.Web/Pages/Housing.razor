@@ -111,7 +111,7 @@
                         <label class="form-label small mb-1" for="spawnAdults">Spawn population</label>
                         <div class="input-group input-group-sm">
                             <input id="spawnAdults" class="form-control" type="number" min="0" @bind="spawnAdults" title="Adults" />
-                            <input class="form-control" type="number" min="0" @bind="spawnChildren" title="Children" />
+                            <input class="form-control" type="number" min="0" @bind="spawnChildren" title="Children" aria-label="Children" />
                             <button class="btn btn-outline-primary" type="button" @onclick="SpawnPopulationAsync" disabled="@isBusy">Spawn</button>
                         </div>
                     </div>
@@ -125,20 +125,20 @@
         <h2 class="h6 text-uppercase text-muted">Create property</h2>
         <div class="row g-2 align-items-end">
             <div class="col-12 col-md-3">
-                <label class="form-label small mb-1">Name</label>
-                <input class="form-control form-control-sm" @bind="propertyName" />
+                <label class="form-label small mb-1" for="propertyName">Name</label>
+                <input id="propertyName" class="form-control form-control-sm" @bind="propertyName" />
             </div>
             <div class="col-6 col-md-2">
-                <label class="form-label small mb-1">District</label>
-                <input class="form-control form-control-sm" @bind="propertyDistrict" />
+                <label class="form-label small mb-1" for="propertyDistrict">District</label>
+                <input id="propertyDistrict" class="form-control form-control-sm" @bind="propertyDistrict" />
             </div>
             <div class="col-6 col-md-2">
-                <label class="form-label small mb-1">Units</label>
-                <input class="form-control form-control-sm" type="number" min="1" @bind="propertyUnits" />
+                <label class="form-label small mb-1" for="propertyUnits">Units</label>
+                <input id="propertyUnits" class="form-control form-control-sm" type="number" min="1" @bind="propertyUnits" />
             </div>
             <div class="col-6 col-md-2">
-                <label class="form-label small mb-1">Tier</label>
-                <select class="form-select form-select-sm" @bind="propertyTier">
+                <label class="form-label small mb-1" for="propertyTier">Tier</label>
+                <select id="propertyTier" class="form-select form-select-sm" @bind="propertyTier">
                     <option value="Basic">Basic</option>
                     <option value="Comfortable">Comfortable</option>
                     <option value="Luxury">Luxury</option>
@@ -146,8 +146,8 @@
                 </select>
             </div>
             <div class="col-6 col-md-2">
-                <label class="form-label small mb-1">Rent / month</label>
-                <input class="form-control form-control-sm" type="number" min="0" step="0.01" @bind="propertyRent" />
+                <label class="form-label small mb-1" for="propertyRent">Rent / month</label>
+                <input id="propertyRent" class="form-control form-control-sm" type="number" min="0" step="0.01" @bind="propertyRent" />
             </div>
             <div class="col-12 col-md-1">
                 <button class="btn btn-sm btn-primary w-100" type="button" @onclick="CreatePropertyAsync" disabled="@isBusy">Add</button>
