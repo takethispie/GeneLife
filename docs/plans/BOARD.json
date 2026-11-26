@@ -1,7 +1,7 @@
 {
   "title": "GeneLife — Team Board",
-  "updated": "2026-11-26T21:44Z",
-  "description": "Shared team board for the GeneLife project; source of truth for the chat kanban widget. States: waiting to run -> currently running -> done. Populated from a team self-report (2026-11-26); @ricardo and @roberto reported no active GeneLife tasks. Edit this file and regenerate the widget, or drag cards in the widget and press Save.",
+  "updated": "2026-11-26T22:11Z",
+  "description": "Shared team board for the GeneLife project; source of truth for the chat kanban widget. States: waiting to run -> currently running -> done. 'Currently running' holds the tasks selected as each member's next work after the 2026-11-26 next-task round (cards marked 'next'). The V6 opt-in re-measurement is the only open release gate and the spine of the current plan. Edit this file and regenerate the widget, or drag cards in the widget and press Save.",
   "states": [
     {
       "id": "waiting",
@@ -19,145 +19,184 @@
   "cards": [
     {
       "id": "c1",
-      "title": "V6 tick-performance roadmap",
+      "title": "V6 opt-in re-measurement (Release build): cadence staggering + parallel passes",
       "owner": "main-dev",
-      "state": "waiting"
+      "state": "running",
+      "selected": true,
+      "note": "the gate — decides whether V6 defaults flip"
     },
     {
       "id": "c2",
+      "title": "Cadence-staggering balance-band regression (rent burden 0.4369, Gini 0.7866)",
+      "owner": "pedro",
+      "state": "running",
+      "selected": true,
+      "note": "blocks V6 opt-in adoption"
+    },
+    {
+      "id": "c3",
+      "title": "Research dossier: Arch ECS parallel-query/scheduler pitfalls + cadence-staggering prior art",
+      "owner": "roberto",
+      "state": "running",
+      "selected": true,
+      "note": "de-risks the V6 re-measurement"
+    },
+    {
+      "id": "c4",
+      "title": "Balance-band assertion guardrails (money conservation, need restoration)",
+      "owner": "gabrielo",
+      "state": "running",
+      "selected": true,
+      "note": "economy regressions currently pass CI silently"
+    },
+    {
+      "id": "c5",
+      "title": "Page-level component tests for the 13 Genelife.Web admin pages",
+      "owner": "adriano",
+      "state": "running",
+      "selected": true,
+      "note": "4 components covered; all 13 pages untested"
+    },
+    {
+      "id": "c6",
+      "title": "Exploratory visual + accessibility pass on Genelife.Web",
+      "owner": "donatello",
+      "state": "running",
+      "selected": true,
+      "note": "live stack already up"
+    },
+    {
+      "id": "c7",
+      "title": "Fix Home.razor Dashboard placeholder defect",
+      "owner": "ricardo",
+      "state": "running",
+      "selected": true,
+      "note": "repro from donatello; user-visible admin landing page"
+    },
+    {
+      "id": "c8",
+      "title": "Appearance visual regression suite (Playwright visual + fixtures)",
+      "owner": "adriano",
+      "state": "running",
+      "note": "carried over; not mentioned in @adriano's self-report"
+    },
+    {
+      "id": "c9",
       "title": "Rent burden rebalance (0.4284 vs 0.40 ceiling)",
       "owner": "pedro",
       "state": "waiting"
     },
     {
-      "id": "c3",
-      "title": "Cadence-staggering balance-band regression (rent burden 0.4369, Gini 0.7866)",
-      "owner": "pedro",
-      "state": "waiting"
-    },
-    {
-      "id": "c4",
+      "id": "c10",
       "title": "Economy invariants test coverage (money conservation, need restoration)",
       "owner": "pedro",
       "state": "waiting"
     },
     {
-      "id": "c5",
-      "title": "Balance-band assertion guardrails",
-      "owner": "gabrielo",
-      "state": "waiting"
-    },
-    {
-      "id": "c6",
-      "title": "SimulationControl + page-level component tests (Genelife.Web)",
-      "owner": "gabrielo",
-      "state": "waiting"
-    },
-    {
-      "id": "c7",
+      "id": "c11",
       "title": "Admin E2E specs (e2e/admin, Playwright admin-chromium, CI-green)",
       "owner": "gabrielo",
       "state": "waiting"
     },
     {
-      "id": "c8",
-      "title": "Report Home.razor Dashboard placeholder bug to a dev",
-      "owner": "donatello",
-      "state": "waiting"
-    },
-    {
-      "id": "c9",
-      "title": "Exploratory visual + accessibility pass on Genelife.Web",
-      "owner": "donatello",
-      "state": "waiting"
-    },
-    {
-      "id": "c10",
+      "id": "c12",
       "title": "Admin responsive-viewport coverage (admin-chromium only today)",
       "owner": "gabrielo",
       "state": "waiting"
     },
     {
-      "id": "c11",
+      "id": "c13",
+      "title": "Admin visual-regression baseline for Genelife.Web",
+      "owner": "unassigned",
+      "state": "waiting",
+      "note": "proposed by @adriano and @donatello"
+    },
+    {
+      "id": "c14",
       "title": "Company revenue visibility plan (docs/plans/company-revenue-visibility-plan.md)",
       "owner": "unassigned",
       "state": "waiting"
     },
     {
-      "id": "c12",
+      "id": "c15",
+      "title": "Published benchmark thresholds for rent burden / Gini / vacancy (external reference)",
+      "owner": "roberto",
+      "state": "waiting"
+    },
+    {
+      "id": "c16",
+      "title": "Prior-art brief: post-performance-roadmap feature evolution (V7 input)",
+      "owner": "roberto",
+      "state": "waiting"
+    },
+    {
+      "id": "c17",
       "title": "Define V7 roadmap",
       "owner": "tech-leader",
       "state": "waiting"
     },
     {
-      "id": "c13",
-      "title": "Appearance visual regression suite (Playwright visual + fixtures)",
-      "owner": "adriano",
-      "state": "running",
-      "note": "self-report pending — @adriano's turn was still running when polled"
-    },
-    {
-      "id": "c14",
+      "id": "c18",
       "title": "Needs-fulfilment restoration (hunger/energy/hygiene back to 100)",
       "owner": "main-dev",
       "state": "done"
     },
     {
-      "id": "c15",
+      "id": "c19",
       "title": "Household cash pooling for consumption gating",
       "owner": "main-dev",
       "state": "done"
     },
     {
-      "id": "c16",
+      "id": "c20",
       "title": "Snapshot delta field completeness + genos SignalR push groups",
       "owner": "main-dev",
       "state": "done"
     },
     {
-      "id": "c17",
+      "id": "c21",
       "title": "Company push group and hire/fire re-subscription",
       "owner": "main-dev",
       "state": "done"
     },
     {
-      "id": "c18",
+      "id": "c22",
       "title": "Gate-pooling property test (no genos gate-blocked while household holds cash)",
       "owner": "gabrielo",
       "state": "done"
     },
     {
-      "id": "c19",
+      "id": "c23",
       "title": "DecisionSystem zero-alloc guard (hoist query callback + real bound)",
       "owner": "gabrielo",
       "state": "done"
     },
     {
-      "id": "c20",
+      "id": "c24",
       "title": "Genelife.Web.Tests bUnit project wired into CI",
       "owner": "gabrielo",
       "state": "done"
     },
     {
-      "id": "c21",
+      "id": "c25",
       "title": "Walk every admin WebUI page, logging console errors and surface defects",
       "owner": "donatello",
       "state": "done"
     },
     {
-      "id": "c22",
+      "id": "c26",
       "title": "Establish Genelife.Web component-test baseline (bunit 15/15)",
       "owner": "donatello",
       "state": "done"
     },
     {
-      "id": "c23",
+      "id": "c27",
       "title": "Economy balance probe methodology (needs/consumption)",
       "owner": "pedro",
       "state": "done"
     },
     {
-      "id": "c24",
+      "id": "c28",
       "title": "V5 production release — release-roadmap-V5 checklist complete",
       "owner": "tech-leader",
       "state": "done"
