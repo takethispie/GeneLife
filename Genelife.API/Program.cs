@@ -102,6 +102,7 @@ builder.Services.AddSingleton<IReadModelStore, MartenReadModelStore>();
 builder.Services.AddSingleton<IEventConsumerProbe, MartenEventConsumerProbe>();
 builder.Services.AddSingleton<Genelife.Api.Handlers.Push.GenosStatePushHandler>();
 builder.Services.AddSingleton<Genelife.Api.Handlers.Push.CompanyStatePushHandler>();
+builder.Services.AddSingleton<Genelife.Api.Handlers.Push.EmploymentGroupPushHandler>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<SnapshotBroadcastService>();
 builder.Services.AddSingleton<IWorldResetNotifier>(provider => provider.GetRequiredService<SnapshotBroadcastService>());
