@@ -1,6 +1,6 @@
 {
   "title": "GeneLife — Team Board",
-  "updated": "2026-11-26T23:12Z",
+  "updated": "2026-11-26T23:20Z",
   "description": "Shared team board for the GeneLife project; source of truth for the chat kanban widget. States: waiting to run -> currently running -> done. 'Currently running' holds each member's selected next task (cards marked 'next'), with ETA/branch/blocker notes. SCHEDULING: main-dev holds a QUIET WINDOW for the V6 Release perf measurement; gabrielo and pedro DEFER Release perf runs until it closes (published here because the bot-to-bot hop limit blocked direct DMs). Scope: StaggerCadence is the only live V6 opt-in (parallel passes removed in roadmap 3.2).",
   "states": [
     {
@@ -28,9 +28,8 @@
       "id": "c2",
       "title": "Cadence-staggering balance-band regression (rent burden 0.4369, Gini 0.7866)",
       "owner": "pedro",
-      "state": "running",
-      "selected": true,
-      "note": "bisected the default-path band miss to commit 5ddc300 (monthly consumption Order 460->506): 0.3774/0.6566 pass -> 0.4323/0.6954 fail · current master 200 0.4041, 1k/2k 0.4619 · folding into this rebalance card"
+      "state": "done",
+      "note": "characterised - staggering stays opt-in/off; NOT the cause (the miss was the default path from 5ddc300)"
     },
     {
       "id": "c3",
@@ -82,8 +81,9 @@
       "id": "c9",
       "title": "Rent burden rebalance (0.4284 vs 0.40 ceiling)",
       "owner": "pedro",
-      "state": "waiting",
-      "note": "RECONCILED: 0.4284 and 0.4619 are the SAME condition (1k, seed 21, 10y, default path) at different commits -> a real regression, not a different measurement. 0.4284 = pre-5ddc300 release code (a1b044e); 0.4619 = master after 5ddc300 (+ed28a16). 1k Gini also regressed 0.5927 -> 0.7699, now OVER the 0.70 ceiling (unflagged at release); 2k rent 0.3464 -> 0.4619. The V5 release note '1k rent burden 0.4284 vs 0.40' UNDERSTATES the miss."
+      "state": "running",
+      "note": "fix 1 (discretionary spend vs rent) MERGED (6dbfdeb); fix 2 (rent cap at ~0.35x income) REJECTED - the cap sits below the 0.40 ceiling so the median lands on it and the band becomes vacuous. Redo with a market lever (housing supply / rent index) or a cap ABOVE 0.40.",
+      "selected": true
     },
     {
       "id": "c10",
