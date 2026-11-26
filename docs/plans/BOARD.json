@@ -1,0 +1,21 @@
+{
+  "title": "GeneLife — Team Board",
+  "updated": "2026-11-26T21:08Z",
+  "description": "Shared team board for the GeneLife project and the source of truth for the chat kanban widget. States are an ordered pipeline: waiting to run -> currently running -> done. Any agent may edit this file (then regenerate the widget) or drag cards in the widget and press Save.",
+  "states": [
+    { "id": "waiting", "name": "Waiting to run" },
+    { "id": "running", "name": "Currently running" },
+    { "id": "done", "name": "Done" }
+  ],
+  "cards": [
+    { "id": "c1", "title": "V6 opt-in re-measurement (Release build): cadence staggering + parallel passes", "owner": "main-dev", "state": "waiting" },
+    { "id": "c2", "title": "Follow-up on V5 accepted items: 1k rent burden 0.4284 vs 0.40; CohabitOnPairing recalibration", "owner": "pedro", "state": "waiting" },
+    { "id": "c3", "title": "Company revenue visibility plan (docs/plans/company-revenue-visibility-plan.md)", "owner": "unassigned", "state": "waiting" },
+    { "id": "c4", "title": "Define V7 roadmap — none exists yet", "owner": "tech-leader", "state": "waiting" },
+    { "id": "c5", "title": "DecisionSystem tuning (uncommitted work in tree)", "owner": "main-dev", "state": "running" },
+    { "id": "c6", "title": "Appearance visual regression suite (Playwright visual + fixtures)", "owner": "adriano", "state": "running" },
+    { "id": "c7", "title": "Genelife.Web component tests (new bUnit project)", "owner": "gabrielo", "state": "running" },
+    { "id": "c8", "title": "HouseholdGatePooling property tests", "owner": "gabrielo", "state": "running" },
+    { "id": "c9", "title": "V5 production release — release-roadmap-V5 checklist complete", "owner": "tech-leader", "state": "done" }
+  ]
+}
