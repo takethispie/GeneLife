@@ -101,8 +101,13 @@ public sealed class WorldHub : Hub
 
         await Groups.AddToGroupAsync(Context.ConnectionId, $"player-{playerId}");
         await Groups.AddToGroupAsync(Context.ConnectionId, "all");
+        // Groups targeted by the push handlers. Without these joins the pushes
+        // were addressed to groups no connection was ever a member of.
+        await Groups.AddToGroupAsync(Context.ConnectionId, "all-genoses");
 
         var welcome = BuildWelcome(playerId);
+        if (welcome.GenosNetworkId != 0)
+            await Groups.AddToGroupAsync(Context.ConnectionId, $"genos:{welcome.GenosNetworkId}");
         await Clients.Caller.SendAsync("Welcome", welcome);
 
         var map = engine.BuildMapSnapshot();

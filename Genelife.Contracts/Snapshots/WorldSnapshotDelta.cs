@@ -77,6 +77,11 @@ public sealed class WorldSnapshotDelta
         };
     }
 
+    /// <summary>
+    /// Full structural comparison of every <see cref="GenosStatus"/> field. A field
+    /// omitted here is silently never replicated, so
+    /// GenosStatusEqualityTests reflects over the DTO and fails if one is missed.
+    /// </summary>
     public static bool GenosesEqual(GenosStatus a, GenosStatus b) =>
         a.NetworkId == b.NetworkId
         && string.Equals(a.Name, b.Name, StringComparison.Ordinal)
@@ -94,7 +99,21 @@ public sealed class WorldSnapshotDelta
         && a.TileY == b.TileY
         && a.HasMoveTarget == b.HasMoveTarget
         && a.MoveTargetX == b.MoveTargetX
-        && a.MoveTargetY == b.MoveTargetY;
+        && a.MoveTargetY == b.MoveTargetY
+        && a.WalletBalance == b.WalletBalance
+        && a.SavingsBalance == b.SavingsBalance
+        && a.UnmetDemand == b.UnmetDemand
+        && a.HouseholdNetworkId == b.HouseholdNetworkId
+        && a.HousingUnitNetworkId == b.HousingUnitNetworkId
+        && string.Equals(a.Tenure, b.Tenure, StringComparison.Ordinal)
+        && string.Equals(a.HousingTier, b.HousingTier, StringComparison.Ordinal)
+        && a.Homeless == b.Homeless
+        && string.Equals(a.Stage, b.Stage, StringComparison.Ordinal)
+        && a.Health == b.Health
+        && string.Equals(a.TopSkill, b.TopSkill, StringComparison.Ordinal)
+        && string.Equals(a.Seniority, b.Seniority, StringComparison.Ordinal)
+        && a.IsDead == b.IsDead
+        && Equals(a.Appearance, b.Appearance);
 
     public static bool CompaniesEqual(CompanyStatus a, CompanyStatus b) =>
         a.NetworkId == b.NetworkId
