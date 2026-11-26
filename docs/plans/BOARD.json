@@ -1,21 +1,166 @@
 {
   "title": "GeneLife — Team Board",
-  "updated": "2026-11-26T21:08Z",
-  "description": "Shared team board for the GeneLife project and the source of truth for the chat kanban widget. States are an ordered pipeline: waiting to run -> currently running -> done. Any agent may edit this file (then regenerate the widget) or drag cards in the widget and press Save.",
+  "updated": "2026-11-26T21:44Z",
+  "description": "Shared team board for the GeneLife project; source of truth for the chat kanban widget. States: waiting to run -> currently running -> done. Populated from a team self-report (2026-11-26); @ricardo and @roberto reported no active GeneLife tasks. Edit this file and regenerate the widget, or drag cards in the widget and press Save.",
   "states": [
-    { "id": "waiting", "name": "Waiting to run" },
-    { "id": "running", "name": "Currently running" },
-    { "id": "done", "name": "Done" }
+    {
+      "id": "waiting",
+      "name": "Waiting to run"
+    },
+    {
+      "id": "running",
+      "name": "Currently running"
+    },
+    {
+      "id": "done",
+      "name": "Done"
+    }
   ],
   "cards": [
-    { "id": "c1", "title": "V6 opt-in re-measurement (Release build): cadence staggering + parallel passes", "owner": "main-dev", "state": "waiting" },
-    { "id": "c2", "title": "Follow-up on V5 accepted items: 1k rent burden 0.4284 vs 0.40; CohabitOnPairing recalibration", "owner": "pedro", "state": "waiting" },
-    { "id": "c3", "title": "Company revenue visibility plan (docs/plans/company-revenue-visibility-plan.md)", "owner": "unassigned", "state": "waiting" },
-    { "id": "c4", "title": "Define V7 roadmap — none exists yet", "owner": "tech-leader", "state": "waiting" },
-    { "id": "c5", "title": "DecisionSystem tuning (uncommitted work in tree)", "owner": "main-dev", "state": "running" },
-    { "id": "c6", "title": "Appearance visual regression suite (Playwright visual + fixtures)", "owner": "adriano", "state": "running" },
-    { "id": "c7", "title": "Genelife.Web component tests (new bUnit project)", "owner": "gabrielo", "state": "running" },
-    { "id": "c8", "title": "HouseholdGatePooling property tests", "owner": "gabrielo", "state": "running" },
-    { "id": "c9", "title": "V5 production release — release-roadmap-V5 checklist complete", "owner": "tech-leader", "state": "done" }
+    {
+      "id": "c1",
+      "title": "V6 tick-performance roadmap",
+      "owner": "main-dev",
+      "state": "waiting"
+    },
+    {
+      "id": "c2",
+      "title": "Rent burden rebalance (0.4284 vs 0.40 ceiling)",
+      "owner": "pedro",
+      "state": "waiting"
+    },
+    {
+      "id": "c3",
+      "title": "Cadence-staggering balance-band regression (rent burden 0.4369, Gini 0.7866)",
+      "owner": "pedro",
+      "state": "waiting"
+    },
+    {
+      "id": "c4",
+      "title": "Economy invariants test coverage (money conservation, need restoration)",
+      "owner": "pedro",
+      "state": "waiting"
+    },
+    {
+      "id": "c5",
+      "title": "Balance-band assertion guardrails",
+      "owner": "gabrielo",
+      "state": "waiting"
+    },
+    {
+      "id": "c6",
+      "title": "SimulationControl + page-level component tests (Genelife.Web)",
+      "owner": "gabrielo",
+      "state": "waiting"
+    },
+    {
+      "id": "c7",
+      "title": "Admin E2E specs (e2e/admin, Playwright admin-chromium, CI-green)",
+      "owner": "gabrielo",
+      "state": "waiting"
+    },
+    {
+      "id": "c8",
+      "title": "Report Home.razor Dashboard placeholder bug to a dev",
+      "owner": "donatello",
+      "state": "waiting"
+    },
+    {
+      "id": "c9",
+      "title": "Exploratory visual + accessibility pass on Genelife.Web",
+      "owner": "donatello",
+      "state": "waiting"
+    },
+    {
+      "id": "c10",
+      "title": "Admin responsive-viewport coverage (admin-chromium only today)",
+      "owner": "gabrielo",
+      "state": "waiting"
+    },
+    {
+      "id": "c11",
+      "title": "Company revenue visibility plan (docs/plans/company-revenue-visibility-plan.md)",
+      "owner": "unassigned",
+      "state": "waiting"
+    },
+    {
+      "id": "c12",
+      "title": "Define V7 roadmap",
+      "owner": "tech-leader",
+      "state": "waiting"
+    },
+    {
+      "id": "c13",
+      "title": "Appearance visual regression suite (Playwright visual + fixtures)",
+      "owner": "adriano",
+      "state": "running",
+      "note": "self-report pending — @adriano's turn was still running when polled"
+    },
+    {
+      "id": "c14",
+      "title": "Needs-fulfilment restoration (hunger/energy/hygiene back to 100)",
+      "owner": "main-dev",
+      "state": "done"
+    },
+    {
+      "id": "c15",
+      "title": "Household cash pooling for consumption gating",
+      "owner": "main-dev",
+      "state": "done"
+    },
+    {
+      "id": "c16",
+      "title": "Snapshot delta field completeness + genos SignalR push groups",
+      "owner": "main-dev",
+      "state": "done"
+    },
+    {
+      "id": "c17",
+      "title": "Company push group and hire/fire re-subscription",
+      "owner": "main-dev",
+      "state": "done"
+    },
+    {
+      "id": "c18",
+      "title": "Gate-pooling property test (no genos gate-blocked while household holds cash)",
+      "owner": "gabrielo",
+      "state": "done"
+    },
+    {
+      "id": "c19",
+      "title": "DecisionSystem zero-alloc guard (hoist query callback + real bound)",
+      "owner": "gabrielo",
+      "state": "done"
+    },
+    {
+      "id": "c20",
+      "title": "Genelife.Web.Tests bUnit project wired into CI",
+      "owner": "gabrielo",
+      "state": "done"
+    },
+    {
+      "id": "c21",
+      "title": "Walk every admin WebUI page, logging console errors and surface defects",
+      "owner": "donatello",
+      "state": "done"
+    },
+    {
+      "id": "c22",
+      "title": "Establish Genelife.Web component-test baseline (bunit 15/15)",
+      "owner": "donatello",
+      "state": "done"
+    },
+    {
+      "id": "c23",
+      "title": "Economy balance probe methodology (needs/consumption)",
+      "owner": "pedro",
+      "state": "done"
+    },
+    {
+      "id": "c24",
+      "title": "V5 production release — release-roadmap-V5 checklist complete",
+      "owner": "tech-leader",
+      "state": "done"
+    }
   ]
 }
