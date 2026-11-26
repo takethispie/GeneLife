@@ -10,4 +10,4 @@ A checklist of the things to check and pass to ship V5. Feature roadmaps
 - [x] **Feature 02 appearance acceptance** — Playwright visual smoke + reference-hardware frame-budget report
 - [x] **Feature 03 consumption acceptance** — NPC shopping-trip/meal acceptance + 30-year cohabitation comparison
 - [x] **Release evidence record** — every result above recorded against a named build, with reviewer sign-off
-- [x] **Known items accepted** — 1k rent burden 0.4284 vs 0.40 (documented miss); `CohabitOnPairing` stays opt-in
+- [x] **Known items accepted** — 1k rent burden **0.4619** vs 0.40 and 1k Gini **0.7699** vs 0.70 (both miss the ceiling; bisected to `5ddc300`, which was already in the shipped build — the 0.4284 recorded here originally was stale); `CohabitOnPairing` stays opt-in

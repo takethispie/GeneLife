@@ -69,7 +69,7 @@ Feature roadmaps (`roadmap-vN`) record delivered implementation only. Production
 - **Key decisions:** player actions as typed intents drained at tick start; appearance derived from traits/age/sex (`SkinTone`, `FaceShape`); utility networks + grocery catalog/stock/nutrition; text chat + presence + friendships + consensual partnerships; schema 11 → 15.
 - **Delivered:** player agency (jobs, housing, consumption, family actions, aging/death/heir continuation, schema 12, `/player` admin page); appearance (descriptor model, inheritance, layered sprites, `/appearance` preview, schema 13); consumption (networks, meters, tariffs, grocery, nutrition, schema 14, `/consumption` page); social (presence, chat/emotes, friendships/blocks/reports, player partnerships, venues, moderation, schema 15, `/social` page); live ops (Wolverine cleanup H16/H19/H20, relocation, live preview, audio/touch, prediction no-go, balance).
 - **Verification:** 560 domain + 69 API integration + 33 performance/release tests green; 178 browser tests; 2k decade p95 35.6 ms; 32-player p95 0.88 ms; 60/200-genos ten-year bands green.
-- **Open:** 1k rent burden 0.4284 vs 0.40 ceiling (documented miss); `CohabitOnPairing` still opt-in. Production release checks (30-minute live soak, schema 11→15 migration/rollback rehearsal, feature 02 frame-budget report, feature 03 shopping/meal + cohabitation evidence, release evidence record) live in [`release-roadmap-V5/`](release-roadmap-V5/README.md).
+- **Open:** 1k rent burden **0.4619** vs 0.40 and 1k Gini **0.7699** vs 0.70 ceilings (regression bisected to `5ddc300`, which shipped in V5 — the 0.4284 recorded at release was stale); `CohabitOnPairing` still opt-in. Production release checks (30-minute live soak, schema 11→15 migration/rollback rehearsal, feature 02 frame-budget report, feature 03 shopping/meal + cohabitation evidence, release evidence record) live in [`release-roadmap-V5/`](release-roadmap-V5/README.md).
 
 ## V6 — Tick Performance
 
@@ -80,7 +80,7 @@ Feature roadmaps (`roadmap-vN`) record delivered implementation only. Production
 - **Key decisions:** server GC/concurrent GC/tiered PGO/R2R; throttled overrun logging; indexed company snapshots; appearance cache; pooled event lists; `ReaderWriterLockSlim` replacing global lock; cadence `Offset` (opt-in); `TryGet` dedupe; sampled per-system timing; pathfinding iteration cap; dedicated simulation thread; parallel per-entity passes (opt-in); async snapshot build.
 - **Delivered:** all Tier 1–3 changes landed. Two deliberately opt-in: cadence staggering (breaks balance bands — 0.4369 vs 0.40 rent burden) and parallel per-entity passes (5k p95 6.4→11 ms in Debug). Merged entity passes rejected (DecisionSystem ordering). Legacy admin mutations now go through typed admin commands.
 - **Measurements:** 1k p95 2.74→0.20 ms; 5k p95 6.43→5.95 ms; allocation roughly flat (dominated by economy systems). 32-player soak passes.
-- **Open:** re-measure opt-ins in Release build; legacy admin endpoints wait up to 50 ms for the next tick (could move to 202 + command-id pattern).
+- **Open:** legacy admin endpoints wait up to 50 ms for the next tick (could move to 202 + command-id pattern). `StaggerCadence` was re-measured in Release: no gain (2k p95 1.97 vs 2.72 ms, within noise), stays opt-in/off; `ParallelSystem`s removed in 3.2.
 
 ---
 
@@ -97,5 +97,6 @@ Feature roadmaps (`roadmap-vN`) record delivered implementation only. Production
 
 - V1–V4: implemented and release-ready.
 - V5: released. Production release checks in [`release-roadmap-V5/`](release-roadmap-V5/README.md) are complete.
-- V6: implemented; two opt-in changes (staggering, parallel passes) await Release-build re-measurement.
-- Next roadmap: none defined yet — V6 opt-in re-measurement is the immediate gate (V5 shipped).
+- **V5 balance regression (open):** 1k rent burden **0.4619** vs 0.40 and Gini **0.7699** vs 0.70 — bisected to `5ddc300`, which shipped in V5 (the released 0.4284 figure was stale). Tracked by pedro's rent-burden rebalance; the perf-tier balance tests assert the target (red) until it lands.
+- V6: implemented; `StaggerCadence` re-measured in Release — no gain, stays opt-in/off (`ParallelSystem`s removed in 3.2).
+- Next roadmap: none defined yet — the immediate open item is the V5 balance regression (rent burden/Gini); no V7 defined.
