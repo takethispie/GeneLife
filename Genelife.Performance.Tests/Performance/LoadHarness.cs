@@ -20,6 +20,14 @@ public class LoadHarness
     }
 
     [Fact]
+    public void Fixture_2k_Synthetic_Report()
+    {
+        var report = RunHarness(2_000, synthetic: true);
+        WriteReport("load_2k_synthetic", report);
+        Assert.True(report.Results.TickRatePerSecond > 0);
+    }
+
+    [Fact]
     public void Fixture_5k_Synthetic_Report()
     {
         var report = RunHarness(5_000, synthetic: true);
@@ -62,6 +70,12 @@ public class LoadHarness
     public static HarnessReport RunHarness(int count, bool synthetic)
     {
         using var engine = new SimulationEngine();
+
+        // StaggerCadence is a per-engine opt-in that must be set before Initialize and is not
+        // wired to configuration anywhere in the app, so the re-measurement drives it from the
+        // environment. One env var, no rebuild between arms, and the mode is recorded in the
+        // report so an off/on pair cannot be confused after the fact.
+        engine.StaggerCadence = StaggerRequested();
         engine.Initialize();
 
         var startEntityCount = engine.ExecuteWithWorld(world =>
@@ -104,7 +118,8 @@ public class LoadHarness
                 WorkloadType = synthetic ? "synthetic" : "realistic",
                 TicksRun = TicksToRun,
                 WarmupTicks = WarmupTicks,
-                DeltaTime = DeltaTime
+                DeltaTime = DeltaTime,
+                StaggerCadence = engine.StaggerCadence
             },
             Results = new HarnessResults
             {
@@ -126,8 +141,18 @@ public class LoadHarness
         };
     }
 
+    private static bool StaggerRequested()
+    {
+        var value = Environment.GetEnvironmentVariable("GENELIFE_STAGGER_CADENCE");
+        return string.Equals(value, "1", StringComparison.Ordinal)
+            || string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
+    }
+
     private static void WriteReport(string name, HarnessReport report)
     {
+        if (report.Config.StaggerCadence)
+            name += "_stagger";
+
         var json = JsonSerializer.Serialize(report, new JsonSerializerOptions
         {
             WriteIndented = true
@@ -153,6 +178,7 @@ public class LoadHarness
         public int TicksRun { get; set; }
         public int WarmupTicks { get; set; }
         public float DeltaTime { get; set; }
+        public bool StaggerCadence { get; set; }
     }
 
     public sealed class HarnessResults
