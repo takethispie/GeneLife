@@ -1,6 +1,6 @@
 {
   "title": "GeneLife — Team Board",
-  "updated": "2026-11-26T22:14Z",
+  "updated": "2026-11-26T22:16Z",
   "description": "Shared team board for the GeneLife project; source of truth for the chat kanban widget. States: waiting to run -> currently running -> done. 'Currently running' holds each member's selected next task (cards marked 'next'), with ETA/branch/blocker notes. SCHEDULING: main-dev holds a QUIET WINDOW for the V6 Release perf measurement; gabrielo and pedro DEFER Release perf runs until it closes (published here because the bot-to-bot hop limit blocked direct DMs). Scope: StaggerCadence is the only live V6 opt-in (parallel passes removed in roadmap 3.2).",
   "states": [
     {
@@ -63,15 +63,14 @@
       "owner": "donatello",
       "state": "running",
       "selected": true,
-      "note": "ETA ~2h · 12 pages (adriano says 13 - to reconcile)"
+      "note": "ETA ~2h · 12 pages (confirmed: Home + NotFound + 10 sections)"
     },
     {
       "id": "c7",
       "title": "Fix Home.razor Dashboard placeholder defect",
       "owner": "ricardo",
-      "state": "running",
-      "selected": true,
-      "note": "unblocked via relay · branch dev/ricardo/home-dashboard-placeholder · root cause NavMenu.razor:13 -> Home.razor"
+      "state": "done",
+      "note": "merged to master c0f39f3 · 35/35 Web tests green on master"
     },
     {
       "id": "c8",
