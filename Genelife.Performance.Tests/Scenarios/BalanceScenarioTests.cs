@@ -79,9 +79,11 @@ public class BalanceScenarioTests
         Assert.InRange(report.DecadeMoneySupplyGrowth, 0m, 0.10m);
         Assert.True(report.EndLiving > 0, "population collapsed");
 
-        // 1k–2k target misses are recorded in the report rather than hidden, so
-        // the release decision can see them; the strict CI bands stay on 200.
-        AssertBalanceRatchets(report);
+        // Rent burden and Gini currently MISS the V5 bands, so they are asserted
+        // against the TARGET at every scale — never against the measured baseline,
+        // which would bake in the live miss. EXPECT THIS RED until pedro's
+        // rent-burden rebalance lands (break bisected to commit 5ddc300).
+        AssertBalanceBands(report);
 
         if (genoses == 200)
             AssertTargetBands(report);
@@ -120,9 +122,8 @@ public class BalanceScenarioTests
     }
 
     /// <summary>
-    /// Hard targets that currently pass, checked at the reference scale (200) only.
-    /// Rent burden and Gini are deliberately absent: they still miss their target
-    /// bands, so they are held as ratchets in <see cref="AssertBalanceRatchets"/>.
+    /// The other V5 bands, checked at the reference scale (200). All currently pass.
+    /// Rent burden and Gini live in <see cref="AssertBalanceBands"/>.
     /// </summary>
     private static void AssertTargetBands(BalanceReport report)
     {
@@ -138,37 +139,25 @@ public class BalanceScenarioTests
     }
 
     /// <summary>
-    /// Regression ratchets for the two balance bands that currently MISS their
-    /// targets (rent burden ≤ 0.40, Gini ≤ 0.70). Rather than an assertion that is
-    /// red on arrival — which is what the old hard bands were — each metric is held
-    /// no-worse-than its measured baseline × 1.02. A regression is loud, the known
-    /// miss stays green, and the ceilings tighten down toward the real targets once
-    /// pedro's rebalance lands.
+    /// V5 acceptance bands for rent burden (≤ 0.40) and Gini (≤ 0.70), asserted at
+    /// EVERY scale. The default path currently misses both at every scale (seed 21,
+    /// 2026-11-26: rent 0.4041/0.4619/0.4619 and Gini 0.7802/0.7699/0.7881 at
+    /// 200/1k/2k), so this is intentionally RED.
     ///
-    /// Ceilings measured 2026-11-26, seed 21, after main-dev's household-pooling fix
-    /// (which narrowed rent burden 0.4323 → 0.4041 at 200).
+    /// Do NOT relax it to the measured baseline: a ratchet set just above a broken
+    /// value hides a live regression rather than reporting it. It goes green when
+    /// pedro's rent-burden rebalance lands. Owner: pedro (board: rent-burden rebalance).
     /// </summary>
-    private static void AssertBalanceRatchets(BalanceReport report)
+    private static void AssertBalanceBands(BalanceReport report)
     {
         var final = report.Years[^1];
-        var ceiling = RatchetCeilings(report.RequestedGenoses);
 
-        Assert.True(final.MedianRentBurden <= ceiling.RentBurden,
+        Assert.True(final.MedianRentBurden <= 0.40m,
             $"{report.RequestedGenoses}-{report.Seed}: median rent burden {final.MedianRentBurden:F4} " +
-            $"regressed beyond the ratchet ceiling {ceiling.RentBurden:F4} (target 0.40)");
-        Assert.True(final.Gini <= ceiling.Gini,
-            $"{report.RequestedGenoses}-{report.Seed}: Gini {final.Gini:F4} regressed beyond the " +
-            $"ratchet ceiling {ceiling.Gini:F4} (target 0.70)");
+            $"exceeds the V5 ceiling 0.40");
+        Assert.True(final.Gini <= 0.70m,
+            $"{report.RequestedGenoses}-{report.Seed}: Gini {final.Gini:F4} exceeds the V5 ceiling 0.70");
     }
-
-    private static (decimal RentBurden, decimal Gini) RatchetCeilings(int genoses) => genoses switch
-    {
-        60 => (0.4712m, 0.7710m),    // measured 0.46188 / 0.75587
-        200 => (0.4122m, 0.7958m),   // measured 0.40412 / 0.78023
-        1000 => (0.4712m, 0.7853m),  // measured 0.46188 / 0.76989
-        2000 => (0.4712m, 0.8039m),  // measured 0.46188 / 0.78813
-        _ => (0.5000m, 0.8500m),
-    };
 
     private static BalanceReport BuildReport(
         SimulationEngine engine,
