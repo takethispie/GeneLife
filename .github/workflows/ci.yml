@@ -24,6 +24,10 @@ jobs:
           dotnet run --project Genelife.Domain.Tests/Genelife.Domain.Tests.csproj
           -c Release --no-build --no-launch-profile --
           -trait- "Category=Scenario"
+      - run: dotnet build Genelife.Web.Tests/Genelife.Web.Tests.csproj -c Release --no-restore
+      - run: >
+          dotnet run --project Genelife.Web.Tests/Genelife.Web.Tests.csproj
+          -c Release --no-build --no-launch-profile
 
   integration:
     runs-on: ubuntu-latest

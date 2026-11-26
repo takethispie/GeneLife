@@ -86,6 +86,10 @@ public class DecisionSystemTests
         }
         var system = new DecisionSystem(world);
 
+        // Warm up: the first Query() pays a one-time cost to build Arch's query
+        // cache, so measure the steady state the tick loop actually sees.
+        system.Update();
+
         GC.Collect();
         GC.WaitForPendingFinalizers();
         GC.Collect();
@@ -94,8 +98,11 @@ public class DecisionSystemTests
         system.Update();
         var allocatedAfter = GC.GetAllocatedBytesForCurrentThread();
 
-        Assert.True(allocatedAfter - allocatedBefore >= 0,
-            $"DecisionSystem.Update allocated {allocatedAfter - allocatedBefore} bytes");
+        // A lambda written inside Update() captures `world` and allocates a fresh
+        // closure every tick (measured at 64 B/tick, constant in entity count) --
+        // exactly the per-tick allocation the V6 hot path must not have. The
+        // callback is hoisted to a field, so steady-state cost must be exactly zero.
+        Assert.Equal(0, allocatedAfter - allocatedBefore);
     }
 
     [Fact]

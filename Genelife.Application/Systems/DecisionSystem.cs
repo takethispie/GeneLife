@@ -24,12 +24,18 @@ public class DecisionSystem : ISimulationSystem
     private readonly World world;
     private readonly QueryDescription queryDescription;
 
+    // Hoisted so Update() allocates nothing: a lambda created inside Update would
+    // capture `world` and allocate a fresh closure + delegate on every tick.
+    private readonly ForEachWithEntity<CurrentAction, Needs> decide;
+
     public DecisionSystem(World world)
     {
         this.world = world;
         queryDescription = new QueryDescription()
             .WithAll<CurrentAction, Needs>()
             .WithNone<PlayerControlled, Dead>();
+        decide = (Entity entity, ref CurrentAction action, ref Needs needs) =>
+            Decide(world, entity, ref action, ref needs);
     }
 
     public string Name => "Decision";
@@ -40,8 +46,7 @@ public class DecisionSystem : ISimulationSystem
 
     public void Update()
     {
-        world.Query(in queryDescription, (Entity entity, ref CurrentAction action, ref Needs needs) =>
-            Decide(world, entity, ref action, ref needs));
+        world.Query(in queryDescription, decide);
     }
 
     private static void Decide(World world, Entity entity, ref CurrentAction action, ref Needs needs)
