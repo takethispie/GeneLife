@@ -1,6 +1,6 @@
 {
   "title": "GeneLife — Team Board",
-  "updated": "2026-11-26T22:28Z",
+  "updated": "2026-11-26T22:31Z",
   "description": "Shared team board for the GeneLife project; source of truth for the chat kanban widget. States: waiting to run -> currently running -> done. 'Currently running' holds each member's selected next task (cards marked 'next'), with ETA/branch/blocker notes. SCHEDULING: main-dev holds a QUIET WINDOW for the V6 Release perf measurement; gabrielo and pedro DEFER Release perf runs until it closes (published here because the bot-to-bot hop limit blocked direct DMs). Scope: StaggerCadence is the only live V6 opt-in (parallel passes removed in roadmap 3.2).",
   "states": [
     {
@@ -30,7 +30,7 @@
       "owner": "pedro",
       "state": "running",
       "selected": true,
-      "note": "quiet window RELEASED (Release runs OK) · balance-200-21 now 0.4041 vs 0.40 (pre-existing; household pooling narrowed it from 0.4323) is your rebalance target · ETA ~2-3h"
+      "note": "bisected the default-path band miss to commit 5ddc300 (monthly consumption Order 460->506): 0.3774/0.6566 pass -> 0.4323/0.6954 fail · current master 200 0.4041, 1k/2k 0.4619 · folding into this rebalance card"
     },
     {
       "id": "c3",
@@ -46,7 +46,7 @@
       "owner": "gabrielo",
       "state": "running",
       "selected": true,
-      "note": "PR fast-tier guardrails DONE & pushed (53ae9ca, fast tier 594/594) · quiet window RELEASED · balance-band ratchet half still blocked on pedro's target values"
+      "note": "ratchet half UNBLOCKED - self-baselining 1k/2k (not waiting on pedro) · targets: rent burden <=0.40, Gini <=0.70, vacancy <=0.12 at 200/seed21; expect RED until rebalance"
     },
     {
       "id": "c5",
