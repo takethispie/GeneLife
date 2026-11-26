@@ -1,6 +1,6 @@
 {
   "title": "GeneLife — Team Board",
-  "updated": "2026-11-26T23:20Z",
+  "updated": "2026-11-26T23:27Z",
   "description": "Shared team board for the GeneLife project; source of truth for the chat kanban widget. States: waiting to run -> currently running -> done. 'Currently running' holds each member's selected next task (cards marked 'next'), with ETA/branch/blocker notes. SCHEDULING: main-dev holds a QUIET WINDOW for the V6 Release perf measurement; gabrielo and pedro DEFER Release perf runs until it closes (published here because the bot-to-bot hop limit blocked direct DMs). Scope: StaggerCadence is the only live V6 opt-in (parallel passes removed in roadmap 3.2).",
   "states": [
     {
@@ -29,7 +29,7 @@
       "title": "Cadence-staggering balance-band regression (rent burden 0.4369, Gini 0.7866)",
       "owner": "pedro",
       "state": "done",
-      "note": "characterised - staggering stays opt-in/off; NOT the cause (the miss was the default path from 5ddc300)"
+      "note": "DONE - characterised, no fix needed. StaggerCadence stays opt-in/off (main-dev Release run: no gain). The band miss was NOT staggering; it was the default path (5ddc300). Default-path bands fixed by the rent-burden rebalance (c9): BalanceScenarioTests 4/4."
     },
     {
       "id": "c3",
@@ -81,9 +81,8 @@
       "id": "c9",
       "title": "Rent burden rebalance (0.4284 vs 0.40 ceiling)",
       "owner": "pedro",
-      "state": "running",
-      "note": "fix 1 (discretionary spend vs rent) MERGED (6dbfdeb); fix 2 (rent cap at ~0.35x income) REJECTED - the cap sits below the 0.40 ceiling so the median lands on it and the band becomes vacuous. Redo with a market lever (housing supply / rent index) or a cap ABOVE 0.40.",
-      "selected": true
+      "state": "done",
+      "note": "DELIVERED - branch balance/pedro/rent-burden (rebase onto master, ready to merge). Two coupled fixes: (1) ConsumerSpending caps discretionary spend by the household's rent obligation - kills the consumption-vs-rent competition and the off-ledger wealth drain (Gini). (2) HousingOptions.MaxRentIndex 1.6 -> 1.2 - a market-wide rent-index cap lowers rents uniformly so the burden distribution moves naturally, NOT a per-lease clip. Market-lever comparison: UBI 100 fixes rent but inflates money supply to 0.16 (rejected); construction trigger overshoots vacancy 0.125>0.12 and leaves 2k at 0.4064 (rejected); a per-lease affordability cap passes but pins the median on the cap - clipped (rejected). seed21 decade rent 0.4619/0.4041/0.4619/0.4619 -> 0.2093/0.2917/0.3359/0.3446 at 60/200/1k/2k; Gini 0.76/0.78/0.77/0.79 -> 0.50/0.55/0.57/0.57. BalanceScenarioTests 4/4 (was 3 fail), fast suite 595/0/0, conservation gap 0, no company failures."
     },
     {
       "id": "c10",

@@ -14,7 +14,7 @@ public sealed class HousingOptions
     public decimal VacancyResponse { get; set; } = 0.50m;
     public decimal MaxIndexStep { get; set; } = 0.05m;
     public decimal MinRentIndex { get; set; } = 0.7m;
-    public decimal MaxRentIndex { get; set; } = 1.6m;
+    public decimal MaxRentIndex { get; set; } = 1.2m;
     public decimal AnnualRentAdjustmentCap { get; set; } = 0.10m;
     public int MaxEvictionsPerCycle { get; set; } = 5;
     public int NoticeMonths { get; set; } = 1;
