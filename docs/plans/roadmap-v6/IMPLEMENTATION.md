@@ -52,6 +52,13 @@ moves p95/p99/allocation/dropped ticks without breaking determinism or the V5 ac
   (0.4073 rent burden, 0.776 Gini), because every-tick systems still interleave differently.
   Per-interval run counts and same-seed determinism are unchanged, but the V5 balance bands
   are part of acceptance, so the default keeps offsets at zero.
+  **Release re-measurement settles it.** Five sweeps per arm in `-c Release` on a quiet machine
+  (`GENELIFE_STAGGER_CADENCE=1` drives the opt-in from `LoadHarness`): at the 2,000-genos gate p95
+  was 1.97 ms with offsets zeroed and 2.72 ms with them enabled (worst 2.24 vs 3.05 ms), while 5k
+  synthetic moved the other way (10.83 -> 9.87 ms p95) and 1k realistic was flat (0.31 vs 0.28 ms).
+  Allocation per tick is identical to within ~50 B, and the repeat-to-repeat spread at 5k (2-3 ms)
+  is wider than every delta, so the differences are noise. There is no Release-build gain to weigh
+  against the balance regression above: staggering stays opt-in and off.
 - **Parallel per-entity passes (`ParallelSystems`, removed).** The passes were deterministic across
   chunks, but chunk scheduling costs more than the work for these cheap per-entity loops on the
   1k/5k harness in Debug builds; enabling it raised 5k p95 from ~6.4 ms to ~11 ms. It was kept as
@@ -119,8 +126,13 @@ dotnet run --project Genelife.Performance.Tests/Genelife.Performance.Tests.cspro
 
 ## Known follow-ups
 
-- Re-measure `StaggerCadence` in a Release build and on a quiet machine before deciding whether
-  it should become the default. (`ParallelSystems` was removed; see 3.2.)
+- ~~Re-measure `StaggerCadence` in a Release build and on a quiet machine.~~ Done: no gain, stays
+  off (see the opt-in decisions). `LoadHarness` now reads `GENELIFE_STAGGER_CADENCE=1` and appends
+  `_stagger` to its report names, so both arms are reproducible without editing code, and a 2k
+  fixture was added because the gate is 2,000 genoses while only 1k/5k existed.
+- `balance-200-21` still misses its rent-burden band on the default path: median rent burden 0.4041
+  against the 0.40 ceiling. Household cash pooling (needs work) had already moved it down from
+  0.4323, so the remainder is the open rebalance, not a regression from this roadmap.
 - The legacy admin endpoints now wait up to 50 ms for the next tick; if that latency matters,
   convert them to the `202 Accepted` + `/api/commands/{id}` pattern used by the newer admin
   endpoints.
