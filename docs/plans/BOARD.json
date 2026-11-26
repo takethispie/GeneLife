@@ -1,7 +1,7 @@
 {
   "title": "GeneLife — Team Board",
-  "updated": "2026-11-26T22:11Z",
-  "description": "Shared team board for the GeneLife project; source of truth for the chat kanban widget. States: waiting to run -> currently running -> done. 'Currently running' holds the tasks selected as each member's next work after the 2026-11-26 next-task round (cards marked 'next'). The V6 opt-in re-measurement is the only open release gate and the spine of the current plan. Edit this file and regenerate the widget, or drag cards in the widget and press Save.",
+  "updated": "2026-11-26T22:13Z",
+  "description": "Shared team board for the GeneLife project; source of truth for the chat kanban widget. States: waiting to run -> currently running -> done. 'Currently running' holds each member's selected next task (cards marked 'next'), with ETA/branch/blocker notes from the 2026-11-26 dispatch round. The V6 opt-in re-measurement is the only open release gate and the spine of the plan. Edit this file and regenerate the widget, or drag cards in the widget and press Save.",
   "states": [
     {
       "id": "waiting",
@@ -19,11 +19,11 @@
   "cards": [
     {
       "id": "c1",
-      "title": "V6 opt-in re-measurement (Release build): cadence staggering + parallel passes",
+      "title": "V6 opt-in re-measurement (Release build) — StaggerCadence only (parallel passes removed in roadmap 3.2)",
       "owner": "main-dev",
       "state": "running",
       "selected": true,
-      "note": "the gate — decides whether V6 defaults flip"
+      "note": "ETA ~3h · BLOCKED on a quiet machine: gabrielo/pedro probes running concurrently make wall-clock numbers non-comparable"
     },
     {
       "id": "c2",
@@ -31,7 +31,7 @@
       "owner": "pedro",
       "state": "running",
       "selected": true,
-      "note": "blocks V6 opt-in adoption"
+      "note": "ETA ~2-3h repro+attribution · hypothesis: staggering desyncs income->consumption->rent (Payroll +9 vs base-boundary spend/rent)"
     },
     {
       "id": "c3",
@@ -39,7 +39,7 @@
       "owner": "roberto",
       "state": "running",
       "selected": true,
-      "note": "de-risks the V6 re-measurement"
+      "note": "ETA ~30m · output docs/research/v6-opt-in-dossier.md (branch research/roberto/genelife-research)"
     },
     {
       "id": "c4",
@@ -47,15 +47,15 @@
       "owner": "gabrielo",
       "state": "running",
       "selected": true,
-      "note": "economy regressions currently pass CI silently"
+      "note": "ETA ~1-2h · into PR fast tier; needs pedro's target values to set the ratchet epsilon"
     },
     {
       "id": "c5",
-      "title": "Page-level component tests for the 13 Genelife.Web admin pages",
+      "title": "Page-level component tests for the Genelife.Web admin pages",
       "owner": "adriano",
       "state": "running",
       "selected": true,
-      "note": "4 components covered; all 13 pages untested"
+      "note": "ETA ~5h / 3 commits · branch test/adriano/admin-page-tests (worktree G:/dev/GeneLife-adriano)"
     },
     {
       "id": "c6",
@@ -63,7 +63,7 @@
       "owner": "donatello",
       "state": "running",
       "selected": true,
-      "note": "live stack already up"
+      "note": "ETA ~2h · 12 pages (adriano says 13 - to reconcile)"
     },
     {
       "id": "c7",
@@ -71,7 +71,7 @@
       "owner": "ricardo",
       "state": "running",
       "selected": true,
-      "note": "repro from donatello; user-visible admin landing page"
+      "note": "unblocked via relay · branch dev/ricardo/home-dashboard-placeholder · root cause NavMenu.razor:13 -> Home.razor"
     },
     {
       "id": "c8",
