@@ -10,9 +10,9 @@ Feature roadmaps (`roadmap-vN`) record delivered implementation only. Production
 | [V2](roadmap-v2/README.md) | Spatial world, buildings and player presence | Implemented |
 | [V3](roadmap-v3/README.md) | Browser game client | Implemented (vertical slice) |
 | [V4](roadmap-v4/README.md) | Relationships, attraction and reproduction | Release-ready (one opt-in follow-up) |
-| [V5](roadmap-v5/README.md) | Playable society (player life, appearance, consumption, social, live ops) | Features 01–04 done; feature 05 implementation complete |
+| [V5](roadmap-v5/README.md) | Playable society (player life, appearance, consumption, social, live ops) | Released |
 | [V6](roadmap-v6/README.md) | Tick performance (dropped ticks, lock contention, parallelism) | Implemented |
-| [release-roadmap-V5](release-roadmap-V5/README.md) | V5 production release checks | Open |
+| [release-roadmap-V5](release-roadmap-V5/README.md) | V5 production release checks | Released |
 
 ---
 
@@ -96,6 +96,6 @@ Feature roadmaps (`roadmap-vN`) record delivered implementation only. Production
 ## Current state (as of V6)
 
 - V1–V4: implemented and release-ready.
-- V5: implementation complete. Production release checks live in [`release-roadmap-V5/`](release-roadmap-V5/README.md).
+- V5: released. Production release checks in [`release-roadmap-V5/`](release-roadmap-V5/README.md) are complete.
 - V6: implemented; two opt-in changes (staggering, parallel passes) await Release-build re-measurement.
-- Next roadmap: none defined yet — V5 production release (`release-roadmap-V5`) and V6 opt-in re-measurement are the immediate gates.
+- Next roadmap: none defined yet — V6 opt-in re-measurement is the immediate gate (V5 shipped).
