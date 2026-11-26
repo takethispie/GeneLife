@@ -1,5 +1,7 @@
 # Company Revenue Visibility Implementation Plan
 
+> **Delivered** — shipped in `87a28ef` (*fix(economy): restore company revenue visibility*), with doc-maintenance follow-ups `f6551bb` and `a1b044e`. All 14 implementation steps are present in the current tree (verified 2026-11-26). This document is kept as the design record, not as live work.
+
 ## Context
 
 Two independent root causes make per-company revenue appear as zero:

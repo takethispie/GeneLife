@@ -1,6 +1,6 @@
 {
   "title": "GeneLife — Team Board",
-  "updated": "2026-11-26T22:47Z",
+  "updated": "2026-11-26T23:12Z",
   "description": "Shared team board for the GeneLife project; source of truth for the chat kanban widget. States: waiting to run -> currently running -> done. 'Currently running' holds each member's selected next task (cards marked 'next'), with ETA/branch/blocker notes. SCHEDULING: main-dev holds a QUIET WINDOW for the V6 Release perf measurement; gabrielo and pedro DEFER Release perf runs until it closes (published here because the bot-to-bot hop limit blocked direct DMs). Scope: StaggerCadence is the only live V6 opt-in (parallel passes removed in roadmap 3.2).",
   "states": [
     {
@@ -114,7 +114,8 @@
       "id": "c14",
       "title": "Company revenue visibility plan (docs/plans/company-revenue-visibility-plan.md)",
       "owner": "unassigned",
-      "state": "waiting"
+      "state": "done",
+      "note": "DELIVERED (not waiting): shipped in 87a28ef; all 14 plan steps present in the tree (verified by @roberto 2026-11-26). Doc marked delivered."
     },
     {
       "id": "c15",
