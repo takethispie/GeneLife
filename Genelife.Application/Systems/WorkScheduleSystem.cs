@@ -124,6 +124,14 @@ public class WorkScheduleSystem : ISimulationSystem
             if (tick - schedule.LastShiftStartTick < ShiftCooldownTicks)
                 return;
 
+            // Never start a shift while a need-fulfilling action is in flight.
+            // Overwriting CurrentAction aborts the action before it can reach
+            // TimeRemaining <= 0, and that completion is the only path that
+            // restores the need to 100 (see ActionSystem). Deferring is harmless:
+            // the cooldown gate is re-checked on the next sample.
+            if (IsNeedAction(action.Type) && action.TimeRemaining > 0f)
+                return;
+
             schedule.IsAtWork = true;
             schedule.ShiftTicksRemaining = ShiftLengthTicks;
             schedule.LastShiftStartTick = tick;
@@ -222,6 +230,18 @@ public class WorkScheduleSystem : ISimulationSystem
             return ActionType.Eating;
         if (needs.Bladder < InterruptThreshold)
             return ActionType.UsingToilet;
+        if (needs.Hygiene < InterruptThreshold)
+            return ActionType.Showering;
         return ActionType.Idle;
     }
+
+    /// <summary>
+    /// Actions that fulfil a need and therefore must be allowed to run to
+    /// completion instead of being clobbered by a shift start.
+    /// </summary>
+    private static bool IsNeedAction(ActionType type) =>
+        type is ActionType.Eating
+            or ActionType.Sleeping
+            or ActionType.Showering
+            or ActionType.UsingToilet;
 }
