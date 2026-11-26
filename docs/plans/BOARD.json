@@ -1,7 +1,7 @@
 {
   "title": "GeneLife — Team Board",
-  "updated": "2026-11-26T23:27Z",
-  "description": "Shared team board for the GeneLife project; source of truth for the chat kanban widget. States: waiting to run -> currently running -> done. 'Currently running' holds each member's selected next task (cards marked 'next'), with ETA/branch/blocker notes. SCHEDULING: main-dev holds a QUIET WINDOW for the V6 Release perf measurement; gabrielo and pedro DEFER Release perf runs until it closes (published here because the bot-to-bot hop limit blocked direct DMs). Scope: StaggerCadence is the only live V6 opt-in (parallel passes removed in roadmap 3.2).",
+  "updated": "2026-11-26T23:29Z",
+  "description": "Shared team board for the GeneLife project; source of truth for the chat kanban widget. States: waiting to run -> currently running -> done. 'Currently running' holds each member's selected next task (cards marked 'next'), with ETA/branch/blocker notes. Status: the V5 balance regression (rent burden / Gini) is FIXED (rent-burden rebalance merged); the V6 opt-in question is CLOSED (StaggerCadence stays opt-in/off).",
   "states": [
     {
       "id": "waiting",
