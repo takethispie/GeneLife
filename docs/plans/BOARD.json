@@ -1,6 +1,6 @@
 {
   "title": "GeneLife — Team Board",
-  "updated": "2026-11-26T23:29Z",
+  "updated": "2026-11-26T23:30Z",
   "description": "Shared team board for the GeneLife project; source of truth for the chat kanban widget. States: waiting to run -> currently running -> done. 'Currently running' holds each member's selected next task (cards marked 'next'), with ETA/branch/blocker notes. Status: the V5 balance regression (rent burden / Gini) is FIXED (rent-burden rebalance merged); the V6 opt-in question is CLOSED (StaggerCadence stays opt-in/off).",
   "states": [
     {
@@ -53,7 +53,7 @@
       "owner": "adriano",
       "state": "running",
       "selected": true,
-      "note": "ETA ~5h / 3 commits · branch test/adriano/admin-page-tests (worktree G:/dev/GeneLife-adriano)"
+      "note": "Genelife.Web.Tests on master: 35 tests / 0 failed; 11 of 12 admin pages still uncovered (was mislabelled 13 pages)."
     },
     {
       "id": "c6",
@@ -93,14 +93,16 @@
     {
       "id": "c11",
       "title": "Admin E2E specs (e2e/admin, Playwright admin-chromium, CI-green)",
-      "owner": "gabrielo",
-      "state": "waiting"
+      "owner": "donatello",
+      "state": "waiting",
+      "note": "reassigned from @gabrielo (now backend-only)"
     },
     {
       "id": "c12",
       "title": "Admin responsive-viewport coverage (admin-chromium only today)",
-      "owner": "gabrielo",
-      "state": "waiting"
+      "owner": "donatello",
+      "state": "running",
+      "note": "reassigned from @gabrielo; @donatello starting here (rebasing off master)"
     },
     {
       "id": "c13",
@@ -174,7 +176,8 @@
       "id": "c24",
       "title": "Genelife.Web.Tests bUnit project wired into CI",
       "owner": "gabrielo",
-      "state": "done"
+      "state": "done",
+      "note": "bUnit project ownership now @donatello (@gabrielo is backend-only). Components/SimulationControlTests.cs authorship is @adriano's, not @donatello's (landed in 2c6a087)."
     },
     {
       "id": "c25",
