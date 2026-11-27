@@ -89,7 +89,7 @@ public class ConsumerSpendingSystem : ISimulationSystem
         state.StartMonth();
 
         var options = economy.Options;
-        var budget = options.MonthlyConsumptionBudget;
+        var budget = economy.MonthlyConsumptionBudget;
 
         // Savings above the emergency floor are spendable. Without this, a
         // household can accumulate years of savings while consumption stays
@@ -295,7 +295,7 @@ public class ConsumerSpendingSystem : ISimulationSystem
 
     private void RecordUnmetForEveryone(long tick)
     {
-        var budget = economy.Options.MonthlyConsumptionBudget;
+        var budget = economy.MonthlyConsumptionBudget;
         var genoses = new List<Entity>();
         world.Query(in genosQuery, (Entity entity, ref GenName _, ref Wallet _) => genoses.Add(entity));
 

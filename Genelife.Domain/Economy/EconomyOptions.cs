@@ -60,7 +60,32 @@ public sealed class EconomyOptions
     public Money UniversalBasicIncome { get; set; } = Money.FromUnits(50m);
     public int BasicIncomeIntervalTicks { get; set; } = 100;
 
-    public Money MonthlyConsumptionBudget { get; set; } = Money.FromUnits(200m);
+    public Money MonthlyConsumptionBudget { get; set; } = Money.FromUnits(230m);
+
+    /// <summary>
+    /// Nominal growth applied to <see cref="MonthlyConsumptionBudget"/> each
+    /// simulation year, mirroring nominal wage indexation. The consumption pass
+    /// is needs-driven and capped by the budget, so a budget fixed in nominal
+    /// terms cannot recycle wage growth: firm revenue (household demand) stays
+    /// flat while the wage bill compounds, and the wage share of firm revenue
+    /// drifts past 1 (its structural ceiling). Indexing both sides together
+    /// keeps the ratio stable. Set to 0 to model a fixed nominal budget.
+    /// </summary>
+    public decimal ConsumptionBudgetIndexation { get; set; } = 0.02m;
+
+    /// <summary>
+    /// The nominal monthly consumption budget for a given simulation year.
+    /// Year 1 is the reference year; earlier ticks clamp to it.
+    /// </summary>
+    public Money MonthlyConsumptionBudgetFor(int year)
+    {
+        if (ConsumptionBudgetIndexation <= 0m || year <= 1)
+            return MonthlyConsumptionBudget;
+
+        var factor = (decimal)Math.Pow(1.0 + (double)ConsumptionBudgetIndexation, year - 1);
+        return MonthlyConsumptionBudget.Multiply(factor);
+    }
+
     public decimal FoodShare { get; set; } = 0.45m;
     public decimal HygieneShare { get; set; } = 0.15m;
     public decimal LeisureShare { get; set; } = 0.20m;

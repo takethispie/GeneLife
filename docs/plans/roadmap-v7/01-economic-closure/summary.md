@@ -19,7 +19,7 @@ Then it retires the two opt-ins, so the series does not carry "still opt-in" mar
 
 ## Baseline
 
-- `AssertBalanceBands` asserts rent burden <= 0.40 and Gini <= 0.70 at every scale; `AssertTargetBands` asserts unemployment, homelessness, pension funding, wage share and vacancy at the reference scale of 200; `BalanceScenarioTests` also asserts sink delta 0, conservation gap 0 and money supply growth <= 0.10 at every scale.
+- `AssertBalanceBands` asserts rent burden <= 0.40, Gini <= 0.70 and the wage share of firm revenue <= 1.00 at every scale; `AssertTargetBands` asserts unemployment, homelessness, pension funding and vacancy at the reference scale of 200; `BalanceScenarioTests` also asserts sink delta 0, conservation gap 0 and money supply growth <= 0.10 at every scale.
 - Gabrielo's band guardrails recently moved from `[Skip]` to a hard assert, so the fast and performance tiers fail rather than skip.
 - Rent burden and Gini are inside band as of `ede655b` (seed 21, final year): 0.2093 / 0.2917 / 0.3359 / 0.3446 and 0.50 / 0.55 / 0.57 / 0.57 at 60 / 200 / 1k / 2k, against 0.4619 / 0.4041 / 0.4619 / 0.4619 and 0.76 / 0.78 / 0.77 / 0.79 before it. `BalanceScenarioTests` is 5/5 on freshly fetched master.
 - `BalanceScenarioTests` still carried comments describing rent burden and Gini as currently missing the V5 bands and telling the reader to expect the assertion red until a rebalance landed. Corrected in this branch; the general guard does not exist.

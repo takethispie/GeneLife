@@ -87,6 +87,14 @@ public sealed class EconomyContext
     public UtilityOptions UtilityOptions { get; set; } = new();
 
     public EconomyOptions Options { get; }
+
+    /// <summary>
+    /// Nominal monthly consumption budget for the current simulation year
+    /// (see <see cref="EconomyOptions.MonthlyConsumptionBudgetFor"/>). Single
+    /// source of truth so the spending pass, the poverty checks and the unmet
+    /// accounting all use the same indexed figure.
+    /// </summary>
+    public Money MonthlyConsumptionBudget => Options.MonthlyConsumptionBudgetFor(Clock.YearOf(Tick));
     public HousingOptions HousingOptions { get; }
     public GeneticsOptions Genetics { get; }
     public HousingRegistry Housing { get; }

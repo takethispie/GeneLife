@@ -115,6 +115,6 @@ public class MortalitySystem : ISimulationSystem
 
         var finance = new Housing.HouseholdFinanceService(world, economy);
         var rent = world.Has<Household>(household) ? world.Get<Household>(household).MonthlyRent : Values.Money.Zero;
-        return finance.Cash(household) < rent + economy.Options.MonthlyConsumptionBudget;
+        return finance.Cash(household) < rent + economy.MonthlyConsumptionBudget;
     }
 }

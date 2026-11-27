@@ -123,7 +123,8 @@ public class BalanceScenarioTests
 
     /// <summary>
     /// The other V5 bands, checked at the reference scale (200). All currently pass.
-    /// Rent burden and Gini live in <see cref="AssertBalanceBands"/>.
+    /// Rent burden, Gini and wage share live in <see cref="AssertBalanceBands"/>
+    /// because they are asserted at every scale.
     /// </summary>
     private static void AssertTargetBands(BalanceReport report)
     {
@@ -134,20 +135,22 @@ public class BalanceScenarioTests
         Assert.InRange(final.UnemploymentRate, 0m, 0.10m);
         Assert.Equal(0, final.HomelessHouseholds);
         Assert.InRange(final.PensionFundingRatio, 0.80m, 2m);
-        Assert.InRange(final.WageShare, 0m, 1.0m);
         Assert.InRange(final.HousingVacancyRate, 0m, 0.12m);
     }
 
     /// <summary>
-    /// V5 acceptance bands for rent burden (≤ 0.40) and Gini (≤ 0.70), asserted at
-    /// EVERY scale. Green as of the rent-burden rebalance (ede655b, seed 21, final
-    /// year): rent 0.2093/0.2917/0.3359/0.3446 and Gini 0.50/0.55/0.57/0.57 at
-    /// 60/200/1k/2k. Both were RED from 5ddc300 until then — the miss was a
-    /// regression from the consumption ordering change, not a pre-existing gap.
+    /// Bands asserted at EVERY scale: rent burden (≤ 0.40), Gini (≤ 0.70) and
+    /// wage share of firm revenue (≤ 1.00). The wage-share ceiling is the
+    /// closed-loop non-deficit bound, not the ILO labour income share (~52 % of
+    /// value added) — GeneLife models no intermediate inputs and no separate
+    /// capital factor, so its labour share legitimately runs high and crosses 1
+    /// when firms collectively pay out more wages than the revenue they take in.
+    /// Indexing the consumer budget with nominal wages (demand recycling) keeps
+    /// it interior; before that fix it reached 1.103 at 60 genoses.
     ///
-    /// Do NOT relax it to the measured baseline: a ratchet set just above the current
-    /// value hides a live regression rather than reporting it. A red band is a work
-    /// item — never annotate it as expected.
+    /// Do NOT relax a ceiling to the measured baseline: a ratchet set just above
+    /// the current value hides a live regression rather than reporting it. A red
+    /// band is a work item — never annotate it as expected.
     /// </summary>
     private static void AssertBalanceBands(BalanceReport report)
     {
@@ -158,6 +161,9 @@ public class BalanceScenarioTests
             $"exceeds the V5 ceiling 0.40");
         Assert.True(final.Gini <= 0.70m,
             $"{report.RequestedGenoses}-{report.Seed}: Gini {final.Gini:F4} exceeds the V5 ceiling 0.70");
+        Assert.True(final.WageShare <= 1.00m,
+            $"{report.RequestedGenoses}-{report.Seed}: wage share of firm revenue {final.WageShare:F4} " +
+            $"exceeds the closed-loop ceiling 1.00 (firms paying out more wages than revenue)");
     }
 
     private static BalanceReport BuildReport(
