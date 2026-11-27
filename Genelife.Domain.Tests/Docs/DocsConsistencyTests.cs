@@ -97,16 +97,17 @@ public class DocsConsistencyTests
     /// <summary>
     /// Metric naming rule: a metric must name its harness and its aggregation. The V7
     /// band-state table's <c>Source</c> column is where a band names the harness that
-    /// produced it, so a row without one is a number that cannot be reproduced — the
-    /// defect behind the "61 vs 3" health-warning confusion, where a V4 figure quoted
-    /// without a harness could not be reconciled (it reproduces as neither 61 nor 3).
+    /// produced it, so a source that names no harness is a number that cannot be
+    /// reproduced — the defect behind the "61 vs 3" health-warning confusion, where a
+    /// V4 figure quoted without a harness could not be reconciled (it reproduces as
+    /// neither 61 nor 3).
     /// </summary>
     [Fact]
     public void Band_state_table_names_a_source_for_every_metric()
     {
         var lines = Read("docs/plans/roadmap-v7/STATUS.md")
             .Split('\n')
-            .Select(line => line.TrimEnd('\r'))
+            .Select(line => line.Trim())
             .ToArray();
 
         var header = Array.FindIndex(lines, line => line.StartsWith("| Band | Population / seed |"));
@@ -118,11 +119,15 @@ public class DocsConsistencyTests
             .ToArray();
         Assert.NotEmpty(rows);
 
+        // A Source must name the harness that produced the metric — a *Tests test class,
+        // optionally qualified with the asserting method (e.g. BalanceScenarioTests.AssertTargetBands).
+        // A bare count, a commit hash or a prior status page names no harness and cannot be re-run.
         foreach (var row in rows)
         {
             var cells = row.Split('|').Select(cell => cell.Trim()).Where(cell => cell.Length > 0).ToArray();
             Assert.True(cells.Length == 5, $"band row does not have 5 columns: {row}");
-            Assert.False(string.IsNullOrWhiteSpace(cells[4]), $"band row names no source: {row}");
+            Assert.True(HarnessToken().IsMatch(cells[4]),
+                $"band row's Source names no harness (a *Tests class): {row}");
         }
 
         // The reconciled health-warning row must name both harnesses, not a bare count.
@@ -130,6 +135,8 @@ public class DocsConsistencyTests
         Assert.Contains("FamilyReleaseScenarioTests", healthRow);
         Assert.Contains("BalanceScenarioTests", healthRow);
     }
+
+    private static Regex HarnessToken() => new(@"[A-Za-z_][A-Za-z0-9_]*Tests\b", RegexOptions.Compiled);
 }
 
 [Trait("Category", "Documentation")]

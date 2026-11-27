@@ -71,7 +71,8 @@ reports **3**. They are not the same measurement — `FamilyReleaseScenarioTests
 `Warn`-only at one instant, `BalanceScenarioTests` counts `Warn` + `Fail` at the final year —
 and the 61 does not reproduce at all today (the family harness reports **18**). The fix is not
 to pick one number but to name both: harness + aggregation. `DocsConsistencyTests` guards the
-band table in `docs/plans/roadmap-v7/STATUS.md` against a row that names no source.
+band table in `docs/plans/roadmap-v7/STATUS.md` against a row whose `Source` names no harness
+(a `*Tests` class).
 
 ## Review and enforcement — current model ("Model A")
 

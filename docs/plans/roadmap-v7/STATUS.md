@@ -32,19 +32,19 @@ Sources are named because these numbers do not all come from the same harness.
 
 | Band | Population / seed | Target | Value at V7 start | Source |
 |---|---|---|---|---|
-| Rent burden | 60 / 200 / 1k / 2k, seed 21 | <= 0.40 | 0.2093 / 0.2917 / 0.3359 / 0.3446 | `ede655b` |
-| Wealth Gini | 60 / 200 / 1k / 2k, seed 21 | <= 0.70 | 0.50 / 0.55 / 0.57 / 0.57 | `ede655b` |
-| Unemployment rate | 200, final year | <= 0.10 | asserted green | `AssertTargetBands` |
-| Homeless households | 200, final year | 0 | asserted green | `AssertTargetBands` |
-| Pension funding ratio | 200, final year | 0.80 – 2.00 | asserted green | `AssertTargetBands` |
-| Wage share | 200, final year | 0 – 1.0 | asserted green | `AssertTargetBands` |
-| Housing vacancy rate | 200, final year | <= 0.12 | asserted green | `AssertTargetBands` |
-| Money supply growth | every scale | <= 0.10 | asserted green | `BalanceScenarioTests` |
-| Conservation gap / sink delta | every scale | 0 | asserted green | `BalanceScenarioTests` |
-| Company failure rate | 200 | **no target** | 0 reported | balance report |
+| Rent burden | 60 / 200 / 1k / 2k, seed 21 | <= 0.40 | 0.2093 / 0.2917 / 0.3359 / 0.3446 | `BalanceScenarioTests.AssertBalanceBands` |
+| Wealth Gini | 60 / 200 / 1k / 2k, seed 21 | <= 0.70 | 0.50 / 0.55 / 0.57 / 0.57 | `BalanceScenarioTests.AssertBalanceBands` |
+| Unemployment rate | 200, final year | <= 0.10 | asserted green | `BalanceScenarioTests.AssertTargetBands` |
+| Homeless households | 200, final year | 0 | asserted green | `BalanceScenarioTests.AssertTargetBands` |
+| Pension funding ratio | 200, final year | 0.80 – 2.00 | asserted green | `BalanceScenarioTests.AssertTargetBands` |
+| Wage share | 200, final year | 0 – 1.0 | asserted green | `BalanceScenarioTests.AssertTargetBands` |
+| Housing vacancy rate | 200, final year | <= 0.12 | asserted green | `BalanceScenarioTests.AssertTargetBands` |
+| Money supply growth | every scale | <= 0.10 | asserted green | `BalanceScenarioTests.Ten_year_balance_report` |
+| Conservation gap / sink delta | every scale | 0 | asserted green | `BalanceScenarioTests.Ten_year_balance_report` |
+| Company failure rate | 200 | **no target** | 0 reported | `BalanceScenarioTests.Ten_year_balance_report` |
 | Health warnings | 2k, 10 years | **no target** | 18 (family harness, `Warn`-only, final instant) vs 3 (balance harness, `Warn` + `Fail`, final year) | `FamilyReleaseScenarioTests` / `BalanceScenarioTests` |
-| Reproduction warnings | 200, 30 years | **no target** | 4 `Warn` levels | V4 STATUS |
-| Vacancy / overcrowding under `CohabitOnPairing` | 200, 30 years | <= ~20% / 0 | 17.7% -> 26.6% vacancy, overcrowded 3 -> 9 | V4 STATUS |
+| Reproduction warnings | 200, 30 years | **no target** | 9 `Warn` issues (non-blocking) | `FamilyReleaseScenarioTests.ThirtyYearContinuity` |
+| Vacancy / overcrowding under `CohabitOnPairing` | 200, 30 years | <= ~20% / 0 | 20.3% -> 32.3% vacancy, overcrowded 9 -> 9 | `CohabitationComparisonTests.ThirtyYearCohabitationComparison` |
 
 ### Metric naming rule (agreed)
 
@@ -60,9 +60,10 @@ the balance gate reports **3**; they are not the same measurement
 reports **18** on current master. A bare number cannot be reconciled, which is why it rots; a
 number with its harness and aggregation can be re-run and checked.
 
-`DocsConsistencyTests.Band_state_table_names_a_source_for_every_metric` fails when a band row
-names no source, so the rule is enforced rather than remembered. The general statement lives in
-[`CONTRIBUTING.md`](../../../../CONTRIBUTING.md#metrics-and-reports--name-the-harness-and-the-aggregation).
+`DocsConsistencyTests.Band_state_table_names_a_source_for_every_metric` fails when a band row's
+`Source` names no harness (a `*Tests` class), so the rule is enforced rather than remembered. The
+general statement lives in
+[`CONTRIBUTING.md`](../../../CONTRIBUTING.md#metrics-and-reports--name-the-harness-and-the-aggregation).
 
 ## Track 1 — Economic closure and balance bands (spine)
 
@@ -72,7 +73,7 @@ names no source, so the rule is enforced rather than remembered. The general sta
 | Band failure messages name band, report and aggregation | Not started | A failing band identifies its report file and the aggregate used, so reconciling needs no bisect |
 | No knowingly-red assertions | Not started | No test carries an "expected red" annotation; an unmeetable band is a tracked item |
 | Band narrative kept true | In progress | Stale rent-burden/Gini comments corrected in this branch; the general guard is not built |
-| Metrics name their harness and aggregation | Done | Band table above names a source per row; `DocsConsistencyTests.Band_state_table_names_a_source_for_every_metric` guards it; health-warning row reconciled (18 family / 3 balance; the V4 "61" is stale) |
+| Metrics name their harness and aggregation | Done | Band table above names a harness per row; `DocsConsistencyTests.Band_state_table_names_a_source_for_every_metric` guards it; health-warning row reconciled (18 family / 3 balance; the V4 "61" is stale) |
 | Rent burden and Gini inside band | Done (`ede655b`) | 0.2093/0.2917/0.3359/0.3446 and 0.50/0.55/0.57/0.57 at 60/200/1k/2k; `BalanceScenarioTests` 5/5 on freshly fetched master |
 | Retire `CohabitOnPairing` | Not started | Shipped or deleted, with the 30-year vacancy/overcrowding numbers in band if shipped |
 | Retire cadence staggering | Not started | Opt-in path deleted; decision record kept |
@@ -96,10 +97,10 @@ names no source, so the rule is enforced rather than remembered. The general sta
 
 | Item | Origin | State at V7 start |
 |---|---|---|
-| `CohabitOnPairing` vacancy 17.7% -> 26.6%, overcrowded 3 -> 9 | V4 | Opt-in, unresolved since V4 |
+| `CohabitOnPairing` vacancy 20.3% -> 32.3%, overcrowded 9 -> 9 (`CohabitationComparisonTests.ThirtyYearCohabitationComparison`) | V4 | Opt-in, unresolved since V4 |
 | Cadence staggering moves bands (0.4369 vs 0.40) | V6 | Opt-in, decided stays off, switch not removed |
 | Health warnings (2k, 10 years): 18 family-harness `Warn`-only vs 3 balance-harness `Warn` + `Fail`; the V4 "61" no longer reproduces | V4 | Non-blocking, no target; harness and aggregation now named |
-| 4 reproduction `Warn` levels (30 years) | V4 | Non-blocking, no target, unexplained |
+| Reproduction `Warn` issues (200, 30 years): 9 (`FamilyReleaseScenarioTests.ThirtyYearContinuity`) | V4 | Non-blocking, no target, unexplained |
 | Legacy admin endpoints wait up to 50 ms | V6 | Open |
 | 1k–2k tuning: vacancy, company failures | V1 | Open since V1; wealth Gini now in band |
 | Company failure rate has no target | balance report | Reported as 0, never asserted |
