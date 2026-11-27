@@ -41,7 +41,7 @@ Sources are named because these numbers do not all come from the same harness.
 | Housing vacancy rate | 200, final year | <= 0.12 | asserted green | `BalanceScenarioTests.AssertTargetBands` |
 | Money supply growth | every scale | <= 0.10 | asserted green | `BalanceScenarioTests.Ten_year_balance_report` |
 | Conservation gap / sink delta | every scale | 0 | asserted green | `BalanceScenarioTests.Ten_year_balance_report` |
-| Company failure rate | 200 | **no target** | 0 reported | `BalanceScenarioTests.Ten_year_balance_report` |
+| Company failure rate | 60 / 200 / 1k / 2k, seed 21 | 0.02 – 0.15 /yr (health: 0.15 warn, 0.30 fail) | final-year 0 / 0 / 0.0313 / 0.0079 /yr; decade-mean 0.017 / 0.007 / 0.005 / 0.002; **0.02/yr floor not met** (`t_a2351350`) | `BalanceScenarioTests.AssertCompanyFailureBand` |
 | Health warnings | 2k, 10 years | **no target** | 18 (family harness, `Warn`-only, final instant) vs 3 (balance harness, `Warn` + `Fail`, final year) | `FamilyReleaseScenarioTests` / `BalanceScenarioTests` |
 | Reproduction warnings | 200, 30 years | **no target** | 9 `Warn` issues (non-blocking) | `FamilyReleaseScenarioTests.ThirtyYearContinuity` |
 | Vacancy / overcrowding under `CohabitOnPairing` | 200, 30 years | <= ~20% / 0 | 20.3% -> 32.3% vacancy, overcrowded 9 -> 9 | `CohabitationComparisonTests.ThirtyYearCohabitationComparison` |
@@ -69,7 +69,7 @@ general statement lives in
 
 | Area | Status | Evidence |
 |---|---|---|
-| Targets for the untargeted bands | Not started | Company failure rate, health warnings and reproduction warnings get numeric targets and assertions |
+| Targets for the untargeted bands | In progress | Company failure rate has a target and a green assertion (`t_72034ff6`); health and reproduction warnings still untargeted |
 | Band failure messages name band, report and aggregation | Not started | A failing band identifies its report file and the aggregate used, so reconciling needs no bisect |
 | No knowingly-red assertions | Not started | No test carries an "expected red" annotation; an unmeetable band is a tracked item |
 | Band narrative kept true | In progress | Stale rent-burden/Gini comments corrected in this branch; the general guard is not built |
@@ -104,7 +104,7 @@ general statement lives in
 | Reproduction `Warn` issues (200, 30 years): 9 (`FamilyReleaseScenarioTests.ThirtyYearContinuity`) | V4 | Non-blocking, no target, unexplained |
 | Legacy admin endpoints wait up to 50 ms | V6 | Open |
 | 1k–2k tuning: vacancy, company failures | V1 | Open since V1; wealth Gini now in band |
-| Company failure rate has no target | balance report | Reported as 0, never asserted |
+| Company failure rate target | balance report | Targeted 0.02–0.15/yr; upper bound asserted, the 0.02/yr floor is still unmet (`t_a2351350`) |
 | Manual schema migration/rollback rehearsal | V5 release checklist | Manual |
 
 ## Fixed just before V7 (recorded, not open)

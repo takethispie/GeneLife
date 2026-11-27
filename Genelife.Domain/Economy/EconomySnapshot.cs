@@ -43,9 +43,11 @@ public static class EconomyHealth
     // reachable (no liquidation happens today, so a two-sided band would fail the
     // gate on a metric the mechanism cannot yet move). Flip it to 0.02m once a
     // non-zero flow exists — v7-company-failure-decision.md §5.4.
-    private const decimal CompanyFailureLowerBound = 0m;
-    private const decimal CompanyFailureWarnHigh = 0.15m;
-    private const decimal CompanyFailureFailHigh = 0.30m;
+    // Public so the balance-band acceptance test asserts the SAME numbers
+    // (BalanceScenarioTests.AssertCompanyFailureBand) and the two cannot drift apart.
+    public const decimal CompanyFailureLowerBound = 0m;
+    public const decimal CompanyFailureWarnHigh = 0.15m;
+    public const decimal CompanyFailureFailHigh = 0.30m;
 
     public static List<EconomyHealthCheck> Evaluate(EconomySnapshot? current, EconomySnapshot? previous)
     {
