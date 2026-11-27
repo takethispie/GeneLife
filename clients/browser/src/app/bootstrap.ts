@@ -199,7 +199,8 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
   const touchInput = new TouchInput({
     canvas: pixi.app.canvas,
     camera,
-    getEnabled: () => settings.settings.touchControls
+    getEnabled: () => settings.settings.touchControls,
+    onTap: (x, y) => targeting.activateAtScreenPoint(x, y)
   });
 
   const cameraInput = new CameraInput(

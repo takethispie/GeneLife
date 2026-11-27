@@ -48,47 +48,125 @@ function harness() {
   };
 }
 
-function click(canvas: HTMLCanvasElement): void {
+/** Left mouse button — selection only. */
+function leftClick(canvas: HTMLCanvasElement): void {
   canvas.dispatchEvent(new MouseEvent("click", { button: 0, clientX: 400, clientY: 300 }));
 }
 
+/** Right mouse button — the click-to-move gesture. */
+function rightClick(canvas: HTMLCanvasElement): void {
+  canvas.dispatchEvent(new MouseEvent("pointerdown", { button: 2, clientX: 400, clientY: 300 }));
+}
+
 describe("TargetingController", () => {
-  it("submits a move intent for a walkable tile", async () => {
+  it("right-click submits exactly one move intent for a walkable tile", async () => {
     const h = harness();
     h.setTile({ x: 0, y: 0 });
-    click(h.canvas);
+    rightClick(h.canvas);
     await Promise.resolve();
+    expect(h.moveTo).toHaveBeenCalledTimes(1);
     expect(h.moveTo).toHaveBeenCalledWith(0, 0);
     expect(h.onTarget).toHaveBeenCalledWith({ x: 0, y: 0 });
     expect(h.onSelectBuilding).not.toHaveBeenCalled();
     h.targeting.dispose();
   });
 
-  it("selects a building instead of moving onto it", () => {
+  it("left-click never submits a move", async () => {
+    const h = harness();
+    h.setTile({ x: 0, y: 0 });
+    leftClick(h.canvas);
+    await Promise.resolve();
+    expect(h.moveTo).not.toHaveBeenCalled();
+    expect(h.onSelectBuilding).not.toHaveBeenCalled();
+    h.targeting.dispose();
+  });
+
+  it("left-click selects a building instead of moving onto it", async () => {
     const h = harness();
     h.setTile({ x: -6, y: -6 });
-    click(h.canvas);
+    leftClick(h.canvas);
+    await Promise.resolve();
     expect(h.moveTo).not.toHaveBeenCalled();
     const selected = h.onSelectBuilding.mock.calls[0]?.[0] as MapBuilding | null;
     expect(selected?.networkId).toBe(7001);
     h.targeting.dispose();
   });
 
-  it("rejects water without an intent", () => {
+  it("right-click on a building tile does not move", async () => {
+    const h = harness();
+    h.setTile({ x: -6, y: -6 });
+    rightClick(h.canvas);
+    await Promise.resolve();
+    expect(h.moveTo).not.toHaveBeenCalled();
+    expect(h.onSelectBuilding).not.toHaveBeenCalled();
+    expect(h.notify).toHaveBeenCalledWith("warning", "blocked_tile", "That tile is blocked");
+    h.targeting.dispose();
+  });
+
+  it("right-click rejects water without an intent", async () => {
     const h = harness();
     h.setTile({ x: -15, y: -15 });
-    click(h.canvas);
+    rightClick(h.canvas);
+    await Promise.resolve();
     expect(h.moveTo).not.toHaveBeenCalled();
     expect(h.notify).toHaveBeenCalledWith("warning", "blocked_tile", "That tile is blocked");
     h.targeting.dispose();
   });
 
-  it("rejects targets outside the map", () => {
+  it("right-click outside the map explains itself", async () => {
     const h = harness();
     h.setTile({ x: 9_999, y: 9_999 });
-    click(h.canvas);
+    rightClick(h.canvas);
+    await Promise.resolve();
     expect(h.moveTo).not.toHaveBeenCalled();
     expect(h.notify).toHaveBeenCalledWith("info", "outside_map", "That is outside the map");
+    h.targeting.dispose();
+  });
+
+  it("left-click outside the map explains itself without moving", async () => {
+    const h = harness();
+    h.setTile({ x: 9_999, y: 9_999 });
+    leftClick(h.canvas);
+    await Promise.resolve();
+    expect(h.moveTo).not.toHaveBeenCalled();
+    expect(h.notify).toHaveBeenCalledWith("info", "outside_map", "That is outside the map");
+    h.targeting.dispose();
+  });
+
+  it("right-click over the HUD does nothing", async () => {
+    const h = harness();
+    const hud = document.createElement("div");
+    hud.id = "hud";
+    const control = document.createElement("button");
+    hud.appendChild(control);
+    h.canvas.appendChild(hud);
+    h.setTile({ x: 0, y: 0 });
+    control.dispatchEvent(
+      new MouseEvent("pointerdown", { button: 2, bubbles: true, clientX: 400, clientY: 300 })
+    );
+    await Promise.resolve();
+    expect(h.moveTo).not.toHaveBeenCalled();
+    h.targeting.dispose();
+  });
+
+  it("touch tap selects a building under the pointer", async () => {
+    const h = harness();
+    h.setTile({ x: -6, y: -6 });
+    h.targeting.activateAtScreenPoint(400, 300);
+    await Promise.resolve();
+    expect(h.moveTo).not.toHaveBeenCalled();
+    const selected = h.onSelectBuilding.mock.calls[0]?.[0] as MapBuilding | null;
+    expect(selected?.networkId).toBe(7001);
+    h.targeting.dispose();
+  });
+
+  it("touch tap on open ground moves", async () => {
+    const h = harness();
+    h.setTile({ x: 1, y: 1 });
+    h.targeting.activateAtScreenPoint(400, 300);
+    await Promise.resolve();
+    expect(h.moveTo).toHaveBeenCalledTimes(1);
+    expect(h.moveTo).toHaveBeenCalledWith(1, 1);
     h.targeting.dispose();
   });
 

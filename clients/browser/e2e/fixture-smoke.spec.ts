@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { clickTileOffset, fixtureUrl, hudField, openWorld } from "./helpers";
+import { canvasCenter, clickTileOffset, fixtureUrl, hudField, openWorld } from "./helpers";
 
 test.describe("fixture-mode browser smoke", () => {
   test("renders the world, HUD and building selection without console errors", async ({ page }) => {
@@ -70,5 +70,22 @@ test.describe("fixture-mode browser smoke", () => {
     if (box === null) throw new Error("canvas missing");
     await page.mouse.click(box.x + 40, box.y + box.height / 2);
     await expect(page.locator(".notification").last()).toContainText("That is outside the map");
+  });
+
+  test("right-click moves while left-click only selects", async ({ page }) => {
+    // Fixture mode has no intent endpoint, so a move is rejected with a visible
+    // error while a selection builds a panel and stays silent.
+    await openWorld(page, fixtureUrl("e2e-right-click"));
+    const center = await canvasCenter(page);
+    await page.mouse.click(center.x, center.y, { button: "right" });
+    await expect(page.locator(".notification-error").last()).toContainText("no intent endpoint");
+  });
+
+  test("left-click never issues a move", async ({ page }) => {
+    await openWorld(page, fixtureUrl("e2e-left-click"));
+    const center = await canvasCenter(page);
+    await page.mouse.click(center.x, center.y);
+    await page.waitForTimeout(400);
+    await expect(page.locator(".notification-error")).toHaveCount(0);
   });
 });
