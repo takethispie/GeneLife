@@ -94,6 +94,15 @@ public class EconomyMetricsSystem : ISimulationSystem
 
         var unemployment = workingAge > 0 ? jobSeekers / (decimal)workingAge : 0m;
         var vacancy = openSeats + employed > 0 ? openSeats / (decimal)(openSeats + employed) : 0m;
+        // Net wage cost as a share of firm revenue. The numerator is net pay
+        // (gross minus employee pension and income tax); the denominator is
+        // total firm revenue. This is NOT the ILO labour income share, which is
+        // labour compensation as a share of value added: GeneLife firms buy no
+        // intermediate inputs from each other, so revenue is the firm sector's
+        // value added and the ratio has no capital share to divide away. In a
+        // closed loop it is bounded above by 1 (firms cannot sustain paying out
+        // more wages than they receive). ProfitShare is its complement and is a
+        // misnomer: the residual is rent, taxes, pension and profit combined.
         var wageShare = economy.RevenueThisYear.IsPositive
             ? economy.WagesPaidThisYear.Cents / (decimal)economy.RevenueThisYear.Cents
             : 0m;

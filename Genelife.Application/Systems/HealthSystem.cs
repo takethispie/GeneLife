@@ -103,7 +103,7 @@ public class HealthSystem : ISimulationSystem
         var finance = new Housing.HouseholdFinanceService(world, economy);
         var cash = finance.Cash(household);
         var rent = world.Has<Household>(household) ? world.Get<Household>(household).MonthlyRent : Money.Zero;
-        return cash < rent + economy.Options.MonthlyConsumptionBudget;
+        return cash < rent + economy.MonthlyConsumptionBudget;
     }
 
     private static float BaseDrift(int age)

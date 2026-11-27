@@ -9,8 +9,8 @@
 
 Track 1 is **not** "build the gate". The bands are already asserted:
 
-- `AssertBalanceBands` — rent burden (<= 0.40) and Gini (<= 0.70), at **every** scale.
-- `AssertTargetBands` — unemployment, homelessness, pension funding, wage share and vacancy, at the reference scale of 200.
+- `AssertBalanceBands` — rent burden (<= 0.40), Gini (<= 0.70) and wage share of firm revenue (<= 1.00), at **every** scale.
+- `AssertTargetBands` — unemployment, homelessness, pension funding and vacancy, at the reference scale of 200.
 - `BalanceScenarioTests` also asserts conservation: sink delta 0, conservation gap 0, money supply growth <= 0.10, at every scale.
 - Gabrielo's band guardrails were recently moved from `[Skip]` to a hard assert (board update), so the fast and performance tiers now fail rather than skip.
 
@@ -37,7 +37,7 @@ Sources are named because these numbers do not all come from the same harness.
 | Unemployment rate | 200, final year | <= 0.10 | asserted green | `BalanceScenarioTests.AssertTargetBands` |
 | Homeless households | 200, final year | 0 | asserted green | `BalanceScenarioTests.AssertTargetBands` |
 | Pension funding ratio | 200, final year | 0.80 – 2.00 | asserted green | `BalanceScenarioTests.AssertTargetBands` |
-| Wage share | 200, final year | 0 – 1.0 | asserted green | `BalanceScenarioTests.AssertTargetBands` |
+| Wage share of firm revenue | 60 / 200 / 1k / 2k, seed 21, final year | <= 1.00 | asserted green | `BalanceScenarioTests.AssertBalanceBands` |
 | Housing vacancy rate | 200, final year | <= 0.12 | asserted green | `BalanceScenarioTests.AssertTargetBands` |
 | Money supply growth | every scale | <= 0.10 | asserted green | `BalanceScenarioTests.Ten_year_balance_report` |
 | Conservation gap / sink delta | every scale | 0 | asserted green | `BalanceScenarioTests.Ten_year_balance_report` |
@@ -75,6 +75,7 @@ general statement lives in
 | Band narrative kept true | In progress | Stale rent-burden/Gini comments corrected in this branch; the general guard is not built |
 | Metrics name their harness and aggregation | Done | Band table above names a harness per row; `DocsConsistencyTests.Band_state_table_names_a_source_for_every_metric` guards it; health-warning row reconciled (18 family / 3 balance; the V4 "61" is stale) |
 | Rent burden and Gini inside band | Done (`ede655b`) | 0.2093/0.2917/0.3359/0.3446 and 0.50/0.55/0.57/0.57 at 60/200/1k/2k; `BalanceScenarioTests` 5/5 on freshly fetched master |
+| Wage share inside band at every scale | Done (this branch) | 0.895 / 0.811 / 0.794 / 0.798 at 60/200/1k/2k; was 1.103 / 0.916 / 0.880 / 0.876 |
 | Retire `CohabitOnPairing` | Not started | Shipped or deleted, with the 30-year vacancy/overcrowding numbers in band if shipped |
 | Retire cadence staggering | Not started | Opt-in path deleted; decision record kept |
 
@@ -115,6 +116,16 @@ general statement lives in
 | `BalanceScenarioTests` | 3 failures | 5 / 5 green (re-measured on freshly fetched master) | `ede655b` |
 
 The regression bisected to `5ddc300` ("run the monthly consumption pass after income") and was fixed by two coupled changes in `ede655b`: discretionary spending no longer consumes the household's rent obligation, and `HousingOptions.MaxRentIndex` moved 1.6 -> 1.2 as a market-wide lever. `5ddc300` **stays** — it fixed household purchase gating.
+
+## Fixed during V7 — wage share of firm revenue (this branch)
+
+`WageShare` was **structurally off and asserted only at 200**. The metric is *net wage cost as a share of firm revenue* — the numerator is net pay (gross minus employee pension and income tax) and the denominator is total firm revenue. It is **not** the ILO labour income share (~52 % of value added): GeneLife has no intermediate inputs and no separate capital factor, so its labour share legitimately runs high, and comparing it to 52 % was a category error. The applicable bound is the closed loop's: a firm sector cannot sustain paying out more wages than it receives in revenue, so **1.00 is the ceiling**.
+
+Measured at V7 start (seed 21, final year): **1.103 / 0.916 / 0.880 / 0.876** at 60/200/1k/2k — the 60 case past the old `Fail` line (>0.90) and the whole series 1.7-2.1x the ILO figure.
+
+Root cause of the drift: the consumer spending pass is capped by a **nominal** budget (`EconomyOptions.MonthlyConsumptionBudget`), while salaries compound with nominal indexation (`CareerPolicy.AnnualIndexation` = 2 %/yr). Firm revenue (household demand) stayed flat while the wage bill grew, so the ratio drifted up and crossed 1. Fix: index the consumer budget with the same nominal rate (`EconomyOptions.ConsumptionBudgetIndexation`, new) and raise the base 200 -> 230 — the smallest demand-recycling level that keeps the ratio interior at every scale. The band's ceiling moved 0.90 -> 1.00 (its unsourced old value) with the early-warning at 0.90, and the assertion moved from `AssertTargetBands` (200 only) to `AssertBalanceBands` (every scale).
+
+After (seed 21, final year): wage share **0.895 / 0.811 / 0.794 / 0.798**, Gini **0.559 / 0.635 / 0.650 / 0.646**, rent burden **0.319 / 0.318 / 0.345 / 0.346** at 60/200/1k/2k — all inside band. Gini rises with consumer demand (the off-ledger drain), so the demand-recycling level is the trade the two bands make; it stays ≤ 0.65.
 
 ## Verification plan
 

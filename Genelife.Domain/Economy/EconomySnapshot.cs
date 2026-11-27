@@ -60,10 +60,18 @@ public static class EconomyHealth
             _ => new("unemployment", HealthLevel.Pass, $"{current.UnemploymentRate:P1}")
         });
 
+        // WageShare is net wage cost as a share of firm revenue. It is NOT the
+        // ILO labour income share (a share of value added): GeneLife models no
+        // intermediate inputs and no separate capital factor, so the ratio is
+        // expected to run far above 52%. The applicable bound is the closed-loop
+        // one: a firm sector cannot sustain paying out more wages than it
+        // receives in revenue, so 1.00 is the structural ceiling and 0.90 the
+        // early warning. Below 0.30 capital and land absorb almost all firm
+        // income and household income collapses.
         checks.Add(current.WageShare switch
         {
-            < 0.30m or > 0.90m => new("wage-share", HealthLevel.Fail, $"{current.WageShare:P1}"),
-            < 0.40m or > 0.80m => new("wage-share", HealthLevel.Warn, $"{current.WageShare:P1}"),
+            < 0.30m or > 1.00m => new("wage-share", HealthLevel.Fail, $"{current.WageShare:P1}"),
+            < 0.40m or > 0.90m => new("wage-share", HealthLevel.Warn, $"{current.WageShare:P1}"),
             _ => new("wage-share", HealthLevel.Pass, $"{current.WageShare:P1}")
         });
 

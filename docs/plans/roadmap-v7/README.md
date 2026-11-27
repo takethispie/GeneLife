@@ -36,9 +36,10 @@ The largest documented debt, and it spans four roadmaps:
   the regression that caused them bisected to `5ddc300`.
 - Plus **61 health warnings** on the 2k ten-year run and **4 reproduction `Warn` levels** at 30 years.
 
-**Deliverable — not building the gate; the gate already exists.** `AssertBalanceBands` covers rent burden
-and Gini at every scale, `AssertTargetBands` covers unemployment, homelessness, pension funding, wage share
-and vacancy at 200, conservation is asserted at every scale, and gabrielo's guardrails now hard-assert. The
+**Deliverable — not building the gate; the gate already exists.** `AssertBalanceBands` covers rent burden,
+Gini and the wage share of firm revenue at every scale, `AssertTargetBands` covers unemployment, homelessness,
+pension funding and vacancy at 200, conservation is asserted at every scale, and gabrielo's guardrails now
+hard-assert. The
 open work is narrower: **three bands have no target at all** (company failure rate, health warnings,
 reproduction warnings), **the record around the gate rots** (stale reds nobody catches), and **reconciling a
 failure costs a bisect** (the message names neither the report file nor the aggregate). Plus the two carried
