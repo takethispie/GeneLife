@@ -8,6 +8,7 @@ export interface GenosPosition {
   tileY: number;
   appearance?: AppearanceStatus | null;
   isPlayerControlled?: boolean;
+  isDead?: boolean;
 }
 
 export interface GenosFrame {
@@ -151,6 +152,7 @@ export function interpolateFrames(
       tileY: newer.tileY,
       appearance: newer.appearance,
       isPlayerControlled: newer.isPlayerControlled,
+      isDead: newer.isDead,
       interpolated: true,
       snapped: false
     });

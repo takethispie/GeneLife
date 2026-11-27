@@ -21,6 +21,31 @@ const DEAD_COLOR = 0x6b7280;
 const LABEL_OFFSET_TILES = 0.95;
 
 /**
+ * Zoom (pixels per tile) at or above which genos nameplates are fully opaque.
+ * The default zoom of 32 sits above this, so the first impression stays labelled.
+ */
+const LABEL_FADE_FULL_ZOOM = 24;
+
+/**
+ * Zoom at or below which genos nameplates have faded out completely. At the
+ * camera floor of 12 names are gone, so a far-out map reads as landscape rather
+ * than a wall of text.
+ */
+const LABEL_FADE_NONE_ZOOM = 14;
+
+/**
+ * Nameplate alpha for a camera zoom, linearly interpolated between the fully
+ * opaque and fully transparent zoom edges. Values outside the range clamp to
+ * 1 (zoomed in) or 0 (zoomed out).
+ */
+function labelAlphaForZoom(zoom: number): number {
+  const span = LABEL_FADE_FULL_ZOOM - LABEL_FADE_NONE_ZOOM;
+  if (span <= 0) return zoom >= LABEL_FADE_FULL_ZOOM ? 1 : 0;
+  const t = (zoom - LABEL_FADE_NONE_ZOOM) / span;
+  return Math.min(1, Math.max(0, t));
+}
+
+/**
  * Renders interpolated genoses as pooled layered appearance sprites. The same
  * descriptor hash composes the same layers; position and scale are updated per
  * frame without reallocating textures.
@@ -89,6 +114,7 @@ export class GenosLayer {
     this.labelPool.begin();
     const baseSize = tileSize * 0.9;
     const labelScale = 1 / camera.zoom;
+    const labelAlpha = labelAlphaForZoom(camera.zoom);
     let visible = 0;
     let labels = 0;
     let localVisible = false;
@@ -110,15 +136,23 @@ export class GenosLayer {
         continue;
       }
 
+      // A dead genos is a corpse: it keeps its sprite but must not stay labelled.
+      if (genos.isDead === true) continue;
+
       // Nothing to show for an unnamed genos; the pool skips it so the label
       // count reflects the names actually drawn.
       const name = nameOf(genos.networkId);
       if (name === "") continue;
 
+      // Names fade out as the camera pulls back; at zero alpha the label is not
+      // drawn and not counted.
+      if (labelAlpha <= 0) continue;
+
       const label = this.labelPool.acquire();
       if (label.text !== name) label.text = name;
       label.position.set(genos.x, genos.y - tileSize * LABEL_OFFSET_TILES);
       label.scale.set(labelScale);
+      label.alpha = labelAlpha;
       labels++;
     }
 
@@ -131,13 +165,20 @@ export class GenosLayer {
       this.ring.width = tileSize * 1.45;
       this.ring.height = tileSize * 1.45;
 
-      this.localLabel.visible = true;
-      const localName = nameOf(local.networkId);
-      const text = localName === "" ? "You" : localName;
-      if (this.localLabel.text !== text) this.localLabel.text = text;
-      this.localLabel.position.set(local.x, local.y - tileSize * LABEL_OFFSET_TILES);
-      this.localLabel.scale.set(labelScale);
-      labels++;
+      // The ring is not a name, so a dead or far-zoomed local genos keeps it
+      // while its own nameplate is suppressed.
+      if (local.isDead === true || labelAlpha <= 0) {
+        this.localLabel.visible = false;
+      } else {
+        this.localLabel.visible = true;
+        const localName = nameOf(local.networkId);
+        const text = localName === "" ? "You" : localName;
+        if (this.localLabel.text !== text) this.localLabel.text = text;
+        this.localLabel.position.set(local.x, local.y - tileSize * LABEL_OFFSET_TILES);
+        this.localLabel.scale.set(labelScale);
+        this.localLabel.alpha = labelAlpha;
+        labels++;
+      }
     } else {
       this.ring.visible = false;
       this.localLabel.visible = false;
