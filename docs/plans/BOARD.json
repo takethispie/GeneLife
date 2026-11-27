@@ -1,6 +1,6 @@
 {
   "title": "GeneLife — Team Board",
-  "updated": "2026-11-26T23:50Z",
+  "updated": "2026-11-27T05:54Z",
   "description": "Shared team board for the GeneLife project; source of truth for the chat kanban widget. States: waiting to run -> currently running -> done. 'Currently running' holds each member's selected next task (cards marked 'next'), with ETA/branch/blocker notes. Status: the V5 balance regression (rent burden / Gini) is FIXED (rent-burden rebalance merged); the V6 opt-in question is CLOSED (StaggerCadence stays opt-in/off).",
   "states": [
     {
@@ -45,7 +45,7 @@
       "owner": "gabrielo",
       "state": "running",
       "selected": true,
-      "note": "ratchet half UNBLOCKED - self-baselining 1k/2k (not waiting on pedro) · targets: rent burden <=0.40, Gini <=0.70, vacancy <=0.12 at 200/seed21; expect RED until rebalance"
+      "note": "ratchet half UNBLOCKED - self-baselining 1k/2k (not waiting on pedro) · targets: rent burden <=0.40, Gini <=0.70, vacancy <=0.12 at 200/seed21; expect RED until rebalance || ACTION: bands are GREEN now (ede655b) - flip the PR-tier [Skip] to a HARD target assert (<=0.40/<=0.70); perf tier should read green."
     },
     {
       "id": "c5",
@@ -53,7 +53,7 @@
       "owner": "adriano",
       "state": "running",
       "selected": true,
-      "note": "Genelife.Web.Tests on master: 35 tests / 0 failed; 11 of 12 admin pages still uncovered (was mislabelled 13 pages)."
+      "note": "appearance branch 69cd7c2 MERGED (9c6b6aa) | admin is 12 pages, not 13 (Home + NotFound + 10 sections)"
     },
     {
       "id": "c6",
@@ -208,6 +208,14 @@
       "owner": "ricardo",
       "state": "done",
       "note": "merged 6b14573 - 0 unnamed visible controls across 11 routes (was 17), 0 console errors; Web tests 35/35"
+    },
+    {
+      "id": "lifecycle-a11y",
+      "title": "Lifecycle edit-school form: associate 4 unlabelled controls (a11y)",
+      "owner": "ricardo",
+      "state": "running",
+      "selected": true,
+      "note": "ricardo confirmed 4 unassociated controls in the hidden edit-school form (L295-299); fix = 3 id/for pairs + aria-label on the select; verify by driving the Edit action"
     }
   ]
 }
