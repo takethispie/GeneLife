@@ -70,6 +70,7 @@ interface Elements {
   settingsPanel: HTMLElement;
   reduceMotion: HTMLInputElement;
   debugOverlay: HTMLInputElement;
+  chatVisible: HTMLInputElement;
   hudScale: HTMLInputElement;
   soundVolume: HTMLInputElement;
   audioMuted: HTMLInputElement;
@@ -228,6 +229,7 @@ export class Hud {
     if (this.lastSettings !== null) {
       e.reduceMotion.checked = settings.reduceMotion;
       e.debugOverlay.checked = settings.debugOverlay;
+      e.chatVisible.checked = settings.chatVisible;
       e.hudScale.value = String(settings.hudScale);
       e.soundVolume.value = String(settings.soundVolume);
       e.audioMuted.checked = settings.audioMuted;
@@ -377,6 +379,10 @@ function buildDom(options: HudOptions): Elements {
   debug.input.addEventListener("change", () =>
     options.settings.update({ debugOverlay: debug.input.checked })
   );
+  const chatVisible = checkbox("Chat window");
+  chatVisible.input.addEventListener("change", () =>
+    options.settings.update({ chatVisible: chatVisible.input.checked })
+  );
   const hudScale = document.createElement("input");
   hudScale.type = "range";
   hudScale.min = "0.8";
@@ -424,6 +430,7 @@ function buildDom(options: HudOptions): Elements {
   settingsPanel.append(
     reduce.wrapper,
     debug.wrapper,
+    chatVisible.wrapper,
     labelled("HUD scale", hudScale),
     labelled("Sound volume", soundVolume),
     audioMuted.wrapper,
@@ -484,6 +491,7 @@ function buildDom(options: HudOptions): Elements {
     settingsPanel,
     reduceMotion: reduce.input,
     debugOverlay: debug.input,
+    chatVisible: chatVisible.input,
     hudScale,
     soundVolume,
     audioMuted: audioMuted.input,

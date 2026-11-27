@@ -169,4 +169,22 @@ describe("Hud", () => {
     expect(h.settings.settings.reduceMotion).toBe(true);
     h.hud.dispose();
   });
+
+  it("exposes the chat window visibility preference in settings", () => {
+    const h = harness();
+    buttonByLabel(h.root, "Settings").click();
+
+    const label = Array.from(h.root.querySelectorAll<HTMLLabelElement>(".hud-settings .hud-checkbox")).find(
+      (element) => element.textContent?.includes("Chat window") === true
+    );
+    if (label === undefined) throw new Error("missing chat window setting");
+    const input = label.querySelector<HTMLInputElement>('input[type="checkbox"]');
+    if (input === null) throw new Error("missing chat window input");
+    expect(input.checked).toBe(true);
+
+    input.checked = false;
+    input.dispatchEvent(new Event("change"));
+    expect(h.settings.settings.chatVisible).toBe(false);
+    h.hud.dispose();
+  });
 });

@@ -23,6 +23,8 @@ export interface ClientSettings {
   touchControls: boolean;
   handedness: Handedness;
   bindings: KeyBindings;
+  /** The bottom-left chat window is an always-on MMO log unless the player hides it. */
+  chatVisible: boolean;
 }
 
 export const DEFAULT_BINDINGS: KeyBindings = {
@@ -53,7 +55,8 @@ export const DEFAULT_SETTINGS: ClientSettings = {
   audioCategories: DEFAULT_AUDIO_CATEGORIES,
   touchControls: true,
   handedness: "right",
-  bindings: DEFAULT_BINDINGS
+  bindings: DEFAULT_BINDINGS,
+  chatVisible: true
 };
 
 const STORAGE_KEY = "genelife.settings";
