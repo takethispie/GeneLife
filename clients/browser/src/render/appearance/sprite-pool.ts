@@ -25,6 +25,18 @@ const OUTFIT_COLORS: Record<string, number> = {
   "outfit-senior": 0x9a8fb8, "outfit-player": 0x67e8f9, "outfit-fallback": 0x8a8f96
 };
 
+/**
+ * Smallest eye and player-marker size, in tiles.
+ *
+ * `size` is a world-space width (tiles), not pixels: with a tile size of 1 the
+ * old pixel floors (`Math.max(2, …)` for the eyes and `Math.max(4, …)` for the
+ * marker) clamped them to 2 and 4 *tiles*. Every genos then painted a 2-tile
+ * eye disc — 64px at the default zoom — so a dense map was covered in eye
+ * sprites while the body itself was 1/32nd of the size the code intended.
+ */
+const EYE_MIN_SIZE_TILES = 0.08;
+const MARKER_MIN_SIZE_TILES = 0.25;
+
 class AppearanceSprite {
   readonly container: Container;
   readonly body: Sprite;
@@ -124,14 +136,14 @@ export class AppearanceSpritePool {
     const eyeTint = EYE_COLORS[parts.eyePart.replace("eyes-", "")] ?? EYE_COLORS.brown!;
     leftEye.tint = eyeTint;
     rightEye.tint = eyeTint;
-    leftEye.width = rightEye.width = Math.max(2, size * 0.075);
-    leftEye.height = rightEye.height = Math.max(2, size * 0.075);
+    leftEye.width = rightEye.width = Math.max(EYE_MIN_SIZE_TILES, size * 0.075);
+    leftEye.height = rightEye.height = Math.max(EYE_MIN_SIZE_TILES, size * 0.075);
     leftEye.position.set(-size * 0.12, -size * 0.2);
     rightEye.position.set(size * 0.12, -size * 0.2);
 
     marker.visible = isPlayer;
     marker.tint = isLocal ? 0x67e8f9 : 0xa78bfa;
-    marker.width = marker.height = Math.max(4, size * 0.16);
+    marker.width = marker.height = Math.max(MARKER_MIN_SIZE_TILES, size * 0.16);
     marker.position.set(0, -size * 0.7);
 
     container.position.set(0, 0);
