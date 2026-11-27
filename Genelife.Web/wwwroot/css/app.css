@@ -16,6 +16,26 @@ a, .btn-link {
     border-color: #1861ac;
 }
 
+/* WCAG AA contrast. Bootstrap draws .btn-outline-danger's label in #dc3545,
+   which measures only 4.30:1 on --bs-tertiary-bg (#f8f9fa) — below the 4.5:1
+   floor for normal-weight text at these sizes. The sticky app toolbar uses that
+   tinted background, so the global simulation toolbar's "Stop" button failed AA
+   on every admin page; the same button style appears on 8 further surfaces.
+   Darken to Bootstrap's own $red-600 (#bb2d3b): 5.61:1 on the tinted
+   background, 5.91:1 on white. Filled .btn-danger is untouched. The admin is
+   light-mode only (no data-bs-theme anywhere), so the dark value of
+   --bs-tertiary-bg does not apply. */
+.btn-outline-danger {
+    --bs-btn-color: #bb2d3b;
+    --bs-btn-border-color: #bb2d3b;
+    --bs-btn-hover-bg: #bb2d3b;
+    --bs-btn-hover-border-color: #bb2d3b;
+    --bs-btn-active-bg: #b02a37;
+    --bs-btn-active-border-color: #b02a37;
+    --bs-btn-disabled-color: #bb2d3b;
+    --bs-btn-disabled-border-color: #bb2d3b;
+}
+
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
   box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
 }
