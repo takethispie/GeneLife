@@ -20,6 +20,12 @@ What is actually open is narrower, and it is where track 1's work is:
 2. **The record around the gate rots.** On a master where the bands are green, `BalanceScenarioTests` still carried comments saying rent burden and Gini "currently MISS the V5 bands" and "**EXPECT THIS RED** until pedro's rent-burden rebalance lands" — false since `ede655b`, and undetected by anything. A reader is told to expect a red that never arrives, which is how a real red gets ignored later. Corrected in this branch; the second, larger point is that nothing prevents the next instance. This is the same defect class already fixed for code references and for the snapshot DTOs.
 3. **Reconciling a band failure costs a bisect.** The assertion message names the value but not the report file, and the report holds a per-year array while the assertion reads the final year (`report.Years[^1]`), which is easy to misread — reading the first year and comparing it against the message manufactures a false "assertion and report disagree" conclusion.
 
+## Performance gate policy (decided)
+
+Tick **p95 is the accepted performance gate**. **p99 is harness diagnostic and deliberately unbudgeted**: the measured tail sits an order of magnitude above p95 and varies far more between runs than p95 does, so a p99 threshold would fail spuriously rather than report a regression. A tail is a spike to investigate, not a threshold to track. The reason is recorded in `PerformanceThresholds` itself so it travels with the definition rather than living in a decision thread.
+
+This matters to V7 because the harness numbers people quote are p95 and allocation, and the binding constraint is **allocation, not p95**: at every tier per-tick allocation sits near its budget while p95 sits far under its own, and the top allocators are the economy systems this roadmap will be touching (`BasicIncome`, `ConsumerSpending`, `UtilityConsumption`). "V7 is not perf" is true about p95 and dropped ticks, and should not be read as "there is room".
+
 ## Band state at V7 start
 
 Sources are named because these numbers do not all come from the same harness.
