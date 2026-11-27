@@ -85,6 +85,28 @@ function optionalBoolean(record: JsonRecord, key: string, path: string): boolean
   return value;
 }
 
+function optionalNullableInteger(
+  record: JsonRecord,
+  key: string,
+  path: string
+): number | null {
+  const value = record[key];
+  if (value === undefined || value === null) return null;
+  if (typeof value !== "number" || !Number.isInteger(value)) {
+    throw new ContractError(`expected an integer for "${key}"`, path);
+  }
+  return value;
+}
+
+function optionalNullableString(record: JsonRecord, key: string, path: string): string | null {
+  const value = record[key];
+  if (value === undefined || value === null) return null;
+  if (typeof value !== "string") {
+    throw new ContractError(`expected a string for "${key}"`, path);
+  }
+  return value === "" ? null : value;
+}
+
 function requireArray(record: JsonRecord, key: string, path: string): unknown[] {
   const value = record[key];
   if (!Array.isArray(value)) {
@@ -208,6 +230,12 @@ export function validateGenos(value: unknown, path = "genos"): GenosStatus {
     walletBalance: optionalNumber(record, "walletBalance", path),
     savingsBalance: optionalNumber(record, "savingsBalance", path),
     unmetDemand: optionalNumber(record, "unmetDemand", path),
+    householdNetworkId: optionalNullableInteger(record, "householdNetworkId", path),
+    housingUnitNetworkId: optionalNullableInteger(record, "housingUnitNetworkId", path),
+    workplaceBuildingNetworkId: optionalNullableInteger(record, "workplaceBuildingNetworkId", path),
+    housingBuildingNetworkId: optionalNullableInteger(record, "housingBuildingNetworkId", path),
+    housingUnitNumber: optionalNullableString(record, "housingUnitNumber", path),
+    jobPosition: optionalNullableString(record, "jobPosition", path),
     tenure: optionalString(record, "tenure", path),
     housingTier: optionalString(record, "housingTier", path),
     homeless: optionalBoolean(record, "homeless", path),

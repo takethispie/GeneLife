@@ -84,7 +84,7 @@ const smallBuildings = [
     height: 2,
     entryX: -5,
     entryY: -4,
-    ownerNetworkId: 42
+    ownerNetworkId: 1
   },
   {
     networkId: 7002,
@@ -97,7 +97,7 @@ const smallBuildings = [
     height: 3,
     entryX: 3,
     entryY: 6,
-    ownerNetworkId: 9
+    ownerNetworkId: 9001
   },
   {
     networkId: 7003,
@@ -168,7 +168,17 @@ function genos(networkId, name, tileX, tileY, options = {}) {
     savingsBalance: 50,
     unmetDemand: 0,
     householdNetworkId: null,
-    housingUnitNetworkId: null,
+    housingUnitNetworkId: options.housingUnitNetworkId ?? null,
+    ...(options.housingBuildingNetworkId !== undefined
+      ? { housingBuildingNetworkId: options.housingBuildingNetworkId }
+      : {}),
+    ...(options.housingUnitNumber !== undefined
+      ? { housingUnitNumber: options.housingUnitNumber }
+      : {}),
+    ...(options.workplaceBuildingNetworkId !== undefined
+      ? { workplaceBuildingNetworkId: options.workplaceBuildingNetworkId }
+      : {}),
+    ...(options.jobPosition !== undefined ? { jobPosition: options.jobPosition } : {}),
     tenure: "owner",
     housingTier: "standard",
     homeless: false,
@@ -197,11 +207,25 @@ const worldSnapshot = {
   tick: 100,
   version: 2,
   genoses: [
-    genos(1, "Ada", 0, 0, { isPlayerControlled: true }),
-    genos(2, "Boris", 3, 4, { x: 3.4, y: 4.25 }),
-    genos(3, "Cleo", -5, 2),
+    genos(1, "Ada", 0, 0, {
+      isPlayerControlled: true,
+      housingBuildingNetworkId: 7001,
+      housingUnitNetworkId: 5001,
+      housingUnitNumber: "A"
+    }),
+    genos(2, "Boris", 3, 4, {
+      x: 3.4,
+      y: 4.25,
+      workplaceBuildingNetworkId: 7002,
+      jobPosition: "Steward"
+    }),
+    genos(3, "Cleo", -5, 2, {
+      housingBuildingNetworkId: 7001,
+      housingUnitNetworkId: 5001,
+      housingUnitNumber: "A"
+    }),
     genos(4, "Dmitri", 8, -8),
-    genos(5, "Eve", -2, 6)
+    genos(5, "Eve", -2, 6, { workplaceBuildingNetworkId: 7002 })
   ],
   companies: [company]
 };
@@ -212,8 +236,20 @@ const worldDelta = {
   version: 2,
   full: false,
   genoses: [
-    genos(1, "Ada", 1, 0, { isPlayerControlled: true, x: 0.5, y: 0 }),
-    genos(2, "Boris", 4, 4, { x: 3.9, y: 4.1 })
+    genos(1, "Ada", 1, 0, {
+      isPlayerControlled: true,
+      x: 0.5,
+      y: 0,
+      housingBuildingNetworkId: 7001,
+      housingUnitNetworkId: 5001,
+      housingUnitNumber: "A"
+    }),
+    genos(2, "Boris", 4, 4, {
+      x: 3.9,
+      y: 4.1,
+      workplaceBuildingNetworkId: 7002,
+      jobPosition: "Steward"
+    })
   ],
   companies: [],
   removedGenoses: [5],
@@ -256,7 +292,7 @@ write("map-delta.json", {
       height: 2,
       entryX: -3,
       entryY: 7,
-      ownerNetworkId: 9
+      ownerNetworkId: 9001
     }
   ],
   updated: [{ ...smallBuildings[1], name: "Foundry Office (rebuilt)" }],

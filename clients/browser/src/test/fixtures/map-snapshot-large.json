@@ -45971,7 +45971,7 @@
       "height": 2,
       "entryX": -20,
       "entryY": -16,
-      "ownerNetworkId": 42
+      "ownerNetworkId": 1
     },
     {
       "networkId": 7002,
@@ -45984,7 +45984,7 @@
       "height": 3,
       "entryX": 12,
       "entryY": 24,
-      "ownerNetworkId": 9
+      "ownerNetworkId": 9001
     },
     {
       "networkId": 7003,
