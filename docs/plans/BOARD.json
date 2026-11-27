@@ -1,6 +1,6 @@
 {
   "title": "GeneLife — Team Board",
-  "updated": "2026-11-27T06:01Z",
+  "updated": "2026-11-27T06:02Z",
   "description": "Shared team board for the GeneLife project; source of truth for the chat kanban widget. States: waiting to run -> currently running -> done. 'Currently running' holds each member's selected next task (cards marked 'next'), with ETA/branch/blocker notes. Status: the V5 balance regression (rent burden / Gini) is FIXED (rent-burden rebalance merged); the V6 opt-in question is CLOSED (StaggerCadence stays opt-in/off).",
   "states": [
     {
@@ -133,7 +133,8 @@
       "id": "c17",
       "title": "Define V7 roadmap",
       "owner": "tech-leader",
-      "state": "waiting"
+      "state": "waiting",
+      "note": "V7 theme SET: #1 Economic closure & balance bands (spine), with #2 Operator plane and #3 Persistence durability as secondary tracks. NOT perf (V6 left 5x headroom). Retire every surviving opt-in. main-dev contributed the backend/infra input and is drafting the README/STATUS pair."
     },
     {
       "id": "c18",
