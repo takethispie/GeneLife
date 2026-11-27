@@ -115,10 +115,23 @@ public sealed class WorldSnapshotDelta
         && a.IsDead == b.IsDead
         && Equals(a.Appearance, b.Appearance);
 
+    /// <summary>
+    /// Full structural comparison of every <see cref="CompanyStatus"/> field. A field omitted
+    /// here never produces a delta, so clients silently hold stale values - the same failure
+    /// mode <see cref="GenosesEqual"/> had. CompanyStatusEqualityTests reflects over the DTO and
+    /// fails naming any field that does not affect equality.
+    /// </summary>
     public static bool CompaniesEqual(CompanyStatus a, CompanyStatus b) =>
         a.NetworkId == b.NetworkId
         && string.Equals(a.Name, b.Name, StringComparison.Ordinal)
-        && a.EmployeeCount == b.EmployeeCount;
+        && a.EmployeeCount == b.EmployeeCount
+        && a.OfficeCount == b.OfficeCount
+        && a.Balance == b.Balance
+        && a.ReservedForPayroll == b.ReservedForPayroll
+        && a.Arrears == b.Arrears
+        && a.RevenueLastCycle == b.RevenueLastCycle
+        && a.WagesLastCycle == b.WagesLastCycle
+        && string.Equals(a.Solvency, b.Solvency, StringComparison.Ordinal);
 
     private static Dictionary<ulong, T> IndexById<T>(List<T> items, Func<T, ulong> idSelector)
     {

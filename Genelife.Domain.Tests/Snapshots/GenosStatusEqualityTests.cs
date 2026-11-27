@@ -1,14 +1,13 @@
-using System.Reflection;
 using Genelife.Api.DTOs;
 using Genelife.Api.Snapshots;
 
 namespace Genelife.UnitTests.Snapshots;
 
 /// <summary>
-/// Guards the delta comparison against silent omissions. A field missing from
-/// <see cref="WorldSnapshotDelta.GenosesEqual"/> is never replicated to clients,
-/// and that failure mode is invisible — so every property is probed by reflection
-/// rather than trusting a hand-maintained list.
+/// Guards the genos delta comparison against silent omissions. A field missing from
+/// <see cref="WorldSnapshotDelta.GenosesEqual"/> is never replicated to clients, and that
+/// failure mode is invisible — so every property is probed by reflection rather than trusting a
+/// hand-maintained list. The shared probe lives in <see cref="DtoGuard"/>.
 /// </summary>
 public class GenosStatusEqualityTests
 {
@@ -16,26 +15,14 @@ public class GenosStatusEqualityTests
     public void IdenticalCopies_CompareEqual()
     {
         var baseline = Baseline();
-        var copy = Clone(baseline);
 
-        Assert.True(WorldSnapshotDelta.GenosesEqual(baseline, copy));
+        Assert.True(WorldSnapshotDelta.GenosesEqual(baseline, DtoGuard.Clone(baseline)));
     }
 
     [Fact]
     public void EveryProperty_ParticipatesInEquality()
     {
-        var baseline = Baseline();
-        var ignored = new List<string>();
-
-        foreach (var property in typeof(GenosStatus).GetProperties(BindingFlags.Public | BindingFlags.Instance))
-        {
-            var variant = Clone(baseline);
-            var current = property.GetValue(variant);
-            property.SetValue(variant, Perturb(current, property.PropertyType));
-
-            if (WorldSnapshotDelta.GenosesEqual(baseline, variant))
-                ignored.Add(property.Name);
-        }
+        var ignored = DtoGuard.IgnoredProperties(Baseline(), WorldSnapshotDelta.GenosesEqual);
 
         Assert.True(
             ignored.Count == 0,
@@ -80,25 +67,4 @@ public class GenosStatusEqualityTests
             BodyFrame = 6, HeightScale = 7, AgeBand = 8, Expression = 9, AppearanceVersion = 1
         }
     };
-
-    private static GenosStatus Clone(GenosStatus source)
-    {
-        var clone = new GenosStatus();
-        foreach (var property in typeof(GenosStatus).GetProperties(BindingFlags.Public | BindingFlags.Instance))
-            property.SetValue(clone, property.GetValue(source));
-        return clone;
-    }
-
-    private static object? Perturb(object? value, Type type)
-    {
-        if (type == typeof(string)) return (string?)value + "x";
-        if (type == typeof(int)) return (int)value! + 1;
-        if (type == typeof(float)) return (float)value! + 1f;
-        if (type == typeof(decimal)) return (decimal)value! + 1m;
-        if (type == typeof(bool)) return !(bool)value!;
-        if (type == typeof(ulong)) return (ulong)value! + 1UL;
-        if (type == typeof(ulong?)) return value is ulong id ? id + 1UL : 1UL;
-        if (type == typeof(AppearanceDto)) return new AppearanceDto { SkinTone = 99, AppearanceVersion = 2 };
-        throw new InvalidOperationException($"No perturbation for {type.Name}");
-    }
 }
