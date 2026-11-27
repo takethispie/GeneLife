@@ -167,7 +167,7 @@ maintainer please let us know here."* Last release **v8.0.0, 2024-06-13** (commi
 
 ## 5. Migration path from `docs/plans/BOARD.json`
 
-> **STATUS - executed 2026-11-27. The live board now lives in `docs/plans/BOARD.md` + Vikunja.**
+> **STATUS - SUPERSEDED the same day (2026-11-27).** Vikunja was stood up as described below, then retired in favour of the built-in **Hermes kanban**, which was the better fit all along: it is profile-native (assignment is a profile name), has first-class dependencies, dispatches cards as worker processes in isolated worktrees, and needs no service, container or token. The live board is now `hermes kanban` (board slug `genelife`) - see `docs/plans/BOARD.md`. The Vikunja MCP was removed from every profile and the containers are down. Read the rest of this section as the record of an option that was tried, not as the current design.
 > Vikunja was the pick and is running at `http://localhost:3456`. All 38 cards migrated by
 > script and were verified by reading the board back (9 waiting / 4 running / 25 done) and by
 > DB-level bucket counts - not just a write 200. Two deliberate deviations from the plan below:
