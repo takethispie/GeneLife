@@ -30,6 +30,22 @@ export default defineConfig({
     {
       name: "admin-chromium",
       use: { ...devices["Desktop Chrome"] }
+    },
+    // The admin UI switches the sidebar to a fixed 250px column at 641px and
+    // keeps it in the row layout until the content fits. Desktop Chrome alone
+    // never exercised that band, so a horizontal overflow shipped there (#81).
+    // These two projects run only the responsive spec — the interaction specs
+    // stay on the desktop project, where their controls are laid out as
+    // designed.
+    {
+      name: "admin-tablet",
+      use: { ...devices["Desktop Chrome"], viewport: { width: 768, height: 1024 } },
+      testMatch: /responsive\.spec\.ts/
+    },
+    {
+      name: "admin-phone",
+      use: { ...devices["Desktop Chrome"], viewport: { width: 375, height: 667 } },
+      testMatch: /responsive\.spec\.ts/
     }
   ],
   webServer: startServer
