@@ -306,7 +306,8 @@ export class SimulationStore {
         tileX: genos.tileX,
         tileY: genos.tileY,
         appearance: genos.appearance,
-        isPlayerControlled: genos.isPlayerControlled
+        isPlayerControlled: genos.isPlayerControlled,
+        isDead: genos.isDead
       });
     }
     return positions;
