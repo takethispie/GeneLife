@@ -15,5 +15,7 @@ export const GAME_CONSTANTS = {
   snapDistanceTiles: 3,
   maxFrameGapTicks: 3,
   /** Interaction and sign-in hint only; the server owns the real range check. */
-  interactionHintRadius: 2
+  interactionHintRadius: 2,
+  /** How long the client waits for an out-of-range interact walk to reach the entrance. */
+  entranceWalkTimeoutMs: 15_000
 } as const;

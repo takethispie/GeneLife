@@ -182,7 +182,8 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
       renderer?.setSelectedBuilding(building);
       ui.patch({ selection: building === null ? null : { kind: "building", building } });
     },
-    notify
+    notify,
+    walkTimeoutMs: GAME_CONSTANTS.entranceWalkTimeoutMs
   });
 
   const targeting = new TargetingController({
@@ -193,6 +194,7 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
     onHover: (tile, walkable) => renderer?.setHover(tile, walkable),
     onTarget: (tile) => renderer?.setTarget(tile),
     onSelectBuilding: (building) => selection.select(building),
+    onPlayerMove: () => selection.cancelPendingInteract(),
     notify
   });
 
@@ -521,7 +523,7 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
     const messages: Record<string, string> = {
       blocked: "That tile is blocked",
       out_of_bounds: "That tile is outside the map",
-      out_of_range: "Walk to the entrance first",
+      out_of_range: "You are too far from the building entrance",
       role_not_allowed: "You cannot use this building",
       building_not_found: "That building no longer exists",
       genos_not_found: "Your genos is not available",

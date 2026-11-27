@@ -22,6 +22,6 @@ export function describeBuilding(building: MapBuilding): BuildingDetails {
       building.ownerNetworkId === undefined || building.ownerNetworkId === null
         ? "No owner"
         : `Owner #${building.ownerNetworkId}`,
-    hint: "Interaction is checked by the server. If it fails, walk to the entrance first."
+    hint: "Interact walks your genos to the entrance when out of range. The server still checks range and reports a refusal."
   };
 }

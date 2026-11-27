@@ -22,6 +22,8 @@ export interface TargetingOptions {
   onHover: (tile: TilePoint | null, walkable: boolean) => void;
   onTarget: (tile: TilePoint | null) => void;
   onSelectBuilding: (building: MapBuilding | null) => void;
+  /** Called when the player issues a manual move, so pending actions can cancel. */
+  onPlayerMove?: () => void;
   notify: (kind: NotificationKind, code: string, message: string) => void;
 }
 
@@ -120,6 +122,7 @@ export class TargetingController {
     }
 
     this.options.onTarget(tile);
+    this.options.onPlayerMove?.();
     void this.submitMove(tile);
   }
 
