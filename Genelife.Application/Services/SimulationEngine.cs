@@ -7129,7 +7129,8 @@ private readonly NetworkIdRegistry networkIds = new();
                 ProfitShare = snapshot.ProfitShare,
                 Gini = snapshot.Gini,
                 HomelessHouseholds = snapshot.HomelessHouseholds,
-                BankruptCompanies = snapshot.BankruptCompanies
+                BankruptCompanies = snapshot.BankruptCompanies,
+                CompanyFailureRate = snapshot.CompanyFailureRate
             }).ToList();
 
             foreach (var (company, revenue) in economy.PendingRevenue)
@@ -7860,7 +7861,8 @@ private readonly NetworkIdRegistry networkIds = new();
                     RevenueThisYearCents = economy.RevenueThisYear.Cents,
                     TaxThisYearCents = economy.TaxThisYear.Cents,
                     BasicIncomeThisYearCents = economy.BasicIncomeThisYear.Cents,
-                    ConsumptionThisYearCents = economy.ConsumptionThisYear.Cents
+                    ConsumptionThisYearCents = economy.ConsumptionThisYear.Cents,
+                    CompaniesFailedThisYear = economy.CompaniesFailedThisYear
                 }
             };
         }
@@ -9423,6 +9425,7 @@ private readonly NetworkIdRegistry networkIds = new();
             economy.TaxThisYear = new Money(state.Fiscal.TaxThisYearCents);
             economy.BasicIncomeThisYear = new Money(state.Fiscal.BasicIncomeThisYearCents);
             economy.ConsumptionThisYear = new Money(state.Fiscal.ConsumptionThisYearCents);
+            economy.CompaniesFailedThisYear = state.Fiscal.CompaniesFailedThisYear;
 
             foreach (var snapshot in state.MetricHistory)
             {
@@ -9448,7 +9451,8 @@ private readonly NetworkIdRegistry networkIds = new();
                     snapshot.ProfitShare,
                     snapshot.Gini,
                     snapshot.HomelessHouseholds,
-                    snapshot.BankruptCompanies));
+                    snapshot.BankruptCompanies,
+                    snapshot.CompanyFailureRate));
             }
 
             foreach (var pending in state.PendingRevenue)

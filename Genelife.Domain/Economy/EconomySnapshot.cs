@@ -24,7 +24,8 @@ public sealed record EconomySnapshot(
     decimal ProfitShare,
     decimal Gini,
     int HomelessHouseholds,
-    int BankruptCompanies);
+    int BankruptCompanies,
+    decimal CompanyFailureRate);
 
 public enum HealthLevel
 {
@@ -37,6 +38,15 @@ public sealed record EconomyHealthCheck(string Name, HealthLevel Level, string D
 
 public static class EconomyHealth
 {
+    // External annual firm-exit band: 0.02-0.15/yr (US ~0.075).
+    // The lower bound is deliberately disabled until the rebalance makes failure
+    // reachable (no liquidation happens today, so a two-sided band would fail the
+    // gate on a metric the mechanism cannot yet move). Flip it to 0.02m once a
+    // non-zero flow exists — v7-company-failure-decision.md §5.4.
+    private const decimal CompanyFailureLowerBound = 0m;
+    private const decimal CompanyFailureWarnHigh = 0.15m;
+    private const decimal CompanyFailureFailHigh = 0.30m;
+
     public static List<EconomyHealthCheck> Evaluate(EconomySnapshot? current, EconomySnapshot? previous)
     {
         var checks = new List<EconomyHealthCheck>();
@@ -77,12 +87,16 @@ public static class EconomyHealth
             _ => new("arrears-share", HealthLevel.Pass, $"{arrearsShare:P1}")
         });
 
-        checks.Add(current.BankruptCompanies switch
-        {
-            0 => new("bankrupt-companies", HealthLevel.Pass, "0 bankrupt"),
-            <= 2 => new("bankrupt-companies", HealthLevel.Warn, $"{current.BankruptCompanies} bankrupt"),
-            _ => new("bankrupt-companies", HealthLevel.Fail, $"{current.BankruptCompanies} bankrupt")
-        });
+        // Same quantity, same thresholds as the acceptance band: an annual firm-exit
+        // rate. A fixed count meant ">2" was >40% of companies at scale 60 but >1.6%
+        // at scale 2k — the same name, ~25x stricter (v7-company-failure-decision.md §4).
+        checks.Add(Band(
+            "company-failure-rate",
+            current.CompanyFailureRate,
+            CompanyFailureLowerBound,
+            CompanyFailureWarnHigh,
+            CompanyFailureFailHigh,
+            "per year"));
 
         return checks;
     }

@@ -405,6 +405,7 @@ public class CompanySolvencySystem : ISimulationSystem
         account.State = CompanySolvency.Bankrupt;
         account.StateChangedAtTick = tick;
         economy.Accounts.Set(company, account);
+        economy.CompaniesFailedThisYear++;
 
         economy.Emit(new CompanyLiquidated(
             CompanyAccountService.NetworkIdOf(world, company),
