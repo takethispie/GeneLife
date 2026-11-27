@@ -6515,10 +6515,33 @@ private readonly NetworkIdRegistry networkIds = new();
             if (world.Has<ConsumptionState>(entity))
                 status.UnmetDemand = world.Get<ConsumptionState>(entity).UnmetDemand.Units;
 
+            // Building links for the occupancy panel: the office the genos works in and
+            // the property its housing unit sits in. Both resolve through the network-id
+            // registry, so an unplaced, destroyed or unregistered entity yields null
+            // (the client's "unknown") instead of a dangling id.
+            if (world.TryGet<Employee>(entity, out var employee))
+                status.WorkplaceBuildingNetworkId = PlacedBuildingNetworkId(world, employee.Office);
+            if (world.TryGet<Residence>(entity, out var residence) &&
+                world.TryGet<HousingUnit>(residence.Unit, out var unit))
+                status.HousingBuildingNetworkId = PlacedBuildingNetworkId(world, unit.Property);
+
             genoses.Add(status);
         });
 
         return genoses;
+    }
+
+    /// <summary>
+    /// Network id of a placed building entity, or null when the entity is missing,
+    /// dead, destroyed, unplaced or absent from the network-id registry. Callers
+    /// project this into a nullable client field where null means "unknown".
+    /// </summary>
+    private ulong? PlacedBuildingNetworkId(World world, Entity building)
+    {
+        if (building == Entity.Null || !world.IsAlive(building) || !world.Has<Placement>(building))
+            return null;
+
+        return networkIds.TryGetNetworkId(building, out var networkId) ? networkId.Value : null;
     }
 
     /// <summary>

@@ -53,6 +53,8 @@ public class GenosStatusEqualityTests
         UnmetDemand = 12.3m,
         HouseholdNetworkId = 11,
         HousingUnitNetworkId = 12,
+        HousingBuildingNetworkId = 13,
+        WorkplaceBuildingNetworkId = 14,
         Tenure = "Owner",
         HousingTier = "Mid",
         Homeless = false,
