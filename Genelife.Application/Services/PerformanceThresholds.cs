@@ -4,6 +4,12 @@ namespace Genelife.Api.Services;
 /// Per-NPC-tier performance budgets. The load harness is compared against these
 /// so a regression in tick p95 or per-tick allocation fails the guardrail run
 /// instead of landing unnoticed.
+///
+/// Tick p95 is the accepted gate. p99 is reported by the harness for diagnosis only
+/// and is deliberately not budgeted: the measured tail sits an order of magnitude
+/// above p95 and varies far more between runs than p95 does, so a p99 threshold
+/// would fail spuriously rather than report a regression. Treat a tail as a
+/// specific spike to investigate, not as a threshold to track here.
 /// </summary>
 public sealed record PerformanceBudget(
     int NpcCount,
