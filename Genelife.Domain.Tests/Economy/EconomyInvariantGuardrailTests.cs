@@ -129,19 +129,29 @@ public class EconomyInvariantGuardrailTests
     }
 
     /// <summary>
-    /// The V5 rent-burden / Gini bands are deliberately NOT asserted in the PR tier.
-    /// The default path currently misses them at every scale, so a hard target assert
-    /// here would fail the PR gate, block all work, and mask NEW failures. The RED
-    /// target assert lives in the nightly perf tier
-    /// (BalanceScenarioTests.AssertBalanceBands), which is non-gating; this PR tier
-    /// stays non-blocking. Replace this [Skip] with the real target assert once
-    /// pedro's rent-burden rebalance lands (board: rent-burden rebalance).
+    /// V5 balance bands, asserted in the PR tier now that pedro's rebalance has
+    /// landed (master <c>ede655b</c>). Runs the reference case (200 genoses, seed 21)
+    /// over the decade horizon the bands are defined at, and asserts the final year.
+    /// Measured 2026-11-27: rent burden 0.2917, Gini 0.5503 — inside 0.40 / 0.70.
+    /// This is the per-push guard; the nightly perf tier asserts the same bands
+    /// across 60/200/1k/2k.
     /// </summary>
-    [Fact(Skip = "Known miss: rent burden 0.4041 / Gini 0.7802 > 0.40 / 0.70 (seed 21). " +
-                 "RED target assert runs in the nightly perf tier; PR gate stays non-blocking. " +
-                 "Owner: pedro (board: rent-burden rebalance).")]
+    [Fact]
     public void RentBurden_And_Gini_MeetV5Targets()
     {
+        using var engine = Seeded(200, seed: 21);
+
+        var ticks = 10 * engine.Economy!.Clock.TicksPerYear;
+        for (var i = 0; i < ticks; i++)
+            engine.Tick(DeltaTime);
+
+        var rentBurden = engine.Economy.Housing.MetricHistory[^1].MedianRentBurden;
+        var gini = engine.Economy.MetricHistory[^1].Gini;
+
+        Assert.True(rentBurden <= 0.40m,
+            $"median rent burden {rentBurden:F4} exceeds the V5 ceiling 0.40 (200 / seed 21)");
+        Assert.True(gini <= 0.70m,
+            $"Gini {gini:F4} exceeds the V5 ceiling 0.70 (200 / seed 21)");
     }
 
     private static SimulationEngine Seeded(int genoses, int seed)
