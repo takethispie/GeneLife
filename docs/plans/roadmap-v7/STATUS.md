@@ -42,9 +42,27 @@ Sources are named because these numbers do not all come from the same harness.
 | Money supply growth | every scale | <= 0.10 | asserted green | `BalanceScenarioTests` |
 | Conservation gap / sink delta | every scale | 0 | asserted green | `BalanceScenarioTests` |
 | Company failure rate | 200 | **no target** | 0 reported | balance report |
-| Health warnings | 2k, 10 years | **no target** | 61 warnings | V4 STATUS |
+| Health warnings | 2k, 10 years | **no target** | 18 (family harness, `Warn`-only, final instant) vs 3 (balance harness, `Warn` + `Fail`, final year) | `FamilyReleaseScenarioTests` / `BalanceScenarioTests` |
 | Reproduction warnings | 200, 30 years | **no target** | 4 `Warn` levels | V4 STATUS |
 | Vacancy / overcrowding under `CohabitOnPairing` | 200, 30 years | <= ~20% / 0 | 17.7% -> 26.6% vacancy, overcrowded 3 -> 9 | V4 STATUS |
+
+### Metric naming rule (agreed)
+
+A metric must name its **harness** and its **aggregation** — the test or scenario that produced
+it, and the filter and instant applied. The `Source` column above exists for exactly this: the
+numbers in this table do not all come from the same harness, and two rows labelled the same way
+can be different quantities.
+
+The health-warning figure is the worked example. It was carried as **61** from V4 STATUS while
+the balance gate reports **3**; they are not the same measurement
+(`FamilyReleaseScenarioTests` counts `Warn`-only at one instant, `BalanceScenarioTests` counts
+`Warn` + `Fail` at the final year), and **61 reproduces as neither** — the family harness
+reports **18** on current master. A bare number cannot be reconciled, which is why it rots; a
+number with its harness and aggregation can be re-run and checked.
+
+`DocsConsistencyTests.Band_state_table_names_a_source_for_every_metric` fails when a band row
+names no source, so the rule is enforced rather than remembered. The general statement lives in
+[`CONTRIBUTING.md`](../../../../CONTRIBUTING.md#metrics-and-reports--name-the-harness-and-the-aggregation).
 
 ## Track 1 — Economic closure and balance bands (spine)
 
@@ -54,6 +72,7 @@ Sources are named because these numbers do not all come from the same harness.
 | Band failure messages name band, report and aggregation | Not started | A failing band identifies its report file and the aggregate used, so reconciling needs no bisect |
 | No knowingly-red assertions | Not started | No test carries an "expected red" annotation; an unmeetable band is a tracked item |
 | Band narrative kept true | In progress | Stale rent-burden/Gini comments corrected in this branch; the general guard is not built |
+| Metrics name their harness and aggregation | Done | Band table above names a source per row; `DocsConsistencyTests.Band_state_table_names_a_source_for_every_metric` guards it; health-warning row reconciled (18 family / 3 balance; the V4 "61" is stale) |
 | Rent burden and Gini inside band | Done (`ede655b`) | 0.2093/0.2917/0.3359/0.3446 and 0.50/0.55/0.57/0.57 at 60/200/1k/2k; `BalanceScenarioTests` 5/5 on freshly fetched master |
 | Retire `CohabitOnPairing` | Not started | Shipped or deleted, with the 30-year vacancy/overcrowding numbers in band if shipped |
 | Retire cadence staggering | Not started | Opt-in path deleted; decision record kept |
@@ -79,7 +98,7 @@ Sources are named because these numbers do not all come from the same harness.
 |---|---|---|
 | `CohabitOnPairing` vacancy 17.7% -> 26.6%, overcrowded 3 -> 9 | V4 | Opt-in, unresolved since V4 |
 | Cadence staggering moves bands (0.4369 vs 0.40) | V6 | Opt-in, decided stays off, switch not removed |
-| 61 health warnings (2k, 10 years) | V4 | Non-blocking, no target, unexplained |
+| Health warnings (2k, 10 years): 18 family-harness `Warn`-only vs 3 balance-harness `Warn` + `Fail`; the V4 "61" no longer reproduces | V4 | Non-blocking, no target; harness and aggregation now named |
 | 4 reproduction `Warn` levels (30 years) | V4 | Non-blocking, no target, unexplained |
 | Legacy admin endpoints wait up to 50 ms | V6 | Open |
 | 1k–2k tuning: vacancy, company failures | V1 | Open since V1; wealth Gini now in band |

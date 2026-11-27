@@ -93,6 +93,43 @@ public class DocsConsistencyTests
         foreach (var doc in new[] { "docs/plans/roadmap-v2/STATUS.md", "docs/plans/roadmap-v3/STATUS.md", "docs/plans/roadmap-v4/STATUS.md" })
             Assert.True(File.Exists(Path.Combine(RepositoryRoot(), doc)), doc);
     }
+
+    /// <summary>
+    /// Metric naming rule: a metric must name its harness and its aggregation. The V7
+    /// band-state table's <c>Source</c> column is where a band names the harness that
+    /// produced it, so a row without one is a number that cannot be reproduced — the
+    /// defect behind the "61 vs 3" health-warning confusion, where a V4 figure quoted
+    /// without a harness could not be reconciled (it reproduces as neither 61 nor 3).
+    /// </summary>
+    [Fact]
+    public void Band_state_table_names_a_source_for_every_metric()
+    {
+        var lines = Read("docs/plans/roadmap-v7/STATUS.md")
+            .Split('\n')
+            .Select(line => line.TrimEnd('\r'))
+            .ToArray();
+
+        var header = Array.FindIndex(lines, line => line.StartsWith("| Band | Population / seed |"));
+        Assert.True(header >= 0, "V7 band-state table header not found in docs/plans/roadmap-v7/STATUS.md");
+
+        var rows = lines
+            .Skip(header + 2) // past the header and the |---|---| separator
+            .TakeWhile(line => line.StartsWith("|"))
+            .ToArray();
+        Assert.NotEmpty(rows);
+
+        foreach (var row in rows)
+        {
+            var cells = row.Split('|').Select(cell => cell.Trim()).Where(cell => cell.Length > 0).ToArray();
+            Assert.True(cells.Length == 5, $"band row does not have 5 columns: {row}");
+            Assert.False(string.IsNullOrWhiteSpace(cells[4]), $"band row names no source: {row}");
+        }
+
+        // The reconciled health-warning row must name both harnesses, not a bare count.
+        var healthRow = Assert.Single(rows.Where(row => row.Contains("Health warnings")));
+        Assert.Contains("FamilyReleaseScenarioTests", healthRow);
+        Assert.Contains("BalanceScenarioTests", healthRow);
+    }
 }
 
 [Trait("Category", "Documentation")]
