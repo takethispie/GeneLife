@@ -21,7 +21,7 @@
  */
 
 import { mkdirSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { chromium } from "@playwright/test";
 
 const args = new Map(

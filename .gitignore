@@ -5,6 +5,9 @@ bin
 .idea
 *DotSettings.user
 package-lock.json
+# The browser client's lockfile IS tracked: CI runs `npm ci` and setup-node caches it
+# (see .github/workflows/ci.yml, the `client` and `admin-e2e` jobs).
+!clients/browser/package-lock.json
 launchsettings.json
 .VSCodeCounter
 .DS_Store
