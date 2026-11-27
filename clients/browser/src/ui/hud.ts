@@ -1,5 +1,5 @@
 import type { MapBuilding } from "../contracts/hub";
-import { describeBuilding } from "./building-panel";
+import { describeBuilding, type BuildingOccupants, type WorldPopulation } from "./building-panel";
 import { describeGenos } from "./genos-panel";
 import { HudDock } from "./hud-dock";
 import type { ConnectionState } from "../net/events";
@@ -29,6 +29,11 @@ export interface HudOptions {
   actions: HudActions;
   dock?: HudDock;
   updateIntervalMs?: number;
+  /**
+   * Live world data used to resolve building owners and occupants. Read on each
+   * flush, so the lists follow snapshots without holding a second copy here.
+   */
+  world?: () => WorldPopulation;
 }
 
 const CONNECTION_LABEL: Record<ConnectionState, string> = {
@@ -63,6 +68,7 @@ interface Elements {
   selectionName: HTMLElement;
   selectionMeta: HTMLElement;
   selectionOwner: HTMLElement;
+  selectionOccupants: HTMLElement;
   selectionHint: HTMLElement;
   interact: HTMLButtonElement;
   clearSelection: HTMLButtonElement;
@@ -203,16 +209,18 @@ export class Hud {
 
     if (selection === null) {
       e.selection.hidden = true;
+      this.renderOccupants(null);
       return;
     }
 
     if (selection.kind === "building") {
       e.selection.hidden = false;
-      const details = describeBuilding(selection.building);
+      const details = describeBuilding(selection.building, this.worldPopulation());
       setText(e.selectionName, details.name);
       setText(e.selectionMeta, details.meta);
       setText(e.selectionOwner, details.owner);
       setText(e.selectionHint, details.hint);
+      this.renderOccupants(details.occupants);
       e.interact.hidden = false;
     } else if (selection.kind === "tile") {
       e.selection.hidden = false;
@@ -220,10 +228,81 @@ export class Hud {
       setText(e.selectionMeta, "Target tile");
       setText(e.selectionOwner, "");
       setText(e.selectionHint, "");
+      this.renderOccupants(null);
       e.interact.hidden = true;
     } else {
       // A genos owns the left-side inspection panel, not this one.
       e.selection.hidden = true;
+    }
+  }
+
+  private worldPopulation(): WorldPopulation {
+    return this.options.world?.() ?? { genoses: [], companies: [] };
+  }
+
+  /**
+   * Renders the residents/workers block for the selected building. Rows are
+   * built from scratch on every flush with `textContent` only, so no server
+   * string is ever parsed as HTML.
+   */
+  private renderOccupants(occupants: BuildingOccupants | null): void {
+    const container = this.elements.selectionOccupants;
+    container.replaceChildren();
+    container.hidden = occupants === null;
+    if (occupants === null) {
+      delete container.dataset.occupants;
+      return;
+    }
+    container.dataset.occupants = occupants.kind;
+
+    const title = div("occupants-title");
+    title.textContent = occupants.title;
+    container.append(title);
+
+    if (occupants.empty !== null) {
+      const empty = div("occupants-empty");
+      empty.textContent = occupants.empty;
+      container.append(empty);
+      return;
+    }
+
+    for (const group of occupants.groups) {
+      const groupElement = div("occupant-group");
+      if (group.label !== "") {
+        const label = div("occupant-group-label");
+        label.textContent = group.label;
+        groupElement.append(label);
+      }
+      const list = document.createElement("ul");
+      list.className = "occupant-list";
+      for (const row of group.rows) {
+        const item = document.createElement("li");
+        item.className = "occupant";
+        item.dataset.networkId = String(row.networkId);
+        item.dataset.present = row.present ? "true" : "false";
+        const name = document.createElement("span");
+        name.className = "occupant-name";
+        name.textContent = row.name;
+        item.append(name);
+        if (row.detail !== "") {
+          const detail = document.createElement("span");
+          detail.className = "occupant-detail";
+          detail.textContent = row.detail;
+          item.append(detail);
+        }
+        const presence = document.createElement("span");
+        presence.className = "occupant-presence";
+        presence.textContent = row.present ? "present" : "away";
+        item.append(presence);
+        list.append(item);
+      }
+      groupElement.append(list);
+      if (group.hiddenCount > 0) {
+        const more = div("occupant-more");
+        more.textContent = `+${group.hiddenCount} more`;
+        groupElement.append(more);
+      }
+      container.append(groupElement);
     }
   }
 
@@ -402,6 +481,9 @@ function buildDom(options: HudOptions): Elements {
   const selectionName = div("selection-name");
   const selectionMeta = div("selection-meta");
   const selectionOwner = div("selection-owner");
+  const selectionOccupants = div("selection-occupants");
+  selectionOccupants.hidden = true;
+  selectionOccupants.setAttribute("aria-label", "Occupants");
   const selectionHint = div("selection-hint");
   const interact = button("Interact");
   interact.addEventListener("click", () => options.actions.onInteract());
@@ -409,7 +491,15 @@ function buildDom(options: HudOptions): Elements {
   const clearSelection = button("Clear selection");
   clearSelection.addEventListener("click", () => options.actions.onSelectBuilding(null));
   addControl(clearSelection);
-  selection.append(selectionName, selectionMeta, selectionOwner, selectionHint, interact, clearSelection);
+  selection.append(
+    selectionName,
+    selectionMeta,
+    selectionOwner,
+    selectionOccupants,
+    selectionHint,
+    interact,
+    clearSelection
+  );
   selection.hidden = true;
   const retry = button("Retry connection");
   retry.hidden = true;
@@ -562,6 +652,7 @@ function buildDom(options: HudOptions): Elements {
     selectionName,
     selectionMeta,
     selectionOwner,
+    selectionOccupants,
     selectionHint,
     interact,
     clearSelection,

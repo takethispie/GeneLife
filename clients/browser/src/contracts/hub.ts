@@ -103,6 +103,14 @@ export interface GenosStatus {
   unmetDemand: number;
   householdNetworkId?: number | null;
   housingUnitNetworkId?: number | null;
+  /** Building the genos works in, or null when not employed. */
+  workplaceBuildingNetworkId?: number | null;
+  /** Building containing the genos' housing unit, or null when homeless. */
+  housingBuildingNetworkId?: number | null;
+  /** The housing unit's number, or null when the server does not send one. */
+  housingUnitNumber?: string | null;
+  /** The employee's position, or null when not employed. */
+  jobPosition?: string | null;
   tenure: string;
   housingTier: string;
   homeless: boolean;

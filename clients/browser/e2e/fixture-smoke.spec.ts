@@ -20,7 +20,17 @@ test.describe("fixture-mode browser smoke", () => {
 
     await clickTileOffset(page, -5, -5);
     await expect(page.locator(".selection-name")).toHaveText("Willow House");
-    await expect(page.locator(".selection-owner")).toHaveText("Owner #42");
+    // The owner id resolves to the resident genos, not the raw network id.
+    await expect(page.locator(".selection-owner")).toHaveText("Ada");
+    // Residents are grouped by housing unit and marked present/away.
+    const occupants = page.locator(".selection-occupants");
+    await expect(occupants).toBeVisible();
+    await expect(occupants.locator(".occupants-title")).toHaveText("Residents");
+    await expect(occupants.locator(".occupant-group-label")).toHaveText("A");
+    await expect(occupants.locator(".occupant")).toHaveCount(2);
+    await expect(occupants.locator(".occupant").first().locator(".occupant-presence")).toHaveText(
+      "away"
+    );
 
     await page.locator("#hud button", { hasText: "Clear selection" }).click();
     await expect(page.locator(".selection")).toBeHidden();

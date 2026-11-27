@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { GenosStatus, MapBuilding } from "../contracts/hub";
+import type { CompanyStatus, GenosStatus, MapBuilding } from "../contracts/hub";
 import { Hud } from "./hud";
 import { NotificationCenter } from "./notifications";
 import { SettingsStore } from "./settings";
 import { UiStore } from "./ui-store";
+import type { WorldPopulation } from "./building-panel";
 
-function harness() {
+function harness(world?: () => WorldPopulation) {
   const root = document.createElement("div");
   document.body.appendChild(root);
   const ui = new UiStore();
@@ -19,7 +20,15 @@ function harness() {
     onSelectGenos: vi.fn(),
     focusCanvas: vi.fn()
   };
-  const hud = new Hud({ root, ui, notifications, settings, actions, updateIntervalMs: 100 });
+  const hud = new Hud({
+    root,
+    ui,
+    notifications,
+    settings,
+    actions,
+    updateIntervalMs: 100,
+    world
+  });
   return { root, ui, notifications, settings, actions, hud };
 }
 
@@ -268,4 +277,146 @@ describe("Hud", () => {
     expect(h.settings.settings.chatVisible).toBe(false);
     h.hud.dispose();
   });
+
+  it("shows the owner name and the workers of a company building", () => {
+    const company: CompanyStatus = {
+      networkId: 9,
+      name: "GeneCorp",
+      employeeCount: 2,
+      officeCount: 1,
+      balance: 0,
+      reservedForPayroll: 0,
+      arrears: 0,
+      revenueLastCycle: 0,
+      wagesLastCycle: 0,
+      solvency: "solvent"
+    };
+    const world = {
+      genoses: [
+        {
+          ...genos,
+          networkId: 1,
+          name: "Alba",
+          x: 1,
+          y: 1,
+          workplaceBuildingNetworkId: building.networkId,
+          jobPosition: "Welder"
+        },
+        {
+          ...genos,
+          networkId: 2,
+          name: "Bruno",
+          x: 50,
+          y: 50,
+          workplaceBuildingNetworkId: building.networkId,
+          jobPosition: null,
+          currentAction: "Filing"
+        }
+      ],
+      companies: [company]
+    };
+    const h = harness(() => world);
+    h.ui.patch({
+      selection: { kind: "building", building: { ...building, ownerNetworkId: company.networkId } }
+    });
+    vi.advanceTimersByTime(100);
+
+    const panel = h.root.querySelector(".selection");
+    expect(panel?.hasAttribute("hidden")).toBe(false);
+    expect(h.root.querySelector(".selection-owner")?.textContent).toBe("GeneCorp");
+    const occupants = h.root.querySelector<HTMLElement>(".selection-occupants");
+    expect(occupants?.hasAttribute("hidden")).toBe(false);
+    expect(occupants?.getAttribute("data-occupants")).toBe("workers");
+    expect(occupants?.querySelector(".occupants-title")?.textContent).toBe("Workers");
+    const rows = occupantRows(h.root);
+    expect(rows.map((row) => row.querySelector(".occupant-name")?.textContent)).toEqual([
+      "Alba",
+      "Bruno"
+    ]);
+    expect(rows.map((row) => row.getAttribute("data-present"))).toEqual(["true", "false"]);
+    expect(rows.map((row) => row.querySelector(".occupant-presence")?.textContent)).toEqual([
+      "present",
+      "away"
+    ]);
+    expect(rows.map((row) => row.querySelector(".occupant-detail")?.textContent)).toEqual([
+      "Welder",
+      "Filing"
+    ]);
+    h.hud.dispose();
+  });
+
+  it("groups a house's residents by unit and keeps them live", () => {
+    const house: MapBuilding = {
+      ...building,
+      networkId: 5,
+      kind: "house",
+      name: "Casa",
+      ownerNetworkId: null
+    };
+    let albaX = 50;
+    const h = harness(() => ({
+      genoses: [
+        {
+          ...genos,
+          networkId: 11,
+          name: "Alba",
+          x: albaX,
+          y: 0,
+          housingBuildingNetworkId: 5,
+          housingUnitNetworkId: 30,
+          housingUnitNumber: "4B"
+        }
+      ],
+      companies: []
+    }));
+    h.ui.patch({ selection: { kind: "building", building: house } });
+    vi.advanceTimersByTime(100);
+
+    expect(h.root.querySelector(".selection-owner")?.textContent).toBe("No owner");
+    expect(h.root.querySelector(".occupant-group-label")?.textContent).toBe("4B");
+    expect(occupantRows(h.root)[0]?.getAttribute("data-present")).toBe("false");
+
+    // A later snapshot moves Alba inside the footprint: the marker follows.
+    albaX = 1;
+    h.ui.patch({ tick: 3 });
+    vi.advanceTimersByTime(100);
+    expect(occupantRows(h.root)[0]?.getAttribute("data-present")).toBe("true");
+    h.hud.dispose();
+  });
+
+  it("says nobody lives here for a house with no residents", () => {
+    const h = harness();
+    h.ui.patch({ selection: { kind: "building", building: { ...building, kind: "house" } } });
+    vi.advanceTimersByTime(100);
+    expect(h.root.querySelector(".occupants-empty")?.textContent).toBe("Nobody lives here");
+    expect(occupantRows(h.root)).toHaveLength(0);
+    h.hud.dispose();
+  });
+
+  it("shows no occupants section for a school", () => {
+    const h = harness();
+    h.ui.patch({ selection: { kind: "building", building: { ...building, kind: "school" } } });
+    vi.advanceTimersByTime(100);
+    expect(h.root.querySelector(".selection-occupants")?.hasAttribute("hidden")).toBe(true);
+    expect(h.root.querySelector(".occupants-title")).toBeNull();
+    h.hud.dispose();
+  });
+
+  it("clears the occupants section when the selection clears", () => {
+    const h = harness();
+    h.ui.patch({ selection: { kind: "building", building } });
+    vi.advanceTimersByTime(100);
+    expect(h.root.querySelector(".selection-occupants")?.hasAttribute("hidden")).toBe(false);
+
+    h.ui.patch({ selection: null });
+    vi.advanceTimersByTime(100);
+    expect(h.root.querySelector(".selection-occupants")?.hasAttribute("hidden")).toBe(true);
+    expect(occupantRows(h.root)).toHaveLength(0);
+    h.hud.dispose();
+  });
 });
+
+/** Every rendered occupant row, in document order. */
+function occupantRows(root: HTMLElement): HTMLElement[] {
+  return Array.from(root.querySelectorAll<HTMLElement>(".occupant"));
+}

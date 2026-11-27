@@ -253,7 +253,8 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
       onSelectBuilding: (building) => selection.select(building),
       onSelectGenos: (networkId) => selectGenos(networkId),
       focusCanvas: () => pixi.app.canvas.focus()
-    }
+    },
+    world: () => ({ genoses: store.genoses.values(), companies: store.companies.values() })
   });
 
   const respawnPopin = new RespawnPopin({

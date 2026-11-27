@@ -377,6 +377,83 @@ body,
   margin: 5px 6px 0 0;
 }
 
+/* Building occupants: residents/workers with a present/away marker. */
+.selection-occupants {
+  margin: 8px 0 2px;
+  max-height: 180px;
+  overflow-y: auto;
+  border-top: 1px solid var(--hud-border);
+  padding-top: 6px;
+}
+
+.occupants-title {
+  font-weight: 600;
+  font-size: 0.95em;
+  color: var(--hud-text);
+  margin-bottom: 4px;
+}
+
+.occupants-empty {
+  color: var(--hud-muted);
+  font-style: italic;
+}
+
+.occupant-group {
+  margin: 4px 0 6px;
+}
+
+.occupant-group-label {
+  color: var(--hud-muted);
+  font-size: 0.85em;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.occupant-list {
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0;
+}
+
+.occupant {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 1px 0;
+}
+
+.occupant-name {
+  color: var(--hud-text);
+}
+
+.occupant-detail {
+  color: var(--hud-muted);
+  font-size: 0.85em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.occupant-presence {
+  margin-left: auto;
+  font-size: 0.8em;
+  border-radius: 999px;
+  padding: 0 6px;
+  border: 1px solid var(--hud-border);
+  color: var(--hud-muted);
+}
+
+.occupant[data-present="true"] .occupant-presence {
+  color: var(--hud-success);
+  border-color: var(--hud-success);
+}
+
+.occupant-more {
+  color: var(--hud-muted);
+  font-size: 0.85em;
+  margin-top: 2px;
+}
+
 .hud-checkbox,
 .hud-labelled {
   display: flex;
