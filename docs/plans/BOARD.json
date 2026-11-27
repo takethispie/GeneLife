@@ -1,6 +1,6 @@
 {
   "title": "GeneLife — Team Board",
-  "updated": "2026-11-27T06:03Z",
+  "updated": "2026-11-27T06:08Z",
   "description": "Shared team board for the GeneLife project; source of truth for the chat kanban widget. States: waiting to run -> currently running -> done. 'Currently running' holds each member's selected next task (cards marked 'next'), with ETA/branch/blocker notes. Status: the V5 balance regression (rent burden / Gini) is FIXED (rent-burden rebalance merged); the V6 opt-in question is CLOSED (StaggerCadence stays opt-in/off).",
   "states": [
     {
@@ -42,8 +42,8 @@
       "id": "c4",
       "title": "Balance-band assertion guardrails (money conservation, need restoration)",
       "owner": "gabrielo",
-      "state": "running",
-      "note": "perf tier asserts the target (now GREEN after ede655b); PR tier [Skip] to be flipped to a hard target assert (pedro's rebalance HAS landed)."
+      "state": "done",
+      "note": "PR-tier [Skip] flipped to a hard target assert (07e9403); bands green at every scale (200 0.2917/0.5503, 1k 0.3359/0.5683, 2k 0.3446/0.5701). Fast tier 595, +~4s."
     },
     {
       "id": "c5",
@@ -235,9 +235,8 @@
       "id": "hire-fire-push-test",
       "title": "Hire/fire company-room SignalR push test (stub IGroupManager)",
       "owner": "gabrielo",
-      "state": "running",
-      "selected": true,
-      "note": "EmploymentGroupPushHandler has zero in-repo coverage - the unowned backend testing gap. Stub IGroupManager, assert join/leave of the employer's company room on hire/fire."
+      "state": "done",
+      "note": "bc00405 - 5 tests vs a stub IGroupManager: hire ADDs every player connection to company:{id}, fire REMOVEs, NPC/no-connection touch nothing, employer switch leaves the stale room. Fast tier 600/0."
     }
   ]
 }
