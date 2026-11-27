@@ -79,10 +79,10 @@ public class BalanceScenarioTests
         Assert.InRange(report.DecadeMoneySupplyGrowth, 0m, 0.10m);
         Assert.True(report.EndLiving > 0, "population collapsed");
 
-        // Rent burden and Gini currently MISS the V5 bands, so they are asserted
-        // against the TARGET at every scale — never against the measured baseline,
-        // which would bake in the live miss. EXPECT THIS RED until pedro's
-        // rent-burden rebalance lands (break bisected to commit 5ddc300).
+        // Rent burden and Gini are asserted against the TARGET at every scale, never
+        // against the measured baseline, which would bake in whatever the current value
+        // happens to be. Both were RED from 5ddc300 (the consumption ordering change)
+        // until the rent-burden rebalance in ede655b brought them inside the bands.
         AssertBalanceBands(report);
 
         if (genoses == 200)
@@ -140,13 +140,14 @@ public class BalanceScenarioTests
 
     /// <summary>
     /// V5 acceptance bands for rent burden (≤ 0.40) and Gini (≤ 0.70), asserted at
-    /// EVERY scale. The default path currently misses both at every scale (seed 21,
-    /// 2026-11-26: rent 0.4041/0.4619/0.4619 and Gini 0.7802/0.7699/0.7881 at
-    /// 200/1k/2k), so this is intentionally RED.
+    /// EVERY scale. Green as of the rent-burden rebalance (ede655b, seed 21, final
+    /// year): rent 0.2093/0.2917/0.3359/0.3446 and Gini 0.50/0.55/0.57/0.57 at
+    /// 60/200/1k/2k. Both were RED from 5ddc300 until then — the miss was a
+    /// regression from the consumption ordering change, not a pre-existing gap.
     ///
-    /// Do NOT relax it to the measured baseline: a ratchet set just above a broken
-    /// value hides a live regression rather than reporting it. It goes green when
-    /// pedro's rent-burden rebalance lands. Owner: pedro (board: rent-burden rebalance).
+    /// Do NOT relax it to the measured baseline: a ratchet set just above the current
+    /// value hides a live regression rather than reporting it. A red band is a work
+    /// item — never annotate it as expected.
     /// </summary>
     private static void AssertBalanceBands(BalanceReport report)
     {
