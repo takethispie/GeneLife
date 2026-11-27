@@ -1,0 +1,29 @@
+{
+  "generatedAt": "2026-11-26T21:51:15.413Z",
+  "fixtureSet": "stress",
+  "genosesInScene": 2000,
+  "genosesVisiblePeak": 1600,
+  "viewport": "1280x720",
+  "deviceScaleFactor": 1,
+  "headless": false,
+  "renderer": "webgl",
+  "hardwareAccelerated": true,
+  "durationSeconds": 10,
+  "samples": 92,
+  "frameMs": {
+    "min": 6.93,
+    "p50": 6.95,
+    "p95": 6.95,
+    "p99": 6.98,
+    "max": 6.98
+  },
+  "fps": {
+    "min": 143.2,
+    "mean": 143.97934782608698
+  },
+  "budgetMs": 16.7,
+  "verdict": "pass",
+  "consoleErrors": [],
+  "failedRequests": [],
+  "note": "p95 frame time is compared against budgetMs (16.7ms = 60fps). Headless runs use SwiftShader and are NOT reference-hardware numbers."
+}

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="GeneLife">
+  <rect width="32" height="32" rx="7" fill="#0b1220" />
+  <circle cx="12" cy="13" r="4.2" fill="#67e8f9" />
+  <circle cx="21" cy="20" r="3.4" fill="#a78bfa" />
+  <circle cx="11" cy="23" r="2.6" fill="#5a7d6b" />
+</svg>

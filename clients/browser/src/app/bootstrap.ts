@@ -740,9 +740,10 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
     loading.setStep("auth", "done", "fixture mode");
     try {
       const base = import.meta.env.BASE_URL || "/";
+      const set = resolveFixtureSet();
       const [mapResponse, snapshotResponse] = await Promise.all([
-        fetchImpl(`${base}src/test/fixtures/map-snapshot.json`),
-        fetchImpl(`${base}src/test/fixtures/world-snapshot.json`)
+        fetchImpl(`${base}src/test/fixtures/${set.map}`),
+        fetchImpl(`${base}src/test/fixtures/${set.world}`)
       ]);
       if (!mapResponse.ok || !snapshotResponse.ok) {
         throw new Error("Fixture files were not found");
@@ -852,6 +853,35 @@ function notificationCue(kind: NotificationKind, code: string): AudioCue {
     return "uiConfirm";
   }
   return "notification";
+}
+
+/**
+ * Named fixture sets, selected with `?fixtures=1&fixtureSet=<name>`.
+ *
+ * The whitelist is deliberate: the value arrives from the URL, so it must never
+ * be interpolated into a fetch path unchecked. `default` reproduces the original
+ * single-fixture behaviour, so existing fixture-mode callers are unaffected.
+ */
+const DEFAULT_FIXTURE_SET = { map: "map-snapshot.json", world: "world-snapshot.json" };
+
+const FIXTURE_SETS: Record<string, { map: string; world: string }> = {
+  default: DEFAULT_FIXTURE_SET,
+  appearance: { map: "map-snapshot.json", world: "world-snapshot-appearance.json" },
+  stress: { map: "map-snapshot.json", world: "world-snapshot-stress.json" }
+};
+
+function resolveFixtureSet(): { map: string; world: string } {
+  if (typeof window === "undefined") return DEFAULT_FIXTURE_SET;
+  try {
+    const requested = new URL(window.location.href).searchParams.get("fixtureSet");
+    if (requested !== null) {
+      const set = FIXTURE_SETS[requested];
+      if (set !== undefined) return set;
+    }
+  } catch {
+    // Fall through to the default set.
+  }
+  return DEFAULT_FIXTURE_SET;
 }
 
 function isFixtureRequested(): boolean {
