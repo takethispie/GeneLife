@@ -6,6 +6,13 @@
 
 main {
     flex: 1;
+    /* Flex items default to min-width: auto, which resolves to min-content. In
+       the row layout below, main then refuses to shrink below its widest
+       unbreakable child (~635px from the md-paired card grid), so the page
+       overflows horizontally for every viewport from 641px until there is room.
+       min-width: 0 lets main yield; its inner overflow-x:auto containers then
+       scroll, which is the pattern the data tables already use. */
+    min-width: 0;
 }
 
 .app-toolbar {

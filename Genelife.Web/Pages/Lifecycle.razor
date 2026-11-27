@@ -292,11 +292,11 @@
                     <hr />
                     <div class="row g-2 align-items-end">
                         <div class="col-6 col-md-3"><label class="form-label small mb-1">Editing school</label><div class="form-control form-control-sm bg-light">#@editSchoolId</div></div>
-                        <div class="col-4 col-md-2"><label class="form-label small mb-1">Capacity</label><input class="form-control form-control-sm" type="number" min="1" @bind="editSchoolCapacity" /></div>
-                        <div class="col-4 col-md-2"><label class="form-label small mb-1">Quality</label><input class="form-control form-control-sm" type="number" min="0" max="1" step="0.05" @bind="editSchoolQuality" /></div>
-                        <div class="col-4 col-md-2"><label class="form-label small mb-1">Cost</label><input class="form-control form-control-sm" type="number" min="0" @bind="editSchoolCost" /></div>
-                        <div class="col-6 col-md-2"><label class="form-label small mb-1">Emphasis</label>
-                            <select class="form-select form-select-sm" @bind="editSchoolEmphasis">
+                        <div class="col-4 col-md-2"><label class="form-label small mb-1" for="editSchoolCapacity">Capacity</label><input id="editSchoolCapacity" class="form-control form-control-sm" type="number" min="1" @bind="editSchoolCapacity" /></div>
+                        <div class="col-4 col-md-2"><label class="form-label small mb-1" for="editSchoolQuality">Quality</label><input id="editSchoolQuality" class="form-control form-control-sm" type="number" min="0" max="1" step="0.05" @bind="editSchoolQuality" /></div>
+                        <div class="col-4 col-md-2"><label class="form-label small mb-1" for="editSchoolCost">Cost</label><input id="editSchoolCost" class="form-control form-control-sm" type="number" min="0" @bind="editSchoolCost" /></div>
+                        <div class="col-6 col-md-2"><label class="form-label small mb-1" for="editSchoolEmphasis">Emphasis</label>
+                            <select id="editSchoolEmphasis" class="form-select form-select-sm" @bind="editSchoolEmphasis">
                                 <option value="Programming">Programming</option>
                                 <option value="Art">Art</option>
                                 <option value="Cooking">Cooking</option>
