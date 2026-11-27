@@ -2,7 +2,7 @@
 
 **Status:** definition in progress (2026-11-26). The three candidate tracks below are ranked from
 @main-dev's backend/infra input. Track 1 is the intended **spine**; tracks 2 and 3 are secondary.
-See [ROADMAPS.md](../ROADMAPS.md) for the series index.
+Delivered state is recorded in [STATUS.md](STATUS.md); see [ROADMAPS.md](../ROADMAPS.md) for the series index.
 
 **Scope:** server simulation, economy, persistence and the admin/operator plane. **Not a performance
 roadmap** (see below).
@@ -34,9 +34,13 @@ The largest documented debt, and it spans four roadmaps:
   the regression that caused them bisected to `5ddc300`.
 - Plus **61 health warnings** on the 2k ten-year run and **4 reproduction `Warn` levels** at 30 years.
 
-**Deliverable:** the bands become a **checked gate** (gabrielo's guardrails), the numbers land **in
-band**, and the two carried opt-ins either ship or are deleted. Highest value because it unblocks
-features already built and not shipping.
+**Deliverable — not building the gate; the gate already exists.** `AssertBalanceBands` covers rent burden
+and Gini at every scale, `AssertTargetBands` covers unemployment, homelessness, pension funding, wage share
+and vacancy at 200, conservation is asserted at every scale, and gabrielo's guardrails now hard-assert. The
+open work is narrower: **three bands have no target at all** (company failure rate, health warnings,
+reproduction warnings), **the record around the gate rots** (stale reds nobody catches), and **reconciling a
+failure costs a bisect** (the message names neither the report file nor the aggregate). Plus the two carried
+opt-ins ship or are deleted. Highest value because it unblocks features already built and not shipping.
 
 ## Track 2 — Operator plane completion
 
