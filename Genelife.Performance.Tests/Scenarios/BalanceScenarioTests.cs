@@ -256,10 +256,11 @@ public class BalanceScenarioTests
                 ? economy.Housing.MetricHistory[^1]
                 : null)
             .Count(check => check.Level is HealthLevel.Warn or HealthLevel.Fail);
-        var companyFailureRate = companies > 0
-            ? economy.MetricHistory.Count > 0
-                ? economy.MetricHistory[^1].BankruptCompanies / (decimal)companies
-                : 0m
+        // Annual firm-exit rate, already annualized by EconomyMetricsSystem from the
+        // year's liquidation flow. Dividing the cumulative Bankrupt stock by the
+        // company count (the old code) reported a decade-cumulative ratio.
+        var companyFailureRate = economy.MetricHistory.Count > 0
+            ? economy.MetricHistory[^1].CompanyFailureRate
             : 0m;
 
         return new BalanceReport(

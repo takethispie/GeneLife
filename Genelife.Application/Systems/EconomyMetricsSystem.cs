@@ -39,6 +39,7 @@ public class EconomyMetricsSystem : ISimulationSystem
         var companyCash = Money.Zero;
         var arrears = Money.Zero;
         var bankrupt = 0;
+        var companies = 0;
         var wealth = new List<long>();
 
         var walletQuery = new QueryDescription().WithAll<Wallet>();
@@ -52,6 +53,7 @@ public class EconomyMetricsSystem : ISimulationSystem
         {
             companyCash += account.Balance;
             arrears += account.Arrears + account.TaxArrears;
+            companies++;
             if (account.State == CompanySolvency.Bankrupt)
                 bankrupt++;
         });
@@ -102,6 +104,13 @@ public class EconomyMetricsSystem : ISimulationSystem
               / (decimal)economy.RevenueThisYear.Cents
             : 0m;
 
+        // Annual firm-exit rate: liquidations during the year ÷ companies. The
+        // Bankrupt state alone is a monotonic stock, so using it would report a
+        // decade-cumulative ratio against a one-year band.
+        var companyFailureRate = companies > 0
+            ? economy.CompaniesFailedThisYear / (decimal)companies
+            : 0m;
+
         var snapshot = new EconomySnapshot(
             tick,
             economy.Clock.YearOf(tick),
@@ -124,7 +133,8 @@ public class EconomyMetricsSystem : ISimulationSystem
             profitShare,
             Gini(wealth),
             0,
-            bankrupt);
+            bankrupt,
+            companyFailureRate);
 
         economy.MetricHistory.Add(snapshot);
         if (economy.MetricHistory.Count > 50)

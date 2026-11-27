@@ -109,6 +109,13 @@ public sealed class EconomyContext
     public Money BasicIncomeThisYear { get; set; }
     public Money ConsumptionThisYear { get; set; }
 
+    /// <summary>
+    /// Firms liquidated since the last yearly snapshot. This is the flow the
+    /// company-failure-rate band measures, so it is reset with the other yearly
+    /// counters rather than derived from the monotonic Bankrupt stock.
+    /// </summary>
+    public int CompaniesFailedThisYear { get; set; }
+
     public void Emit(object @event) => outboundEvents.Add(@event);
 
     public IReadOnlyList<object> PendingEvents => outboundEvents;
@@ -180,6 +187,7 @@ public sealed class EconomyContext
         TaxThisYear = Money.Zero;
         BasicIncomeThisYear = Money.Zero;
         ConsumptionThisYear = Money.Zero;
+        CompaniesFailedThisYear = 0;
     }
 
     public void Clear()

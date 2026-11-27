@@ -1,5 +1,6 @@
 using Arch.Core;
 using Genelife.Api.Repositories;
+using Genelife.Application.Systems;
 using Genelife.Api.Services;
 using Genelife.Components.Company;
 using Genelife.Components.Employment;
@@ -109,6 +110,38 @@ public class EconomyPersistenceTests
 
         Assert.Equal(before, restored.Economy!.TotalMoneySupply());
         Assert.Single(restored.Economy.PendingRevenue);
+        restored.Shutdown();
+    }
+
+    [Fact]
+    public void CaptureAndRestore_PreservesTheAnnualFailureFlowAndRate()
+    {
+        var engine = new SimulationEngine();
+        engine.Initialize();
+        var world = engine.World!;
+        var economy = engine.Economy!;
+        var registry = engine.NetworkIds;
+
+        var companies = new CompanyRepository(world, economy.Employment, registry, economy);
+        companies.Add("Acme");
+
+        economy.CompaniesFailedThisYear = 1;
+        new EconomyMetricsSystem(world, economy).Update(economy.Clock.TicksPerYear);
+
+        var rate = economy.MetricHistory[^1].CompanyFailureRate;
+        Assert.True(rate > 0m);
+
+        // Failures since the last snapshot are the current year's flow.
+        economy.CompaniesFailedThisYear = 2;
+
+        var state = engine.CaptureState(registry);
+        engine.Shutdown();
+
+        var restored = new SimulationEngine();
+        restored.Restore(state, restored.NetworkIds);
+
+        Assert.Equal(2, restored.Economy!.CompaniesFailedThisYear);
+        Assert.Equal(rate, restored.Economy.MetricHistory[^1].CompanyFailureRate);
         restored.Shutdown();
     }
 }

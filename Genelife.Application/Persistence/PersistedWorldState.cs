@@ -476,6 +476,7 @@ public sealed class PersistedEconomySnapshot
     public decimal Gini { get; set; }
     public int HomelessHouseholds { get; set; }
     public int BankruptCompanies { get; set; }
+    public decimal CompanyFailureRate { get; set; }
 }
 
 public sealed class PersistedFiscal
@@ -494,6 +495,7 @@ public sealed class PersistedFiscal
     public long TaxThisYearCents { get; set; }
     public long BasicIncomeThisYearCents { get; set; }
     public long ConsumptionThisYearCents { get; set; }
+    public int CompaniesFailedThisYear { get; set; }
 }
 
 public sealed class PersistedProperty
