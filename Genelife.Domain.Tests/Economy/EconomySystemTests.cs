@@ -147,6 +147,45 @@ public class EconomySystemTests
             account.LastProfit);
     }
 
+    /// <summary>
+    /// The solvency ladder must actually reach liquidation. Regression guard for the
+    /// bug where <c>CompanySolvencySystem</c> reloaded the company account from the
+    /// store after setting <c>Insolvent</c>, clobbering both the state and the
+    /// <c>InsolventCycles</c> counter with the store's pre-tick values — so a
+    /// persistently short company reached <c>ArrearsCycles == 3</c> but could never
+    /// enter <c>Insolvent</c>, let alone be liquidated. A funded company with no
+    /// revenue and overheads above its cash must run Arrears -> Insolvent -> Bankrupt.
+    /// </summary>
+    [Fact]
+    public void CompanyShortOnCash_ReachesInsolvent_ThenLiquidates()
+    {
+        var world = World.Create();
+        var economy = new EconomyContext(world);
+        var company = world.Create(
+            new CompanyName("Doomed"),
+            CompanyAccount.Create(Money.FromUnits(100m), 0));
+        var office = world.Create(new Office("HQ", company, 10, Money.FromUnits(8_000m)));
+        world.Create(new Employee(company, office, "Clerk", Money.FromUnits(1_000m)));
+
+        var registry = new SystemRegistry();
+        registry.Register(new PayrollSystem(world, economy));
+        registry.Register(new CompanyCostsSystem(world, economy));
+        registry.Register(new CompanySolvencySystem(world, economy));
+
+        var sawInsolvent = false;
+        var cycles = 15 * economy.Clock.TicksPerPayCycle;
+        for (var tick = 1; tick <= cycles; tick++)
+        {
+            registry.Update(new SimulationContext(tick, 1f / 20f, economy.Clock));
+            if (economy.Clock.IsPayCycleBoundary(tick)
+                && world.Get<CompanyAccount>(company).State == CompanySolvency.Insolvent)
+                sawInsolvent = true;
+        }
+
+        Assert.True(sawInsolvent, "company was expected to enter Insolvent before liquidation");
+        Assert.Equal(CompanySolvency.Bankrupt, world.Get<CompanyAccount>(company).State);
+    }
+
     [Fact]
     public void Diagnostic_FindsFirstMoneyLeak()
     {
