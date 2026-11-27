@@ -4,7 +4,7 @@ import type { AppearanceStatus } from "../contracts/hub";
 import type { RenderGenos } from "../simulation/interpolation";
 import type { RenderState } from "../simulation/store";
 import { Camera } from "./camera";
-import { GenosLayer } from "./genos-layer";
+import { GENOS_LABEL_RADIUS_TILES, GenosLayer, MAX_GENOS_LABELS } from "./genos-layer";
 import type { SceneTextures } from "./textures";
 
 const appearance: AppearanceStatus = {
@@ -250,5 +250,121 @@ describe("GenosLayer name labels", () => {
     const farStats = far.render(state(genoses), 99, nameOf, camera(12), 32);
     expect(farStats.labels).toBe(0);
     expect(drawnLabels(farContainer)).toEqual([]);
+  });
+
+  it("caps the nameplates at MAX_GENOS_LABELS and always keeps the local one", () => {
+    const container = new Container();
+    const layer = new GenosLayer(container, textures());
+
+    // The local genos plus far more named genoses than the cap, on a lattice
+    // spaced wider than the minimum separation (3 tiles) and all inside the
+    // label radius, so the cap — not the radius or the declutter — is what
+    // limits the labels.
+    const genoses = [genos(1, 0, 0)];
+    const names: Array<[number, string]> = [[1, "Ada"]];
+    let id = 100;
+    for (let gx = -3; gx <= 3; gx++) {
+      for (let gy = -3; gy <= 3; gy++) {
+        if (gx === 0 && gy === 0) continue;
+        if (gx * gx + gy * gy > 16) continue;
+        const x = gx * 3;
+        const y = gy * 3;
+        genoses.push(genos(id, x, y));
+        names.push([id, `g${id}`]);
+        id++;
+      }
+    }
+    const crowding = genoses.length - 1;
+    expect(crowding).toBeGreaterThan(MAX_GENOS_LABELS);
+
+    const stats = layer.render(state(genoses), 1, namesOf(names), camera(), 1);
+
+    expect(stats.visible).toBe(crowding + 1);
+    expect(stats.labels).toBe(MAX_GENOS_LABELS);
+
+    const drawn = drawnLabels(container);
+    // stats.labels counts exactly the labels actually drawn...
+    expect(drawn).toHaveLength(stats.labels);
+    // ...and the local genos' own nameplate is one of them.
+    expect(drawnNames(container)).toContain("Ada");
+  });
+
+  it("labels a genos near the anchor but not one outside the label radius", () => {
+    const container = new Container();
+    const layer = new GenosLayer(container, textures());
+    const outside = GENOS_LABEL_RADIUS_TILES + 3;
+
+    const stats = layer.render(
+      state([genos(1, 0, 0), genos(2, 4, 0), genos(3, outside, 0)]),
+      1,
+      namesOf([
+        [1, "Ada"],
+        [2, "Boris"],
+        [3, "Cleo"]
+      ]),
+      camera(),
+      1
+    );
+
+    // All three are on screen and keep their sprites; only the near ones are named.
+    expect(stats.visible).toBe(3);
+    expect(stats.labels).toBe(2);
+    expect(drawnLabels(container)).toHaveLength(stats.labels);
+    expect(drawnNames(container)).toEqual(expect.arrayContaining(["Ada", "Boris"]));
+    expect(drawnNames(container)).not.toContain("Cleo");
+  });
+
+  it("gives a crowded pair one nameplate and keeps the local player's clear", () => {
+    const container = new Container();
+    const layer = new GenosLayer(container, textures());
+
+    // At stress density two genoses share a tile: (4, 0) and (4.4, 0) are both
+    // inside the radius, but one nameplate covers the pair. (1, 0) is nearer
+    // still, yet inside the local genos' own separation, so it stays unnamed.
+    const stats = layer.render(
+      state([genos(1, 0, 0), genos(2, 1, 0), genos(3, 4, 0), genos(4, 4.4, 0)]),
+      1,
+      namesOf([
+        [1, "Ada"],
+        [2, "Nadia"],
+        [3, "Boris"],
+        [4, "Cass"]
+      ]),
+      camera(),
+      1
+    );
+
+    const drawn = drawnNames(container);
+    expect(stats.visible).toBe(4);
+    expect(stats.labels).toBe(2);
+    expect(drawnLabels(container)).toHaveLength(stats.labels);
+    expect(drawn).toEqual(expect.arrayContaining(["Ada", "Boris"]));
+    expect(drawn).not.toContain("Nadia");
+    expect(drawn).not.toContain("Cass");
+  });
+
+  it("does not spend label slots on dead genoses at density", () => {
+    const container = new Container();
+    const layer = new GenosLayer(container, textures());
+
+    // A corpse sits right on top of the anchor, where it would win a slot if
+    // corpses were still eligible.
+    const stats = layer.render(
+      state([genos(1, 0, 0), genos(2, 0.5, 0, false, true), genos(3, 4, 2)]),
+      1,
+      namesOf([
+        [1, "Ada"],
+        [2, "Cadaver"],
+        [3, "Cleo"]
+      ]),
+      camera(),
+      1
+    );
+
+    expect(stats.visible).toBe(3);
+    expect(stats.labels).toBe(2);
+    expect(drawnLabels(container)).toHaveLength(stats.labels);
+    expect(drawnNames(container)).toEqual(expect.arrayContaining(["Ada", "Cleo"]));
+    expect(drawnNames(container)).not.toContain("Cadaver");
   });
 });
