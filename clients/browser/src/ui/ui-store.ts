@@ -1,8 +1,9 @@
-import type { MapBuilding } from "../contracts/hub";
+import type { GenosStatus, MapBuilding } from "../contracts/hub";
 import type { ConnectionState } from "../net/events";
 
 export type Selection =
   | { kind: "building"; building: MapBuilding }
+  | { kind: "genos"; genos: GenosStatus }
   | { kind: "tile"; x: number; y: number }
   | null;
 

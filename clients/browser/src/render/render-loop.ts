@@ -1,6 +1,6 @@
 import type { MapBuilding } from "../contracts/hub";
 import type { TileRect } from "../net/viewport-client";
-import type { SimulationStore } from "../simulation/store";
+import type { SimulationStore, RenderState } from "../simulation/store";
 import type { ClientSettings } from "../ui/settings";
 import { Camera } from "./camera";
 import type { DebugMetrics } from "./debug-overlay";
@@ -10,6 +10,7 @@ import { BuildingLayer } from "./map/building-layer";
 import { GenosLayer } from "./genos-layer";
 import { SelectionLayer } from "./selection-layer";
 import { createSceneTextures, destroyTextures, type SceneTextures } from "./textures";
+import type { RenderGenos } from "../simulation/interpolation";
 
 export interface SceneStats extends DebugMetrics {
   visibleRoads: number;
@@ -49,6 +50,8 @@ export class SceneRenderer {
   private selectedBuilding: MapBuilding | null = null;
   private hoverTile: { x: number; y: number; walkable: boolean } | null = null;
   private targetTile: { x: number; y: number } | null = null;
+  /** The interpolated positions from the most recent frame, for pointer picking. */
+  private lastRenderState: RenderState | null = null;
   private readonly options: SceneRendererOptions;
   /** Stable lookup so the genos layer reads names without a per-frame closure. */
   private readonly nameOf = (networkId: number): string =>
@@ -89,6 +92,15 @@ export class SceneRenderer {
     this.selectedBuilding = building;
   }
 
+  /**
+   * The interpolated genos positions drawn in the last frame. Pointer picking
+   * reads these so a click lands on the same place the sprite is drawn, not on
+   * the older snapshot.
+   */
+  renderGenoses(): Iterable<RenderGenos> {
+    return this.lastRenderState?.genoses.values() ?? [];
+  }
+
   dispose(): void {
     this.tiles?.destroy();
     this.buildings?.destroy();
@@ -122,6 +134,7 @@ export class SceneRenderer {
 
     const map = store.map;
     if (map === null) {
+      this.lastRenderState = null;
       this.genoses?.renderNoWorld();
       this.lastStatsAt = 0;
       return;
@@ -140,6 +153,7 @@ export class SceneRenderer {
       snapDistance: 3,
       reducedMotion: settings.reduceMotion
     });
+    this.lastRenderState = renderState;
 
     const tileStats = this.tiles?.render(map, camera) ?? { tiles: 0, roads: 0 };
     const buildingStats = this.buildings?.render(map, camera) ?? {
