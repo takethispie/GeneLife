@@ -84,6 +84,7 @@ public class BalanceScenarioTests
         // happens to be. Both were RED from 5ddc300 (the consumption ordering change)
         // until the rent-burden rebalance in ede655b brought them inside the bands.
         AssertBalanceBands(report);
+        AssertCompanyFailureBand(report);
 
         if (genoses == 200)
             AssertTargetBands(report);
@@ -166,6 +167,58 @@ public class BalanceScenarioTests
             $"exceeds the closed-loop ceiling 1.00 (firms paying out more wages than revenue)");
     }
 
+    /// <summary>
+    /// V7 company-failure band. The external anchor is the **annual firm-exit rate
+    /// 0.02-0.15/yr** (US ~0.075/yr, Fed FEDS 2020-089; OECD "&gt;10 % in many countries").
+    /// The asserted quantity is the same one the reconciled <see cref="EconomyHealth"/>
+    /// check reads — <see cref="EconomySnapshot.CompanyFailureRate"/>, an annual rate
+    /// (liquidations during the year ÷ companies) — and the thresholds are the same
+    /// constants the health check uses, so the two can never drift apart.
+    ///
+    /// Asserted at EVERY scale (not just the 200 reference case) so a single-scale
+    /// artefact cannot pass: at 60 firms one exit is a 3x-larger rate than at 2000.
+    ///
+    /// Two checks, both required:
+    ///   (1) the decade PEAK annual rate is non-zero — the solvency mechanism is live.
+    ///       A regression back to "no company can fail" (which reported 0.0 everywhere
+    ///       before t_1a146d52) must fail here; a bare ceiling assert would pass on 0.0.
+    ///   (2) the reported (latest-snapshot) annual rate sits in the health check's Pass
+    ///       region (&lt;= the 0.15/yr Warn-high). The 0.30/yr Fail-high is asserted on the
+    ///       decade peak so a mid-decade spike cannot hide behind a calm final year.
+    ///
+    /// KNOWN GAP (tracked as t_a2351350): the 0.02/yr LOWER bound is not yet met. The
+    /// rebalance made failure reachable, but the decade-mean annual rate is ~0.0016-0.017/yr,
+    /// below the floor, while at scale 60 a single exit out of ~6 firms is a 16.7 % event-year.
+    /// The lower bound is therefore deliberately NOT asserted here; flip
+    /// <see cref="EconomyHealth.CompanyFailureLowerBound"/> to 0.02m and add the two-sided
+    /// lower-bound assert when t_a2351350 lands.
+    /// </summary>
+    private static void AssertCompanyFailureBand(BalanceReport report)
+    {
+        const string band = "0.02-0.15/yr";
+        var reportFile = $"balance-reports/balance-{report.RequestedGenoses}-{report.Seed}.json";
+        var where = $"{report.RequestedGenoses}-{report.Seed}";
+        var rates = report.Years.Select(year => year.CompanyFailureRate).ToList();
+        var peak = rates.Count > 0 ? rates.Max() : 0m;
+
+        // (1) Mechanism live: at least one firm exited during the decade.
+        Assert.True(peak > 0m,
+            $"{where}: company-failure band {band} (report {reportFile}; aggregate = peak annual " +
+            $"firm-exit rate): no firm exited in the decade — observed peak {peak:F4}/yr, target > 0/yr");
+
+        // (2a) No year may breach the health check's Fail-high.
+        Assert.True(peak <= EconomyHealth.CompanyFailureFailHigh,
+            $"{where}: company-failure band {band} (report {reportFile}; aggregate = peak annual " +
+            $"firm-exit rate): observed peak {peak:F4}/yr exceeds the health-check fail-high " +
+            $"{EconomyHealth.CompanyFailureFailHigh:F2}/yr");
+
+        // (2b) The reported (latest-snapshot) rate must sit in the health check's Pass region.
+        Assert.True(report.CompanyFailureRate <= EconomyHealth.CompanyFailureWarnHigh,
+            $"{where}: company-failure band {band} (report {reportFile}; aggregate = final-year annual " +
+            $"firm-exit rate): observed {report.CompanyFailureRate:F4}/yr exceeds the band ceiling " +
+            $"{EconomyHealth.CompanyFailureWarnHigh:F2}/yr");
+    }
+
     private static BalanceReport BuildReport(
         SimulationEngine engine,
         int requestedGenoses,
@@ -231,6 +284,7 @@ public class BalanceScenarioTests
                 e.Gini,
                 e.Arrears.Cents,
                 e.BankruptCompanies,
+                e.CompanyFailureRate,
                 h.VacancyRate,
                 h.HomelessHouseholds,
                 h.MedianRentBurden,
@@ -351,6 +405,7 @@ public class BalanceScenarioTests
         decimal Gini,
         long ArrearsCents,
         int BankruptCompanies,
+        decimal CompanyFailureRate,
         decimal HousingVacancyRate,
         int HomelessHouseholds,
         decimal MedianRentBurden,
