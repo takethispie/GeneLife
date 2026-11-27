@@ -1,0 +1,2270 @@
+{
+  "schema": 1,
+  "generated": "2026-11-27",
+  "source": {
+    "file": "autotiles_32x32.png",
+    "width": 384,
+    "height": 3328,
+    "tile": 32,
+    "columns": 12,
+    "tile_rows": 104,
+    "block_rows": 4,
+    "spacer_columns": [
+      0
+    ]
+  },
+  "method": {
+    "pattern_encoding": "4 chars: sides (T,R,B,L) or corners (TL,TR,BR,BL); 'W' = terrain on that side/corner",
+    "terrain_signal": "alpha only. Valid where the block has transparent surroundings (kind=transparent-set).",
+    "invalid_for": "kind=opaque blocks: alpha cannot distinguish terrain from background, so completeness must not be trusted; a colour/semantic pass is required.",
+    "thresholds": {
+      "tile_included": ">= 0.2 opaque coverage",
+      "side_or_corner_present": "> 0.5 opaque"
+    }
+  },
+  "blocks": [
+    {
+      "id": 0,
+      "rows": [
+        0,
+        3
+      ],
+      "tiles": 44,
+      "fully_opaque_tiles": 44,
+      "kind": "opaque",
+      "side_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "corner_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "complete_sides": false,
+      "complete_corners": false,
+      "side_pattern_tiles": {
+        "WWWW": [
+          1,
+          0
+        ]
+      },
+      "corner_pattern_tiles": {
+        "WWWW": [
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "id": 1,
+      "rows": [
+        4,
+        7
+      ],
+      "tiles": 44,
+      "fully_opaque_tiles": 44,
+      "kind": "opaque",
+      "side_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "corner_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "complete_sides": false,
+      "complete_corners": false,
+      "side_pattern_tiles": {
+        "WWWW": [
+          1,
+          4
+        ]
+      },
+      "corner_pattern_tiles": {
+        "WWWW": [
+          1,
+          4
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "rows": [
+        8,
+        11
+      ],
+      "tiles": 44,
+      "fully_opaque_tiles": 44,
+      "kind": "opaque",
+      "side_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "corner_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "complete_sides": false,
+      "complete_corners": false,
+      "side_pattern_tiles": {
+        "WWWW": [
+          1,
+          8
+        ]
+      },
+      "corner_pattern_tiles": {
+        "WWWW": [
+          1,
+          8
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "rows": [
+        12,
+        15
+      ],
+      "tiles": 44,
+      "fully_opaque_tiles": 44,
+      "kind": "opaque",
+      "side_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "corner_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "complete_sides": false,
+      "complete_corners": false,
+      "side_pattern_tiles": {
+        "WWWW": [
+          1,
+          12
+        ]
+      },
+      "corner_pattern_tiles": {
+        "WWWW": [
+          1,
+          12
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "rows": [
+        16,
+        19
+      ],
+      "tiles": 38,
+      "fully_opaque_tiles": 4,
+      "kind": "transparent-set",
+      "side_patterns": {
+        "count": 10,
+        "present": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".WW.",
+          "W...",
+          "W..W",
+          "WW..",
+          "WWWW"
+        ],
+        "missing": [
+          ".W.W",
+          ".WWW",
+          "W.W.",
+          "W.WW",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "corner_patterns": {
+        "count": 11,
+        "present": [
+          "..WW",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW.",
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          ".W..",
+          "W..."
+        ]
+      },
+      "complete_sides": false,
+      "complete_corners": false,
+      "side_pattern_tiles": {
+        "....": [
+          6,
+          16
+        ],
+        "...W": [
+          10,
+          16
+        ],
+        "..W.": [
+          5,
+          18
+        ],
+        "..WW": [
+          2,
+          17
+        ],
+        ".W..": [
+          7,
+          16
+        ],
+        ".WW.": [
+          3,
+          17
+        ],
+        "W...": [
+          4,
+          16
+        ],
+        "W..W": [
+          6,
+          17
+        ],
+        "WW..": [
+          8,
+          16
+        ],
+        "WWWW": [
+          4,
+          17
+        ]
+      },
+      "corner_pattern_tiles": {
+        "..WW": [
+          5,
+          18
+        ],
+        ".W.W": [
+          11,
+          16
+        ],
+        ".WW.": [
+          7,
+          16
+        ],
+        ".WWW": [
+          3,
+          17
+        ],
+        "W..W": [
+          10,
+          16
+        ],
+        "W.W.": [
+          6,
+          16
+        ],
+        "W.WW": [
+          2,
+          17
+        ],
+        "WW..": [
+          4,
+          16
+        ],
+        "WW.W": [
+          6,
+          17
+        ],
+        "WWW.": [
+          8,
+          16
+        ],
+        "WWWW": [
+          4,
+          17
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "rows": [
+        20,
+        23
+      ],
+      "tiles": 38,
+      "fully_opaque_tiles": 4,
+      "kind": "transparent-set",
+      "side_patterns": {
+        "count": 10,
+        "present": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".WW.",
+          "W...",
+          "W..W",
+          "WW..",
+          "WWWW"
+        ],
+        "missing": [
+          ".W.W",
+          ".WWW",
+          "W.W.",
+          "W.WW",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "corner_patterns": {
+        "count": 11,
+        "present": [
+          "..WW",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW.",
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          ".W..",
+          "W..."
+        ]
+      },
+      "complete_sides": false,
+      "complete_corners": false,
+      "side_pattern_tiles": {
+        "....": [
+          6,
+          20
+        ],
+        "...W": [
+          10,
+          20
+        ],
+        "..W.": [
+          5,
+          22
+        ],
+        "..WW": [
+          2,
+          21
+        ],
+        ".W..": [
+          7,
+          20
+        ],
+        ".WW.": [
+          3,
+          21
+        ],
+        "W...": [
+          4,
+          20
+        ],
+        "W..W": [
+          6,
+          21
+        ],
+        "WW..": [
+          8,
+          20
+        ],
+        "WWWW": [
+          4,
+          21
+        ]
+      },
+      "corner_pattern_tiles": {
+        "..WW": [
+          5,
+          22
+        ],
+        ".W.W": [
+          11,
+          20
+        ],
+        ".WW.": [
+          7,
+          20
+        ],
+        ".WWW": [
+          3,
+          21
+        ],
+        "W..W": [
+          10,
+          20
+        ],
+        "W.W.": [
+          6,
+          20
+        ],
+        "W.WW": [
+          2,
+          21
+        ],
+        "WW..": [
+          4,
+          20
+        ],
+        "WW.W": [
+          6,
+          21
+        ],
+        "WWW.": [
+          8,
+          20
+        ],
+        "WWWW": [
+          4,
+          21
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "rows": [
+        24,
+        27
+      ],
+      "tiles": 44,
+      "fully_opaque_tiles": 44,
+      "kind": "opaque",
+      "side_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "corner_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "complete_sides": false,
+      "complete_corners": false,
+      "side_pattern_tiles": {
+        "WWWW": [
+          1,
+          24
+        ]
+      },
+      "corner_pattern_tiles": {
+        "WWWW": [
+          1,
+          24
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "rows": [
+        28,
+        31
+      ],
+      "tiles": 44,
+      "fully_opaque_tiles": 44,
+      "kind": "opaque",
+      "side_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "corner_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "complete_sides": false,
+      "complete_corners": false,
+      "side_pattern_tiles": {
+        "WWWW": [
+          1,
+          28
+        ]
+      },
+      "corner_pattern_tiles": {
+        "WWWW": [
+          1,
+          28
+        ]
+      }
+    },
+    {
+      "id": 8,
+      "rows": [
+        32,
+        35
+      ],
+      "tiles": 44,
+      "fully_opaque_tiles": 44,
+      "kind": "opaque",
+      "side_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "corner_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "complete_sides": false,
+      "complete_corners": false,
+      "side_pattern_tiles": {
+        "WWWW": [
+          1,
+          32
+        ]
+      },
+      "corner_pattern_tiles": {
+        "WWWW": [
+          1,
+          32
+        ]
+      }
+    },
+    {
+      "id": 9,
+      "rows": [
+        36,
+        39
+      ],
+      "tiles": 44,
+      "fully_opaque_tiles": 2,
+      "kind": "transparent-set",
+      "side_patterns": {
+        "count": 14,
+        "present": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW.",
+          "WWWW"
+        ],
+        "missing": [
+          ".W.W",
+          "W.W."
+        ]
+      },
+      "corner_patterns": {
+        "count": 15,
+        "present": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW.W",
+          "WWW.",
+          "WWWW"
+        ],
+        "missing": [
+          "WW.."
+        ]
+      },
+      "complete_sides": false,
+      "complete_corners": false,
+      "side_pattern_tiles": {
+        "....": [
+          10,
+          38
+        ],
+        "...W": [
+          4,
+          37
+        ],
+        "..W.": [
+          8,
+          37
+        ],
+        "..WW": [
+          8,
+          36
+        ],
+        ".W..": [
+          8,
+          38
+        ],
+        ".WW.": [
+          6,
+          37
+        ],
+        ".WWW": [
+          4,
+          36
+        ],
+        "W...": [
+          9,
+          39
+        ],
+        "W..W": [
+          3,
+          37
+        ],
+        "W.WW": [
+          7,
+          36
+        ],
+        "WW..": [
+          6,
+          38
+        ],
+        "WW.W": [
+          1,
+          37
+        ],
+        "WWW.": [
+          5,
+          37
+        ],
+        "WWWW": [
+          1,
+          36
+        ]
+      },
+      "corner_pattern_tiles": {
+        "....": [
+          8,
+          37
+        ],
+        "...W": [
+          8,
+          36
+        ],
+        "..W.": [
+          6,
+          37
+        ],
+        "..WW": [
+          4,
+          36
+        ],
+        ".W..": [
+          7,
+          37
+        ],
+        ".W.W": [
+          6,
+          36
+        ],
+        ".WW.": [
+          5,
+          37
+        ],
+        ".WWW": [
+          2,
+          36
+        ],
+        "W...": [
+          3,
+          39
+        ],
+        "W..W": [
+          7,
+          36
+        ],
+        "W.W.": [
+          7,
+          38
+        ],
+        "W.WW": [
+          3,
+          36
+        ],
+        "WW.W": [
+          5,
+          36
+        ],
+        "WWW.": [
+          5,
+          38
+        ],
+        "WWWW": [
+          1,
+          36
+        ]
+      }
+    },
+    {
+      "id": 10,
+      "rows": [
+        40,
+        43
+      ],
+      "tiles": 44,
+      "fully_opaque_tiles": 44,
+      "kind": "opaque",
+      "side_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "corner_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "complete_sides": false,
+      "complete_corners": false,
+      "side_pattern_tiles": {
+        "WWWW": [
+          1,
+          40
+        ]
+      },
+      "corner_pattern_tiles": {
+        "WWWW": [
+          1,
+          40
+        ]
+      }
+    },
+    {
+      "id": 11,
+      "rows": [
+        44,
+        47
+      ],
+      "tiles": 44,
+      "fully_opaque_tiles": 44,
+      "kind": "opaque",
+      "side_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "corner_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "complete_sides": false,
+      "complete_corners": false,
+      "side_pattern_tiles": {
+        "WWWW": [
+          1,
+          44
+        ]
+      },
+      "corner_pattern_tiles": {
+        "WWWW": [
+          1,
+          44
+        ]
+      }
+    },
+    {
+      "id": 12,
+      "rows": [
+        48,
+        51
+      ],
+      "tiles": 44,
+      "fully_opaque_tiles": 15,
+      "kind": "transparent-set",
+      "side_patterns": {
+        "count": 16,
+        "present": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW.",
+          "WWWW"
+        ],
+        "missing": []
+      },
+      "corner_patterns": {
+        "count": 6,
+        "present": [
+          "....",
+          "..WW",
+          ".WWW",
+          "W.WW",
+          "WW..",
+          "WWWW"
+        ],
+        "missing": [
+          "...W",
+          "..W.",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          "W...",
+          "W..W",
+          "W.W.",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "complete_sides": true,
+      "complete_corners": false,
+      "side_pattern_tiles": {
+        "....": [
+          11,
+          51
+        ],
+        "...W": [
+          10,
+          51
+        ],
+        "..W.": [
+          7,
+          51
+        ],
+        "..WW": [
+          1,
+          51
+        ],
+        ".W..": [
+          8,
+          51
+        ],
+        ".W.W": [
+          10,
+          50
+        ],
+        ".WW.": [
+          11,
+          50
+        ],
+        ".WWW": [
+          9,
+          49
+        ],
+        "W...": [
+          9,
+          51
+        ],
+        "W..W": [
+          3,
+          51
+        ],
+        "W.W.": [
+          9,
+          50
+        ],
+        "W.WW": [
+          1,
+          50
+        ],
+        "WW..": [
+          5,
+          51
+        ],
+        "WW.W": [
+          5,
+          50
+        ],
+        "WWW.": [
+          5,
+          49
+        ],
+        "WWWW": [
+          1,
+          48
+        ]
+      },
+      "corner_pattern_tiles": {
+        "....": [
+          10,
+          50
+        ],
+        "..WW": [
+          9,
+          49
+        ],
+        ".WWW": [
+          5,
+          49
+        ],
+        "W.WW": [
+          1,
+          50
+        ],
+        "WW..": [
+          5,
+          50
+        ],
+        "WWWW": [
+          1,
+          48
+        ]
+      }
+    },
+    {
+      "id": 13,
+      "rows": [
+        52,
+        55
+      ],
+      "tiles": 44,
+      "fully_opaque_tiles": 44,
+      "kind": "opaque",
+      "side_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "corner_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "complete_sides": false,
+      "complete_corners": false,
+      "side_pattern_tiles": {
+        "WWWW": [
+          1,
+          52
+        ]
+      },
+      "corner_pattern_tiles": {
+        "WWWW": [
+          1,
+          52
+        ]
+      }
+    },
+    {
+      "id": 14,
+      "rows": [
+        56,
+        59
+      ],
+      "tiles": 44,
+      "fully_opaque_tiles": 44,
+      "kind": "opaque",
+      "side_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "corner_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "complete_sides": false,
+      "complete_corners": false,
+      "side_pattern_tiles": {
+        "WWWW": [
+          1,
+          56
+        ]
+      },
+      "corner_pattern_tiles": {
+        "WWWW": [
+          1,
+          56
+        ]
+      }
+    },
+    {
+      "id": 15,
+      "rows": [
+        60,
+        63
+      ],
+      "tiles": 44,
+      "fully_opaque_tiles": 44,
+      "kind": "opaque",
+      "side_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "corner_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "complete_sides": false,
+      "complete_corners": false,
+      "side_pattern_tiles": {
+        "WWWW": [
+          1,
+          60
+        ]
+      },
+      "corner_pattern_tiles": {
+        "WWWW": [
+          1,
+          60
+        ]
+      }
+    },
+    {
+      "id": 16,
+      "rows": [
+        64,
+        67
+      ],
+      "tiles": 39,
+      "fully_opaque_tiles": 0,
+      "kind": "transparent-set",
+      "side_patterns": {
+        "count": 12,
+        "present": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W..W",
+          "W.WW",
+          "WW.W",
+          "WWWW"
+        ],
+        "missing": [
+          "W...",
+          "W.W.",
+          "WW..",
+          "WWW."
+        ]
+      },
+      "corner_patterns": {
+        "count": 11,
+        "present": [
+          "..WW",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW.",
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          ".W..",
+          "W..."
+        ]
+      },
+      "complete_sides": false,
+      "complete_corners": false,
+      "side_pattern_tiles": {
+        "....": [
+          1,
+          66
+        ],
+        "...W": [
+          6,
+          64
+        ],
+        "..W.": [
+          1,
+          65
+        ],
+        "..WW": [
+          2,
+          65
+        ],
+        ".W..": [
+          7,
+          64
+        ],
+        ".W.W": [
+          9,
+          65
+        ],
+        ".WW.": [
+          3,
+          65
+        ],
+        ".WWW": [
+          5,
+          66
+        ],
+        "W..W": [
+          3,
+          66
+        ],
+        "W.WW": [
+          4,
+          66
+        ],
+        "WW.W": [
+          4,
+          64
+        ],
+        "WWWW": [
+          4,
+          65
+        ]
+      },
+      "corner_pattern_tiles": {
+        "..WW": [
+          1,
+          65
+        ],
+        ".W.W": [
+          11,
+          64
+        ],
+        ".WW.": [
+          7,
+          64
+        ],
+        ".WWW": [
+          3,
+          65
+        ],
+        "W..W": [
+          10,
+          64
+        ],
+        "W.W.": [
+          6,
+          64
+        ],
+        "W.WW": [
+          2,
+          65
+        ],
+        "WW..": [
+          4,
+          64
+        ],
+        "WW.W": [
+          6,
+          65
+        ],
+        "WWW.": [
+          8,
+          64
+        ],
+        "WWWW": [
+          4,
+          65
+        ]
+      }
+    },
+    {
+      "id": 17,
+      "rows": [
+        68,
+        71
+      ],
+      "tiles": 44,
+      "fully_opaque_tiles": 44,
+      "kind": "opaque",
+      "side_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "corner_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "complete_sides": false,
+      "complete_corners": false,
+      "side_pattern_tiles": {
+        "WWWW": [
+          1,
+          68
+        ]
+      },
+      "corner_pattern_tiles": {
+        "WWWW": [
+          1,
+          68
+        ]
+      }
+    },
+    {
+      "id": 18,
+      "rows": [
+        72,
+        75
+      ],
+      "tiles": 44,
+      "fully_opaque_tiles": 44,
+      "kind": "opaque",
+      "side_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "corner_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "complete_sides": false,
+      "complete_corners": false,
+      "side_pattern_tiles": {
+        "WWWW": [
+          1,
+          72
+        ]
+      },
+      "corner_pattern_tiles": {
+        "WWWW": [
+          1,
+          72
+        ]
+      }
+    },
+    {
+      "id": 19,
+      "rows": [
+        76,
+        79
+      ],
+      "tiles": 44,
+      "fully_opaque_tiles": 44,
+      "kind": "opaque",
+      "side_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "corner_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "complete_sides": false,
+      "complete_corners": false,
+      "side_pattern_tiles": {
+        "WWWW": [
+          1,
+          76
+        ]
+      },
+      "corner_pattern_tiles": {
+        "WWWW": [
+          1,
+          76
+        ]
+      }
+    },
+    {
+      "id": 20,
+      "rows": [
+        80,
+        83
+      ],
+      "tiles": 44,
+      "fully_opaque_tiles": 44,
+      "kind": "opaque",
+      "side_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "corner_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "complete_sides": false,
+      "complete_corners": false,
+      "side_pattern_tiles": {
+        "WWWW": [
+          1,
+          80
+        ]
+      },
+      "corner_pattern_tiles": {
+        "WWWW": [
+          1,
+          80
+        ]
+      }
+    },
+    {
+      "id": 21,
+      "rows": [
+        84,
+        87
+      ],
+      "tiles": 44,
+      "fully_opaque_tiles": 44,
+      "kind": "opaque",
+      "side_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "corner_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "complete_sides": false,
+      "complete_corners": false,
+      "side_pattern_tiles": {
+        "WWWW": [
+          1,
+          84
+        ]
+      },
+      "corner_pattern_tiles": {
+        "WWWW": [
+          1,
+          84
+        ]
+      }
+    },
+    {
+      "id": 22,
+      "rows": [
+        88,
+        91
+      ],
+      "tiles": 44,
+      "fully_opaque_tiles": 44,
+      "kind": "opaque",
+      "side_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "corner_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "complete_sides": false,
+      "complete_corners": false,
+      "side_pattern_tiles": {
+        "WWWW": [
+          1,
+          88
+        ]
+      },
+      "corner_pattern_tiles": {
+        "WWWW": [
+          1,
+          88
+        ]
+      }
+    },
+    {
+      "id": 23,
+      "rows": [
+        92,
+        95
+      ],
+      "tiles": 44,
+      "fully_opaque_tiles": 44,
+      "kind": "opaque",
+      "side_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "corner_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "complete_sides": false,
+      "complete_corners": false,
+      "side_pattern_tiles": {
+        "WWWW": [
+          1,
+          92
+        ]
+      },
+      "corner_pattern_tiles": {
+        "WWWW": [
+          1,
+          92
+        ]
+      }
+    },
+    {
+      "id": 24,
+      "rows": [
+        96,
+        99
+      ],
+      "tiles": 44,
+      "fully_opaque_tiles": 44,
+      "kind": "opaque",
+      "side_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "corner_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "complete_sides": false,
+      "complete_corners": false,
+      "side_pattern_tiles": {
+        "WWWW": [
+          1,
+          96
+        ]
+      },
+      "corner_pattern_tiles": {
+        "WWWW": [
+          1,
+          96
+        ]
+      }
+    },
+    {
+      "id": 25,
+      "rows": [
+        100,
+        103
+      ],
+      "tiles": 44,
+      "fully_opaque_tiles": 44,
+      "kind": "opaque",
+      "side_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "corner_patterns": {
+        "count": 1,
+        "present": [
+          "WWWW"
+        ],
+        "missing": [
+          "....",
+          "...W",
+          "..W.",
+          "..WW",
+          ".W..",
+          ".W.W",
+          ".WW.",
+          ".WWW",
+          "W...",
+          "W..W",
+          "W.W.",
+          "W.WW",
+          "WW..",
+          "WW.W",
+          "WWW."
+        ]
+      },
+      "complete_sides": false,
+      "complete_corners": false,
+      "side_pattern_tiles": {
+        "WWWW": [
+          1,
+          100
+        ]
+      },
+      "corner_pattern_tiles": {
+        "WWWW": [
+          1,
+          100
+        ]
+      }
+    }
+  ]
+}
