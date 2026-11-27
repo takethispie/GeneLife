@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ChatMessage, ChatSendRequest, ChatSendResult, EmoteSendResult } from "../../contracts/hub";
+import { HudDock } from "../hud-dock";
+import { SettingsStore } from "../settings";
 import { ChatPanel } from "./chat";
 
 const emptyHistory = () =>
@@ -164,6 +166,101 @@ describe("chat panel", () => {
     await vi.waitFor(() => expect(sendEmote).toHaveBeenCalledWith(0));
     await vi.waitFor(() => expect(root.textContent).toContain("Alice waves"));
     expect(root.querySelector(".social-chat-bubble")).not.toBeNull();
+    panel.dispose();
+  });
+
+  it("mounts a persistent bottom-left window visible by default", () => {
+    const root = document.createElement("div");
+    document.body.appendChild(root);
+    const panel = new ChatPanel({
+      root,
+      apiBaseUrl: "http://localhost",
+      token: () => null,
+      fetchImpl: emptyHistory(),
+      sendChat: vi.fn(),
+      sendEmote: vi.fn()
+    });
+
+    const window = root.querySelector<HTMLElement>(".social-chat");
+    expect(window).not.toBeNull();
+    expect(window!.hidden).toBe(false);
+    expect(panel.isVisible).toBe(true);
+    // Anchoring is expressed as data so a layout-free test can assert it; the
+    // real geometry is checked by the Playwright spec.
+    expect(window!.dataset.anchor).toBe("bottom-left");
+    expect(window!.dataset.hudControl).toBe("true");
+    panel.dispose();
+  });
+
+  it("honours a persisted hidden preference on load", () => {
+    const root = document.createElement("div");
+    document.body.appendChild(root);
+    const settings = new SettingsStore(null, { chatVisible: false });
+    const panel = new ChatPanel({
+      root,
+      apiBaseUrl: "http://localhost",
+      token: () => null,
+      fetchImpl: emptyHistory(),
+      sendChat: vi.fn(),
+      sendEmote: vi.fn(),
+      settings
+    });
+
+    expect(root.querySelector<HTMLElement>(".social-chat")!.hidden).toBe(true);
+    expect(panel.isVisible).toBe(false);
+    panel.dispose();
+  });
+
+  it("toggles the window from the dock and persists the preference", () => {
+    const root = document.createElement("div");
+    document.body.appendChild(root);
+    const dock = new HudDock(root);
+    const settings = new SettingsStore(null);
+    const panel = new ChatPanel({
+      root,
+      apiBaseUrl: "http://localhost",
+      token: () => null,
+      fetchImpl: emptyHistory(),
+      sendChat: vi.fn(),
+      sendEmote: vi.fn(),
+      dock,
+      settings
+    });
+
+    const toggle = root.querySelector<HTMLButtonElement>('[data-dock-id="chat"]')!;
+    expect(toggle).not.toBeNull();
+    expect(toggle.getAttribute("aria-pressed")).toBe("true");
+
+    toggle.click();
+    expect(panel.isVisible).toBe(false);
+    expect(settings.settings.chatVisible).toBe(false);
+    expect(root.querySelector<HTMLElement>(".social-chat")!.hidden).toBe(true);
+    expect(toggle.getAttribute("aria-pressed")).toBe("false");
+
+    toggle.click();
+    expect(panel.isVisible).toBe(true);
+    expect(settings.settings.chatVisible).toBe(true);
+    expect(root.querySelector<HTMLElement>(".social-chat")!.hidden).toBe(false);
+    panel.dispose();
+  });
+
+  it("hides the window from its own header control", () => {
+    const root = document.createElement("div");
+    document.body.appendChild(root);
+    const settings = new SettingsStore(null);
+    const panel = new ChatPanel({
+      root,
+      apiBaseUrl: "http://localhost",
+      token: () => null,
+      fetchImpl: emptyHistory(),
+      sendChat: vi.fn(),
+      sendEmote: vi.fn(),
+      settings
+    });
+
+    root.querySelector<HTMLButtonElement>(".social-chat-hide")!.click();
+    expect(panel.isVisible).toBe(false);
+    expect(settings.settings.chatVisible).toBe(false);
     panel.dispose();
   });
 });

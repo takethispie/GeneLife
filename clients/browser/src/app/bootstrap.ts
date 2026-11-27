@@ -268,9 +268,11 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
 
   const chatPanel = new ChatPanel({
     root,
+    windowRoot: hudRoot,
     apiBaseUrl: config.apiBaseUrl,
     token: () => session.store.token,
     dock,
+    settings,
     sendChat: async (request) => {
       if (hub === null) {
         return {

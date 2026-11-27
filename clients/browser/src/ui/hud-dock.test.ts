@@ -102,4 +102,53 @@ describe("HudDock", () => {
     );
     expect(labels).toEqual(["Early", "Late"]);
   });
+
+  it("toggles external content without opening a panel", () => {
+    const root = document.createElement("div");
+    document.body.appendChild(root);
+    const dock = new HudDock(root);
+    const onToggle = vi.fn();
+    const toggle = dock.addToggle({
+      id: "chat",
+      label: "Chat",
+      icon: "chat",
+      order: 20,
+      onToggle
+    });
+
+    const button = buttonByLabel(root, "Chat");
+    expect(button.getAttribute("aria-pressed")).toBe("false");
+
+    button.click();
+    expect(button.getAttribute("aria-pressed")).toBe("true");
+    expect(onToggle).toHaveBeenCalledWith(true);
+    expect(dock.isOpen).toBe(false);
+
+    button.click();
+    expect(button.getAttribute("aria-pressed")).toBe("false");
+    expect(onToggle).toHaveBeenLastCalledWith(false);
+
+    toggle.setPressed(true);
+    expect(button.getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("interleaves toggles and panel triggers by order", () => {
+    const root = document.createElement("div");
+    document.body.appendChild(root);
+    const dock = new HudDock(root);
+    dock.addPanel({ id: "status", label: "Status", icon: "status", order: 0, content: panelContent("s") });
+    dock.addPanel({
+      id: "settings",
+      label: "Settings",
+      icon: "settings",
+      order: 90,
+      content: panelContent("x")
+    });
+    dock.addToggle({ id: "chat", label: "Chat", icon: "chat", order: 20 });
+
+    const labels = Array.from(root.querySelectorAll(".hud-dock-button")).map((button) =>
+      button.getAttribute("aria-label")
+    );
+    expect(labels).toEqual(["Status", "Chat", "Settings"]);
+  });
 });

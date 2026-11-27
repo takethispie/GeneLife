@@ -7,7 +7,8 @@ import type {
   EmoteKind,
   EmoteSendResult
 } from "../../contracts/hub";
-import type { HudDock } from "../hud-dock";
+import type { HudDock, DockToggle } from "../hud-dock";
+import type { SettingsStore } from "../settings";
 
 const EMOTES: ReadonlyArray<{ kind: EmoteKind; value: number }> = [
   { kind: "Wave", value: 0 },
@@ -36,6 +37,13 @@ export interface ChatPanelOptions {
   sendChat: (request: ChatSendRequest) => Promise<ChatSendResult>;
   sendEmote: (emote: number) => Promise<EmoteSendResult>;
   dock?: HudDock;
+  /** Persists the show/hide preference with the rest of the client settings. */
+  settings?: SettingsStore;
+  /**
+   * Host for the floating window. Defaults to `root`; the client mounts it into
+   * the `#hud` layer so it inherits the HUD's stacking and pointer-events model.
+   */
+  windowRoot?: HTMLElement;
   fetchImpl?: typeof fetch;
   maxLength?: number;
   onError?: (message: string) => void;
@@ -57,17 +65,34 @@ export class ChatPanel {
   private readonly textInput: HTMLInputElement;
   private readonly seen = new Set<string>();
   private readonly timers = new Set<ReturnType<typeof setTimeout>>();
+  private readonly toggle: DockToggle | null;
+  private unsubscribeSettings: (() => void) | null = null;
+  private visible: boolean;
   private disposed = false;
 
   constructor(options: ChatPanelOptions) {
     this.options = options;
+    this.visible = options.settings?.settings.chatVisible ?? true;
     this.root = document.createElement("section");
     this.root.className = "social-chat";
+    this.root.dataset.anchor = "bottom-left";
+    // The HUD layer disables pointer events wholesale; the window opts back in
+    // so it captures its own area while clicks outside still reach the canvas.
+    this.root.dataset.hudControl = "true";
     this.root.setAttribute("aria-label", "Chat");
 
     const header = document.createElement("div");
     header.className = "social-chat-header";
-    header.textContent = "Chat";
+    const title = document.createElement("span");
+    title.className = "social-chat-title";
+    title.textContent = "Chat";
+    const hide = document.createElement("button");
+    hide.type = "button";
+    hide.className = "social-chat-hide";
+    hide.textContent = "\u00d7";
+    hide.setAttribute("aria-label", "Hide chat");
+    hide.addEventListener("click", () => this.setVisible(false));
+    header.append(title, hide);
     this.root.appendChild(header);
 
     this.log = document.createElement("ol");
@@ -135,18 +160,28 @@ export class ChatPanel {
       void this.sendMessage();
     });
 
-    if (options.dock) {
-      options.dock.addPanel({
-        id: "chat",
-        label: "Chat",
-        icon: "chat",
-        order: 20,
-        content: this.root,
-        onOpen: () => void this.refresh()
+    const host = options.windowRoot ?? options.root;
+    host.appendChild(this.root);
+
+    this.toggle = options.dock
+      ? options.dock.addToggle({
+          id: "chat",
+          label: "Chat",
+          icon: "chat",
+          order: 20,
+          onToggle: (pressed) => this.setVisible(pressed, { focus: pressed })
+        })
+      : null;
+
+    if (options.settings) {
+      this.unsubscribeSettings = options.settings.subscribe((next) => {
+        if (next.chatVisible !== this.visible) {
+          this.visible = next.chatVisible;
+          this.applyVisibility();
+        }
       });
-    } else {
-      options.root.appendChild(this.root);
     }
+    this.applyVisibility();
     void this.refresh();
   }
 
@@ -219,8 +254,43 @@ export class ChatPanel {
     }
   }
 
+  /**
+   * Shows or hides the window. Toggling it visible also scrolls the log to the
+   * latest message and (when the dock icon triggered it) focuses the input.
+   */
+  setVisible(value: boolean, options: { focus?: boolean } = {}): void {
+    if (this.disposed) return;
+    if (this.visible === value) {
+      if (value && options.focus === true) this.focusInput();
+      return;
+    }
+    this.visible = value;
+    this.applyVisibility();
+    this.options.settings?.update({ chatVisible: value });
+    if (value && options.focus === true) {
+      void this.refresh();
+      this.focusInput();
+    }
+  }
+
+  get isVisible(): boolean {
+    return this.visible;
+  }
+
+  private applyVisibility(): void {
+    this.root.hidden = !this.visible;
+    this.toggle?.setPressed(this.visible);
+  }
+
+  private focusInput(): void {
+    this.log.scrollTop = this.log.scrollHeight;
+    this.textInput.focus();
+  }
+
   dispose(): void {
     this.disposed = true;
+    this.unsubscribeSettings?.();
+    this.unsubscribeSettings = null;
     for (const timer of this.timers) clearTimeout(timer);
     this.timers.clear();
     this.root.remove();

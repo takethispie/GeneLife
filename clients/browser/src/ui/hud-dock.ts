@@ -18,6 +18,24 @@ export interface DockActionOptions {
   onClick: () => void;
 }
 
+/**
+ * A dock button that toggles something outside the dock panel (for example the
+ * bottom-left chat window) instead of opening a panel. It keeps `aria-pressed`
+ * in sync so assistive tech reports the window state.
+ */
+export interface DockToggleOptions {
+  id: string;
+  label: string;
+  icon: DockIcon;
+  order?: number;
+  onToggle?: (pressed: boolean) => void;
+}
+
+export interface DockToggle {
+  readonly button: HTMLButtonElement;
+  setPressed(pressed: boolean): void;
+}
+
 interface DockEntry {
   options: DockPanelOptions;
   button: HTMLButtonElement;
@@ -74,6 +92,7 @@ export class HudDock {
   private readonly panelTitle: HTMLElement;
   private readonly panelBody: HTMLElement;
   private readonly entries = new Map<string, DockEntry>();
+  private readonly toggles = new Map<string, DockToggle>();
   private activeId: string | null = null;
 
   constructor(root: HTMLElement) {
@@ -128,11 +147,7 @@ export class HudDock {
     button.setAttribute("aria-controls", `hud-dock-content-${options.id}`);
     button.addEventListener("click", () => this.toggle(options.id));
 
-    const next = Array.from(this.entries.values()).find(
-      (entry) => (entry.options.order ?? 0) > (options.order ?? 0)
-    );
-    if (next === undefined) this.entriesHost.appendChild(button);
-    else this.entriesHost.insertBefore(button, next.button);
+    this.insertOrdered(button, options.order ?? 0);
 
     options.content.id = `hud-dock-content-${options.id}`;
     options.content.classList.add("hud-dock-content");
@@ -140,6 +155,48 @@ export class HudDock {
     this.panelBody.appendChild(options.content);
     this.entries.set(options.id, { options, button });
     return button;
+  }
+
+  /**
+   * Registers a button that toggles external content (e.g. the chat window)
+   * rather than opening a dock panel. It shares the entries rail and ordering
+   * with the panel triggers so it stays grouped with them.
+   */
+  addToggle(options: DockToggleOptions): DockToggle {
+    if (this.toggles.has(options.id)) {
+      throw new Error(`Duplicate HUD dock toggle: ${options.id}`);
+    }
+
+    const button = this.createButton(options.label, options.icon, options.id);
+    button.classList.add("hud-dock-toggle");
+    button.setAttribute("aria-pressed", "false");
+    this.insertOrdered(button, options.order ?? 0);
+
+    let pressed = false;
+    const handle: DockToggle = {
+      button,
+      setPressed: (value: boolean): void => {
+        pressed = value;
+        button.setAttribute("aria-pressed", String(value));
+      }
+    };
+    button.addEventListener("click", () => {
+      handle.setPressed(!pressed);
+      options.onToggle?.(pressed);
+    });
+
+    this.toggles.set(options.id, handle);
+    return handle;
+  }
+
+  /** Inserts a rail button by order, keeping panel triggers and toggles interleaved. */
+  private insertOrdered(button: HTMLButtonElement, order: number): void {
+    button.dataset.dockOrder = String(order);
+    const next = Array.from(this.entriesHost.children).find(
+      (child) => Number((child as HTMLElement).dataset.dockOrder ?? "0") > order
+    );
+    if (next === undefined) this.entriesHost.appendChild(button);
+    else this.entriesHost.insertBefore(button, next);
   }
 
   addAction(options: DockActionOptions): HTMLButtonElement {
