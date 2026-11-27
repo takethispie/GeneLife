@@ -186,16 +186,17 @@ public class BalanceScenarioTests
     ///       region (&lt;= the 0.15/yr Warn-high). The 0.30/yr Fail-high is asserted on the
     ///       decade peak so a mid-decade spike cannot hide behind a calm final year.
     ///
-    /// KNOWN GAP (tracked as t_a2351350): the 0.02/yr LOWER bound is not yet met. The
-    /// rebalance made failure reachable, but the decade-mean annual rate is ~0.0016-0.017/yr,
-    /// below the floor, while at scale 60 a single exit out of ~6 firms is a 16.7 % event-year.
-    /// The lower bound is therefore deliberately NOT asserted here; flip
-    /// <see cref="EconomyHealth.CompanyFailureLowerBound"/> to 0.02m and add the two-sided
-    /// lower-bound assert when t_a2351350 lands.
+    /// RETIRED FLOOR (t_a2351350; v7-company-failure-decision.md §8): the external band's
+    /// 0.02/yr LOWER bound is deliberately NOT asserted. It was measured as unreachable by
+    /// any rebalance — every lever that raises the exit rate to the floor drives the
+    /// 200-scale unemployment past its own &lt;=0.10 ceiling, because firms are the only
+    /// employer and the engine has no firm-entry mechanism. The floor is an explicit
+    /// non-target until that mechanism lands (card t_2df92453); the mechanism-live and
+    /// ceiling checks below are what this scenario asserts.
     /// </summary>
     private static void AssertCompanyFailureBand(BalanceReport report)
     {
-        const string band = "0.02-0.15/yr";
+        const string band = "<= 0.15/yr (external 0.02-0.15/yr; floor retired)";
         var reportFile = $"balance-reports/balance-{report.RequestedGenoses}-{report.Seed}.json";
         var where = $"{report.RequestedGenoses}-{report.Seed}";
         var rates = report.Years.Select(year => year.CompanyFailureRate).ToList();

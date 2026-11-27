@@ -39,10 +39,13 @@ public sealed record EconomyHealthCheck(string Name, HealthLevel Level, string D
 public static class EconomyHealth
 {
     // External annual firm-exit band: 0.02-0.15/yr (US ~0.075).
-    // The lower bound is deliberately disabled until the rebalance makes failure
-    // reachable (no liquidation happens today, so a two-sided band would fail the
-    // gate on a metric the mechanism cannot yet move). Flip it to 0.02m once a
-    // non-zero flow exists — v7-company-failure-decision.md §5.4.
+    // The 0.02/yr LOWER bound is deliberately NOT enforced. Card t_a2351350 measured
+    // that no rebalance reaches it without driving unemployment past its own <=0.10
+    // ceiling — firms are the only employer and the engine has no firm-entry mechanism —
+    // so it is retired as an explicit non-target: v7-company-failure-decision.md §8.
+    // Do NOT flip this to 0.02m on its own: the check reads a single snapshot, and a year
+    // with no exit is a normal year, so a 0.02 lower bound would emit Fail on almost every
+    // tick. Flip it only together with the firm-entry mechanism (card t_2df92453).
     // Public so the balance-band acceptance test asserts the SAME numbers
     // (BalanceScenarioTests.AssertCompanyFailureBand) and the two cannot drift apart.
     public const decimal CompanyFailureLowerBound = 0m;

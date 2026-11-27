@@ -2,6 +2,7 @@
 
 **Author:** @pedro (Game Economy Specialist) · **Date:** 2026-11-27 · **Branch:** `docs/pedro/company-failure-decision`
 **Answers:** card `t_afb391a1` (migrated from Vikunja #36) — *"Company failure rate band: 0.0 at every scale — delete or target?"*
+**Updated:** card `t_a2351350` — the 0.02/yr lower bound: measured and retired as a non-target (§8)
 **Builds on:** [`v7-benchmark-thresholds.md`](v7-benchmark-thresholds.md) §4.1 and §5.1 (same author-team, `837c856`)
 
 ---
@@ -145,3 +146,82 @@ This card is the decision; the implementation is three separable changes. Ordere
 - **Loan defaults.** No company defaults on a loan at any scale, so the `HasDefaultedLoan` entry into
   `Insolvent` is also dead. Whether that is by design is a separate question on the same ladder; flagged,
   not decided here.
+
+**Resolution (card `t_a2351350`, §8).** The target number is now settled: the external **0.02/yr lower
+bound is retired as an explicit non-target**, because no lever reaches it without breaking the
+unemployment band. The band keeps its ceiling. See §8 for the measurements and the structural reason.
+
+## 8. Resolution of the 0.02/yr floor: retired as a non-target (card `t_a2351350`)
+
+Card `t_a2351350` was the follow-up work item 3 left open. §7 endorsed the external annual firm-exit
+band **0.02–0.15/yr** but could not assert its lower bound, because the rebalance (work item 1) made
+failure *reachable* without making it *common*: on the assert branch (`b0e6550`, seed 21, decade,
+Debug, `BalanceScenarioTests`) the decade-mean annual exit rate is **0.0016–0.0167/yr** at 60/200/1k/2k,
+1.2× to 12× below the floor.
+
+This section closes that card. The floor is **not reachable by a rebalance**, so it is retired as an
+explicit non-target. The band keeps its ceiling (0.15/yr warn, 0.30/yr fail) and its "mechanism is
+live" assertion. The measurements behind that ruling follow.
+
+### 8.1 Levers tried, measured (seed 21, decade, Debug, all four scales)
+
+Every lever that moves the exit rate was run against the gate and read from
+`balance-reports/balance-<scale>-21.json`. `unemp@200` is the binding constraint: the
+`AssertTargetBands` unemployment ceiling is **≤ 0.10** and is asserted at 200. `failMean` is the
+decade-mean annual rate from `MetricHistory`.
+
+| lever | unemp@200 (≤0.10) | failMean@200 | failMean@1k | failMean@2k | verdict |
+|---|---:|---:|---:|---:|---|
+| **baseline** — office $8,000/cycle, seed capital $1.2M | 0.062 ✓ | 0.0071 | 0.0047 | 0.0016 | floor missed |
+| office cost **$16,000**/cycle (2×) | **0.186 ✗** | 0.0067 | 0.0063 | 0.0056 | unemployment breaks first, floor still missed |
+| office cost **$32,000**/cycle (4×) | **0.591 ✗** | 0.0133 | **0.0284 ✓** | **0.0222 ✓** | floor met — economy collapses: rent burden 0.49/0.56/0.63/0.52 (>0.40), vacancy 0.19/0.10/0.09/0.14, wage share 0.40–0.46 |
+| seed capital **$400k** (3× shorter runway) | **0.298 ✗** | 0.0071 | **0.0227 ✓** | 0.0119 | unemployment breaks; money-supply growth 0.16–0.19 (>0.10) |
+| office $32,000 **+ job growth 25 firms/yr** (8× the stabiliser) | **0.591 ✗** | 0.0133 | **0.0260 ✓** | 0.0193 | the entry channel does **not** decouple — unemployment unchanged at 0.60 |
+
+Two further readings from the same runs:
+
+- The failure rate is **clustered, not spread**. At every lever the exits land in the last 1–3 years
+  of the decade; the office-cost lever is a *uniform* drain (at $32,000 the whole corporate sector
+  runs from $11.1B to $0.4B over the decade), so it does not produce idiosyncratic churn — it
+  produces a sector-wide run-down that only *looks* like a rate in the final years.
+- A **30-year probe on unmodified defaults** (1k/2k) does not rescue the floor either: the full-run
+  mean is **0.0176/yr** at 2k, still under the floor, and the years where the rate does exceed 0.02
+  are years the economy is decaying (unemployment 0.20 → 0.74, rent burden 0.17 → 1.51, wage share
+  1.04 → 0.26). The rate rises as the economy dies, not as it churns.
+
+### 8.2 Why: a mechanism mismatch, not a tuning miss
+
+`CompanySolvencySystem.Liquidate` fires every employee of the liquidated company (`EmployeeFired`)
+and `HiringSystem` freezes hiring for companies that are not solvent. GeneLife's firms are the
+**only** employer, and there is **no firm-entry mechanism** — only `JobGrowthSystem`, a capped
+labour-market stabiliser (`JobGrowthMaxPerYear = 3`). So every exit permanently destroys jobs, and
+the exit rate and the unemployment rate are rigidly coupled: driving ~20 % of the cohort out over a
+decade drives unemployment to 0.19–0.60 against a ≤ 0.10 ceiling.
+
+The external lower bound (0.02/yr) describes an economy with **continuous firm entry**, which is
+what makes a ~2 %/yr exit rate sustainable there. GeneLife does not model entry, so the floor
+asserts a property of a different economy. Per `01-band-targets.md` ("a target set just above
+today's number is a ratchet"), the honest move is to retire the bound explicitly rather than to
+retune the seed until a degenerate number clears it.
+
+### 8.3 What is asserted instead
+
+`BalanceScenarioTests.AssertCompanyFailureBand` keeps the two checks the sim can honestly make, at
+every scale (60/200/1k/2k, seed 21):
+
+1. **mechanism live** — the decade peak annual rate is non-zero, so a regression to the
+   pre-`7298785` "no company can fail" state fails the gate; and
+2. **ceiling** — the decade peak is within the `EconomyHealth` fail-high (0.30/yr) and the reported
+   latest-year rate is within the warn-high (0.15/yr), using the same public constants as the health
+   check so the assert and the check cannot drift.
+
+`EconomyHealth.CompanyFailureLowerBound` **stays `0m`**: the check reads a single snapshot, and a
+year with no exit is a normal year, so a 0.02 lower bound would emit `Fail` on almost every tick.
+
+### 8.4 Structural work item (filed, not done here)
+
+Reaching the external floor needs a **firm-entry / company-churn mechanism** — new firms founded
+against profitable niches, so that exits are replaced and the labour market clears — not a tuning
+knob. Filed as card **`t_2df92453`** (assignee `@main-dev`). Its acceptance: the decade-mean annual
+exit rate reaches ≥ 0.02/yr at 1k/2k on seed 21 with unemployment ≤ 0.10 at 200, then flip
+`CompanyFailureLowerBound` to `0.02m` and add the two-sided assertion this card did not add.
