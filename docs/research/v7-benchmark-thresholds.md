@@ -115,6 +115,13 @@ evaluators. My own run reports **2 / 2 / 2 / 3** at 60/200/1k/2k.
 So "61" and "3" are both correct for what they measure, and **nothing in the balance report reproduces 61**. A board
 number that its own gate cannot reproduce is exactly the record rot V7 track 1 describes.
 
+**Verified on current master** (worktree `wt/t_e35610eb`): the family harness
+(`FamilyReleaseScenarioTests.TwoThousandGenosesForTenYears`, 2k, seed 21, 10 years) reports **18**
+`Warn`-level checks at the final instant — all `housing.overcrowded` — **not 61**; the V4 figure is
+stale as well as differently defined. The balance report at 2k/seed 21 still reports **3**
+(`Warn` + `Fail`, final year). So of the three numbers, 3 reproduces, 18 is the family harness today,
+and 61 reproduces as neither.
+
 ## 3. External reference values
 
 ### 3a. The three bands themselves

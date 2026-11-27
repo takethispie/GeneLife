@@ -54,6 +54,26 @@ Test projects use **Microsoft.Testing.Platform** (xunit v3), so run them with
 `dotnet run --project <test>.csproj`, **not** `dotnet test` — on the .NET 10 SDK the
 VSTest path is rejected.
 
+## Metrics and reports — name the harness and the aggregation
+
+Every metric quoted in a document, a report, an assertion message or a commit must name the
+**harness** that produced it and the **aggregation** applied. A bare number is not a
+measurement: the same quantity has different values under different harnesses, so a number
+without its harness cannot be reproduced and silently rots.
+
+- **Harness** — the exact test or scenario that produced it (e.g.
+  `BalanceScenarioTests.Ten_year_balance_report`).
+- **Aggregation** — the filter and the instant (e.g. "`Warn` + `Fail` checks, final year" vs
+  "`Warn`-only checks, single instant").
+
+Worked example: the "health warnings" figure was quoted as **61** while the balance gate
+reports **3**. They are not the same measurement — `FamilyReleaseScenarioTests` counts
+`Warn`-only at one instant, `BalanceScenarioTests` counts `Warn` + `Fail` at the final year —
+and the 61 does not reproduce at all today (the family harness reports **18**). The fix is not
+to pick one number but to name both: harness + aggregation. `DocsConsistencyTests` guards the
+band table in `docs/plans/roadmap-v7/STATUS.md` against a row whose `Source` names no harness
+(a `*Tests` class).
+
 ## Review and enforcement — current model ("Model A")
 
 The team currently runs under a **single GitHub identity** (`@takethispie`), which every
