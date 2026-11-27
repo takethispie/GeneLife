@@ -194,6 +194,8 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
     onHover: (tile, walkable) => renderer?.setHover(tile, walkable),
     onTarget: (tile) => renderer?.setTarget(tile),
     onSelectBuilding: (building) => selection.select(building),
+    getGenoses: () => renderer?.renderGenoses() ?? [],
+    onSelectGenos: (networkId) => selectGenos(networkId),
     onPlayerMove: () => selection.cancelPendingInteract(),
     notify
   });
@@ -249,6 +251,7 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
       onSignOut: () => void runtime.signOut(),
       onRetry: () => void runtime.retry(),
       onSelectBuilding: (building) => selection.select(building),
+      onSelectGenos: (networkId) => selectGenos(networkId),
       focusCanvas: () => pixi.app.canvas.focus()
     }
   });
@@ -482,6 +485,35 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
     if (kind === "error") ui.patch({ lastError: message });
   }
 
+  /**
+   * Selects a genos to inspect (opening the left-side panel), or clears it.
+   * The building selection is dropped first so the two panels never fight.
+   * The id is resolved against the store so the panel shows live values.
+   */
+  function selectGenos(networkId: number | null): void {
+    if (networkId === null) {
+      if (ui.getState().selection?.kind === "genos") ui.patch({ selection: null });
+      return;
+    }
+    const genos = store.genoses.get(networkId);
+    if (genos === undefined) return;
+    selection.select(null);
+    ui.patch({ selection: { kind: "genos", genos } });
+  }
+
+  /** Re-points the inspected genos at the latest snapshot so the panel updates. */
+  function refreshGenosSelection(): void {
+    const current = ui.getState().selection;
+    if (current === null || current.kind !== "genos") return;
+    const genos = store.genoses.get(current.genos.networkId);
+    if (genos === undefined) {
+      // The genos despawned (or the world reset): close the panel.
+      ui.patch({ selection: null });
+      return;
+    }
+    if (genos !== current.genos) ui.patch({ selection: { kind: "genos", genos } });
+  }
+
   async function requestRespawn(): Promise<RespawnPopinResult> {
     if (useFixtures) {
       return { ok: false, message: "Respawn is not available in fixture mode." };
@@ -545,6 +577,7 @@ export async function startClient(options: StartClientOptions): Promise<ClientRu
       lastAppliedAt = Date.now();
       void hub?.acknowledgeSnapshot(tick);
       selection.reconcile();
+      refreshGenosSelection();
       centerOnPlayerOnce();
       ui.patch({
         tick,

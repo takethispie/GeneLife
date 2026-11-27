@@ -23,7 +23,7 @@ export class Camera {
   private maxZoom: number;
   private reducedMotion: boolean;
   private bounds: { minX: number; minY: number; maxX: number; maxY: number } | null = null;
-  private tileSize = 1;
+  private tileSizeValue = 1;
 
   constructor(options: CameraOptions = {}) {
     this.minZoom = options.minZoom ?? 12;
@@ -39,6 +39,11 @@ export class Camera {
     return this.zoomValue;
   }
 
+  /** World-unit size of one tile (set from the decoded map). */
+  get tileSize(): number {
+    return this.tileSizeValue;
+  }
+
   setReducedMotion(value: boolean): void {
     this.reducedMotion = value;
   }
@@ -51,7 +56,7 @@ export class Camera {
   }
 
   setMap(map: DecodedMap): void {
-    this.tileSize = map.tileSize;
+    this.tileSizeValue = map.tileSize;
     this.bounds = {
       minX: (map.minX - 0.5) * map.tileSize,
       minY: (map.minY - 0.5) * map.tileSize,
@@ -64,8 +69,8 @@ export class Camera {
   }
 
   centerOnTile(tileX: number, tileY: number): void {
-    this.centerX = tileX * this.tileSize;
-    this.centerY = tileY * this.tileSize;
+    this.centerX = tileX * this.tileSizeValue;
+    this.centerY = tileY * this.tileSizeValue;
     this.targetX = this.centerX;
     this.targetY = this.centerY;
     this.clampTarget();
@@ -79,8 +84,8 @@ export class Camera {
   }
 
   panByTiles(deltaX: number, deltaY: number): void {
-    this.targetX += deltaX * this.tileSize;
-    this.targetY += deltaY * this.tileSize;
+    this.targetX += deltaX * this.tileSizeValue;
+    this.targetY += deltaY * this.tileSizeValue;
     this.clampTarget();
     if (this.reducedMotion) this.snapToTarget();
   }
@@ -93,11 +98,10 @@ export class Camera {
 
   /** Zooms while keeping the world point under the pointer fixed. */
   zoomAt(factor: number, screenX: number, screenY: number): void {
-    const worldX = (screenX - this.screenWidth / 2) / this.zoomValue + this.centerX;
-    const worldY = (screenY - this.screenHeight / 2) / this.zoomValue + this.centerY;
+    const world = this.screenToWorld(screenX, screenY);
     this.setZoom(this.zoomValue * factor);
-    this.targetX = worldX - (screenX - this.screenWidth / 2) / this.zoomValue;
-    this.targetY = worldY - (screenY - this.screenHeight / 2) / this.zoomValue;
+    this.targetX = world.x - (screenX - this.screenWidth / 2) / this.zoomValue;
+    this.targetY = world.y - (screenY - this.screenHeight / 2) / this.zoomValue;
     this.clampTarget();
     if (this.reducedMotion) this.snapToTarget();
   }
@@ -126,28 +130,37 @@ export class Camera {
     return this.screenHeight / 2 - this.centerY * this.zoomValue;
   }
 
-  worldFromScreen(screenX: number, screenY: number): { x: number; y: number } {
+  /**
+   * Screen (canvas-relative pixels) to world units. This is the single home of
+   * the inverse-viewport transform; `worldFromScreen` is kept as an alias for
+   * existing callers.
+   */
+  screenToWorld(screenX: number, screenY: number): { x: number; y: number } {
     return {
       x: (screenX - this.screenWidth / 2) / this.zoomValue + this.centerX,
       y: (screenY - this.screenHeight / 2) / this.zoomValue + this.centerY
     };
   }
 
+  worldFromScreen(screenX: number, screenY: number): { x: number; y: number } {
+    return this.screenToWorld(screenX, screenY);
+  }
+
   tileFromScreen(screenX: number, screenY: number): { x: number; y: number } {
-    const world = this.worldFromScreen(screenX, screenY);
+    const world = this.screenToWorld(screenX, screenY);
     return {
-      x: Math.round(world.x / this.tileSize),
-      y: Math.round(world.y / this.tileSize)
+      x: Math.round(world.x / this.tileSizeValue),
+      y: Math.round(world.y / this.tileSizeValue)
     };
   }
 
   visibleTileRect(map: DecodedMap): TileRect {
     const halfW = this.screenWidth / (2 * this.zoomValue);
     const halfH = this.screenHeight / (2 * this.zoomValue);
-    const minX = Math.max(map.minX, Math.floor((this.centerX - halfW) / this.tileSize));
-    const maxX = Math.min(map.maxX, Math.ceil((this.centerX + halfW) / this.tileSize));
-    const minY = Math.max(map.minY, Math.floor((this.centerY - halfH) / this.tileSize));
-    const maxY = Math.min(map.maxY, Math.ceil((this.centerY + halfH) / this.tileSize));
+    const minX = Math.max(map.minX, Math.floor((this.centerX - halfW) / this.tileSizeValue));
+    const maxX = Math.min(map.maxX, Math.ceil((this.centerX + halfW) / this.tileSizeValue));
+    const minY = Math.max(map.minY, Math.floor((this.centerY - halfH) / this.tileSizeValue));
+    const maxY = Math.min(map.maxY, Math.ceil((this.centerY + halfH) / this.tileSizeValue));
     return { minX, minY, maxX: Math.max(minX, maxX), maxY: Math.max(minY, maxY) };
   }
 

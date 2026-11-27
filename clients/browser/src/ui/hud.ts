@@ -1,5 +1,6 @@
 import type { MapBuilding } from "../contracts/hub";
 import { describeBuilding } from "./building-panel";
+import { describeGenos } from "./genos-panel";
 import { HudDock } from "./hud-dock";
 import type { ConnectionState } from "../net/events";
 import type { Notification, NotificationCenter } from "./notifications";
@@ -15,6 +16,8 @@ export interface HudActions {
   onSignOut: () => void;
   onRetry: () => void;
   onSelectBuilding: (building: MapBuilding | null) => void;
+  /** Clears the inspected genos (network id) — used by Escape and the Close button. */
+  onSelectGenos: (networkId: number | null) => void;
   focusCanvas: () => void;
 }
 
@@ -81,6 +84,18 @@ interface Elements {
   connectionCard: HTMLElement;
   notificationsPanel: HTMLElement;
   bottomRight: HTMLElement;
+  genosPanel: HTMLElement;
+  genosName: HTMLElement;
+  genosStatus: HTMLElement;
+  genosMeta: HTMLElement;
+  genosAction: HTMLElement;
+  genosNeeds: HTMLElement;
+  genosMoney: HTMLElement;
+  genosHousing: HTMLElement;
+  genosHousehold: HTMLElement;
+  genosHousingUnit: HTMLElement;
+  genosHint: HTMLElement;
+  genosClose: HTMLButtonElement;
 }
 
 /**
@@ -103,6 +118,11 @@ export class Hud {
     if (event.key !== "Escape") return;
     if (this.elements.dock.isOpen) {
       this.elements.dock.close(true);
+      return;
+    }
+    const selection = this.options.ui.getState().selection;
+    if (selection !== null && selection.kind === "genos") {
+      this.options.actions.onSelectGenos(null);
       return;
     }
     this.options.actions.focusCanvas();
@@ -173,31 +193,59 @@ export class Hud {
     setText(e.lastError, state.lastError || "none");
     e.retry.hidden = state.connection !== "failed" && state.connection !== "closed";
     this.renderSelection(state.selection);
-    e.bottomRight.hidden = state.selection === null && e.retry.hidden;
+    const hasRightPanel = state.selection !== null && state.selection.kind !== "genos";
+    e.bottomRight.hidden = !hasRightPanel && e.retry.hidden;
   }
 
   private renderSelection(selection: Selection): void {
     const e = this.elements;
+    this.renderGenosPanel(selection);
+
     if (selection === null) {
       e.selection.hidden = true;
       return;
     }
 
-    e.selection.hidden = false;
     if (selection.kind === "building") {
+      e.selection.hidden = false;
       const details = describeBuilding(selection.building);
       setText(e.selectionName, details.name);
       setText(e.selectionMeta, details.meta);
       setText(e.selectionOwner, details.owner);
       setText(e.selectionHint, details.hint);
       e.interact.hidden = false;
-    } else {
+    } else if (selection.kind === "tile") {
+      e.selection.hidden = false;
       setText(e.selectionName, `Tile (${selection.x}, ${selection.y})`);
       setText(e.selectionMeta, "Target tile");
       setText(e.selectionOwner, "");
       setText(e.selectionHint, "");
       e.interact.hidden = true;
+    } else {
+      // A genos owns the left-side inspection panel, not this one.
+      e.selection.hidden = true;
     }
+  }
+
+  private renderGenosPanel(selection: Selection): void {
+    const e = this.elements;
+    if (selection === null || selection.kind !== "genos") {
+      e.genosPanel.hidden = true;
+      return;
+    }
+    const details = describeGenos(selection.genos);
+    e.genosPanel.hidden = false;
+    setText(e.genosName, details.name);
+    setText(e.genosStatus, details.status);
+    e.genosStatus.dataset.dead = selection.genos.isDead ? "true" : "false";
+    setText(e.genosMeta, details.meta);
+    setText(e.genosAction, details.action);
+    setText(e.genosNeeds, details.needs);
+    setText(e.genosMoney, details.money);
+    setText(e.genosHousing, details.housing);
+    setText(e.genosHousehold, details.household);
+    setText(e.genosHousingUnit, details.housingUnit);
+    setText(e.genosHint, details.hint);
   }
 
   private renderNotifications(): void {
@@ -369,6 +417,39 @@ function buildDom(options: HudOptions): Elements {
   addControl(retry);
   bottomRight.append(selection, retry);
 
+  // Genos inspection panel: left column, stacked above the chat window.
+  const genosPanel = panel("hud-panel hud-genos");
+  genosPanel.hidden = true;
+  genosPanel.setAttribute("aria-label", "Genos");
+  const genosName = div("genos-name");
+  const genosStatus = div("genos-status");
+  const genosHeader = div("genos-header");
+  const genosClose = button("Close");
+  genosClose.setAttribute("aria-label", "Close genos panel");
+  genosClose.addEventListener("click", () => options.actions.onSelectGenos(null));
+  addControl(genosClose);
+  genosHeader.append(genosName, genosClose);
+  const genosMeta = div("value");
+  const genosAction = div("value");
+  const genosNeeds = div("value");
+  const genosMoney = div("value");
+  const genosHousing = div("value");
+  const genosHousehold = div("value");
+  const genosHousingUnit = div("value");
+  const genosHint = div("genos-hint");
+  genosPanel.append(
+    genosHeader,
+    genosStatus,
+    row("Age", genosMeta),
+    row("Action", genosAction),
+    row("Needs", genosNeeds),
+    row("Money", genosMoney),
+    row("Housing", genosHousing),
+    row("Household", genosHousehold),
+    row("Housing unit", genosHousingUnit),
+    genosHint
+  );
+
   const settingsPanel = panel("hud-settings");
   settingsPanel.hidden = true;
   const reduce = checkbox("Reduce motion");
@@ -456,7 +537,7 @@ function buildDom(options: HudOptions): Elements {
     }
   });
 
-  root.append(notificationsPanel, bottomRight, ariaLive);
+  root.append(notificationsPanel, bottomRight, genosPanel, ariaLive);
 
   return {
     dock,
@@ -501,7 +582,19 @@ function buildDom(options: HudOptions): Elements {
     bindingList,
     connectionCard,
     notificationsPanel,
-    bottomRight
+    bottomRight,
+    genosPanel,
+    genosName,
+    genosStatus,
+    genosMeta,
+    genosAction,
+    genosNeeds,
+    genosMoney,
+    genosHousing,
+    genosHousehold,
+    genosHousingUnit,
+    genosHint,
+    genosClose
   };
 }
 

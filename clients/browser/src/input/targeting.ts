@@ -14,6 +14,47 @@ export interface TilePoint {
   y: number;
 }
 
+/**
+ * Radius, in tile units, within which a left-click is treated as picking a
+ * genos. Genos sprites are deliberately small since #99
+ * (`GENOS_SPRITE_SIZE_TILES = 0.35`, ~11px at the default zoom), so the pick
+ * radius must be forgiving relative to the *drawn* sprite or clicking one would
+ * feel broken. 0.45 tiles is comfortably larger than the rendered sprite and
+ * smaller than a tile, so a click still reads as "on that genos".
+ */
+export const GENOS_PICK_RADIUS_TILES = 0.45;
+
+/** A candidate for pointer picking: a network id and its current world position. */
+export interface GenosPickTarget {
+  networkId: number;
+  x: number;
+  y: number;
+}
+
+/**
+ * Nearest genos to a world point within `radiusWorld`, or null. Pure so picking
+ * is unit-testable without a Pixi scene: it only needs the interpolated render
+ * positions the caller already has.
+ */
+export function nearestGenos(
+  world: { x: number; y: number },
+  genoses: Iterable<GenosPickTarget>,
+  radiusWorld: number
+): number | null {
+  let bestId: number | null = null;
+  let bestDistSq = radiusWorld * radiusWorld;
+  for (const genos of genoses) {
+    const dx = genos.x - world.x;
+    const dy = genos.y - world.y;
+    const distSq = dx * dx + dy * dy;
+    if (distSq <= bestDistSq) {
+      bestDistSq = distSq;
+      bestId = genos.networkId;
+    }
+  }
+  return bestId;
+}
+
 export interface TargetingOptions {
   canvas: HTMLCanvasElement;
   camera: Camera;
@@ -22,6 +63,10 @@ export interface TargetingOptions {
   onHover: (tile: TilePoint | null, walkable: boolean) => void;
   onTarget: (tile: TilePoint | null) => void;
   onSelectBuilding: (building: MapBuilding | null) => void;
+  /** Current interpolated render positions to pick genoses from. */
+  getGenoses?: () => Iterable<GenosPickTarget>;
+  /** Called with a picked genos' network id, or null when the selection clears. */
+  onSelectGenos?: (networkId: number | null) => void;
   /** Called when the player issues a manual move, so pending actions can cancel. */
   onPlayerMove?: () => void;
   notify: (kind: NotificationKind, code: string, message: string) => void;
@@ -95,6 +140,7 @@ export class TargetingController {
   clearAll(): void {
     this.clearTarget();
     this.options.onSelectBuilding(null);
+    this.options.onSelectGenos?.(null);
   }
 
   dispose(): void {
@@ -120,7 +166,7 @@ export class TargetingController {
     this.activate(tile);
   }
 
-  /** Left click: select the building on the tile, otherwise leave selection be. */
+  /** Left click: select the genos or building under the pointer, else clear. */
   private selectAtEvent(event: MouseEvent): void {
     const map = this.options.getMap();
     if (map === null) return;
@@ -129,11 +175,28 @@ export class TargetingController {
       this.options.notify("info", "outside_map", "That is outside the map");
       return;
     }
+
+    // A genos under the pointer wins over the tile's building: you clicked the
+    // unit, not the ground it stands on.
+    const genosId = this.pickGenosAtEvent(event);
+    if (genosId !== null) {
+      this.options.onTarget(null);
+      this.options.onSelectBuilding(null);
+      this.options.onSelectGenos?.(genosId);
+      return;
+    }
+
     const building = buildingAt(map, tile.x, tile.y);
     if (building !== null) {
       this.options.onTarget(null);
+      this.options.onSelectGenos?.(null);
       this.options.onSelectBuilding(building);
+      return;
     }
+
+    // Empty ground: clear whatever was selected.
+    this.options.onSelectGenos?.(null);
+    this.options.onSelectBuilding(null);
   }
 
   /** Right click: move to the tile. */
@@ -146,13 +209,21 @@ export class TargetingController {
     this.move(tile);
   }
 
-  /** Primary action (touch tap, Enter): select a building, otherwise move. */
+  /** Primary action (touch tap, Enter): select a genos or building, otherwise move. */
   private activate(tile: TilePoint): void {
     const map = this.options.getMap();
     if (map === null) return;
+    const genosId = this.pickGenosAtTile(tile);
+    if (genosId !== null) {
+      this.options.onTarget(null);
+      this.options.onSelectBuilding(null);
+      this.options.onSelectGenos?.(genosId);
+      return;
+    }
     const building = buildingAt(map, tile.x, tile.y);
     if (building !== null) {
       this.options.onTarget(null);
+      this.options.onSelectGenos?.(null);
       this.options.onSelectBuilding(building);
       return;
     }
@@ -201,6 +272,26 @@ export class TargetingController {
     if (map === null) return null;
     const rect = this.options.canvas.getBoundingClientRect();
     return this.options.camera.tileFromScreen(clientX - rect.left, clientY - rect.top);
+  }
+
+  /** Picks the genos under a mouse event, or null. */
+  private pickGenosAtEvent(event: MouseEvent): number | null {
+    const rect = this.options.canvas.getBoundingClientRect();
+    const world = this.options.camera.screenToWorld(event.clientX - rect.left, event.clientY - rect.top);
+    return this.pickGenosAtWorld(world);
+  }
+
+  /** Picks the genos under a tile (touch tap / Enter), or null. */
+  private pickGenosAtTile(tile: TilePoint): number | null {
+    const tileSize = this.options.camera.tileSize;
+    return this.pickGenosAtWorld({ x: tile.x * tileSize, y: tile.y * tileSize });
+  }
+
+  private pickGenosAtWorld(world: { x: number; y: number }): number | null {
+    const getGenoses = this.options.getGenoses;
+    if (getGenoses === undefined) return null;
+    const radius = GENOS_PICK_RADIUS_TILES * this.options.camera.tileSize;
+    return nearestGenos(world, getGenoses(), radius);
   }
 
   private setHover(next: { tile: TilePoint; walkable: boolean } | null): void {

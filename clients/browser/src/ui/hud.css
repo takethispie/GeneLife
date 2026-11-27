@@ -625,6 +625,55 @@ body,
 .social-directory-name { color: #67e8f9; }
 .social-directory-meta, .social-directory-empty { color: #94a3b8; }
 
+/* Genos inspection panel: left column. The chat window owns the bottom of that
+   column (left+bottom anchored) and the notification stack shares it, so the
+   panel is pinned to the TOP of the otherwise-empty left column: it can never
+   cover the chat, whatever the chat's (content-dependent) height. The dock and
+   `.hud-status` live top-right, so this corner is free. */
+.hud-genos {
+  left: 12px;
+  top: 12px;
+  width: min(360px, calc(100vw - 24px));
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
+}
+
+.hud-genos[hidden] {
+  display: none;
+}
+
+.genos-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.genos-name {
+  font-weight: 600;
+  font-size: 1.05em;
+  color: var(--hud-accent);
+  overflow-wrap: anywhere;
+}
+
+.genos-status {
+  flex: none;
+  font-size: 0.82em;
+  font-weight: 600;
+  color: var(--hud-success);
+}
+
+.genos-status[data-dead="true"] {
+  color: var(--hud-error);
+}
+
+.genos-hint {
+  margin-top: 6px;
+  color: var(--hud-muted);
+  font-size: 0.9em;
+}
+
+
 .social-chat {
   position: absolute;
   left: 12px;

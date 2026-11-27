@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { MapBuilding } from "../contracts/hub";
+import type { GenosStatus, MapBuilding } from "../contracts/hub";
 import { Hud } from "./hud";
 import { NotificationCenter } from "./notifications";
 import { SettingsStore } from "./settings";
@@ -16,6 +16,7 @@ function harness() {
     onSignOut: vi.fn(),
     onRetry: vi.fn(),
     onSelectBuilding: vi.fn(),
+    onSelectGenos: vi.fn(),
     focusCanvas: vi.fn()
   };
   const hud = new Hud({ root, ui, notifications, settings, actions, updateIntervalMs: 100 });
@@ -40,6 +41,39 @@ const building: MapBuilding = {
   entryX: 0,
   entryY: 1,
   ownerNetworkId: 7
+};
+
+const genos: GenosStatus = {
+  networkId: 42,
+  name: "<img src=x onerror=alert(1)>",
+  age: 25,
+  isPlayerControlled: false,
+  hunger: 80,
+  energy: 70,
+  hygiene: 65,
+  bladder: 60,
+  currentAction: "Idle",
+  timeRemaining: 0,
+  x: 0,
+  y: 0,
+  tileX: 0,
+  tileY: 0,
+  hasMoveTarget: false,
+  moveTargetX: 0,
+  moveTargetY: 0,
+  walletBalance: 100,
+  savingsBalance: 50,
+  unmetDemand: 0,
+  householdNetworkId: null,
+  housingUnitNetworkId: null,
+  tenure: "owner",
+  housingTier: "standard",
+  homeless: false,
+  stage: "Adult",
+  health: 100,
+  topSkill: "logic",
+  seniority: "none",
+  isDead: false
 };
 
 describe("Hud", () => {
@@ -167,6 +201,53 @@ describe("Hud", () => {
     reduce.checked = true;
     reduce.dispatchEvent(new Event("change"));
     expect(h.settings.settings.reduceMotion).toBe(true);
+    h.hud.dispose();
+  });
+
+  it("shows the genos inspection panel on selection and hides it when cleared", () => {
+    const h = harness();
+    const panel = h.root.querySelector(".hud-genos");
+    expect(panel?.hasAttribute("hidden")).toBe(true);
+
+    h.ui.patch({ selection: { kind: "genos", genos } });
+    vi.advanceTimersByTime(100);
+    expect(panel?.hasAttribute("hidden")).toBe(false);
+    expect(h.root.querySelector(".genos-name")?.textContent).toBe("<img src=x onerror=alert(1)>");
+    expect(h.root.querySelector('[data-field="needs"]')?.textContent).toContain("hunger 80");
+    expect(h.root.querySelector('[data-field="money"]')?.textContent).toContain("wallet 100");
+    expect(h.root.querySelector('[data-field="housing"]')?.textContent).toContain("standard");
+    // The genos panel never renders HTML from server strings.
+    expect(h.root.querySelectorAll("img")).toHaveLength(0);
+    // The building selection panel stays out of the way.
+    expect(h.root.querySelector(".selection")?.hasAttribute("hidden")).toBe(true);
+
+    h.ui.patch({ selection: null });
+    vi.advanceTimersByTime(100);
+    expect(panel?.hasAttribute("hidden")).toBe(true);
+    h.hud.dispose();
+  });
+
+  it("marks a dead genos in the panel", () => {
+    const h = harness();
+    h.ui.patch({ selection: { kind: "genos", genos: { ...genos, isDead: true, health: 0 } } });
+    vi.advanceTimersByTime(100);
+    const status = h.root.querySelector(".genos-status");
+    expect(status?.textContent).toBe("Deceased");
+    expect(status?.getAttribute("data-dead")).toBe("true");
+    h.hud.dispose();
+  });
+
+  it("clears the genos panel on Escape and on the Close button", () => {
+    const h = harness();
+    h.ui.patch({ selection: { kind: "genos", genos } });
+    vi.advanceTimersByTime(100);
+
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    expect(h.actions.onSelectGenos).toHaveBeenCalledWith(null);
+
+    const close = h.root.querySelector<HTMLButtonElement>('button[aria-label="Close genos panel"]');
+    close?.click();
+    expect(h.actions.onSelectGenos).toHaveBeenCalledTimes(2);
     h.hud.dispose();
   });
 
