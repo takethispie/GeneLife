@@ -18,6 +18,8 @@
     "test:e2e:admin": "playwright test --config playwright.admin.config.ts",
     "test:visual": "playwright test --config playwright.visual.config.ts",
     "test:visual:update": "playwright test --config playwright.visual.config.ts --update-snapshots",
+    "test:visual:admin": "playwright test --config playwright.admin-visual.config.ts",
+    "test:visual:admin:update": "playwright test --config playwright.admin-visual.config.ts --update-snapshots",
     "check:admin-fixtures": "node scripts/check-admin-fixtures.mjs",
     "fixtures:generate": "node scripts/generate-fixtures.mjs",
     "fixtures:appearance": "node scripts/generate-appearance-fixtures.mjs",
