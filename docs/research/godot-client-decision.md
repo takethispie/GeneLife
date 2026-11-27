@@ -63,7 +63,11 @@ Consequence: the export pipeline covers desktop targets only, and there is no wa
 | Tests | gdUnit4 with C# tests; headless needs the two-step run (`--import --quit`, then run with `--ignoreHeadlessMode`) or it can segfault |
 | CI | Desktop exports via the `godot-ci` image; the existing four required checks are unchanged, with a `godot-smoke` job added when the client exists |
 
-## 5. Open risk — unverified, and it is the only thing that could force a rethink
+## 5. Open risk — RESOLVED (verified PASS, see §8)
+
+> **Resolved 2026-11-27 — verdict PASS.** The spike in §8 proved all three conditions below on this Windows host,
+> so this risk no longer applies. Running `net10.0` is confirmed; the `net8.0` fallback is not needed. The recipe is
+> retained for the record.
 
 **Godot's host ships .NET 8.** Targeting `net10.0` is *permitted* by the engine's own rule (projects may target
 `net8.0` or newer) but it is **not proven here**, and this record does not claim otherwise. Before the client work
@@ -100,3 +104,73 @@ survive untouched — only the target framework number changes.
 - Repo state at time of writing: 15 `*.csproj`, all `<TargetFramework>net10.0</TargetFramework>`.
 - Negative result worth keeping: **no official Godot MCP server and no `llms.txt`**
   (`docs.godotengine.org/llms.txt`, `llms-full.txt`, `godotengine.org/llms.txt` all return 404, checked 2026-11-27).
+
+## 8. Verification result — PASS (spike, 2026-11-27)
+
+Card `t_dacf9eda` executed the §5 recipe on this Windows host. **Verdict: PASS** — a Godot 4.7.2 .NET project
+targeting `net10.0` builds, references `Genelife.Contracts` (`net10.0`), instantiates a DTO in a headless scene, and
+a **desktop export runs** with the `net10.0` assembly resolved at runtime. No fallback is needed; the shared
+contract assemblies keep targeting `net10.0`.
+
+**Raw evidence**
+
+| Item | Value |
+|---|---|
+| Godot | `4.7.2.stable.mono.official.ed1daf0bf` (.NET/mono build, from `--version`) |
+| .NET SDKs installed | `10.0.100`, `10.0.404` (`dotnet --list-sdks`) — **only .NET 10**; no .NET 8 SDK on this host |
+| .NET runtime at play | `Microsoft.NETCore.App 10.0.15` (`RuntimeInformation.FrameworkDescription` → `.NET 10.0.15`) |
+| Project SDK | `<Project Sdk="Godot.NET.Sdk/4.7.2">` |
+| `TargetFramework` | `net10.0` (the editor import left it unchanged) |
+| Contract reference | `<ProjectReference Include=".../Genelife.Contracts/Genelife.Contracts.csproj" />` |
+
+Steps run, all succeeded:
+
+1. `dotnet build` →
+
+   ```
+   Genelife.Contracts -> ...\net10.0\Genelife.Contracts.dll
+   GenelifeNet10Spike -> ...\.godot\mono\temp\bin\Debug\GenelifeNet10Spike.dll
+   Build succeeded.
+   ```
+
+2. `Godot --headless --path . res://Main.tscn` →
+
+   ```
+   [SPIKE] Godot version = 4.7.2-stable (official)
+   [SPIKE] Runtime = .NET 10.0.15
+   [SPIKE] Contracts assembly = Genelife.Contracts, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
+   [SPIKE] DTO instantiated: NetworkId=42 Name=Spike Corp Employees=3 Balance=1234.56 Solvency=Solvent
+   [SPIKE] Second DTO instantiated: Genelife.Api.DTOs.SnapshotInfo
+   [SPIKE] PASS
+   ```
+
+3. `Godot --headless --path . --export-release "Windows Desktop" build/spike.exe` → export **succeeded**
+   (`dotnet_publish_project` ran, `savepack` completed). The export bundle
+   `data_GenelifeNet10Spike_windows_x86_64/` contains both `Genelife.Contracts.dll` and the full .NET 10 runtime
+   (`coreclr.dll`, `System.Private.CoreLib.dll`, `mscordaccore_amd64_amd64_10.0.1526.53008.dll`).
+
+4. Running the exported `spike.exe` on this host →
+
+   ```
+   [SPIKE] Runtime = .NET 10.0.15
+   [SPIKE] Contracts assembly location = ...\build\data_GenelifeNet10Spike_windows_x86_64\Genelife.Contracts.dll
+   [SPIKE] DTO instantiated: NetworkId=42 Name=Spike Corp Employees=3 Balance=1234.56 Solvency=Solvent
+   [SPIKE] PASS
+   ```
+
+**Notes / caveats**
+
+- The `.csproj` was authored by hand with `TargetFramework net10.0` (Godot does not overwrite an existing `.csproj`);
+  the editor import left it at `net10.0` and the build used it.
+- A C# **export requires a classic `.sln`** next to the `.csproj`. `dotnet new sln` on .NET 10 emits the new `.slnx`
+  format, which the exporter rejects (*"no solution file was found"*); a classic
+  `Microsoft Visual Studio Solution File, Format Version 12.00` `.sln` with `ExportDebug`/`ExportRelease`
+  configurations is what the export step needs.
+- A desktop export also needs the matching `4.7.2.stable.mono` export templates installed under
+  `%APPDATA%/Godot/export_templates/4.7.2.stable.mono/`, and the export output directory must already exist.
+- The exported desktop bundle **ships the full .NET 10 runtime** next to the game, so the client does not depend on a
+  host-installed runtime to load the `net10.0` assemblies.
+- The spike scaffolding is throwaway and lives **outside the repo** at
+  `C:\Users\dustcat\GodotProjects\genelife-net10-spike` (private engine copy under
+  `...\genelife-net10-spike-tools\`). Nothing was added to the solution and nothing was committed; this section is
+  the only repository change this card produced.
