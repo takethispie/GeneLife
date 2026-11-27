@@ -1,6 +1,6 @@
 {
   "title": "GeneLife — Team Board",
-  "updated": "2026-11-27T06:13Z",
+  "updated": "2026-11-27T06:16Z",
   "description": "Shared team board for the GeneLife project; source of truth for the chat kanban widget. States: waiting to run -> currently running -> done. 'Currently running' holds each member's selected next task (cards marked 'next'), with ETA/branch/blocker notes. Status: the V5 balance regression (rent burden / Gini) is FIXED (rent-burden rebalance merged); the V6 opt-in question is CLOSED (StaggerCadence stays opt-in/off).",
   "states": [
     {
@@ -120,8 +120,8 @@
       "id": "c15",
       "title": "External benchmark thresholds for the targetless bands (company failure rate, health warnings, reproduction warnings)",
       "owner": "roberto",
-      "state": "waiting",
-      "note": "RE-SCOPED (roberto's rec, accepted): the rent-burden/Gini/vacancy gate already exists and is green (ede655b), so external ranges for those are belt-and-braces only (short appendix). The real gap is the three bands with NO target. Name external sources; state plainly where no defensible published range exists rather than inventing one."
+      "state": "done",
+      "note": "merged d1d269a - docs/research/v7-benchmark-thresholds.md. Verified first-hand: BalanceScenarioTests 5/5 green, reports reproduce ede655b exactly. Company-failure band is degenerate (0.0 at every scale); health/reproduction warnings get STRUCTURAL targets (0 Fail), not invented numbers."
     },
     {
       "id": "c16",
@@ -238,6 +238,41 @@
       "owner": "gabrielo",
       "state": "done",
       "note": "bc00405 - 5 tests vs a stub IGroupManager: hire ADDs every player connection to company:{id}, fire REMOVEs, NPC/no-connection touch nothing, employer switch leaves the stale room. Fast tier 600/0."
+    },
+    {
+      "id": "v7f1",
+      "title": "Health-warning count: board says 61, gate says 3 - reconcile + naming rule",
+      "owner": "gabrielo",
+      "state": "waiting",
+      "note": "FamilyReleaseScenarioTests counts Warn-only at one instant (61); the balance report counts Warn+Fail at final year (3 at 2k). Same defect class as the stale 'EXPECT THIS RED' comments. Add a rule: a metric must name its harness and aggregation."
+    },
+    {
+      "id": "v7f2",
+      "title": "Wage share: structurally off and only asserted at 200",
+      "owner": "pedro",
+      "state": "waiting",
+      "note": "sim 0.876-1.103 vs ILO labour income share 52.4%; at 60 genoses it measures 1.103 - past its own >0.90 Fail line - but the band is only asserted at 200. Extend the assertion + recalibrate."
+    },
+    {
+      "id": "v7f3",
+      "title": "Company failure rate band: 0.0 at every scale - delete or target?",
+      "owner": "pedro",
+      "state": "waiting",
+      "note": "Degenerate metric (0.0 over a decade, BankruptCompanies 0). Decide whether bankruptcy is meant to happen at all; if yes it is a work item, if no the band should be DELETED, not targeted. Also reconcile EconomyHealth's absolute count (0 Pass / <=2 Warn / >2 Fail) against a scale-dependent rate band."
+    },
+    {
+      "id": "v7f4",
+      "title": "PopulationSnapshot.ReplacementRate: arbitrary constants + misnamed",
+      "owner": "main-dev",
+      "state": "waiting",
+      "note": "Returns arbitrary constants (1.5 or 1) whenever deaths == 0, and it is births/deaths, not a fertility rate, despite the name (PopulationMetricsSystem.cs:152)."
+    },
+    {
+      "id": "v7f5",
+      "title": "Verify the 2k p99 (88 ms, single unreproduced run) before V7 leans on the perf premise",
+      "owner": "main-dev",
+      "state": "waiting",
+      "note": "roberto's Release run: p99 87.99 ms at 2k vs p95 1.54 ms and a 50 ms budget; RelationshipExposure 154 ms / 291.7 MB. Single run, unreproduced - but V7's '~5x headroom' is a p95 claim. Reproduce or refute."
     }
   ]
 }
