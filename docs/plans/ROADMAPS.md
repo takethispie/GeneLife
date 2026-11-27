@@ -12,6 +12,7 @@ Feature roadmaps (`roadmap-vN`) record delivered implementation only. Production
 | [V4](roadmap-v4/README.md) | Relationships, attraction and reproduction | Release-ready (one opt-in follow-up) |
 | [V5](roadmap-v5/README.md) | Playable society (player life, appearance, consumption, social, live ops) | Released |
 | [V6](roadmap-v6/README.md) | Tick performance (dropped ticks, lock contention, parallelism) | Implemented |
+| [V7](roadmap-v7/README.md) | Economic closure & balance bands; operator plane; persistence durability | Defining |
 | [release-roadmap-V5](release-roadmap-V5/README.md) | V5 production release checks | Released |
 
 ---
