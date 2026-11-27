@@ -130,9 +130,13 @@ dotnet run --project Genelife.Performance.Tests/Genelife.Performance.Tests.cspro
   off (see the opt-in decisions). `LoadHarness` now reads `GENELIFE_STAGGER_CADENCE=1` and appends
   `_stagger` to its report names, so both arms are reproducible without editing code, and a 2k
   fixture was added because the gate is 2,000 genoses while only 1k/5k existed.
-- `balance-200-21` still misses its rent-burden band on the default path: median rent burden 0.4041
-  against the 0.40 ceiling. Household cash pooling (needs work) had already moved it down from
-  0.4323, so the remainder is the open rebalance, not a regression from this roadmap.
+- ~~`balance-200-21` still misses its rent-burden band on the default path.~~ **Corrected — and it was
+  a regression from this roadmap.** The miss (median rent burden 0.4041 vs the 0.40 ceiling) bisects
+  to `5ddc300` (monthly consumption pass moved after income, Order 460->506), not the pre-existing
+  rebalance; household cash pooling narrowed it (0.4323 -> 0.4041) but did not cause it. The earlier
+  note here was wrong because it compared two states that both post-dated the regression instead of a
+  known-good baseline. It is now **fixed** by the rent-burden rebalance (`ede655b`,
+  `HousingOptions.MaxRentIndex` 1.6 -> 1.2); the bands are green (`BalanceScenarioTests` 5/5).
 - The legacy admin endpoints now wait up to 50 ms for the next tick; if that latency matters,
   convert them to the `202 Accepted` + `/api/commands/{id}` pattern used by the newer admin
   endpoints.
