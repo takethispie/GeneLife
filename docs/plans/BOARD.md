@@ -1,34 +1,51 @@
-# GeneLife team board — MOVED
+# GeneLife team board — hermes-kanban
 
-This board no longer lives in the repo. It is served by a self-hosted **Vikunja**
-instance so agents read and write it directly — no local-file edit, no push.
+The team board is the **Hermes kanban** (`hermes kanban`): a durable, SQLite-backed
+board shared across every profile, with real assignment, first-class dependencies,
+and a dispatcher that runs cards as agent processes.
 
 | | |
 |---|---|
-| **Board** | http://localhost:3456 — project `GeneLife Team Board` (id 2), kanban view **8** |
-| **Columns** | Waiting to run (bucket 4) · Currently running (5) · Done (6) |
-| **Access** | MCP server `vikunja` (12 tools) — registered in every GeneLife agent profile |
-| **Service** | `C:\Users\dustcat\genelife-kanban` (`docker compose up -d`) |
-| **Ops notes** | `C:\Users\dustcat\genelife-kanban\README.md` (API + MCP gotchas) |
+| **Board** | slug `genelife` — display name "GeneLife" |
+| **Database** | `~/.hermes/kanban/boards/genelife/kanban.db` |
+| **View it** | the **Kanban page in the Hermes desktop app**, or `hermes kanban list` |
+| **Default workdir** | `G:\dev\GeneLife` — each card runs in its own worktree |
 
-## Card conventions (unchanged)
+## What it changes
 
-- The **owner** and the card's current state note live in the task **description**.
-- A member's selected/active task carries the label **`▶ next`**.
-- Reference cards **by title** — ids renumber when a board is regenerated.
+- **Assignment is a profile name** (`--assignee main-dev`), not a label or an
+  `**Owner:**` line in the body.
+- **Dependencies are first-class**: `hermes kanban link <parent> <child>`. A child
+  stays in `todo` while its parents are open.
+- **The dispatcher runs the cards.** A card in `ready` is spawned as a worker process
+  for its assignee, in its own workspace; the worker reads the card, does the work and
+  completes it. Cards in `blocked` never run.
+- Statuses: `triage -> todo -> ready -> running -> review -> done`, plus `blocked` and `scheduled`.
 
-## Agent usage
+## Driving it
 
 | Want | Do |
 |---|---|
-| Read the board | `tasks_list` with `filter: "project_id = 2"` (returns `{"items":[…]}`) |
-| Add a card | `tasks_create` |
-| Update owner / state / notes | `tasks_update` |
-| Move between columns | `tasks_update` with `task: <id>, bucket_id: <n>` — 4 waiting / 5 running / 6 done (✓ verified; the required param is `task`, not `id`) |
+| See the board | `hermes kanban list` (or `stats`, or the desktop Kanban page) |
+| Read one card | `hermes kanban show <id>` |
+| Add a card | `hermes kanban create "<title>" --assignee <profile> --body-file <file> --workspace worktree` |
+| Assign / reassign | `hermes kanban assign <id> <profile>` |
+| Park a card so it cannot run | create it with `--initial-status blocked` |
+| Release it to the dispatcher | `hermes kanban unblock <id>` |
+| Add a dependency | `hermes kanban link <parent> <child>` |
+| Comment on a card | `hermes kanban comment <id> "..."` |
+| Finish a card | `hermes kanban complete <id>` |
 
-Rich-text fields are HTML by default — pass `format: "markdown"`.
+**On a dispatched card, agents use the `kanban_*` tools** (`kanban_show`,
+`kanban_comment`, `kanban_complete`, `kanban_block`, `kanban_heartbeat`, ...) rather
+than the CLI — the dispatcher injects them plus the worker lifecycle guidance.
 
----
+**A card in `ready` costs a spawned agent.** Park work with `--initial-status blocked`
+and release it deliberately; never leave a card `ready` unless it should run now.
 
-*Retired 2026-11-27: the git-file `BOARD.json` (38 cards) was migrated into
-Vikunja. Git history retains the old file; this doc replaces it.*
+## History
+
+This replaces two earlier boards: the git file `docs/plans/BOARD.json` (retired
+2026-11-27) and a self-hosted Vikunja instance stood up the same day, then retired in
+favour of this one. Shipped history from both remains in git, and the Vikunja cards were
+dumped before that teardown.
