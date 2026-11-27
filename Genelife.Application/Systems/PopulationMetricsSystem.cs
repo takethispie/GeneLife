@@ -100,7 +100,7 @@ public class PopulationMetricsSystem : ISimulationSystem
         var monthsPerCycle = Math.Max(1, clock.TicksPerPayCycle / clock.TicksPerMonth);
         var monthlyBase = economy.Life.Careers.BaseSalary.Cents / (decimal)monthsPerCycle;
         var averagePension = pensionCount > 0 ? pensionTotal.Cents / (decimal)pensionCount : 0m;
-        var replacementRate = monthlyBase > 0 ? averagePension / monthlyBase : 0m;
+        var pensionReplacementRate = monthlyBase > 0 ? averagePension / monthlyBase : 0m;
         var fundingRatio = life.PensionFundingRatio(economy.Pension.Balance);
 
         var agesAtDeath = life.MortalityLog.Select(record => record.Age).ToList();
@@ -171,7 +171,7 @@ public class PopulationMetricsSystem : ISimulationSystem
             averageHealth,
             averageAgeAtDeath,
             lifeExpectancy,
-            replacementRate,
+            pensionReplacementRate,
             fundingRatio,
             workingShare,
             dependency,
