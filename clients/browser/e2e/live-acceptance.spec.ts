@@ -48,7 +48,7 @@ test.describe("live stack acceptance", () => {
       .toBeGreaterThan(0);
 
     const center = await canvasCenter(page);
-    await page.mouse.click(center.x, center.y);
+    await page.mouse.click(center.x, center.y, { button: "right" });
     await page.waitForTimeout(500);
     await expect(page.locator(".notification-error")).toHaveCount(0);
 
@@ -122,7 +122,7 @@ test.describe("live V5 release smoke", () => {
     const ack = hudField(page, "input-ack");
     const center = await canvasCenter(page);
     for (let i = 0; i < 5; i++) {
-      await page.mouse.click(center.x + (i - 2) * 32, center.y);
+      await page.mouse.click(center.x + (i - 2) * 32, center.y, { button: "right" });
       await page.waitForTimeout(220);
     }
 

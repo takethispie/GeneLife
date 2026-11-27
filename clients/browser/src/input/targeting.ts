@@ -26,8 +26,15 @@ export interface TargetingOptions {
 }
 
 /**
- * Translates pointer/keyboard targets into server intents. Hover and target
- * markers are presentation only; the client never applies a position locally.
+ * Translates pointer/keyboard targets into server intents.
+ *
+ * The right mouse button is the click-to-move gesture. The left button only
+ * selects (buildings and units) and drives the UI; it never issues a move.
+ * Touch and pen have no right button, so a tap is the primary action — it
+ * selects a building when one is under the pointer and otherwise moves.
+ *
+ * Hover and target markers are presentation only; the client never applies a
+ * position locally.
  */
 export class TargetingController {
   private hover: { tile: TilePoint; walkable: boolean } | null = null;
@@ -48,12 +55,20 @@ export class TargetingController {
 
   private readonly onPointerLeave = (): void => this.setHover(null);
 
+  /** Right mouse button: the click-to-move gesture. */
+  private readonly onPointerDown = (event: PointerEvent): void => {
+    if (isHudTarget(event.target)) return;
+    if (event.button !== 2) return;
+    this.moveAtEvent(event);
+  };
+
+  /** Left click only selects; it never issues a move. */
   private readonly onClick = (event: MouseEvent): void => {
     if (isHudTarget(event.target)) return;
     if (event.button !== 0) return;
     // Alt+left is a camera pan gesture, not a target.
     if (event.altKey) return;
-    this.activateAtEvent(event);
+    this.selectAtEvent(event);
   };
 
   private readonly onKeyDown = (event: KeyboardEvent): void => {
@@ -66,6 +81,7 @@ export class TargetingController {
   constructor(private readonly options: TargetingOptions) {
     options.canvas.addEventListener("pointermove", this.onPointerMove);
     options.canvas.addEventListener("pointerleave", this.onPointerLeave);
+    options.canvas.addEventListener("pointerdown", this.onPointerDown);
     options.canvas.addEventListener("click", this.onClick);
     window.addEventListener("keydown", this.onKeyDown);
   }
@@ -84,12 +100,17 @@ export class TargetingController {
     this.disposed = true;
     this.options.canvas.removeEventListener("pointermove", this.onPointerMove);
     this.options.canvas.removeEventListener("pointerleave", this.onPointerLeave);
+    this.options.canvas.removeEventListener("pointerdown", this.onPointerDown);
     this.options.canvas.removeEventListener("click", this.onClick);
     window.removeEventListener("keydown", this.onKeyDown);
   }
 
-  private activateAtEvent(event: MouseEvent): void {
-    const tile = this.tileFromEvent(event);
+  /**
+   * Touch/pen entry point. A tap has no right button, so it performs the
+   * primary action: select a building under the pointer, otherwise move there.
+   */
+  activateAtScreenPoint(clientX: number, clientY: number): void {
+    const tile = this.tileFromPoint(clientX, clientY);
     if (tile === null) {
       this.options.notify("info", "outside_map", "That is outside the map");
       return;
@@ -97,7 +118,46 @@ export class TargetingController {
     this.activate(tile);
   }
 
+  /** Left click: select the building on the tile, otherwise leave selection be. */
+  private selectAtEvent(event: MouseEvent): void {
+    const map = this.options.getMap();
+    if (map === null) return;
+    const tile = this.tileFromEvent(event);
+    if (tile === null || !inBounds(map, tile.x, tile.y)) {
+      this.options.notify("info", "outside_map", "That is outside the map");
+      return;
+    }
+    const building = buildingAt(map, tile.x, tile.y);
+    if (building !== null) {
+      this.options.onTarget(null);
+      this.options.onSelectBuilding(building);
+    }
+  }
+
+  /** Right click: move to the tile. */
+  private moveAtEvent(event: MouseEvent): void {
+    const tile = this.tileFromEvent(event);
+    if (tile === null) {
+      this.options.notify("info", "outside_map", "That is outside the map");
+      return;
+    }
+    this.move(tile);
+  }
+
+  /** Primary action (touch tap, Enter): select a building, otherwise move. */
   private activate(tile: TilePoint): void {
+    const map = this.options.getMap();
+    if (map === null) return;
+    const building = buildingAt(map, tile.x, tile.y);
+    if (building !== null) {
+      this.options.onTarget(null);
+      this.options.onSelectBuilding(building);
+      return;
+    }
+    this.move(tile);
+  }
+
+  private move(tile: TilePoint): void {
     const map = this.options.getMap();
     if (map === null) return;
 
@@ -106,14 +166,9 @@ export class TargetingController {
       return;
     }
 
-    const building = buildingAt(map, tile.x, tile.y);
-    if (building !== null) {
-      this.options.onTarget(null);
-      this.options.onSelectBuilding(building);
-      return;
-    }
-
-    if (!isWalkableHint(map, tile.x, tile.y)) {
+    // Buildings and occupied/water tiles are not move targets; mirror the
+    // server, which would reject them as blocked.
+    if (!isWalkableHint(map, tile.x, tile.y) || buildingAt(map, tile.x, tile.y) !== null) {
       this.options.onTarget(null);
       this.options.notify("warning", "blocked_tile", "That tile is blocked");
       return;
@@ -135,10 +190,14 @@ export class TargetingController {
   }
 
   private tileFromEvent(event: MouseEvent | PointerEvent): TilePoint | null {
+    return this.tileFromPoint(event.clientX, event.clientY);
+  }
+
+  private tileFromPoint(clientX: number, clientY: number): TilePoint | null {
     const map = this.options.getMap();
     if (map === null) return null;
     const rect = this.options.canvas.getBoundingClientRect();
-    return this.options.camera.tileFromScreen(event.clientX - rect.left, event.clientY - rect.top);
+    return this.options.camera.tileFromScreen(clientX - rect.left, clientY - rect.top);
   }
 
   private setHover(next: { tile: TilePoint; walkable: boolean } | null): void {

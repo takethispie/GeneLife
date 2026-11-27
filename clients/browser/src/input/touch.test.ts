@@ -65,4 +65,31 @@ describe("touch gestures", () => {
     expect(h.recognizer.up(1)).toBe(false);
     expect(h.onPan).not.toHaveBeenCalled();
   });
+
+  it("reports a tap through onTap with the pointer coordinates", () => {
+    let clock = 0;
+    const onTap = vi.fn();
+    const recognizer = new TouchGestureRecognizer(
+      { onPan: vi.fn(), onZoom: vi.fn(), onTap },
+      { now: () => clock, tapSlopPixels: 10, maxTapMs: 300 }
+    );
+    recognizer.down(1, 42, 24);
+    clock += 100;
+    expect(recognizer.up(1)).toBe(false);
+    expect(onTap).toHaveBeenCalledWith(42, 24);
+  });
+
+  it("does not report a drag as a tap", () => {
+    let clock = 0;
+    const onTap = vi.fn();
+    const recognizer = new TouchGestureRecognizer(
+      { onPan: vi.fn(), onZoom: vi.fn(), onTap },
+      { now: () => clock, tapSlopPixels: 10, maxTapMs: 300 }
+    );
+    recognizer.down(1, 0, 0);
+    clock += 50;
+    recognizer.move(1, 30, 10);
+    expect(recognizer.up(1)).toBe(true);
+    expect(onTap).not.toHaveBeenCalled();
+  });
 });

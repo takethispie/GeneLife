@@ -12,6 +12,8 @@ export interface TouchPoint {
 export interface TouchGestureCallbacks {
   onPan: (dxPixels: number, dyPixels: number) => void;
   onZoom: (factor: number, x: number, y: number) => void;
+  /** A quick, still press. Carries the pointer's client coordinates. */
+  onTap?: (x: number, y: number) => void;
   onGestureEnd?: () => void;
 }
 
@@ -22,9 +24,9 @@ export interface TouchGestureOptions {
 }
 
 /**
- * Pure gesture recognizer for one-finger pan, two-finger pinch and tap. Taps
- * are left to the existing click-to-target path; drags and pinches mark the
- * gesture so the adapter can suppress the synthesized click.
+ * Pure gesture recognizer for one-finger pan, two-finger pinch and tap. A tap
+ * is reported through `onTap`; drags and pinches mark the gesture so the adapter
+ * can suppress the synthesized click.
  */
 export class TouchGestureRecognizer {
   private readonly points = new Map<number, TouchPoint>();
@@ -106,6 +108,7 @@ export class TouchGestureRecognizer {
       !this.movedTooFar(point) &&
       elapsed <= this.maxTapMs;
 
+    if (tapped) this.callbacks.onTap?.(point.x, point.y);
     this.points.delete(id);
     if (this.points.size < 2) this.lastPinchDistance = null;
     if (this.points.size === 0) {
@@ -153,15 +156,19 @@ export interface TouchInputOptions {
   camera: Camera;
   getEnabled: () => boolean;
   onGesture?: () => void;
+  /** Invoked for a tap; the primary action (select-or-move). */
+  onTap?: (x: number, y: number) => void;
 }
 
 /**
- * DOM adapter for touch pointers. It never submits intents: taps continue to the
- * shared click-to-target path, so touch and pointer use the same server intent.
+ * DOM adapter for touch pointers. It never submits intents itself: a tap is
+ * reported through `onTap` so the shared pointer path handles selection and
+ * movement, and the synthesized click is suppressed to avoid double handling.
  */
 export class TouchInput {
   private readonly recognizer: TouchGestureRecognizer;
   private suppressNextClick = false;
+  private tapHandled = false;
 
   private readonly onPointerDown = (event: PointerEvent): void => {
     if (!this.options.getEnabled() || event.pointerType !== "touch") return;
@@ -176,7 +183,11 @@ export class TouchInput {
 
   private readonly onPointerUp = (event: PointerEvent): void => {
     if (event.pointerType !== "touch") return;
-    this.suppressNextClick = this.recognizer.up(event.pointerId);
+    const gesture = this.recognizer.up(event.pointerId);
+    // A handled tap owns the gesture, so the synthesized click must not run the
+    // pointer path again and re-handle the same tile.
+    this.suppressNextClick = gesture || this.tapHandled;
+    this.tapHandled = false;
     this.options.onGesture?.();
     this.options.canvas.releasePointerCapture?.(event.pointerId);
   };
@@ -205,6 +216,12 @@ export class TouchInput {
         onZoom: (factor, x, y) => {
           const rect = options.canvas.getBoundingClientRect();
           camera.zoomAt(factor, x - rect.left, y - rect.top);
+        },
+        onTap: (x, y) => {
+          const onTap = options.onTap;
+          if (onTap === undefined) return;
+          this.tapHandled = true;
+          onTap(x, y);
         }
       },
       {}
