@@ -75,14 +75,20 @@ public sealed class StubGameData : HttpMessageHandler
         HttpRequestMessage request,
         CancellationToken cancellationToken)
     {
-        var path = request.RequestUri!.AbsolutePath;
+        var uri = request.RequestUri!;
+        var path = uri.AbsolutePath;
+        var withQuery = $"{path}{uri.Query}";
         var method = request.Method.Method;
-        Requests.Add($"{method} {path}");
+        Requests.Add($"{method} {withQuery}");
 
-        if (routes.TryGetValue(path, out var respond))
-            return Task.FromResult(respond());
+        // Prefer an exact path+query match, then fall back to a path-only route
+        // so a test can declare one handler for every query a page might send.
+        if (routes.TryGetValue(withQuery, out var exact))
+            return Task.FromResult(exact());
+        if (routes.TryGetValue(path, out var byPath))
+            return Task.FromResult(byPath());
 
-        UnmatchedRequests.Add($"{method} {path}");
+        UnmatchedRequests.Add($"{method} {withQuery}");
         return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
     }
 
