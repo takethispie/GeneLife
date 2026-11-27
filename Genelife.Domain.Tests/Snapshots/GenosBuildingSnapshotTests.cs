@@ -75,8 +75,10 @@ public class GenosBuildingSnapshotTests
 
             var genos = Find(engine, "Employed");
             Assert.Equal(officeId, genos.WorkplaceBuildingNetworkId);
-            // No Residence component: homeless, so the housing link stays unknown.
+            Assert.Equal("Clerk", genos.JobPosition);
+            // No Residence component: homeless, so the housing links stay unknown.
             Assert.Null(genos.HousingBuildingNetworkId);
+            Assert.Null(genos.HousingUnitNumber);
         }
         finally { engine.Shutdown(); }
     }
@@ -100,7 +102,9 @@ public class GenosBuildingSnapshotTests
 
             Tick(engine);
 
-            Assert.Null(Find(engine, "Unemployed").WorkplaceBuildingNetworkId);
+            var genos = Find(engine, "Unemployed");
+            Assert.Null(genos.WorkplaceBuildingNetworkId);
+            Assert.Null(genos.JobPosition);
         }
         finally { engine.Shutdown(); }
     }
@@ -137,7 +141,9 @@ public class GenosBuildingSnapshotTests
 
             var genos = Find(engine, "Housed");
             Assert.Equal(propertyId, genos.HousingBuildingNetworkId);
+            Assert.Equal("1A", genos.HousingUnitNumber);
             Assert.Null(genos.WorkplaceBuildingNetworkId);
+            Assert.Null(genos.JobPosition);
         }
         finally { engine.Shutdown(); }
     }
@@ -161,7 +167,9 @@ public class GenosBuildingSnapshotTests
 
             Tick(engine);
 
-            Assert.Null(Find(engine, "Homeless").HousingBuildingNetworkId);
+            var genos = Find(engine, "Homeless");
+            Assert.Null(genos.HousingBuildingNetworkId);
+            Assert.Null(genos.HousingUnitNumber);
         }
         finally { engine.Shutdown(); }
     }
@@ -203,7 +211,10 @@ public class GenosBuildingSnapshotTests
 
             Tick(engine);
 
-            Assert.Null(Find(engine, "UnplacedWorker").WorkplaceBuildingNetworkId);
+            var unplacedWorker = Find(engine, "UnplacedWorker");
+            Assert.Null(unplacedWorker.WorkplaceBuildingNetworkId);
+            // The string fields do not depend on placement, so the position still resolves.
+            Assert.Equal("Clerk", unplacedWorker.JobPosition);
             Assert.Null(Find(engine, "OrphanWorker").WorkplaceBuildingNetworkId);
         }
         finally { engine.Shutdown(); }

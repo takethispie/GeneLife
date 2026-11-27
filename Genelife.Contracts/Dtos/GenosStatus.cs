@@ -26,6 +26,8 @@ public class GenosStatus
     public ulong? HousingUnitNetworkId { get; set; }
     public ulong? HousingBuildingNetworkId { get; set; }
     public ulong? WorkplaceBuildingNetworkId { get; set; }
+    public string? HousingUnitNumber { get; set; }
+    public string? JobPosition { get; set; }
     public string Tenure { get; set; } = string.Empty;
     public string HousingTier { get; set; } = string.Empty;
     public bool Homeless { get; set; }

@@ -55,6 +55,8 @@ public class GenosStatusEqualityTests
         HousingUnitNetworkId = 12,
         HousingBuildingNetworkId = 13,
         WorkplaceBuildingNetworkId = 14,
+        HousingUnitNumber = "12B",
+        JobPosition = "Engineer",
         Tenure = "Owner",
         HousingTier = "Mid",
         Homeless = false,

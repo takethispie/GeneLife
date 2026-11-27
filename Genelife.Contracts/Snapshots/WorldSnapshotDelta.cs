@@ -107,6 +107,8 @@ public sealed class WorldSnapshotDelta
         && a.HousingUnitNetworkId == b.HousingUnitNetworkId
         && a.HousingBuildingNetworkId == b.HousingBuildingNetworkId
         && a.WorkplaceBuildingNetworkId == b.WorkplaceBuildingNetworkId
+        && string.Equals(a.HousingUnitNumber, b.HousingUnitNumber, StringComparison.Ordinal)
+        && string.Equals(a.JobPosition, b.JobPosition, StringComparison.Ordinal)
         && string.Equals(a.Tenure, b.Tenure, StringComparison.Ordinal)
         && string.Equals(a.HousingTier, b.HousingTier, StringComparison.Ordinal)
         && a.Homeless == b.Homeless

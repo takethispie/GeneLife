@@ -6515,15 +6515,22 @@ private readonly NetworkIdRegistry networkIds = new();
             if (world.Has<ConsumptionState>(entity))
                 status.UnmetDemand = world.Get<ConsumptionState>(entity).UnmetDemand.Units;
 
-            // Building links for the occupancy panel: the office the genos works in and
-            // the property its housing unit sits in. Both resolve through the network-id
-            // registry, so an unplaced, destroyed or unregistered entity yields null
-            // (the client's "unknown") instead of a dangling id.
+            // Occupancy panel links: the office the genos works in (plus its position) and
+            // the property its housing unit sits in (plus the unit number). The building ids
+            // resolve through the network-id registry, so an unplaced, destroyed or
+            // unregistered entity yields null (the client's "unknown") instead of a dangling
+            // id. The string fields collapse empty values to null for the same reason.
             if (world.TryGet<Employee>(entity, out var employee))
+            {
                 status.WorkplaceBuildingNetworkId = PlacedBuildingNetworkId(world, employee.Office);
+                status.JobPosition = Blank(employee.Position);
+            }
             if (world.TryGet<Residence>(entity, out var residence) &&
                 world.TryGet<HousingUnit>(residence.Unit, out var unit))
+            {
                 status.HousingBuildingNetworkId = PlacedBuildingNetworkId(world, unit.Property);
+                status.HousingUnitNumber = Blank(unit.UnitNumber);
+            }
 
             genoses.Add(status);
         });
@@ -6536,6 +6543,9 @@ private readonly NetworkIdRegistry networkIds = new();
     /// dead, destroyed, unplaced or absent from the network-id registry. Callers
     /// project this into a nullable client field where null means "unknown".
     /// </summary>
+    private static string? Blank(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value;
+
     private ulong? PlacedBuildingNetworkId(World world, Entity building)
     {
         if (building == Entity.Null || !world.IsAlive(building) || !world.Has<Placement>(building))
