@@ -3,9 +3,11 @@ dist
 coverage
 playwright-report
 playwright-report-admin
+playwright-report-admin-visual
 playwright-report-visual
 test-results
 test-results-admin
+test-results-admin-visual
 test-results-visual
 test-results-chat
 *.local

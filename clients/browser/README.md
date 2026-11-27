@@ -125,6 +125,25 @@ Set `E2E_ADMIN_BASE_URL` to point at a different server and
 refreshes, genos detail, empty states, destructive confirmation gating, confirmation
 reset on tab switches, and command success/failure results.
 
+### Admin visual regression
+
+Every admin route (`/`, `/data`, `/map`, `/economy`, `/housing`, `/lifecycle`,
+`/family`, `/players`, `/appearance`, `/consumption`, `/social`, `/not-found`) has
+a full-page screenshot baseline plus a content guard. Both render against the frozen
+`/api/**` mock in `e2e/admin-visual/admin-api.ts`, so no API, database or seeded world
+is needed and the images are reproducible:
+
+```bash
+npm run test:visual:admin          # compare against the committed baselines
+npm run test:visual:admin:update   # regenerate after an intended change
+```
+
+The same `E2E_ADMIN_BASE_URL` / `E2E_ADMIN_START_SERVER=0` overrides apply. Baselines
+carry a `-win32` suffix: like the game-client visual suite they are a local acceptance
+tool, not a CI gate (CI runs on Linux). The content guards — heading, page title, no
+error alert, no placeholder copy, no unmocked API call — are platform independent and
+fail on the defect class (a stale page stub) that component tests alone missed.
+
 Live acceptance tests require the API, PostgreSQL and a running simulation:
 
 ```bash
