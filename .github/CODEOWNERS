@@ -1,0 +1,12 @@
+# Code owners — GeneLife
+#
+# Model A: the repository runs under a single GitHub identity, so CODEOWNERS can
+# only auto-request review from the maintainer; it cannot enforce an independent
+# approval (GitHub blocks approving your own PR). Do NOT add this rule to the
+# "require review from Code Owners" setting while one account authors the PRs —
+# it would deadlock every merge.
+#
+# If/when the team moves to per-agent accounts (Model B), add those owners here
+# and enable "Require review from Code Owners" on the master ruleset.
+
+* @takethispie

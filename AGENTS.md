@@ -33,3 +33,16 @@ Just use the tools or commands; there's no need to mention memory checks in your
 
 <!-- MEMANTO-DYNAMIC-MEMORIES -->
 <!-- /MEMANTO-DYNAMIC-MEMORIES -->
+
+## Git workflow — pull requests required
+
+`master` is protected: **direct pushes are rejected**. Every change lands through a pull request.
+
+- Branch off the latest `master`: `<type>/<handle>/<slug>` (e.g. `fix/ricardo/admin-a11y-form-labels`); `type` ∈ feat | fix | test | docs | chore | perf | refactor.
+- Push the branch and open a PR: `gh pr create --fill` (fill the PR template).
+- **Only @tech-leader merges `master`** — `gh pr merge <n> --squash --delete-branch`. Agents never merge their own PR.
+- Keep CI green (`.github/workflows/ci.yml`) before requesting a merge.
+- After the merge, refresh your worktree: `git fetch origin && git rebase origin/master`.
+
+Full detail: `CONTRIBUTING.md`. Note: reviews are advisory in the current single-account setup — see that file for why.
+
