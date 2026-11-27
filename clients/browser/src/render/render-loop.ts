@@ -15,6 +15,7 @@ export interface SceneStats extends DebugMetrics {
   visibleRoads: number;
   visibleEntryMarkers: number;
   labelCount: number;
+  genosLabels: number;
   localPlayerVisible: boolean;
 }
 
@@ -49,6 +50,9 @@ export class SceneRenderer {
   private hoverTile: { x: number; y: number; walkable: boolean } | null = null;
   private targetTile: { x: number; y: number } | null = null;
   private readonly options: SceneRendererOptions;
+  /** Stable lookup so the genos layer reads names without a per-frame closure. */
+  private readonly nameOf = (networkId: number): string =>
+    this.options.store.genoses.get(networkId)?.name ?? "";
 
   constructor(options: SceneRendererOptions) {
     this.options = options;
@@ -144,10 +148,10 @@ export class SceneRenderer {
       labels: 0
     };
     const ownGenos = store.ownGenosId;
-    const ownName = ownGenos > 0 ? (store.genoses.get(ownGenos)?.name ?? "") : "";
-    const genosStats = this.genoses?.render(renderState, ownGenos, ownName, camera, map.tileSize) ?? {
+    const genosStats = this.genoses?.render(renderState, ownGenos, this.nameOf, camera, map.tileSize) ?? {
       visible: 0,
       total: 0,
+      labels: 0,
       localVisible: false
     };
 
@@ -174,6 +178,7 @@ export class SceneRenderer {
         visibleBuildings: buildingStats.buildings,
         visibleEntryMarkers: buildingStats.entries,
         labelCount: buildingStats.labels,
+        genosLabels: genosStats.labels,
         visibleGenoses: genosStats.visible,
         totalGenoses: genosStats.total,
         localPlayerVisible: genosStats.localVisible,
