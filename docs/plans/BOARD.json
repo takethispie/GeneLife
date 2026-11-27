@@ -1,6 +1,6 @@
 {
   "title": "GeneLife — Team Board",
-  "updated": "2026-11-27T06:08Z",
+  "updated": "2026-11-27T06:13Z",
   "description": "Shared team board for the GeneLife project; source of truth for the chat kanban widget. States: waiting to run -> currently running -> done. 'Currently running' holds each member's selected next task (cards marked 'next'), with ETA/branch/blocker notes. Status: the V5 balance regression (rent burden / Gini) is FIXED (rent-burden rebalance merged); the V6 opt-in question is CLOSED (StaggerCadence stays opt-in/off).",
   "states": [
     {
@@ -118,9 +118,10 @@
     },
     {
       "id": "c15",
-      "title": "Published benchmark thresholds for rent burden / Gini / vacancy (external reference)",
+      "title": "External benchmark thresholds for the targetless bands (company failure rate, health warnings, reproduction warnings)",
       "owner": "roberto",
-      "state": "waiting"
+      "state": "waiting",
+      "note": "RE-SCOPED (roberto's rec, accepted): the rent-burden/Gini/vacancy gate already exists and is green (ede655b), so external ranges for those are belt-and-braces only (short appendix). The real gap is the three bands with NO target. Name external sources; state plainly where no defensible published range exists rather than inventing one."
     },
     {
       "id": "c16",
