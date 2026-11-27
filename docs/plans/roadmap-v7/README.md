@@ -24,6 +24,8 @@ roadmap would be inventing work.**
 
 ## Track 1 — Economic closure and balance bands  *(spine)*
 
+**Folder:** [`01-economic-closure/`](01-economic-closure/summary.md)
+
 The largest documented debt, and it spans four roadmaps:
 
 - **V1 open** — 1k–2k tuning of vacancy, company failures and wealth Gini.
@@ -44,6 +46,8 @@ opt-ins ship or are deleted. Highest value because it unblocks features already 
 
 ## Track 2 — Operator plane completion
 
+**Folder:** [`02-operator-plane/`](02-operator-plane/summary.md)
+
 V6's own open item: the legacy admin endpoints block up to 50 ms waiting for the next tick — move
 them to the `202 Accepted` + `/api/commands/{id}` pattern the newer endpoints already use. Pair it
 with V2's deferred `RelocateBuildingCommand`. This is the difference between live ops that can be
@@ -51,6 +55,8 @@ interrupted and one that cannot, and the pattern already exists in-repo, so it i
 than inventive**.
 
 ## Track 3 — Persistence durability
+
+**Folder:** [`03-persistence-durability/`](03-persistence-durability/summary.md)
 
 V1→V5 took the schema from 4 → 15, and the V5 release checklist still contains a **manual**
 migration/rollback rehearsal. Automate that rehearsal, and extend guard-style completeness checks to
