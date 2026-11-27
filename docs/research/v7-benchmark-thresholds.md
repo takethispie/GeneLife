@@ -44,11 +44,49 @@ Rent burden and Gini reproduce `ede655b`'s recorded figures exactly (0.2093/0.29
 
 Two by-products of my own run, flagged as **observations from a single Release run, not reproduced**:
 
-- The 2k metrics line reports **p95 1.54 ms but p99 87.99 ms**, with `RelationshipExposure` topping the per-system
-  table at **154.21 ms and 291,688,632 B** allocated. V7 repeats "~5× headroom", which is a **p95** claim; a p99 at
-  ~1.8× the 50 ms budget deserves a look before V7 leans on it.
-- **`CompanyFailureRate` is identically 0.0** and `BankruptCompanies` is 0 at all four scales over a decade. The band
-  is not merely untargeted — **the metric is dead**, so any target would be met vacuously (see §4).
+### 1b. Tail latency and the top hot spot (parsed from this run's own metrics log)
+
+The engine logs one `[metrics]` line every 250 ticks. Before quoting numbers from it, the semantics matter — they are
+**not** per-window figures (`Genelife.Application/Services/Metrics.cs`):
+
+- `tick_ms p50/p95/p99` come from a **rolling ring buffer of the last 1024 tick durations** (`histogramCapacity = 1024`).
+  Successive log lines therefore **overlap heavily** and are not independent samples — 55 lines is not 55 windows.
+- the `top=[...]` figures are **`AverageMilliseconds` and `AverageAllocatedBytes` per call**, accumulated for the life
+  of the `Metrics` instance (`new Metrics()` in `SimulationEngine.Initialize`, `Metrics.cs:292-305`), i.e. per
+  simulation, not per window.
+
+With that reading, my run says:
+
+| Quantity | Value | Basis |
+|---|---:|---|
+| tick p95 | max **2.21 ms** across all 55 log lines | never over 50 ms — V7's "~5× headroom" is a **p95** claim and it holds |
+| tick p99 | **17.55 ms** median, **168.94 ms** max; over 50 ms in **23 of 55** log lines | rolling 1024-tick buffer, overlapping samples |
+| allocation | 3.23 MB/tick median | `alloc_per_tick` |
+| **`RelationshipExposure`** | **~153 ms and ~288 MB per single call** (early-run averages ~250 ms / ~559 MB, diluted as the run proceeds) | top system by `AverageMilliseconds` in **55 of 55** log lines |
+| `CompanyRevenue` | ~3.5 ms per call | two orders of magnitude smaller |
+
+`RelationshipExposureSystem` is **monthly** (`Order 355`, `Cadence = TicksPerMonth`), so a decade at 2k genoses is
+≈120 calls. Two consequences:
+
+1. **The p99 tail has a named, single cause.** 120 calls in 12,000 ticks is ~1 % of ticks — exactly the p99 position of
+   a 1024-tick buffer — so the p99 flips between the ordinary slow tick (~17 ms) and the monthly
+   `RelationshipExposure` tick (~88-169 ms) depending on where the buffer boundary falls. The p99 is, in effect,
+   measuring one system.
+2. **The V6 allocation statement does not generalise.** `IMPLEMENTATION.md:105` says allocation "is dominated by the
+   economy systems (`BasicIncome`, `ConsumerSpending`, `UtilityConsumption`)", but V6 measured through `LoadHarness`,
+   whose fixture builds genoses **without `NetworkId` or `Traits`** (documented as a known deviation in that same
+   file), so relationship work never executes there. In the balance run, where it does run, the monthly
+   `RelationshipExposure` call's ~288 MB **matches the ~2.44 MB/tick × ~100 ticks/month ≈ 244 MB** the per-tick
+   figure implies — i.e. that one system plausibly accounts for most of the monthly allocation. The economy systems
+   are dominant *in a harness that cannot exercise relationships*: a fixture-coverage statement, not an economy one.
+
+Caveat, stated: one Release run, one seed, one machine. The p95/p99 figures are the engine's own sampled values; the
+per-call averages are cumulative and therefore dominated by the earliest (most expensive) calls. The direction and the
+named cause are solid; the exact milliseconds are not a benchmark.
+
+Also confirmed in this run: **`CompanyFailureRate` is identically 0.0** and `BankruptCompanies` is 0 at all four
+scales over a decade. The band is not merely untargeted — **the metric is dead**, so any target would be met
+vacuously (see §4).
 
 ## 2. What the three bands actually are (code truth, so targets attach to the right quantity)
 
@@ -133,9 +171,11 @@ number that its own gate cannot reproduce is exactly the record rot V7 track 1 d
    silently emits 1.5 or 1.0 with no data behind it. **Owner: main-dev.**
 4. **Record rot, second instance**: the health-warning figure on the board (61) cannot be reproduced by the balance
    report (3 at 2k). Same defect class as the "EXPECT THIS RED" comments fixed in `558142d`. **Owner: tech-leader.**
-5. **p99 87.99 ms at 2k** in my Release run against a 50 ms budget, with `RelationshipExposure` at 154.21 ms /
-   291.7 MB. **Unreproduced, single run** — verify before V7 restates "5× headroom", which is a p95 claim.
-   **Owner: main-dev.**
+5. **The perf tail has a named cause.** p95 never exceeds 2.21 ms, but p99 exceeds the 50 ms budget in 23 of 55 log
+   lines (max 168.94 ms), and the system behind it is **`RelationshipExposure`, at ~153 ms and ~288 MB per single
+   monthly call** — top system in 55/55 lines. It also means V6's "allocation is dominated by the economy systems"
+   came from a harness whose fixture cannot run relationship work at all. Numbers and the semantics of the metrics
+   line in §1b. **Owner: main-dev**, because the headroom claim V7 carries is a p95 claim.
 
 ## 6. What I could not source (stated, not papered over)
 
