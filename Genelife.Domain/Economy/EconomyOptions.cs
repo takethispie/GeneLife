@@ -71,7 +71,19 @@ public sealed class EconomyOptions
     public int SeveranceCycles { get; set; } = 2;
     public int RepostDelayTicks { get; set; } = 300;
 
-    public Money DefaultOfficeOperatingCost { get; set; } = Money.FromUnits(200m);
+    /// <summary>
+    /// Recurring per-office overhead charged every pay cycle. Sized so a
+    /// seeded company's cash is not a decade-long payroll runway: at the old
+    /// $200/cycle, income covered the operating cost trivially and company
+    /// cash grew to ~100x one cycle's payroll reserve, so the solvency ladder
+    /// (Healthy -> Tight -> Arrears -> Insolvent -> Bankrupt) was never
+    /// entered and no company could ever fail (V7 decision doc §3). At
+    /// $8,000/cycle the overhead is comparable to a full pay cycle's wage
+    /// bill, so a minority of companies that lose their revenue footing run
+    /// down through Arrears into liquidation within the decade while the
+    /// economy-wide balance bands stay green.
+    /// </summary>
+    public Money DefaultOfficeOperatingCost { get; set; } = Money.FromUnits(8_000m);
 
     public Money SavingsBuffer { get; set; } = Money.FromUnits(1_000m);
     public Money MinimumCash { get; set; } = Money.FromUnits(100m);

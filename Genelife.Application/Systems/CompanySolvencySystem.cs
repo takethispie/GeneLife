@@ -90,7 +90,6 @@ public class CompanySolvencySystem : ISimulationSystem
             case CompanySolvency.Insolvent:
                 account.InsolventCycles++;
                 Restructure(tick, company);
-                account = economy.Accounts.GetOrCreate(company, Money.Zero, tick);
 
                 if (!account.Arrears.IsPositive && account.Balance >= account.ReservedForPayroll)
                 {
