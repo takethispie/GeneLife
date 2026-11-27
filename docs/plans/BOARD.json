@@ -1,6 +1,6 @@
 {
   "title": "GeneLife — Team Board",
-  "updated": "2026-11-27T05:56Z",
+  "updated": "2026-11-27T05:57Z",
   "description": "Shared team board for the GeneLife project; source of truth for the chat kanban widget. States: waiting to run -> currently running -> done. 'Currently running' holds each member's selected next task (cards marked 'next'), with ETA/branch/blocker notes. Status: the V5 balance regression (rent burden / Gini) is FIXED (rent-burden rebalance merged); the V6 opt-in question is CLOSED (StaggerCadence stays opt-in/off).",
   "states": [
     {
@@ -44,7 +44,6 @@
       "title": "Balance-band assertion guardrails (money conservation, need restoration)",
       "owner": "gabrielo",
       "state": "running",
-      "selected": true,
       "note": "perf tier asserts the target (now GREEN after ede655b); PR tier [Skip] to be flipped to a hard target assert (pedro's rebalance HAS landed)."
     },
     {
