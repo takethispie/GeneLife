@@ -167,6 +167,14 @@ maintainer please let us know here."* Last release **v8.0.0, 2024-06-13** (commi
 
 ## 5. Migration path from `docs/plans/BOARD.json`
 
+> **STATUS - executed 2026-11-27. The live board now lives in `docs/plans/BOARD.md` + Vikunja.**
+> Vikunja was the pick and is running at `http://localhost:3456`. All 38 cards migrated by
+> script and were verified by reading the board back (9 waiting / 4 running / 25 done) and by
+> DB-level bucket counts - not just a write 200. Two deliberate deviations from the plan below:
+> (1) **one shared MCP token** for all agents rather than a credential per agent, so attribution
+> is weaker than step 2 recommends and is worth revisiting; (2) `BOARD.json` was **replaced
+> outright** by `BOARD.md` rather than kept uncommitted (step 6), per the owner's call.
+
 Today's semantics to preserve: three states, per-card `title` + `owner` + `note`, and a per-member `selected` "next"
 marker. Mapping (example for the recommended pair; the others are the same shape with different tool names):
 
