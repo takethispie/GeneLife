@@ -1,6 +1,6 @@
 {
   "title": "GeneLife — Team Board",
-  "updated": "2026-11-27T05:54Z",
+  "updated": "2026-11-27T05:56Z",
   "description": "Shared team board for the GeneLife project; source of truth for the chat kanban widget. States: waiting to run -> currently running -> done. 'Currently running' holds each member's selected next task (cards marked 'next'), with ETA/branch/blocker notes. Status: the V5 balance regression (rent burden / Gini) is FIXED (rent-burden rebalance merged); the V6 opt-in question is CLOSED (StaggerCadence stays opt-in/off).",
   "states": [
     {
@@ -224,6 +224,13 @@
       "state": "running",
       "selected": true,
       "note": "OfficeCount/Balance/ReservedForPayroll/Arrears/RevenueLastCycle/WagesLastCycle/Solvency never produce a delta -> stale company financials client-side. Same class as the genoses fix (784455d); mirror the GenosStatusEqualityTests reflection guard for companies. Verified by tech-leader."
+    },
+    {
+      "id": "simcontrol-tests",
+      "title": "SimulationControl component tests (Genelife.Web)",
+      "owner": "adriano",
+      "state": "done",
+      "note": "adriano's - 8 tests, on master since 2c6a087. Page-level tier is the running card c5."
     }
   ]
 }
