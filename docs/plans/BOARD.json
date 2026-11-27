@@ -1,6 +1,6 @@
 {
   "title": "GeneLife — Team Board",
-  "updated": "2026-11-27T06:02Z",
+  "updated": "2026-11-27T06:03Z",
   "description": "Shared team board for the GeneLife project; source of truth for the chat kanban widget. States: waiting to run -> currently running -> done. 'Currently running' holds each member's selected next task (cards marked 'next'), with ETA/branch/blocker notes. Status: the V5 balance regression (rent burden / Gini) is FIXED (rent-burden rebalance merged); the V6 opt-in question is CLOSED (StaggerCadence stays opt-in/off).",
   "states": [
     {
@@ -35,9 +35,8 @@
       "id": "c3",
       "title": "Research dossier: Arch ECS parallel-query/scheduler pitfalls + cadence-staggering prior art",
       "owner": "roberto",
-      "state": "running",
-      "selected": true,
-      "note": "ETA ~30m · output docs/research/v6-opt-in-dossier.md (branch research/roberto/genelife-research)"
+      "state": "done",
+      "note": "merged ef8e009 - docs/research/v6-opt-in-dossier.md. Decision record + re-entry checklist. Key: parallel-pass trap still live in Arch 2.1/2.2 (ZeroAllocJobScheduler 1.1.2 foreground workers); staggering is a system-order ambiguity, not a month-boundary issue."
     },
     {
       "id": "c4",
