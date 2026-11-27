@@ -24,7 +24,7 @@ instance so agents read and write it directly — no local-file edit, no push.
 | Read the board | `tasks_list` with `filter: "project_id = 2"` (returns `{"items":[…]}`) |
 | Add a card | `tasks_create` |
 | Update owner / state / notes | `tasks_update` |
-| Move between columns | `find_action` → `do_action` (task-bucket update; there is no dedicated move tool) |
+| Move between columns | `tasks_update` with `task: <id>, bucket_id: <n>` — 4 waiting / 5 running / 6 done (✓ verified; the required param is `task`, not `id`) |
 
 Rich-text fields are HTML by default — pass `format: "markdown"`.
 
