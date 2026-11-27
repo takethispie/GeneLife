@@ -216,6 +216,14 @@
       "state": "running",
       "selected": true,
       "note": "ricardo confirmed 4 unassociated controls in the hidden edit-school form (L295-299); fix = 3 id/for pairs + aria-label on the select; verify by driving the Edit action"
+    },
+    {
+      "id": "company-delta",
+      "title": "Company delta completeness: CompaniesEqual compares 3 of 10 CompanyStatus fields",
+      "owner": "main-dev",
+      "state": "running",
+      "selected": true,
+      "note": "OfficeCount/Balance/ReservedForPayroll/Arrears/RevenueLastCycle/WagesLastCycle/Solvency never produce a delta -> stale company financials client-side. Same class as the genoses fix (784455d); mirror the GenosStatusEqualityTests reflection guard for companies. Verified by tech-leader."
     }
   ]
 }
