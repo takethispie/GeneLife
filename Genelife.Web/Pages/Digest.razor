@@ -1,0 +1,109 @@
+@page "/digest"
+@using Genelife.Api.DTOs
+@inject GameDataService GameData
+
+<PageTitle>Town Bell Digest</PageTitle>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+    <div>
+        <h1 class="mb-1">Town Bell Digest</h1>
+        <p class="text-muted mb-0">
+            Server-computed grouping of the events touching a player's connected entities
+            (own genos, household, workplace, family, venue) by
+            <code>(eventKind, subjectEntityId)</code> within a rolling window.
+        </p>
+    </div>
+    <button class="btn btn-primary" type="button" @onclick="LoadAsync" disabled="@isLoading">
+        @if (isLoading)
+        {
+            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+        }
+        Refresh
+    </button>
+</div>
+
+<div class="row g-3 align-items-end mb-3">
+    <div class="col-12 col-md-4">
+        <label class="form-label" for="digestPlayerId">Player id</label>
+        <input id="digestPlayerId" class="form-control" @bind="playerId" @bind:event="oninput" placeholder="player id" />
+    </div>
+    <div class="col-12 col-md-3">
+        <label class="form-label" for="digestWindowTicks">Window (ticks, blank = server default)</label>
+        <input id="digestWindowTicks" class="form-control" @bind="windowTicks" placeholder="e.g. 300" />
+    </div>
+</div>
+
+@if (error is not null)
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+@if (digest is not null)
+{
+    <p class="text-muted small">
+        genos @digest.GenosNetworkId &middot; as of tick @digest.AsOfTick &middot;
+        window @digest.WindowStartTick&ndash;@digest.AsOfTick (@digest.WindowTicks ticks) &middot;
+        @digest.EntryCount group(s)
+    </p>
+
+    <div class="table-responsive">
+        <table class="table table-sm table-striped align-middle">
+            <thead>
+                <tr>
+                    <th>Event kind</th>
+                    <th>Subject</th>
+                    <th class="text-end">Count</th>
+                    <th class="text-end">First tick</th>
+                    <th class="text-end">Last tick</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var entry in digest.Entries)
+                {
+                    <tr>
+                        <td>@entry.EventKind</td>
+                        <td><code>@entry.SubjectEntityType:@entry.SubjectEntityId</code></td>
+                        <td class="text-end">@entry.Count</td>
+                        <td class="text-end">@entry.FirstTick</td>
+                        <td class="text-end">@entry.LastTick</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (digest.Entries.Count == 0)
+    {
+        <p class="text-muted">No digestible events for that player in the window.</p>
+    }
+}
+
+@code {
+    private string playerId = "admin-ui";
+    private string windowTicks = string.Empty;
+    private TownBellDigestDto? digest;
+    private string? error;
+    private bool isLoading;
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        error = null;
+
+        try
+        {
+            long? window = long.TryParse(windowTicks, out var parsed) && parsed > 0 ? parsed : null;
+            digest = await GameData.GetDigestAsync(playerId, window);
+            if (digest is null)
+                error = "No digest was returned for that player.";
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}
