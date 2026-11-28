@@ -28,7 +28,7 @@ public sealed class MapGenerator
     /// share a signature that lies. Bump it — never recompute the tiles into the
     /// signature to "prove" a change.
     /// </summary>
-    public const int GeneratorVersion = 2;
+    public const int GeneratorVersion = 3;
 
     public GeneratedMap Generate(MapOptions options, MapGenerationOptions? generationOptions = null)
     {
@@ -81,8 +81,18 @@ public sealed class MapGenerator
     /// <summary>
     /// Reproduces the historical water fill deterministically, but stores the
     /// chosen tiles in a sparse set instead of a world-sized flag array. The
-    /// draw sequence, the centre exclusion and the attempt budget are unchanged,
-    /// so the water a coordinate reports is identical to the dense generator's.
+    /// draw sequence, the centre exclusion and the attempt budget are unchanged.
+    ///
+    /// One rule is added: <b>water is never placed inside a lot interior</b>. A
+    /// lot is a buildable parcel and a building must fit entirely inside it
+    /// (<see cref="WorldMap.CanPlace"/>), so a water tile inside a lot makes that
+    /// parcel unbuildable. That was harmless while footprints were a few tiles
+    /// wide — many lots stayed clean by luck — but properly-sized footprints
+    /// (a 30-unit block is 13×13 = 169 tiles) cover a third of a lot, so at the
+    /// default water fraction essentially every lot would carry water and world
+    /// generation would throw instead of degrading (the failure mode named in
+    /// <c>docs/research/building-sizing-and-world-scale.md</c> Part 1.3). Water
+    /// therefore only occupies the road grid, never a parcel.
     /// </summary>
     private static HashSet<long> BuildWaterMask(MapBounds bounds, MapGenerationOptions options, int seed)
     {
@@ -94,6 +104,7 @@ public sealed class MapGenerator
         if (waterTiles <= 0)
             return water;
 
+        var spacing = Math.Max(4, options.RoadSpacing);
         var random = new SimulationRandom(seed).For("map-generation");
         var placed = 0;
         var attempts = 0;
@@ -102,6 +113,10 @@ public sealed class MapGenerator
             var x = random.Next(bounds.MinX, bounds.MaxX + 1);
             var y = random.Next(bounds.MinY, bounds.MaxY + 1);
             if (Math.Abs(x) < bounds.Width / 8 && Math.Abs(y) < bounds.Height / 8)
+                continue;
+
+            // Lot interiors (off the road grid) are buildable parcels: keep them dry.
+            if (Mod(x, spacing) != 0 && Mod(y, spacing) != 0)
                 continue;
 
             if (water.Add(Key(x, y)))

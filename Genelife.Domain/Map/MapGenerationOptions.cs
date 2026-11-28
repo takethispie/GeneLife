@@ -4,7 +4,11 @@ public sealed record MapGenerationOptions
 {
     public static readonly MapGenerationOptions Default = new();
 
-    public int RoadSpacing { get; init; } = 12;
+    // Road pitch is derived from the largest footprint a lot must contain, so the
+    // footprint sizing and the lot size move together (doc Part 1.3 / 5.1): a
+    // footprint that fits no lot makes world generation throw. Lot interior is
+    // (RoadSpacing - 1) tiles, so this leaves a 23x23 lot.
+    public int RoadSpacing { get; init; } = BuildingFootprints.MaxDimension + 1;
     public int BlockPadding { get; init; } = 2;
     public float WaterFraction { get; init; } = 0.02f;
     public int MinLotTiles { get; init; } = 12;
