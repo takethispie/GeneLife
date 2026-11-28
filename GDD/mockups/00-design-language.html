@@ -75,18 +75,22 @@
     <div class="sw"><div class="c" style="background:#F5F1E8"></div><div class="m"><div class="n">Paper</div><div class="h">#F5F1E8 · chrome</div></div></div>
     <div class="sw"><div class="c" style="background:#EDE7D9"></div><div class="m"><div class="n">Paper 2</div><div class="h">#EDE7D9 · recessed</div></div></div>
     <div class="sw"><div class="c" style="background:#1B2430"></div><div class="m"><div class="n">Ink</div><div class="h">#1B2430 · text</div></div></div>
-    <div class="sw"><div class="c" style="background:#7D8794"></div><div class="m"><div class="n">Ink 3</div><div class="h">#7D8794 · labels</div></div></div>
+    <div class="sw"><div class="c" style="background:#586271"></div><div class="m"><div class="n">Ink 3</div><div class="h">#586271 · labels</div></div></div>
     <div class="sw"><div class="c" style="background:#CFC5AF"></div><div class="m"><div class="n">Line</div><div class="h">#CFC5AF · hairline</div></div></div>
     <div class="sw"><div class="c" style="background:#151A1C"></div><div class="m"><div class="n">Surround</div><div class="h">#151A1C · frame</div></div></div>
-    <div class="sw"><div class="c" style="background:#C4532A"></div><div class="m"><div class="n">Accent · intent</div><div class="h">#C4532A</div></div></div>
-    <div class="sw"><div class="c" style="background:#B8862B"></div><div class="m"><div class="n">Money</div><div class="h">#B8862B</div></div></div>
+    <div class="sw"><div class="c" style="background:#A94520"></div><div class="m"><div class="n">Accent · intent</div><div class="h">#A94520</div></div></div>
+    <div class="sw"><div class="c" style="background:#8A5A12"></div><div class="m"><div class="n">Money</div><div class="h">#8A5A12</div></div></div>
     <div class="sw"><div class="c" style="background:#2E6E5B"></div><div class="m"><div class="n">Body · needs</div><div class="h">#2E6E5B</div></div></div>
     <div class="sw"><div class="c" style="background:#2F5D8A"></div><div class="m"><div class="n">Work</div><div class="h">#2F5D8A</div></div></div>
     <div class="sw"><div class="c" style="background:#A63A5A"></div><div class="m"><div class="n">Social</div><div class="h">#A63A5A</div></div></div>
     <div class="sw"><div class="c" style="background:#5B4B8A"></div><div class="m"><div class="n">Legacy</div><div class="h">#5B4B8A</div></div></div>
   </div>
-  <p style="margin-top:12px"><b>Rules.</b> (1) Accent = the player's intent or the player's genos, nothing else. (2) A domain colour never exceeds ~8&nbsp;% of a surface.
-     (3) Money is always <span class="mono">#B8862B</span>, including negative money in warnings — the sign, not the hue, carries direction.
+  <p style="margin-top:12px"><b>Measured, not asserted.</b> The first token set failed its own accessibility rule: labels came out at
+     <span class="mono">3.2:1</span> and money at <span class="mono">2.9:1</span> on paper. The palette was darkened until the rule was true —
+     ink-3 <span class="mono">#586271</span> (5.5:1), money <span class="mono">#8A5A12</span> (5.3:1), accent <span class="mono">#A94520</span> (5.2:1) —
+     rather than the rule being softened to fit the palette. Contrast table in §9.</p>
+  <p style="margin-top:10px"><b>Rules.</b> (1) Accent = the player's intent or the player's genos, nothing else. (2) A domain colour never exceeds ~8&nbsp;% of a surface.
+     (3) Money is always <span class="mono">#8A5A12</span>, including negative money in warnings — the sign, not the hue, carries direction.
      (4) Night interiors move the chrome toward <span class="mono">#EDE7D9</span>; the language has a dusk variant, not a "dark mode" theme.</p>
 
   <h2>4 · Type</h2>
@@ -160,6 +164,18 @@
      <b>optional</b>: any icon that needs a label to be understood gets the label. Domain icons inherit the domain colour; nothing else is coloured.</p>
 
   <h2>9 · Accessibility &amp; input</h2>
+  <p><b>Measured contrast</b> (WCAG 2.1 relative luminance, computed on the final tokens):</p>
+  <table style="margin-bottom:14px">
+    <tr><th style="width:34%">Pair</th><th style="width:16%">Ratio</th><th>Verdict</th></tr>
+    <tr><td>Ink <span class="mono">#1B2430</span> on paper</td><td class="mono">13.9:1</td><td>AAA</td></tr>
+    <tr><td>Ink 2 <span class="mono">#3F4A57</span> on paper</td><td class="mono">8.0:1</td><td>AAA</td></tr>
+    <tr><td>Ink 3 <span class="mono">#586271</span> on paper</td><td class="mono">5.5:1</td><td>AA (labels)</td></tr>
+    <tr><td>Money <span class="mono">#8A5A12</span> on paper</td><td class="mono">5.3:1</td><td>AA</td></tr>
+    <tr><td>Accent <span class="mono">#A94520</span> on paper</td><td class="mono">5.2:1</td><td>AA</td></tr>
+    <tr><td>Body <span class="mono">#2E6E5B</span> / work <span class="mono">#2F5D8A</span> / social <span class="mono">#A63A5A</span></td><td class="mono">5.3 / 6.1 / 5.5</td><td>AA</td></tr>
+    <tr><td>Legacy <span class="mono">#5B4B8A</span> on paper</td><td class="mono">6.6:1</td><td>AA</td></tr>
+    <tr><td>Paper on ink (primary button)</td><td class="mono">13.9:1</td><td>AAA</td></tr>
+  </table>
   <table>
     <tr><th style="width:26%">Requirement</th><th>Rule</th></tr>
     <tr><td>Contrast</td><td>Body text ≥ 7:1 on paper; labels ≥ 4.5:1. Never grey-on-grey for anything the player must read.</td></tr>

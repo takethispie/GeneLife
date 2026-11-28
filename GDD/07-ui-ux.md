@@ -1,6 +1,8 @@
 # 07 — UI/UX Design Language & Screens
 
-> **Status: Draft v0.2 — authored by @adriano (UI/UX).** Supersedes the outline in v0.1.
+> **Status: Draft v0.3 — authored by @adriano (UI/UX).** Supersedes the outline in v0.1.
+> **Contract status:** all seven interface→simulation questions are answered in chapter 08 §8.5 (§7.4 below);
+> the remaining items are the two product-level rulings parked in chapter 10 §10.2.
 > **Product owner's instruction stands:** these are **new desktop-client designs**, not a port of the
 > PixiJS web client's layouts. The web HUD's palette, panel-per-subsystem structure and DOM chrome are
 > explicitly *not* carried over; only its UX *decisions* (what the player can do) survive the bridge.
@@ -132,41 +134,55 @@ chapter 03 §3.4), and the UI never asks for more than the one building's plan.
 
 ---
 
-## 7.4 Interface → simulation mapping (for @tech-leader)
+## 7.4 Interface → simulation mapping — **closed** (answered in §8.5)
 
-The design assumes the following of the wire contract and the client boundary; each is a question worth
-answering in chapter 08 rather than a decision I should take alone.
+The seven items below were raised here as contract questions. **All seven are now answered in chapter 08 §8.5**,
+each with a state. This section is kept — rather than deleted — because the mapping *is* the design's contract:
+it records what the UI is entitled to expect from the server, and it is the checklist a client implementer reads
+before writing a screen.
 
-1. **An action catalogue.** The dial needs, per context, the list of currently valid verbs with their costs,
-   durations, preconditions and refusal reasons. Is that a contract read model (e.g. "available actions for
-   genos X at position P"), or does the client derive it from raw state? **Recommendation: server-provided** —
-   the client must not become a second rule engine (V3's invariant).
-2. **Cause lines.** "Why" strings ("last meal 11 h ago", "rent lands before the second wage") are cheap to
-   render but must not be *invented* by the client. Either the server sends structured causes alongside each
-   value, or the client is limited to facts it already stores (timestamps, ledger entries). **Recommendation:**
-   structured, minimal cause payloads in the existing read models; no free-text from the server.
-3. **Scoped interior request.** The dollhouse needs one building's interior plan on entry and a cache until
-   exit — the map-snapshot pattern already used for the world (chapter 03 §3.4). No interior field on the
-   building entity on the wire.
-4. **Time and schedule.** The day ribbon draws the schedule the server will execute. It may show *planned*
-   blocks and *actual* blocks differently; it must not predict outcomes (e.g. "you will be fired") that the
-   server has not decided.
-5. **Text rendering in Godot.** Serif display + mono figures are a hard requirement of the language. Godot's
-   default font stack does not ship a serif; the client must bundle two fonts and support the UI scale setting
-   (100/125/150 %) without re-laying out the world.
-6. **Notification digest.** One digest requires a server-side grouping rule (or a client rule over a small
-   event feed). I have mocked the *presentation*; the grouping key is a technical decision.
-7. **Presence vs residents.** "Players and residents in one list, marked by a chip" requires presence data that
-   already exists (§5.6) plus a stable display name for residents; confirm the contract carries both, and that
-   *who is a player* is not inferred client-side.
+| # | Design need | §8.5 answer | State | What it means for the UI |
+|---|---|---|---|---|
+| 1 | **Action catalogue** (valid verbs per context, with cost / duration / preconditions / refusal code) | Server-provided read model, produced by the same pure `Evaluate(worldState, genos, kind, payload)` the tick drain calls; entries carry `asOfTick` | **Decided** | The dial renders the catalogue verbatim. It may *present* a `refusalCode` as a sentence, never invent the rule. Stale `asOfTick` ⇒ re-request, not guess. |
+| 2 | **Cause lines** ("last meal 11 h ago") | Structured coded facts (`NutritionState.LastMealTick` already persisted); client owns phrasing, server prose banned | **Decided** | Every cause line in these mockups is `(code, numeric fact, sinceTick)` rendered against the sim clock. No server strings, no invented explanation. |
+| 3 | **Scoped interior request** (dollhouse) | Scope-3 map-snapshot pattern, `specHash`-invalidated, cached on entry; **no interior field on the building entity**; player position inside replicates as per-genos `InteriorLocation` (and must be in `GenosesEqual`) | **Decided, not built** | The interior screen is a *request*, never a property: entry → request plan → render → cache; exit → drop. Room occupancy for the player only. |
+| 4 | **Day ribbon**: planned vs actual | **Committed + scheduled + recorded.** No prediction. | **Decided** | Three block states, visually distinct: committed (solid), scheduled (hatched), recorded (filled + tick). Never a fourth "probable" state. |
+| 5 | **Fonts + UI scale** | Two bundled fonts; HUD scale independent of camera zoom | **Requirement (client proves it)** | No longer a design question — it moved to the client repo. See §7.6 for the check that proves it. |
+| 6 | **Digest grouping key** | `(eventKind, subjectEntityId)` over a rolling window, server-computed, no new persistence | **Decided** | The Town bell is one list per subject: four rent lines become *one* row with a count. The UI keeps the wording and the severity ordering. |
+| 7 | **Presence vs residents** | Already in the contract: `IsPlayerControlled` is replicated and in `GenosesEqual`; residents carry `GenosStatus.Name`; players add `PlayerPresenceDto` | **Confirmed** | The player/resident chip is a read of `IsPlayerControlled`. Nothing in the design language has to move — the chip was already drawn that way. |
+
+**Two items changed hands, and neither moves the design:** fonts/scale is now an obligation on the Godot client
+(§7.6), and the presence chip is confirmed as existing data rather than a request. **Nothing in the design
+language had to change to accommodate the answers** — which is the evidence that the mockups were drawn against
+the contract and not against an imagined one.
 
 ---
 
 ## 7.5 Accessibility and input (binding on the client)
 
-- Body text ≥ 7:1 contrast on paper; labels ≥ 4.5:1. No grey-on-grey for anything the player must read.
-- Domain colour is never the only signal; every chip carries its word, every need carries a value and a
-  direction.
+### 7.5.1 Contrast, measured
+
+The token set was **verified, not asserted** — and the first pass failed its own rule: labels came out at
+`3.23:1` and money at `2.87:1` on paper. The palette was darkened until the rule was true rather than the rule
+softened to fit the palette (WCAG 2.1 relative luminance):
+
+| Pair | Before | Final | Verdict |
+|---|---|---|---|
+| Ink `#1B2430` on paper | 13.9:1 | `#1B2430` — 13.9:1 | AAA |
+| Ink 2 (secondary) on paper | 6.6:1 | `#3F4A57` — **8.0:1** | AAA |
+| Ink 3 (labels) on paper | 3.2:1 ✗ | `#586271` — **5.5:1** | AA |
+| Money on paper | 2.9:1 ✗ | `#8A5A12` — **5.3:1** | AA |
+| Accent on paper | 4.0:1 ✗ | `#A94520` — **5.2:1** | AA |
+| Body / work / social / legacy on paper | 5.3 / 6.1 / 5.5 / 6.6 | unchanged | AA |
+| Paper on ink (primary button) | 13.9:1 | unchanged | AAA |
+
+Consequence for the client: these are the **only** permitted text colours on paper. A new colour is added by
+measuring it, not by picking it.
+
+### 7.5.2 Rules
+
+- Body text ≥ 7:1 on paper; labels and secondary text ≥ 4.5:1. No grey-on-grey for anything the player must read.
+- Domain colour is never the only signal; every chip carries its word, every need carries a value and a direction.
 - Targets ≥ 32 px (mouse); ≥ 44 px on any touch-capable build. Dial items are 132×34 with 8 px gaps.
 - Visible focus: 2 px ink outline, 2 px offset, on every focusable element, including the world canvas.
 - Keyboard map: `WASD`/arrows move · `RMB` intend · `E` interact · `Tab` household · `M` map · `B` bell ·
@@ -176,7 +192,27 @@ answering in chapter 08 rather than a decision I should take alone.
 
 ---
 
-## 7.6 Anti-patterns (binding — from the prototype's lessons)
+## 7.6 Client acceptance checks
+
+Five of the design's requirements cannot be verified in a document, only in the client. Each is written here as
+a **check with an observable result**, so "the UI follows the GDD" is testable rather than a matter of opinion.
+They belong in the desktop client's own test suite (screenshot + assertion), not in this document.
+
+| # | Check | Passing looks like |
+|---|---|---|
+| AC-1 | **Fonts bundled.** The client ships its own serif (display) and mono (figures); no system-font fallback is load-bearing. | A screenshot with the fallback font disabled still renders the display serif and tabular figures; `1 284.40` and `1 188.40` occupy identical widths. |
+| AC-2 | **HUD scale independent of camera zoom.** 100 / 125 / 150 %. | At world zoom 0.5× and 2×, HUD text height is unchanged for a fixed UI scale; at 150 % no panel clips its content and the day ribbon reflows. |
+| AC-3 | **Frame contract.** 1440×900 reference, 1280×720 minimum. | At 1280×720 every surface still shows its primary decision and its primary action without scrolling; nothing overlaps the ribbon. |
+| AC-4 | **Dial ⇄ catalogue parity.** The dial never shows a verb the server would refuse, and never hides one it would accept. | For a fixed world state, the rendered dial set equals the catalogue response; a forced stale `asOfTick` shows the re-request state, not a guessed list. |
+| AC-5 | **Cause lines contain no server prose.** | Every explanation string visible on the genos sheet is composed client-side from `(code, fact, sinceTick)`; a string arriving from the server is a test failure. |
+| AC-6 | **Contrast.** §7.5.1 ratios hold in the shipped theme. | `python3 GDD/mockups/assets/contrast_check.py` reads the tokens out of the stylesheet and compares 15 text/surface pairs; **15/15 pass** on the current palette and exit code 1 on any regression. A new colour not in that table fails the check. |
+
+Until those exist, the mockups are the *intent* and the checks are the *proof*. I would rather the first client
+build fail AC-4 loudly than ship a dial that quietly disagrees with the server.
+
+---
+
+## 7.7 Anti-patterns (binding — from the prototype's lessons)
 
 1. **No web-HUD port.** No dark translucent rectangles with a cyan accent, no panel-per-subsystem, no debug
    overlay as the default view.
@@ -186,21 +222,23 @@ answering in chapter 08 rather than a decision I should take alone.
 5. **No unexplained state.** A bar without a cause, a disabled control without a reason, or a cost revealed
    after commitment are all defects.
 6. **No decorative colour.** A rose header that means nothing is a lie about the social domain.
+7. **No client-side rule.** If the UI decides whether an action is possible, it has become a second simulation.
 
 ---
 
-## 7.7 Open questions for the team
+## 7.8 Open items
 
-- **@tech-leader** — items 1–3 and 6–7 in §7.4 are contract questions; the dial and the dollhouse cannot be
-  built as designed without them.
-- **@roberto** — the surface inventory in §7.3 now has a *decision* per surface; if you want, fold that column
-  into chapter 11's vignettes so the same moment is described once in fiction and once in interface.
-- **Product owner** — two design positions that change the feel and are worth an explicit ruling:
-  (i) **creation has no face editor** (appearance derived from traits/age/sex, mockup M09) and (ii) **death
-  continues the household** rather than restarting it (mockup M08). Both follow from the brief and from §5.5,
-  but they are product-level positions, not styling.
+Nothing in this chapter is open against the team. What remains is **product-level**, and it is parked in chapter
+10 §10.2 rather than here, so the bible has one place for pending rulings:
+
+- **No face editor** — appearance derived from traits / age / sex (mockup M09).
+- **Death continues the household** as an heir (mockup M08).
+
+Both follow from the brief and from §5.5; neither is styling, and both change the feel of the game, so they want
+an explicit PO ruling rather than a designer's assumption.
 
 ---
 
-*Revision: v0.2 — 2026-11-28, @adriano. Design language ratified, six principles, nine mockups delivered under
-`GDD/mockups/`, interface→simulation mapping added. Supersedes the v0.1 outline.*
+*Revision: v0.3 — 2026-11-28, @adriano. §7.4 closed against chapter 08 §8.5 (all seven items answered, two
+changed hands); §7.5 contrast re-measured and the palette darkened where it failed its own rule; §7.6 client
+acceptance checks added; open items reduced to the two PO rulings parked in chapter 10.*

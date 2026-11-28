@@ -37,9 +37,21 @@ the Godot/C# desktop client, and nothing here is a proposal for client-side simu
 - Persona used throughout: *Mira Voss*, 31, packer at Vell &amp; Sons Cannery, 24 Kestrel Row,
   partner Rafe, child Fenn — one household, so the screens can be read as one life.
 
+## Verification
+
+The palette is checked, not asserted. `assets/contrast_check.py` parses the tokens out of
+`assets/mockups.css` and asserts every permitted text-on-surface pair against WCAG 2.1:
+
+```
+python3 GDD/mockups/assets/contrast_check.py    # 15/15 pairs pass; exit 1 on regression
+```
+
+The first token set **failed** this check (labels 3.2:1, money 2.9:1); the colours were darkened
+until it passed, rather than the thresholds being relaxed. See chapter 07 §7.5.1.
+
 ## What these are not
 
-- Not a port of the current PixiJS web client's layouts or palette (see chapter 02 §2.3.1 and 07 §7.6).
+- Not a port of the current PixiJS web client's layouts or palette (see chapter 02 §2.3.1 and 07 §7.7).
 - Not final art. Sprites, portraits and icons are placeholders for the design language; the geometry and
   hierarchy are the deliverable.
 - Not a second UI specification for the admin surfaces — those stay as they are.

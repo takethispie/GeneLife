@@ -115,7 +115,7 @@
       if (x < -20 || y < -20 || x > W + 20 || y > H + 20) return;
       ctx.beginPath(); ctx.ellipse(x, y + 3, 6, 2.6, 0, 0, 6.283); ctx.fillStyle = 'rgba(15,20,15,.28)'; ctx.fill();
       ctx.beginPath(); ctx.arc(x, y, 5.4, 0, 6.283); ctx.fillStyle = '#F0E6CE'; ctx.fill();
-      ctx.lineWidth = 2; ctx.strokeStyle = p.colour || '#C4532A'; ctx.stroke();
+      ctx.lineWidth = 2; ctx.strokeStyle = p.colour || '#A94520'; ctx.stroke();
       if (p.focus) {
         ctx.beginPath(); ctx.arc(x, y, 13, 0, 6.283);
         ctx.strokeStyle = 'rgba(240,230,206,.75)'; ctx.lineWidth = 1.2; ctx.setLineDash([3, 4]); ctx.stroke(); ctx.setLineDash([]);
@@ -251,7 +251,7 @@
     var gx = lx + fw * 0.06 + 100, gy = fy + 300;
     ctx.beginPath(); ctx.ellipse(gx, gy + 9, 15, 6, 0, 0, 6.283); ctx.fillStyle = 'rgba(0,0,0,.32)'; ctx.fill();
     ctx.beginPath(); ctx.arc(gx, gy, 13, 0, 6.283); ctx.fillStyle = '#F0E6CE'; ctx.fill();
-    ctx.lineWidth = 4; ctx.strokeStyle = '#C4532A'; ctx.stroke();
+    ctx.lineWidth = 4; ctx.strokeStyle = '#A94520'; ctx.stroke();
     anchors.genos = { x: gx, y: gy };
 
     // --- light --------------------------------------------------------------
