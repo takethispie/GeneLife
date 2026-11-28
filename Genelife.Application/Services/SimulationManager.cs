@@ -378,6 +378,13 @@ public class SimulationManager : IHostedService, IDisposable
 
     public MapSnapshot GetMapSnapshot() => engine.BuildMapSnapshot();
 
+    public MapManifest GetMapManifest() => engine.BuildMapManifest();
+
+    public MapChunkBatch? GetMapChunks(int cxMin, int cyMin, int cxMax, int cyMax) =>
+        engine.BuildMapChunks(cxMin, cyMin, cxMax, cyMax);
+
+    public MapOverview? GetMapOverview() => engine.BuildMapOverview();
+
     public MapHealthStatus GetMapHealth() => engine.BuildMapHealth();
 
     public IReadOnlyList<Genelife.Application.Systems.MapMetricsSnapshot> GetMapMetrics() => engine.MapMetricsHistory;

@@ -53,6 +53,10 @@ public class SimulationEngine : IDisposable
     private int emittedMapVersion;
     private MapSnapshot? cachedMapSnapshot;
     private MapSnapshotCacheKey cachedMapSnapshotKey;
+    // The coarse overview is a pure function of the generator spec, so it is
+    // computed once per world and reused until the spec hash changes.
+    private MapOverview? cachedMapOverview;
+    private string? cachedMapOverviewSpecHash;
     private SimulationClock clock = SimulationClock.Default;
     private EmploymentIndex? employmentIndex;
     private RelationshipOptions relationshipOptions = RelationshipOptions.Default;
@@ -3090,7 +3094,9 @@ private readonly NetworkIdRegistry networkIds = new();
             MinY = options.Bounds.MinY,
             MaxX = options.Bounds.MaxX,
             MaxY = options.Bounds.MaxY,
-            Tiles = layout is null ? new List<MapTileRun>() : BuildMapTileRuns(layout),
+            Tiles = layout is null
+                ? new List<MapTileRun>()
+                : BuildMapTileRuns(layout, options.Bounds, 0, 0),
             Buildings = buildings
         };
 
@@ -3103,16 +3109,26 @@ private readonly NetworkIdRegistry networkIds = new();
         return snapshot;
     }
 
-    private static List<MapTileRun> BuildMapTileRuns(GeneratedMap layout)
+    /// <summary>
+    /// Run-length encodes the tiles of one tile rectangle. The whole-map
+    /// snapshot passes the world bounds with a zero origin (so runs keep world
+    /// coordinates); a chunk passes its own 64×64 rect with the chunk's min
+    /// corner as the origin (so runs are chunk-local). The
+    /// algorithm is the historical per-row RLE unchanged — only its input domain
+    /// shrinks, which is what makes a viewport servable without materialising the
+    /// world (docs/research/world-scale-migration-32000.md §4.2).
+    /// </summary>
+    private static List<MapTileRun> BuildMapTileRuns(GeneratedMap layout, MapBounds rect, int originX, int originY)
     {
-        var bounds = layout.Options.Bounds;
-        var runs = new List<MapTileRun>(Math.Max(1, layout.Options.Height));
+        var runs = new List<MapTileRun>(Math.Max(1, rect.Height));
+        if (rect.Width <= 0 || rect.Height <= 0)
+            return runs;
 
-        for (var y = bounds.MinY; y <= bounds.MaxY; y++)
+        for (var y = rect.MinY; y <= rect.MaxY; y++)
         {
-            var runStart = bounds.MinX;
+            var runStart = rect.MinX;
             var runFlags = layout.FlagsAt(new TileCoord(runStart, y));
-            for (var x = bounds.MinX + 1; x <= bounds.MaxX; x++)
+            for (var x = rect.MinX + 1; x <= rect.MaxX; x++)
             {
                 var flags = layout.FlagsAt(new TileCoord(x, y));
                 if (flags == runFlags)
@@ -3120,8 +3136,8 @@ private readonly NetworkIdRegistry networkIds = new();
 
                 runs.Add(new MapTileRun
                 {
-                    X = runStart,
-                    Y = y,
+                    X = runStart - originX,
+                    Y = y - originY,
                     Length = x - runStart,
                     Flags = runFlags.ToString()
                 });
@@ -3131,15 +3147,213 @@ private readonly NetworkIdRegistry networkIds = new();
 
             runs.Add(new MapTileRun
             {
-                X = runStart,
-                Y = y,
-                Length = bounds.MaxX - runStart + 1,
+                X = runStart - originX,
+                Y = y - originY,
+                Length = rect.MaxX - runStart + 1,
                 Flags = runFlags.ToString()
             });
         }
 
         return runs;
     }
+
+    /// <summary>
+    /// The world manifest — the client's once-per-session source for the extent,
+    /// the chunk size and the encoding version. Fetched once and cached; a change
+    /// in <see cref="MapManifest.SpecHash"/> is the client's cache-purge signal.
+    /// </summary>
+    public MapManifest BuildMapManifest()
+    {
+        using (WriteLock())
+        {
+            if (mapContext is null)
+                return new MapManifest { HasMap = false };
+
+            var options = mapContext.Options;
+            var bounds = options.Bounds;
+            return new MapManifest
+            {
+                HasMap = true,
+                SpecHash = mapContext.Generated.CanonicalSignature,
+                Width = options.Width,
+                Height = options.Height,
+                ChunkSize = MapChunkProtocol.ChunkSize,
+                TileEncodingVersion = MapChunkProtocol.TileEncodingVersion,
+                MinX = bounds.MinX,
+                MinY = bounds.MinY,
+                MaxX = bounds.MaxX,
+                MaxY = bounds.MaxY,
+                ChunksPerSideX = MapChunkProtocol.ChunksPerSide(options.Width),
+                ChunksPerSideY = MapChunkProtocol.ChunksPerSide(options.Height)
+            };
+        }
+    }
+
+    /// <summary>
+    /// One viewport's chunks (plus the buildings intersecting the same tile rect,
+    /// so tiles and entities share one rect — E-7). Returns <c>null</c> when no
+    /// world is loaded; throws <see cref="ArgumentOutOfRangeException"/> when a
+    /// chunk address is outside the grid, so the endpoint can answer a defined
+    /// 400 rather than a silent empty payload.
+    /// </summary>
+    public MapChunkBatch? BuildMapChunks(int cxMin, int cyMin, int cxMax, int cyMax)
+    {
+        using (WriteLock())
+        {
+            if (mapContext is null)
+                return null;
+
+            var options = mapContext.Options;
+            var bounds = options.Bounds;
+            var perSideX = MapChunkProtocol.ChunksPerSide(options.Width);
+            var perSideY = MapChunkProtocol.ChunksPerSide(options.Height);
+
+            if (cxMin < 0 || cyMin < 0 || cxMax < cxMin || cyMax < cyMin ||
+                cxMax >= perSideX || cyMax >= perSideY)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(cxMin),
+                    $"Chunk range ({cxMin},{cyMin})..({cxMax},{cyMax}) is outside the {perSideX}×{perSideY} grid.");
+            }
+
+            var tileMinX = MapChunkProtocol.ChunkOrigin(bounds.MinX, cxMin);
+            var tileMinY = MapChunkProtocol.ChunkOrigin(bounds.MinY, cyMin);
+            var tileMaxX = Math.Min(MapChunkProtocol.ChunkOrigin(bounds.MinX, cxMax) + MapChunkProtocol.ChunkSize - 1, bounds.MaxX);
+            var tileMaxY = Math.Min(MapChunkProtocol.ChunkOrigin(bounds.MinY, cyMax) + MapChunkProtocol.ChunkSize - 1, bounds.MaxY);
+
+            var layout = mapContext.Map.Layout;
+            var batch = new MapChunkBatch
+            {
+                SpecHash = mapContext.Generated.CanonicalSignature,
+                TileEncodingVersion = MapChunkProtocol.TileEncodingVersion,
+                ChunkSize = MapChunkProtocol.ChunkSize,
+                MinX = tileMinX,
+                MinY = tileMinY,
+                MaxX = tileMaxX,
+                MaxY = tileMaxY
+            };
+
+            for (var cy = cyMin; cy <= cyMax; cy++)
+            {
+                for (var cx = cxMin; cx <= cxMax; cx++)
+                {
+                    var (minX, minY, maxX, maxY) = MapChunkProtocol.ChunkTileBounds(
+                        cx, cy, bounds.MinX, bounds.MinY, bounds.MaxX, bounds.MaxY);
+
+                    var chunk = new MapChunk { Cx = cx, Cy = cy };
+                    if (layout is not null)
+                        chunk.Tiles = BuildMapTileRuns(layout, new MapBounds(minX, minY, maxX, maxY), minX, minY);
+                    batch.Chunks.Add(chunk);
+                }
+            }
+
+            var rect = new MapBounds(tileMinX, tileMinY, tileMaxX, tileMaxY);
+            foreach (var id in mapContext.Map.Placements.Keys.OrderBy(id => id.Value))
+            {
+                if (mapContext.Map.TryGetPlacement(id, out var placement) && placement.Bounds.Intersects(rect))
+                    batch.Buildings.Add(BuildMapBuilding(id, placement));
+            }
+
+            return batch;
+        }
+    }
+
+    /// <summary>
+    /// The coarse overview raster: one dominant-terrain code per chunk, in
+    /// row-major RLE. Derived from the static terrain, so it is stable for a given
+    /// spec hash and is computed once per world (the client fetches it once when
+    /// the map opens).
+    /// </summary>
+    public MapOverview? BuildMapOverview()
+    {
+        using (WriteLock())
+        {
+            if (mapContext is null)
+                return null;
+
+            var specHash = mapContext.Generated.CanonicalSignature;
+            if (cachedMapOverview is not null && cachedMapOverviewSpecHash == specHash)
+                return cachedMapOverview;
+
+            var options = mapContext.Options;
+            var bounds = options.Bounds;
+            var layout = mapContext.Map.Layout;
+            var columns = MapChunkProtocol.ChunksPerSide(options.Width);
+            var rows = MapChunkProtocol.ChunksPerSide(options.Height);
+
+            var overview = new MapOverview
+            {
+                SpecHash = specHash,
+                ChunkSize = MapChunkProtocol.ChunkSize,
+                Width = options.Width,
+                Height = options.Height,
+                Columns = columns,
+                Rows = rows
+            };
+
+            for (var cy = 0; cy < rows; cy++)
+            {
+                var runStart = 0;
+                var runTerrain = layout is null
+                    ? "Land"
+                    : DominantTerrain(layout, MapChunkProtocol.ChunkTileBounds(0, cy, bounds.MinX, bounds.MinY, bounds.MaxX, bounds.MaxY));
+
+                for (var cx = 1; cx < columns; cx++)
+                {
+                    var terrain = layout is null
+                        ? "Land"
+                        : DominantTerrain(layout, MapChunkProtocol.ChunkTileBounds(cx, cy, bounds.MinX, bounds.MinY, bounds.MaxX, bounds.MaxY));
+                    if (terrain == runTerrain)
+                        continue;
+
+                    overview.Dominant.Add(new MapOverviewRun { Row = cy, Start = runStart, Length = cx - runStart, Terrain = runTerrain });
+                    runStart = cx;
+                    runTerrain = terrain;
+                }
+
+                overview.Dominant.Add(new MapOverviewRun { Row = cy, Start = runStart, Length = columns - runStart, Terrain = runTerrain });
+            }
+
+            cachedMapOverview = overview;
+            cachedMapOverviewSpecHash = specHash;
+            return overview;
+        }
+    }
+
+    /// <summary>
+    /// The terrain category that covers the most tiles of one chunk. Ties are
+    /// broken Water &gt; Road &gt; Land so a water body is never hidden by a road
+    /// that happens to tie it. "None" is only reachable for a chunk entirely
+    /// outside the world.
+    /// </summary>
+    private static string DominantTerrain(GeneratedMap layout, (int MinX, int MinY, int MaxX, int MaxY) chunk)
+    {
+        long land = 0, road = 0, water = 0, none = 0;
+        for (var y = chunk.MinY; y <= chunk.MaxY; y++)
+        {
+            for (var x = chunk.MinX; x <= chunk.MaxX; x++)
+            {
+                var flags = layout.FlagsAt(new TileCoord(x, y));
+                if ((flags & TileFlags.Water) != 0)
+                    water++;
+                else if ((flags & TileFlags.Road) != 0)
+                    road++;
+                else if ((flags & TileFlags.Land) != 0)
+                    land++;
+                else
+                    none++;
+            }
+        }
+
+        if (water >= road && water >= land && water >= none)
+            return "Water";
+        if (road >= land && road >= none)
+            return "Road";
+        if (land >= none)
+            return "Land";
+        return "None";
+    }
+
 
     private readonly record struct MapSnapshotCacheKey(
         string MapId,

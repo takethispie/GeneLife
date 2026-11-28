@@ -104,6 +104,99 @@ public static class MapEndpoints
         return Results.Ok(simulationManager.GetMapSnapshot());
     }
 
+    /// <summary>
+    /// The world manifest — fetched once per session and cached. The snapshot
+    /// protocol is versioned configuration, not a feature flag: the whole-map
+    /// <c>/api/map/snapshot</c> path is retained alongside these chunk endpoints.
+    /// </summary>
+    [WolverineGet("/api/map/manifest")]
+    [Authorize(Policy = AuthPolicies.Player)]
+    public static IResult GetManifest(SimulationManager simulationManager) =>
+        Results.Ok(simulationManager.GetMapManifest());
+
+    /// <summary>
+    /// One viewport's tiles, addressed by a chunk rectangle. The client derives
+    /// the chunk set from its camera rect (no round trip) and issues ONE request
+    /// per viewport rather than one per chunk. Chunks carry chunk-local RLE runs;
+    /// buildings intersecting the same tile rect ride the same response so tiles
+    /// and entities never tear at the viewport edge.
+    ///
+    /// Failure semantics are defined (E-10): an inverted/out-of-grid range is a
+    /// 400, no world is a 409, and a stale <paramref name="specHash"/> is a 409
+    /// that tells the client to re-fetch the manifest.
+    /// </summary>
+    [WolverineGet("/api/map/chunks")]
+    [Authorize(Policy = AuthPolicies.Player)]
+    public static IResult GetChunks(
+        int cxMin,
+        int cyMin,
+        int cxMax,
+        int cyMax,
+        string? specHash,
+        SimulationManager simulationManager)
+    {
+        var manifest = simulationManager.GetMapManifest();
+        if (!manifest.HasMap)
+            return Results.Conflict(new { code = "no-map", message = "No map is loaded." });
+
+        if (specHash is not null && !string.Equals(specHash, manifest.SpecHash, StringComparison.OrdinalIgnoreCase))
+        {
+            return Results.Conflict(new
+            {
+                code = "spec-mismatch",
+                message = "The world was regenerated; re-fetch the manifest.",
+                specHash = manifest.SpecHash
+            });
+        }
+
+        if (cxMin > cxMax || cyMin > cyMax)
+            return Results.BadRequest(new { code = "invalid-range", message = "Chunk range is inverted." });
+
+        if (cxMin < 0 || cyMin < 0 || cxMax >= manifest.ChunksPerSideX || cyMax >= manifest.ChunksPerSideY)
+        {
+            return Results.BadRequest(new
+            {
+                code = "out-of-range",
+                message = $"Chunk range ({cxMin},{cyMin})..({cxMax},{cyMax}) is outside the " +
+                          $"{manifest.ChunksPerSideX}×{manifest.ChunksPerSideY} grid."
+            });
+        }
+
+        var batch = simulationManager.GetMapChunks(cxMin, cyMin, cxMax, cyMax);
+        return batch is null
+            ? Results.Conflict(new { code = "no-map", message = "No map is loaded." })
+            : Results.Ok(batch);
+    }
+
+    /// <summary>
+    /// The coarse world overview raster (one dominant-terrain code per chunk).
+    /// Fetched once when the map opens, on its own endpoint rather than riding the
+    /// manifest, and stable for a given spec hash.
+    /// </summary>
+    [WolverineGet("/api/map/overview")]
+    [Authorize(Policy = AuthPolicies.Player)]
+    public static IResult GetOverview(string? specHash, SimulationManager simulationManager)
+    {
+        var manifest = simulationManager.GetMapManifest();
+        if (!manifest.HasMap)
+            return Results.Conflict(new { code = "no-map", message = "No map is loaded." });
+
+        if (specHash is not null && !string.Equals(specHash, manifest.SpecHash, StringComparison.OrdinalIgnoreCase))
+        {
+            return Results.Conflict(new
+            {
+                code = "spec-mismatch",
+                message = "The world was regenerated; re-fetch the manifest.",
+                specHash = manifest.SpecHash
+            });
+        }
+
+        var overview = simulationManager.GetMapOverview();
+        return overview is null
+            ? Results.Conflict(new { code = "no-map", message = "No map is loaded." })
+            : Results.Ok(overview);
+    }
+
     [WolverineGet("/api/map/buildings")]
     public static List<MapBuildingStatus> GetBuildings(SimulationManager simulationManager) =>
         simulationManager.GetMapStatus().BuildingList;
