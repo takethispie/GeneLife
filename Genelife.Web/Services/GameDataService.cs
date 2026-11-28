@@ -525,6 +525,9 @@ public sealed class GameDataService
         CancellationToken cancellationToken = default) =>
         GetAdminAsync<AppearanceFamilyData>($"api/appearance/{genosNetworkId}/family", cancellationToken);
 
+    public Task<GenosCausesData> GetCausesAsync(ulong genosNetworkId, CancellationToken cancellationToken = default) =>
+        GetAdminAsync<GenosCausesData>($"api/causes/{genosNetworkId}", cancellationToken);
+
     public Task<PlayerOverviewData> GetPlayerOverviewAsync(CancellationToken cancellationToken = default) =>
         GetAdminAsync<PlayerOverviewData>("api/player", cancellationToken);
 
