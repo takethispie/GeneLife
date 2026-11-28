@@ -1,51 +1,45 @@
 #!/usr/bin/env python3
-"""AC-6: contrast assertion for the "Civic Paper" tokens.
+"""AC-6: contrast assertion for the "Civic Paper" tokens — designer's local loop.
 
-Reads the token values straight out of `assets/mockups.css` (no second copy of the
-palette to drift) and checks every text-on-surface pair the design language permits
-against its WCAG 2.1 requirement. Exit code 1 means the language no longer meets its
-own rule — which is what a client build should fail on, not what a designer should
-re-negotiate.
+The *rule* (which pairs must meet which ratio) lives in `contrast-pairs.json`; the *colours*
+live in `mockups.css`. This script reads both and prints the verdict the CI gate
+(`Genelife.Domain.Tests/Docs/ContrastTokenTests.cs`) computes from the same two inputs, so a
+local pass and a merge gate cannot disagree — there is no second copy of the pair table.
+
+Exit code 1 means the language no longer meets its own rule: that is a palette to fix, not a
+threshold to relax.
 
 Usage:  python3 GDD/mockups/assets/contrast_check.py
 """
 from __future__ import annotations
 
+import json
 import re
 import sys
 from pathlib import Path
 
-CSS = Path(__file__).with_name("mockups.css")
-# (foreground token, background token, minimum ratio, why)
-PAIRS = [
-    ("--ink", "--paper", 7.0, "body text"),
-    ("--ink-2", "--paper", 7.0, "secondary body text"),
-    ("--ink-2", "--paper-2", 4.5, "secondary text on recessed surface"),
-    ("--ink-3", "--paper", 4.5, "labels / tertiary"),
-    ("--ink-3", "--paper-2", 4.5, "labels on recessed surface"),
-    ("--money", "--paper", 4.5, "money figures"),
-    ("--accent", "--paper", 4.5, "accent / links"),
-    ("--body", "--paper", 4.5, "needs domain"),
-    ("--work", "--paper", 4.5, "work domain"),
-    ("--social", "--paper", 4.5, "social domain"),
-    ("--legacy", "--paper", 4.5, "legacy domain"),
-    ("--warn", "--paper", 4.5, "warning text"),
-    ("--ok", "--paper", 4.5, "success text"),
-    ("--paper", "--ink", 4.5, "text on primary button / dark chip"),
-    ("--paper", "--accent", 4.5, "text on accent button"),
-]
+HERE = Path(__file__).parent
+CSS = HERE / "mockups.css"
+RULES = HERE / "contrast-pairs.json"
 
 
 def tokens() -> dict[str, str]:
     css = CSS.read_text(encoding="utf-8")
     block = re.search(r":root\s*\{(.*?)\n\}", css, re.S)
     if not block:
-        raise SystemExit("contrast_check: could not find :root in mockups.css")
+        raise SystemExit(f"contrast_check: could not find a :root block in {CSS.name}")
     found = dict(re.findall(r"(--[a-z0-9-]+)\s*:\s*(#[0-9A-Fa-f]{6})", block.group(1)))
-    missing = {t for pair in PAIRS for t in pair[:2]} - found.keys()
-    if missing:
-        raise SystemExit(f"contrast_check: tokens not found: {sorted(missing)}")
+    if not found:
+        raise SystemExit(f"contrast_check: no colour tokens found in {CSS.name}")
     return found
+
+
+def rules() -> list[dict]:
+    data = json.loads(RULES.read_text(encoding="utf-8"))
+    pairs = data.get("pairs") or []
+    if not pairs:
+        raise SystemExit(f"contrast_check: {RULES.name} declares no pairs")
+    return pairs
 
 
 def _channel(value: float) -> float:
@@ -64,16 +58,22 @@ def ratio(fg: str, bg: str) -> float:
 
 
 def main() -> int:
-    table = tokens()
+    table, pairs = tokens(), rules()
+    missing = sorted({t for p in pairs for t in (p["foreground"], p["background"])} - table.keys())
+    if missing:
+        raise SystemExit(f"contrast_check: {CSS.name} does not declare {', '.join(missing)}")
+
     failures = 0
-    for fg_token, bg_token, minimum, why in PAIRS:
-        got = ratio(table[fg_token], table[bg_token])
+    for pair in pairs:
+        fg, bg = pair["foreground"], pair["background"]
+        got = ratio(table[fg], table[bg])
+        minimum = float(pair["minimum"])
         ok = got >= minimum
         failures += 0 if ok else 1
-        verdict = "PASS" if ok else "FAIL"
-        print(f"{verdict}  {why:34s} {fg_token:9s} on {bg_token:9s} "
-              f"{table[fg_token]} / {table[bg_token]}  {got:5.2f}:1  (min {minimum})")
-    print(f"\n{len(PAIRS) - failures}/{len(PAIRS)} pairs pass")
+        print(f"{'PASS' if ok else 'FAIL'}  {pair['use']:34s} {fg:9s} on {bg:9s} "
+              f"{table[fg]} / {table[bg]}  {got:5.2f}:1  (min {minimum})")
+
+    print(f"\n{len(pairs) - failures}/{len(pairs)} pairs pass")
     return 1 if failures else 0
 
 
