@@ -1,6 +1,6 @@
 # 10 — Risks & Open Questions
 
-> **Status: Draft v0.5 — authored by @roberto.**
+> **Status: Draft v0.7 — authored by @roberto.**
 
 ## 10.1 Identity risks (protect the pillars)
 | Risk | Why it matters | Mitigation |
@@ -20,8 +20,8 @@
 | **A half-migrated doc set** | A number or path that moves in code but not in docs sends the next reader to a wrong answer | Docs that carry a number move with the number (chapter 09 §9.4; e.g. the schema 15→16 correction) |
 
 ## 10.2 Open questions (to resolve)
-- [ ] **World size:** how big? (Scale direction landed; the *number* is the PO's call.)
-- [ ] **Building sizing:** minimum-viable vs comfortable — confirm minimum-first for V1.
+- [ ] **Building sizing:** minimum-viable vs comfortable — the sizing research recommends
+      minimum-first for V1; the *number* is still the PO's call.
 - [ ] **Shared households:** what two partnered players share mechanically (see §6.4).
 - [ ] **Heir continuation:** how legacy selection works across players and NPCs.
 - [ ] **Creation — no face editor (PO ruling needed):** chapter 07's design position is that
@@ -36,6 +36,20 @@
       the bridge.
 
 ## 10.3 Standing rulings this GDD must respect
+- **World size = 32000×32000.** PO ruling (2026-11-28): *the client's city map is the sim's
+  world and 32000² is the intended size* (`docs/research/world-scale-migration-32000.md` §0,
+  "Ruling in force"). **Load-bearing:** chapter 08 §8.5(3) (the chunk protocol) and chapter 09
+  Phase B both depend on this number as a *decided input*, not an open question. The world
+  persists as a **spec** (seed + options + placements + reservations), tiles regenerate on
+  demand; schema `16 → 17`.
+- **Interiors (PO rulings, 2026-11-27):**
+  - **Player-only first**; NPC interior access is a later, **performance-gated** feature.
+  - **Private interiors first**, shared interiors as a later version.
+  - **Roof cutaway V1, multilevel cutaway V2.**
+  - **Renderer split:** the web client renders **generic templates per building kind**; the
+    desktop client renders **procedurally** from spritesheets/tilesets — one model, one
+    contract, two renderers.
+  - Consequence: buildings must be **properly sized now** (chapter 03 §3.3).
 - Balancing & performance work is **deprioritised** at the current stage.
 - The browser client is a **stepping stone**; the desktop client is the real renderer.
 - Desktop client is **Godot + C#**, **desktop-only**.
