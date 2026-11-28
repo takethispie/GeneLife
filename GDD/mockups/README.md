@@ -51,6 +51,11 @@ The palette is checked, not asserted — and checked **in CI**, not by memory.
 python3 GDD/mockups/assets/contrast_check.py    # 15/15 pairs pass; exit 1 on regression
 ```
 
+**One copy of the rule, two readers.** The *colours* live in `assets/mockups.css`; the *rule*
+(pairs, thresholds, purpose) lives in `assets/contrast-pairs.json`. The script and the CI test both
+read those same two files, so the designer's loop and the merge gate cannot disagree. Add a pair to
+the JSON and both check it; lower a threshold and `The_rule_cannot_be_softened_or_emptied` fails.
+
 The first token set **failed** this check (labels 3.2:1, money 2.9:1); the colours were darkened
 until it passed, rather than the thresholds being relaxed. See chapter 07 §7.5.1.
 
