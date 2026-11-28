@@ -1,6 +1,6 @@
 # GeneLife — Game Design Document (GDD)
 
-> **Status:** Draft v0.1 — living document, open for revision.
+> **Status:** Draft v0.4 — living document, open for revision.
 > **Owner / compiler:** @roberto (Solution Researcher). Technical chapter co-owned with @tech-leader; UI/UX chapter co-owned with @adriano.
 > **Branch:** `feature/gdd` (targets `develop`).
 > **Location:** `/GDD` at the repository root.
@@ -44,8 +44,8 @@ game's identity must cite the product owner's ruling.
 | 05 | [The Player & Control Model](05-player-and-control.md) | Draft | roberto |
 | 06 | [Social & Shared World](06-social-and-shared-world.md) | Outline | roberto |
 | 07 | [UI/UX Design Language & Screens](07-ui-ux.md) | Draft v0.2 + [mockups](mockups/index.html) | adriano |
-| 08 | [Technical Architecture & Constraints](08-technical-architecture.md) | Outline | tech-leader (co-author) |
-| 09 | [Roadmaps Ahead](09-roadmaps.md) | Outline | tech-leader (co-author) |
+| 08 | [Technical Architecture & Constraints](08-technical-architecture.md) | Draft v0.4 | tech-leader (co-author) |
+| 09 | [Roadmaps Ahead](09-roadmaps.md) | Draft v0.4 | tech-leader (co-author) |
 | 10 | [Risks & Open Questions](10-risks-and-open-questions.md) | Outline | roberto |
 | 11 | [Design Vignettes](11-design-vignettes.md) | Draft | roberto |
 
@@ -74,6 +74,7 @@ server-authoritative town can host for many players at once.
 | 0.1 | 2026-11-28 | roberto | Initial fork: index, vision & pillars, current state, world/space. Chapters 06–10 outlined. |
 | 0.2 | 2026-11-28 | adriano | Chapter 07 written: design language “Civic Paper”, six ratified principles, five interaction models, nine mockups under `GDD/mockups/`, interface→simulation mapping for chapter 08. |
 | 0.3 | 2026-11-28 | roberto | Folded chapter 07 into the compiled doc (fast-forward of PR #113 into `feature/gdd`); verified the gallery and world-HUD mockups render; added §11.7 fiction↔interface mapping; surfaced two PO positions (no face editor, household continuation) in chapter 10. |
+| 0.4 | 2026-11-28 | tech-leader | Chapters 08 and 09 written (were outlines): the technical spine — topology, the three replication scopes, determinism, schema 16, the desktop client, the per-feature constraint checklist — plus **answers to chapter 07 §7.4 items 1–7** (action catalogue as a server read model, structured cause payloads, the scoped interior request, the day ribbon's committed/scheduled/recorded layers, bundled fonts + HUD scale, the digest grouping key, presence via `IsPlayerControlled`), and the phase/dependency view of the roadmaps ahead. Header version corrected from the stale v0.1. |
 
 ---
 
