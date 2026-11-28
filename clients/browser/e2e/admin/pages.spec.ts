@@ -33,6 +33,7 @@ const routes: AdminRoute[] = [
   { path: "/lifecycle", heading: "Life Stages", title: "Life Stages", level: 1 },
   { path: "/players", heading: "Players", title: "Players", level: 1 },
   { path: "/appearance", heading: "Appearance", title: "Appearance", level: 1 },
+  { path: "/causes", heading: "Causes", title: "Causes", level: 1 },
   { path: "/consumption", heading: "Consumption", title: "Consumption", level: 1 }
 ];
 
@@ -77,6 +78,7 @@ test("dashboard links to every admin section", async ({ page }) => {
     ["Family", "family"],
     ["Players", "players"],
     ["Appearance", "appearance"],
+    ["Causes", "causes"],
     ["Consumption", "consumption"],
     ["Social", "social"]
   ] as const;
