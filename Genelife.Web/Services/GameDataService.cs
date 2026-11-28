@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Genelife.Api.Commands;
 using Genelife.Api.DTOs;
 using Genelife.Web.Models;
 
@@ -556,6 +557,17 @@ public sealed class GameDataService
 
     public Task<PlayerOverviewData> GetPlayerOverviewAsync(CancellationToken cancellationToken = default) =>
         GetAdminAsync<PlayerOverviewData>("api/player", cancellationToken);
+
+    /// <summary>
+    /// The action catalogue read model for one player (GDD chapter 08 §8.5(1), §8.6 admin-first).
+    /// Admin-only: it is an operator view of the same evaluation the dial and the tick share.
+    /// </summary>
+    public Task<ActionCatalogue> GetPlayerActionCatalogueAsync(
+        string playerId,
+        CancellationToken cancellationToken = default) =>
+        GetAdminAsync<ActionCatalogue>(
+            $"api/player/{Uri.EscapeDataString(playerId)}/actions/catalogue",
+            cancellationToken);
 
     public Task<PlayerLifePageData> GetPlayerLivesAsync(
         int take = 100,

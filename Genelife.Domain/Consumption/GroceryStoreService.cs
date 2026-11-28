@@ -228,6 +228,31 @@ public sealed class GroceryStoreService
         return GroceryPricingPolicy.Price(item, inventory.Stock, maxStock, monthOfYear, options);
     }
 
+    /// <summary>
+    /// Quotes a sale without mutating stock — the price the applying path's <see cref="TrySell"/>
+    /// would charge for the same units, so an action catalogue can report a cost it will honour.
+    /// A store whose inventory has not been materialised yet quotes the same first-restock price
+    /// and full stock that <see cref="EnsureInventory"/> creates.
+    /// </summary>
+    public bool TryQuote(Entity store, int itemIndex, int units, out Money total)
+    {
+        total = Money.Zero;
+        if (units <= 0 || itemIndex < 0 || itemIndex >= GroceryCatalog.Items.Count)
+            return false;
+
+        if (FindInventory(store, itemIndex, out _, out var inventory))
+        {
+            if (inventory.Stock < units)
+                return false;
+            total = inventory.CurrentPrice * units;
+            return true;
+        }
+
+        var item = GroceryCatalog.Items[itemIndex];
+        total = GroceryPricingPolicy.Price(item, maxStock, maxStock, 0, options) * units;
+        return true;
+    }
+
     public bool TrySell(Entity store, int itemIndex, int units, out Money price)
     {
         price = Money.Zero;

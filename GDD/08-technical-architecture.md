@@ -216,6 +216,14 @@ re-request on context change (move, enter building, action completes).
 
 Delivery: an HTTP read plus a hub push on context change. No new persistence.
 
+**Delivered (AC-4a).** `PlayerActionService.Evaluate(genos, kind, payload, tick)` is the one
+precondition pass; `Apply` calls it and then mutates from the facts it resolved, and
+`BuildCatalogue` calls the same method for all 17 kinds. `POST /api/player/actions/catalogue`
+returns the envelope (`shapeVersion`, `refusalEnumVersion`), the admin column on `/players` shows the
+same entries, and `SnapshotBroadcastService` pushes `SendActionCatalogue` to a player's connections
+when an action applies, a move/hire/lease lands. `ActionCatalogueTests` enumerates every kind over
+the refusal-state matrix and fails on an 18th kind without fixtures.
+
 ### (2) Cause lines are structured facts, not prose
 
 Principle 7.1's "every measure carries a cause line in the simulation's own words" is a **data**

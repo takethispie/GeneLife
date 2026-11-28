@@ -27,7 +27,17 @@ namespace Genelife.UnitTests.Players;
 [Trait("Category", "Documentation")]
 public class PlayerRefusalTests
 {
-    private const string ActionServicePath = "Genelife.Application/Services/PlayerActionService.cs";
+    /// <summary>
+    /// The player-action path, split across the service's two partial files: the dispatcher and its
+    /// helpers, and the evaluation/apply pair the catalogue shares. Both are the same rule source, so
+    /// both are in scope for the reference ratchet.
+    /// </summary>
+    private static readonly string[] ActionServicePaths =
+    {
+        "Genelife.Application/Services/PlayerActionService.cs",
+        "Genelife.Application/Services/PlayerActionService.Actions.cs"
+    };
+
     private const string CommandServicePath = "Genelife.Application/Services/PlayerCommandService.cs";
 
     /// <summary>
@@ -152,7 +162,8 @@ public class PlayerRefusalTests
     [Fact]
     public void Every_member_is_reachable_from_the_action_path()
     {
-        var referenced = ReferencedMembers(Read(ActionServicePath))
+        var referenced = ActionServicePaths
+            .SelectMany(path => ReferencedMembers(Read(path)))
             .Concat(ReferencedMembers(Read(CommandServicePath)))
             .ToHashSet();
 
@@ -179,7 +190,8 @@ public class PlayerRefusalTests
     [Fact]
     public void No_Reject_string_literal_survives_in_the_action_path()
     {
-        Assert.Empty(StringLiterals(Read(ActionServicePath)));
+        foreach (var path in ActionServicePaths)
+            Assert.Empty(StringLiterals(Read(path)));
         Assert.Empty(StringLiterals(Read(CommandServicePath)));
 
         // Negative control: the check can fail.
