@@ -8045,7 +8045,9 @@ private readonly NetworkIdRegistry networkIds = new();
                 var generated = new GeneratedMap
                 {
                     Options = options,
-                    Tiles = state.Map.Tiles.Select(flags => (TileFlags)flags).ToArray(),
+                    Tiles = TileGrid.FromArray(
+                        state.Map.Tiles.Select(flags => (TileFlags)flags).ToArray(),
+                        options.Bounds),
                     Lots = state.Map.Lots.Select(lot => new MapLot
                     {
                         Id = new LotId(lot.Id),
