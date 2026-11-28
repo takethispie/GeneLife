@@ -56,6 +56,72 @@ export interface MapDelta {
 }
 
 /**
+ * Viewport-snapshot protocol (Phase 3). Mirrors `Genelife.Api.DTOs`. The chunk
+ * grid is ONE shared constant: this value must equal
+ * `MapChunkProtocol.ChunkSize` on the server, never a second literal.
+ */
+export const MAP_CHUNK_SIZE = 64;
+/** RLE tile encoding version - mirrors `MapChunkProtocol.TileEncodingVersion`. */
+export const MAP_TILE_ENCODING_VERSION = 1;
+
+/** Fetched once per session; a `specHash` change is a full cache purge. */
+export interface MapManifest {
+  hasMap: boolean;
+  specHash: string;
+  width: number;
+  height: number;
+  chunkSize: number;
+  tileEncodingVersion: number;
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+  chunksPerSideX: number;
+  chunksPerSideY: number;
+}
+
+/** One chunk of tiles; `tiles` are runs in CHUNK-LOCAL coordinates (0..chunkSize-1). */
+export interface MapChunk {
+  cx: number;
+  cy: number;
+  tiles: MapTileRun[];
+}
+
+/** One viewport's chunks, plus the buildings intersecting the same tile rect. */
+export interface MapChunkBatch {
+  specHash: string;
+  tileEncodingVersion: number;
+  chunkSize: number;
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+  chunks: MapChunk[];
+  buildings: MapBuilding[];
+}
+
+export type OverviewTerrain = "Land" | "Road" | "Water" | "None";
+
+/** A horizontal run of equal dominant terrain on the chunk grid. */
+export interface MapOverviewRun {
+  row: number;
+  start: number;
+  length: number;
+  terrain: OverviewTerrain;
+}
+
+/** Coarse world overview (Tier A): one dominant terrain per chunk, RLE per row. */
+export interface MapOverview {
+  specHash: string;
+  chunkSize: number;
+  width: number;
+  height: number;
+  columns: number;
+  rows: number;
+  dominant: MapOverviewRun[];
+}
+
+/**
  * Sent after an admin world reset. The client must drop its cached map and
  * world state, then request a fresh Welcome, map snapshot and world snapshot.
  */
