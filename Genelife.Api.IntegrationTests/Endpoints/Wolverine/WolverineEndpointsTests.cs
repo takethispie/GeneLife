@@ -130,6 +130,47 @@ public sealed class WolverineEndpointsTests : IClassFixture<TestApplicationFacto
     }
 
     [Fact]
+    public async Task Causes_endpoint_returns_structured_facts_for_a_genos()
+    {
+        var client = CreateClient(AdminToken());
+        await EnsureSimulationRunning(client);
+
+        var createResponse = await client.PostAsJsonAsync(
+            "/api/genoses", new CreateGenos("CauseTest", 30), CancellationToken);
+        Assert.Equal(HttpStatusCode.Accepted, createResponse.StatusCode);
+
+        using var createDoc = JsonDocument.Parse(await createResponse.Content.ReadAsStringAsync(CancellationToken));
+        var networkId = createDoc.RootElement.GetProperty("networkId").GetUInt64();
+
+        var response = await client.GetAsync($"/api/causes/{networkId}", CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var causes = await response.Content.ReadFromJsonAsync<Genelife.Api.DTOs.GenosCausesStatus>(
+            cancellationToken: CancellationToken);
+        Assert.NotNull(causes);
+        Assert.Equal(networkId, causes!.NetworkId);
+        Assert.NotEmpty(causes.Facts);
+        Assert.Contains(causes.Facts, f => f.Code == Genelife.Api.DTOs.CauseCodes.NeedHunger);
+        Assert.All(causes.Facts, f =>
+        {
+            Assert.False(string.IsNullOrWhiteSpace(f.Code));
+            Assert.False(string.IsNullOrWhiteSpace(f.Unit));
+        });
+    }
+
+    [Fact]
+    public async Task Causes_endpoint_requires_admin_and_404s_unknown_genos()
+    {
+        var anonymous = CreateClient();
+        var unauthenticated = await anonymous.GetAsync("/api/causes/1", CancellationToken);
+        Assert.Equal(HttpStatusCode.Unauthorized, unauthenticated.StatusCode);
+
+        var admin = CreateClient(AdminToken());
+        var missing = await admin.GetAsync("/api/causes/999999999", CancellationToken);
+        Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
+    }
+
+    [Fact]
     public async Task Wolverine_get_companies_returns_list()
     {
         var client = CreateClient(AdminToken());

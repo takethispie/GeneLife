@@ -5,6 +5,7 @@ using Arch.Core;
 using Arch.Core.Extensions;
 using Genelife.Api.Appearance;
 using Genelife.Api.Consumption;
+using Genelife.Application.Causes;
 using Genelife.Api.DTOs;
 using Genelife.Api.Social;
 using Genelife.Appearance;
@@ -4391,6 +4392,28 @@ private readonly NetworkIdRegistry networkIds = new();
             if (!AppearanceMapper.TryDerive(world, entity, out _))
                 return null;
             return Genelife.Api.Appearance.AppearanceReadModel.Build(world, entity);
+        }
+    }
+
+    /// <summary>
+    /// The structured cause payload for one genos: facts only, phrased by the client
+    /// (GDD ch.08 §8.5(2)). Returns null when the genos does not exist.
+    /// </summary>
+    public GenosCausesStatus? BuildCauses(ulong genosNetworkId)
+    {
+        using (ReadLock())
+        {
+            if (world is null || !networkIds.TryGetEntity(new NetworkId(genosNetworkId), out var entity))
+                return null;
+            if (!world.IsAlive(entity))
+                return null;
+
+            var name = world.TryGet<GenName>(entity, out var genName) ? genName.Name : string.Empty;
+            return new GenosCausesStatus(
+                genosNetworkId,
+                name,
+                tick,
+                CauseReadModel.Build(world, entity, tick, economy?.Ledger));
         }
     }
 
