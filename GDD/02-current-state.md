@@ -62,8 +62,10 @@ These hold across all roadmaps and every chapter of this GDD must respect them:
    rebuilt on restore.
 5. **Admin-first observability.** Every feature ships read models, endpoints and admin
    surfaces alongside it.
-6. **Schema discipline.** Persistence advanced from schema 4 to 15 across V1–V5; V6 added no
-   schema changes.
+6. **Schema discipline.** Persistence reached **schema 16** (`PersistedWorldState.CurrentSchemaVersion`);
+   V1–V5 advanced 4 → 15 and a later change split per-cycle accumulators from last-cycle
+   display values (→ 16). V6 added no schema changes. Every bump is a migration function plus a
+   fixture; the desktop-client work adds none.
 
 ## 2.3 What "the bridge" means
 

@@ -1,6 +1,6 @@
 # 10 — Risks & Open Questions
 
-> **Status: Outline (risks seeded).**
+> **Status: Draft v0.5 — authored by @roberto.**
 
 ## 10.1 Identity risks (protect the pillars)
 | Risk | Why it matters | Mitigation |
@@ -10,6 +10,14 @@
 | **The bridge becomes a reboot** | Reworking the model wastes the mature V1–V5 asset | Treat model+contract+GDD as durable; only the renderer changes |
 | **Single-player drift** | Undermines the shared-world pillar | Design server-first; multiplayer in the model, not bolted on |
 | **Interiors/perf collision** | Room-level simulation at population scale breaks the tick budget | Player-only interiors; NPCs stay footprint-presence |
+
+## 10.1.1 Delivery risks (sequencing)
+
+| Risk | Why it matters | Mitigation |
+|---|---|---|
+| **Coupling the UX read models to the world-scale migration** | Puts the most player-visible part of the GDD (the dial, the dollhouse) behind the largest, riskiest technical change | Start Phase D's **server read models** independently — they are read models over state the sim already has and need no bigger world (chapter 09 §9.3) |
+| **Chunk constant / snapshot message fixed too late** | The one genuinely irreversible choice; getting it wrong re-does the protocol and both clients | Decide the chunk constant and snapshot shape **once**, in `Genelife.Contracts`, before the protocol phase (chapter 09 §9.4) |
+| **A half-migrated doc set** | A number or path that moves in code but not in docs sends the next reader to a wrong answer | Docs that carry a number move with the number (chapter 09 §9.4; e.g. the schema 15→16 correction) |
 
 ## 10.2 Open questions (to resolve)
 - [ ] **World size:** how big? (Scale direction landed; the *number* is the PO's call.)
