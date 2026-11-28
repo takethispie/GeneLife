@@ -1,6 +1,9 @@
 # Roadmap V7 — Status
 
-**Status:** Track definition in progress; no track started. This page records delivered state as it lands, and starts as the carry-in record for everything V7 must close.
+**Status:** Track definition in progress. **Track 1 is not un-started** — it has delivered work
+(rent burden and Gini back in band at `ede655b`, wage share in band, the metrics-harness row), and
+the table below is the authority on which rows are Done. No track is RELEASED, which is a different
+claim from nothing having started. This page records delivered state as it lands, and starts as the carry-in record for everything V7 must close.
 **Builds on:** V1–V6 delivered state, the V5 balance bands, the V6 Release measurements, gabrielo's band guardrails (fast tier + performance tier)
 **Scope:** economic closure and balance bands (spine), operator plane completion, persistence durability
 **Primary risk:** the bands are coupled. Rent burden, vacancy, Gini and housing pressure move together through consumption timing, benefits and rent collection, so a change that fixes one band can push another out — the `ede655b` rebalance is the worked example, since neither of its two fixes passes the bands alone. Rebalance against the gate, one measured change at a time.

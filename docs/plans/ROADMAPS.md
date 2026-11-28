@@ -94,10 +94,15 @@ Feature roadmaps (`roadmap-vN`) record delivered implementation only. Production
 - **Admin-first observability:** every feature ships read models, endpoints and Blazor pages in the same PR.
 - **Schema discipline:** V1→V5 advanced persistence from schema 4 to 15; V6 added no schema changes.
 
-## Current state (as of V6)
+## Current state (as of V7 definition)
 
 - V1–V4: implemented and release-ready.
 - V5: released. Production release checks in [`release-roadmap-V5/`](release-roadmap-V5/README.md) are complete.
 - **V5 balance regression — fixed:** 1k rent burden 0.4619 and Gini 0.7699 (bisected to `5ddc300`, which shipped in V5) are back inside the bands after the rent-burden rebalance (`ede655b`): rent 0.3359 and Gini 0.57 at 1k. Perf-tier bands green.
 - V6: implemented; `StaggerCadence` re-measured in Release — no gain, stays opt-in/off (`ParallelSystem`s removed in 3.2).
-- Next roadmap: none defined yet — no V7; the V5 balance regression is fixed.
+- **V7: defining.** Economic closure & balance bands (spine), the operator plane, and persistence
+  durability. No track is released. See [`roadmap-v7/`](roadmap-v7/README.md) for the plan and
+[`roadmap-v7/STATUS.md`](roadmap-v7/STATUS.md) for delivered state.
+- **Balance and performance work is deprioritised by the PO at this stage of development.** V7's
+  spine is a balance track, so its remaining items are not started unless the PO re-opens them; this
+  is a priority ruling, not a defect in the plan. The V5 balance regression is fixed.
