@@ -34,7 +34,7 @@ Feature roadmaps (`roadmap-vN`) record delivered implementation only. Production
 **Target:** every building has a validated footprint on a deterministic tile map; every human-controlled genos has a server-authoritative position and replication contract.
 
 - **Features:** world map (coordinates, generation, placement, occupancy), player movement (spawn, intent drain, movement, pathfinding), map replication (static map, deltas, AOI, admin console).
-- **Key decisions:** integer tile coordinates centred on origin (256×256 default); `TilePosition` authoritative, `Location` derived; `WorldMap`/`MovementIndex` derived indices; static layout vs dynamic state split; schema 4 → 5.
+- **Key decisions:** integer tile coordinates centred on origin (256×256 default; raised to **32000×32000** by the world-scale migration, `docs/research/world-scale-migration-32000.md`); `TilePosition` authoritative, `Location` derived; `WorldMap`/`MovementIndex` derived indices; static layout vs dynamic state split; schema 4 → 5.
 - **Delivered:** deterministic generation, occupancy/placement service, building bootstrap, admin placement, persistence/restore + V4 migration, map read API, admin map console, player spawn/intent drain, movement/pathfinding, NPC commute presence, building interactions, map events/projections, AOI/viewport.
 - **Verification:** 341 passed / 2 skipped; V1 suite green.
 - **Deferred:** `CommuteMode.Animate` default-on with a 2,000-genos budget test; small map history retention. *(Occupied-building relocation — `RelocateBuildingCommand` — was listed here in error; it is delivered, see [roadmap-v2/STATUS.md](roadmap-v2/STATUS.md).)*

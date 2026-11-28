@@ -122,10 +122,10 @@ The client sends targets and ticks, never authoritative positions or build state
 ### Map contract
 
 - `MapSnapshot` is the static layout: `MapId`, `Version`, `Seed`, `Width`, `Height`, `TileSize`, bounds, `Tiles` and `Buildings`.
-- `Tiles` is run-length encoded per row: `(X, Y, Length, Flags)`. Decode once into a tile index; never keep 65,536 objects in the render loop.
+- `Tiles` is run-length encoded per row: `(X, Y, Length, Flags)`. Decode once into a tile index; never keep a whole-map tile array in the render loop (65,536 objects at 256², ~1.0e9 at 32000² — the Phase-3 chunk protocol streams viewports instead).
 - Tile flags are presentation hints (`Land`, `Road`, `Water`, `Occupied`, `Reserved`). Building occupancy is authoritative in `Buildings`, not inferred from flags.
 - The map cache key is `MapId` + `Version`. A map delta advances the version. A version gap requests a full map snapshot.
-- `TileSize` and bounds come from the server. Do not hardcode 256×256 or 32 px in game logic.
+- `TileSize` and bounds come from the server. Do not hardcode a map size (the default is 32000×32000 since the world-scale migration) or 32 px in game logic.
 
 ### Dynamic state and interpolation
 
@@ -181,7 +181,7 @@ The client sends targets and ticks, never authoritative positions or build state
 - No secrets in client code. The player token is obtained at runtime.
 - Unit tests: Vitest for the RLE decoder, replication store, interpolation and intent sequencing.
 - End-to-end: Playwright against a running API with a seeded world.
-- Performance: a synthetic 2,000-genos snapshot and a 256×256 map fixture.
+- Performance: a synthetic 2,000-genos snapshot and a small (256×256) map fixture — a test fixture, not the world extent (32000×32000).
 
 ---
 

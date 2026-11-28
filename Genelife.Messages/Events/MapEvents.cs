@@ -7,7 +7,8 @@ public record MapGenerated(
     int Width,
     int Height,
     float TileSize,
-    long Tick);
+    long Tick,
+    string SpecHash = "");
 
 public record BuildingPlaced(
     string MapId,

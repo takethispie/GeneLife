@@ -26,6 +26,7 @@ public partial class MapProjection : EventProjection
                 Width = e.Width,
                 Height = e.Height,
                 TileSize = e.TileSize,
+                SpecHash = e.SpecHash,
                 MinX = minX,
                 MinY = minY,
                 MaxX = minX + e.Width - 1,
@@ -40,6 +41,7 @@ public partial class MapProjection : EventProjection
         existing.Width = e.Width;
         existing.Height = e.Height;
         existing.TileSize = e.TileSize;
+        existing.SpecHash = e.SpecHash;
         existing.MinX = -(e.Width / 2);
         existing.MinY = -(e.Height / 2);
         existing.MaxX = existing.MinX + e.Width - 1;

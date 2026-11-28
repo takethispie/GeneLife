@@ -76,8 +76,8 @@ public class SocialPersistenceTests
 
         SnapshotMigrations.Upgrade(state, 14);
 
-        Assert.Equal(16, PersistedWorldState.CurrentSchemaVersion);
-        Assert.Equal(16, state.SchemaVersion);
+        Assert.Equal(17, PersistedWorldState.CurrentSchemaVersion);
+        Assert.Equal(17, state.SchemaVersion);
         Assert.Empty(state.SocialEdges);
         Assert.Empty(state.SocialRequests);
         Assert.Empty(state.SocialRestrictions);

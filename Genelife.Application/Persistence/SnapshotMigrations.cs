@@ -238,6 +238,16 @@ public static class SnapshotMigrations
             }
         }
 
+        if (fromVersion <= 16)
+        {
+            // v17 persists the world map as its generator SPEC (identity + seed +
+            // size + generation options + canonical signature) instead of its tile
+            // array, which is ~1 GB at 32000x32000. Older saves kept the tiles; the
+            // map is regenerated from the spec on restore, so the only field a
+            // legacy snapshot needs backfilled is the generation options.
+            state.Map.GenerationOptions ??= Genelife.Map.MapGenerationOptions.Default;
+        }
+
         state.SchemaVersion = PersistedWorldState.CurrentSchemaVersion;
     }
 }
