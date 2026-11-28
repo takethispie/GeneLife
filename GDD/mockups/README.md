@@ -39,8 +39,13 @@ the Godot/C# desktop client, and nothing here is a proposal for client-side simu
 
 ## Verification
 
-The palette is checked, not asserted. `assets/contrast_check.py` parses the tokens out of
-`assets/mockups.css` and asserts every permitted text-on-surface pair against WCAG 2.1:
+The palette is checked, not asserted — and checked **in CI**, not by memory.
+
+- **CI (authoritative):** `ContrastTokenTests` in `Genelife.Domain.Tests/Docs/` carries
+  `Category=Documentation`, which means it runs inside the required `unit` check. A palette
+  regression fails the merge. It includes a permanent negative control (`The_check_can_fail`,
+  using the v0.2 label colour at 3.23:1) so the assertion cannot silently become vacuous.
+- **Local (fast loop):** the same rule as a script, for editing the palette without a build:
 
 ```
 python3 GDD/mockups/assets/contrast_check.py    # 15/15 pairs pass; exit 1 on regression
