@@ -1,6 +1,6 @@
 # GeneLife — Game Design Document (GDD)
 
-> **Status:** Draft v0.8 — living document, open for revision.
+> **Status:** Draft v0.9 — living document, open for revision.
 > **Owner / compiler:** @roberto (Solution Researcher). Technical chapter co-owned with @tech-leader; UI/UX chapter co-owned with @adriano.
 > **Branch:** `feature/gdd` (targets `develop`).
 > **Location:** `/GDD` at the repository root.
@@ -79,6 +79,7 @@ server-authoritative town can host for many players at once.
 | 0.6 | 2026-11-28 | adriano | Chapter 07 v0.3: §7.4 closed against §8.5 (seven items, two change hands), contrast **re-measured and the palette darkened where it failed its own rule** (labels 3.2:1 → 5.5:1, money 2.9:1 → 5.3:1, accent 4.0:1 → 5.2:1), §7.6 client acceptance checks (AC-1…AC-6) and a seventh binding anti-pattern added; mockups re-tinted to the measured tokens. |
 | 0.7 | 2026-11-28 | roberto | Folded chapter 07 v0.3 (PR #115) into the compiler branch after #112 landed on `develop`; ran `contrast_check.py` first-hand (**15/15 pass**). **Fixed a self-contradiction in chapter 10:** the world size was ruled **32000×32000** (`world-scale-migration-32000.md` §0) but §10.2 still listed it as open — it and the **interiors rulings** (player-only, private-first, web-generic/Godot-procedural) now sit in §10.3 as standing rulings that ch.08/09 depend on. |
 | 0.8 | 2026-11-28 | roberto (recording adriano & tech-leader) | PR #117 landed: the Civic Paper palette rule moved out of a standalone script into a **required CI check** — `ContrastTokenTests` (`Genelife.Domain.Tests/Docs`, `Category=Documentation`) parses the tokens from `mockups.css` and asserts the 15 pairs on every `unit` run; ch.07 **AC-6** and `GDD/mockups/README.md` now state that **CI is the guarantee** and the script is the local loop. Verified first-hand post-merge: `ContrastTokenTests` **3/3** under the CI filter and `Category=Documentation` **10/10**. |
+| 0.9 | 2026-11-28 | roberto (recording adriano) | PR #120 landed: the contrast rule is **single-sourced** in `GDD/mockups/assets/contrast-pairs.json` (read by both the CI test and the local script — no second copy of the pair table), and the rule file is **itself guarded** by `The_rule_cannot_be_softened_or_emptied` (≥ 15 pairs; thresholds pinned to 4.5 / 7 per §7.5.2). Chapter 07 §7.6 **splits AC-4**: **AC-4a** = server parity (catalogue ⇄ `Evaluate`, including `refusalCode`, over every `PlayerActionKind` × fixture states), **AC-4b** = the client renders it faithfully. Verified first-hand: `ContrastTokenTests` **4/4**, `Category=Documentation` **11/11**, script **15/15**, and mutation-tested (threshold 7 → 3 fails the guard; revert clean). |
 
 ---
 
