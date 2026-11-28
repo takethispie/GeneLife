@@ -51,6 +51,11 @@ The palette is checked, not asserted — and checked **in CI**, not by memory.
 python3 GDD/mockups/assets/contrast_check.py    # 15/15 pairs pass; exit 1 on regression
 ```
 
+**Refusal vocabulary** is the same shape: `assets/refusal-reasons.json` maps the canonical wire codes
+onto the UI's closed reason set (`surface` + `producer` per entry), and `RefusalMappingTests` derives the
+action path's code set from the two services rather than counting it, so a new `Reject("…")` fails until
+someone decides what the player is told. Chapter 07 §7.2.3 is the rule; the JSON is the machine-readable copy.
+
 **One copy of the rule, two readers.** The *colours* live in `assets/mockups.css`; the *rule*
 (pairs, thresholds, purpose) lives in `assets/contrast-pairs.json`. The script and the CI test both
 read those same two files, so the designer's loop and the merge gate cannot disagree. Add a pair to
