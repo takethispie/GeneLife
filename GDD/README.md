@@ -1,6 +1,6 @@
 # GeneLife — Game Design Document (GDD)
 
-> **Status:** Draft v0.5 — living document, open for revision.
+> **Status:** Draft v0.7 — living document, open for revision.
 > **Owner / compiler:** @roberto (Solution Researcher). Technical chapter co-owned with @tech-leader; UI/UX chapter co-owned with @adriano.
 > **Branch:** `feature/gdd` (targets `develop`).
 > **Location:** `/GDD` at the repository root.
@@ -43,7 +43,7 @@ game's identity must cite the product owner's ruling.
 | 04 | [Simulation Core](04-simulation-core.md) | Draft | roberto |
 | 05 | [The Player & Control Model](05-player-and-control.md) | Draft | roberto |
 | 06 | [Social & Shared World](06-social-and-shared-world.md) | Draft v0.5 | roberto |
-| 07 | [UI/UX Design Language & Screens](07-ui-ux.md) | Draft v0.2 + [mockups](mockups/index.html) | adriano |
+| 07 | [UI/UX Design Language & Screens](07-ui-ux.md) | Draft v0.3 + [mockups](mockups/index.html) | adriano |
 | 08 | [Technical Architecture & Constraints](08-technical-architecture.md) | Draft v0.4 | tech-leader (co-author) |
 | 09 | [Roadmaps Ahead](09-roadmaps.md) | Draft v0.4 | tech-leader (co-author) |
 | 10 | [Risks & Open Questions](10-risks-and-open-questions.md) | Draft v0.5 | roberto |
@@ -76,6 +76,8 @@ server-authoritative town can host for many players at once.
 | 0.3 | 2026-11-28 | roberto | Folded chapter 07 into the compiled doc (fast-forward of PR #113 into `feature/gdd`); verified the gallery and world-HUD mockups render; added §11.7 fiction↔interface mapping; surfaced two PO positions (no face editor, household continuation) in chapter 10. |
 | 0.4 | 2026-11-28 | tech-leader | Chapters 08 and 09 written (were outlines): the technical spine — topology, the three replication scopes, determinism, schema 16, the desktop client, the per-feature constraint checklist — plus **answers to chapter 07 §7.4 items 1–7** (action catalogue as a server read model, structured cause payloads, the scoped interior request, the day ribbon's committed/scheduled/recorded layers, bundled fonts + HUD scale, the digest grouping key, presence via `IsPlayerControlled`), and the phase/dependency view of the roadmaps ahead. Header version corrected from the stale v0.1. |
 | 0.5 | 2026-11-28 | roberto | Folded chapters 08/09 (fast-forward of PR #114 into `feature/gdd`); **corrected the schema number 15 → 16** (`PersistedWorldState.cs:5`) in chapter 02; completed chapters **06 (Social & Shared World)** and **10 (Risks)** from outline to draft and added §10.1.1 delivery-sequencing risks. All chapters are now Draft; the bible is whole (only the PO rulings in §10.2 remain open). |
+| 0.6 | 2026-11-28 | adriano | Chapter 07 v0.3: §7.4 closed against §8.5 (seven items, two change hands), contrast **re-measured and the palette darkened where it failed its own rule** (labels 3.2:1 → 5.5:1, money 2.9:1 → 5.3:1, accent 4.0:1 → 5.2:1), §7.6 client acceptance checks (AC-1…AC-6) and a seventh binding anti-pattern added; mockups re-tinted to the measured tokens. |
+| 0.7 | 2026-11-28 | roberto | Folded chapter 07 v0.3 (PR #115) into the compiler branch after #112 landed on `develop`; ran `contrast_check.py` first-hand (**15/15 pass**). **Fixed a self-contradiction in chapter 10:** the world size was ruled **32000×32000** (`world-scale-migration-32000.md` §0) but §10.2 still listed it as open — it and the **interiors rulings** (player-only, private-first, web-generic/Godot-procedural) now sit in §10.3 as standing rulings that ch.08/09 depend on. |
 
 ---
 

@@ -11,22 +11,22 @@
   --paper-2:    #EDE7D9;   /* recessed surface / table rows */
   --paper-3:    #E3DCCA;   /* sunken / disabled */
   --ink:        #1B2430;   /* primary text */
-  --ink-2:      #4B5665;   /* secondary text */
-  --ink-3:      #7D8794;   /* tertiary / labels */
+  --ink-2:      #3F4A57;   /* secondary text */
+  --ink-3:      #586271;   /* tertiary / labels */
   --line:       #CFC5AF;   /* hairline on paper */
   --line-soft:  #DED6C4;
   --scrim:      rgba(16,20,16,.55);
 
   /* --- domain accents (one per life domain, never decorative) ------------ */
-  --accent:     #C4532A;   /* action / player intent (terracotta) */
+  --accent:     #A94520;   /* action / player intent (terracotta) */
   --accent-ink: #8F3A1B;
-  --money:      #B8862B;   /* money, budget, wages */
+  --money:      #8A5A12;   /* money, budget, wages */
   --body:       #2E6E5B;   /* needs, health, energy */
   --work:       #2F5D8A;   /* employment, skills */
   --social:     #A63A5A;   /* people, relationships */
   --legacy:     #5B4B8A;   /* lineage, life-course */
-  --warn:       #B4521F;
-  --ok:         #3C7A4E;
+  --warn:       #A8481A;
+  --ok:         #356B45;
 
   /* --- type -------------------------------------------------------------- */
   --font-ui: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
