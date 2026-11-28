@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GeneLife — M02 Genos sheet</title>
+<link rel="stylesheet" href="assets/mockups.css">
+<style>
+  .sheetbig{ position:absolute; inset:0; display:grid; place-items:center; }
+  .idrow{ display:flex; gap:14px; align-items:flex-start; }
+  .needs{ display:flex; flex-direction:column; gap:11px; }
+  .needrow .top{ display:flex; justify-content:space-between; align-items:baseline; }
+  .needrow .why{ font:400 10px/1.3 var(--font-ui); color:var(--ink-3); margin-top:3px; }
+  .traitgrid{ display:grid; grid-template-columns:1fr auto auto; gap:0; }
+  .traitgrid > div{ padding:6px 0; border-bottom:1px solid var(--line-soft); font-size:11.5px; }
+  .traitgrid .h{ font:600 9px/1 var(--font-ui); letter-spacing:.13em; text-transform:uppercase; color:var(--ink-3); }
+  .pips{ display:inline-flex; gap:2px; }
+  .pips i{ width:6px; height:10px; background:var(--paper-3); border-radius:1px; display:block; }
+  .pips i.on{ background:var(--body); }
+  .spark{ display:block; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="stage-title">GeneLife · GDD mockups · <b>M02 — Genos sheet</b></div>
+  <div class="frame">
+    <canvas class="bg" id="town"></canvas>
+    <div class="backdrop"></div>
+
+    <div class="sheetbig">
+      <div class="paper modal" style="height:700px">
+        <div class="hd" style="align-items:flex-start">
+          <div class="idrow">
+            <div class="soma" style="width:72px;height:72px">
+              <svg width="72" height="72" viewBox="0 0 96 96">
+                <circle cx="48" cy="48" r="44" fill="none" stroke="#E3DCCA" stroke-width="4"/>
+                <g transform="rotate(-90 48 48)" fill="none" stroke-width="6">
+                  <circle cx="48" cy="48" r="44" pathLength="100" stroke="#2E6E5B" stroke-dasharray="71 29"/>
+                  <circle cx="48" cy="48" r="44" pathLength="100" stroke="#3F8A72" stroke-dasharray="44 56" transform="rotate(93 48 48)"/>
+                  <circle cx="48" cy="48" r="44" pathLength="100" stroke="#B8862B" stroke-dasharray="86 14" transform="rotate(186 48 48)"/>
+                  <circle cx="48" cy="48" r="44" pathLength="100" stroke="#C4532A" stroke-dasharray="29 71" transform="rotate(279 48 48)"/>
+                </g>
+              </svg>
+              <div class="core" style="inset:10px"><div class="portrait" style="font-size:20px">M</div></div>
+            </div>
+            <div>
+              <div class="display" style="font-size:22px">Mira Voss</div>
+              <div style="display:flex;gap:6px;margin-top:7px;flex-wrap:wrap">
+                <span class="chip chip--body"><span class="dot"></span>adult · 31</span>
+                <span class="chip chip--work"><span class="dot"></span>packer, Vell cannery</span>
+                <span class="chip"><span class="dot"></span>24 Kestrel Row</span>
+                <span class="chip chip--accent"><span class="dot"></span>you</span>
+              </div>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn--sm btn--ghost">Follow</button>
+            <button class="btn btn--sm btn--ghost">Journal</button>
+            <button class="btn btn--sm">×</button>
+          </div>
+        </div>
+
+        <div class="bd">
+          <div class="cols">
+            <!-- LEFT: body & means -->
+            <div class="col">
+              <div class="lbl">body &amp; state</div>
+              <div class="needs" style="margin-top:12px">
+                <div class="needrow">
+                  <div class="top"><div class="small"><b>Hunger</b></div><div class="mono tiny" style="color:var(--warn)">29 · falling</div></div>
+                  <div class="meter meter--low" style="margin-top:5px"><i style="width:29%"></i></div>
+                  <div class="why">last meal 11 h ago (porridge, 06:40) — appetite rises with daytime fullness decay</div>
+                </div>
+                <div class="needrow">
+                  <div class="top"><div class="small"><b>Rest</b></div><div class="mono tiny">44 · recovering</div></div>
+                  <div class="meter" style="margin-top:5px"><i style="width:44%"></i></div>
+                  <div class="why">slept 6 h 10 m; a night shift last week still shows in the trend</div>
+                </div>
+                <div class="needrow">
+                  <div class="top"><div class="small"><b>Hygiene</b></div><div class="mono tiny">86</div></div>
+                  <div class="meter" style="margin-top:5px"><i style="width:86%"></i></div>
+                  <div class="why">showered this morning · water pressure normal</div>
+                </div>
+                <div class="needrow">
+                  <div class="top"><div class="small"><b>Resolve</b></div><div class="mono tiny">55 · strained</div></div>
+                  <div class="meter meter--accent" style="margin-top:5px"><i style="width:55%"></i></div>
+                  <div class="why">rent shortfall, partner away — resolve decays faster under debt</div>
+                </div>
+              </div>
+
+              <div class="hr"></div>
+              <div class="lbl">condition</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+                <span class="chip chip--warn"><span class="dot"></span>in arrears · 0 d</span>
+                <span class="chip"><span class="dot"></span>insured</span>
+                <span class="chip chip--body"><span class="dot"></span>healthy</span>
+              </div>
+
+              <div class="hr"></div>
+              <div class="grid2">
+                <div class="stat"><div class="k">personal money</div><div class="v" style="color:var(--money)">₡ 214.40</div><div class="s">wage 04 Mar · ₡ 412.00</div></div>
+                <div class="stat"><div class="k">skills · top</div><div class="v" style="font-size:13px;line-height:1.35">Packing&nbsp;4<br>Endurance&nbsp;3</div><div class="s">+1 packing / 40 shifts</div></div>
+              </div>
+
+              <div class="callout" style="margin-top:12px">
+                <b>Why this reads as "Sims":</b> one screen answers <i>how is she, what does she need, what can she afford</i> — never a table of every global metric.
+              </div>
+            </div>
+
+            <!-- RIGHT: story, traits, ties -->
+            <div class="col">
+              <div class="tabs">
+                <div class="tab tab--on">Traits</div>
+                <div class="tab">Ties</div>
+                <div class="tab">History</div>
+              </div>
+              <div style="margin-top:12px">
+                <div class="tiny dim" style="margin-bottom:8px">Byte-backed trait values, 0–9. <b>Inherited</b> from parents with mutation; a parent's value is shown for comparison.</div>
+                <div class="traitgrid">
+                  <div class="h">trait</div><div class="h right">mira</div><div class="h right" style="padding-left:14px">inherited</div>
+                  <div>Diligence</div><div class="right"><span class="pips"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i></span></div><div class="right mono tiny dim" style="padding-left:14px">6 ← 5</div>
+                  <div>Warmth</div><div class="right"><span class="pips"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span></div><div class="right mono tiny dim" style="padding-left:14px">7 ← 6</div>
+                  <div>Temper</div><div class="right"><span class="pips"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></div><div class="right mono tiny dim" style="padding-left:14px">3 ← 4</div>
+                  <div>Cunning</div><div class="right"><span class="pips"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i></span></div><div class="right mono tiny dim" style="padding-left:14px">4 ← 4</div>
+                  <div>Vitality</div><div class="right"><span class="pips"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span></div><div class="right mono tiny dim" style="padding-left:14px">7 ← 8</div>
+                  <div>Appetite</div><div class="right"><span class="pips"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i></span></div><div class="right mono tiny dim" style="padding-left:14px">5 ← 5</div>
+                </div>
+
+                <div class="hr"></div>
+                <div class="lbl">ties</div>
+                <div style="margin-top:8px" class="rows">
+                  <div class="row" style="grid-template-columns:26px 1fr 62px;padding:7px 0">
+                    <div class="avatar avatar--sm">R</div>
+                    <div><b>Rafe Voss</b> <span class="dim tiny">· partner · same household</span></div>
+                    <div class="right mono tiny" style="color:var(--social)">74</div>
+                  </div>
+                  <div class="row" style="grid-template-columns:26px 1fr 62px;padding:7px 0">
+                    <div class="avatar avatar--sm">W</div>
+                    <div><b>Wren Adeyemi</b> <span class="dim tiny">· friend · at your door</span></div>
+                    <div class="right mono tiny" style="color:var(--social)">61</div>
+                  </div>
+                  <div class="row" style="grid-template-columns:26px 1fr 62px;padding:7px 0">
+                    <div class="avatar avatar--sm">F</div>
+                    <div><b>Fenn Voss</b> <span class="dim tiny">· child · 7 y · ward</span></div>
+                    <div class="right mono tiny" style="color:var(--social)">88</div>
+                  </div>
+                </div>
+
+                <div class="hr"></div>
+                <div class="lbl">last 24 h · person ledger</div>
+                <div class="tiny" style="margin-top:7px;line-height:1.7">
+                  <span class="mono dim">06:40</span> ate porridge · <span class="mono">−₡ 1.10</span><br>
+                  <span class="mono dim">07:40</span> odd job at cannery · <span class="mono" style="color:var(--ok)">+₡ 148.00</span><br>
+                  <span class="mono dim">08:05</span> Wren knocked<br>
+                  <span class="mono dim">08:10</span> walked to Kestrel Row · <b>hunger −6</b>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="caption">
+    <b>M02 — Genos sheet.</b> The answer to "why is my genos doing that?". Every bar carries a <i>cause line</i> in the simulation's own terms (last meal, shift, arrears) so depth is legible rather than hidden. Traits are shown with their <b>inherited</b> value beside the current one — the genetics pillar is visible on the character, not in a separate admin taxonomy. The right column is tabs, not a second window: one focus at a time.
+  </div>
+</div>
+
+<script src="assets/town.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    TownMock.drawTown(document.getElementById('town'), {
+      seed: 20261128, tile: 20, originX: 3, originY: 2, tint: 'rgba(24,22,14,.06)', people: []
+    });
+  });
+</script>
+</body>
+</html>

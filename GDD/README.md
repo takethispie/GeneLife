@@ -43,7 +43,7 @@ game's identity must cite the product owner's ruling.
 | 04 | [Simulation Core](04-simulation-core.md) | Draft | roberto |
 | 05 | [The Player & Control Model](05-player-and-control.md) | Draft | roberto |
 | 06 | [Social & Shared World](06-social-and-shared-world.md) | Outline | roberto |
-| 07 | [UI/UX Design Language & Screens](07-ui-ux.md) | Outline | adriano (co-author) |
+| 07 | [UI/UX Design Language & Screens](07-ui-ux.md) | Draft v0.2 + [mockups](mockups/index.html) | adriano |
 | 08 | [Technical Architecture & Constraints](08-technical-architecture.md) | Outline | tech-leader (co-author) |
 | 09 | [Roadmaps Ahead](09-roadmaps.md) | Outline | tech-leader (co-author) |
 | 10 | [Risks & Open Questions](10-risks-and-open-questions.md) | Outline | roberto |
@@ -72,6 +72,7 @@ server-authoritative town can host for many players at once.
 | Ver | Date | Author | Change |
 |---|---|---|---|
 | 0.1 | 2026-11-28 | roberto | Initial fork: index, vision & pillars, current state, world/space. Chapters 06–10 outlined. |
+| 0.2 | 2026-11-28 | adriano | Chapter 07 written: design language “Civic Paper”, six ratified principles, five interaction models, nine mockups under `GDD/mockups/`, interface→simulation mapping for chapter 08. |
 
 ---
 

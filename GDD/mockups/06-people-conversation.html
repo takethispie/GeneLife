@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GeneLife — M06 People &amp; conversation</title>
+<link rel="stylesheet" href="assets/mockups.css">
+<style>
+  .rail{ position:absolute; left:24px; top:96px; bottom:104px; width:340px; display:flex; flex-direction:column; overflow:hidden; }
+  .conv{ position:absolute; right:24px; top:96px; bottom:104px; width:430px; display:flex; flex-direction:column; overflow:hidden; }
+  .person{ display:grid; grid-template-columns:30px 1fr auto; gap:9px; align-items:center; padding:8px 12px; border-bottom:1px solid var(--line-soft); }
+  .person:last-child{ border-bottom:0; }
+  .person .n{ font:600 12px/1.2 var(--font-ui); }
+  .person .s{ font:400 10px/1.3 var(--font-ui); color:var(--ink-3); margin-top:1px; }
+  .person--on{ background:#FBF3E4; box-shadow:inset 3px 0 0 var(--accent); }
+  .msg{ display:grid; grid-template-columns:1fr; gap:2px; padding:7px 12px; }
+  .msg .who{ font:600 9px/1 var(--font-ui); letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); }
+  .msg .body{ font-size:12px; line-height:1.45; margin-top:3px; }
+  .msg--me .body{ background:#EFE7D4; border-radius:2px; padding:6px 9px; }
+  .msg--them .body{ background:#FBF8F1; border:1px solid var(--line-soft); border-radius:2px; padding:6px 9px; }
+  .sys{ text-align:center; font:500 9.5px/1.4 var(--font-mono); color:var(--ink-3); padding:6px 0; letter-spacing:.05em; }
+  .composer{ border-top:1px solid var(--line); padding:10px 12px; background:#FBF8F1; }
+  .composer .box{ height:34px; border:1px solid var(--line); border-radius:2px; background:var(--paper); display:flex; align-items:center; padding:0 10px; font-size:12px; color:var(--ink-3); }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="stage-title">GeneLife · GDD mockups · <b>M06 — People &amp; conversation</b></div>
+  <div class="frame">
+    <canvas class="bg" id="town"></canvas>
+
+    <!-- world still live behind -->
+    <div class="paper clocks" style="position:absolute;left:50%;top:22px;transform:translateX(-50%);display:flex">
+      <div class="clock"><div class="v">Tue 14 Mar</div><div class="k">Spring · y 12</div></div>
+      <div class="clock"><div class="v">08:19</div><div class="k">town time</div></div>
+    </div>
+
+    <!-- people rail -->
+    <div class="paper rail">
+      <div class="hd"><h3>People near you</h3><span class="right">3 players · 5 residents</span></div>
+      <div style="padding:8px 12px;border-bottom:1px solid var(--line)">
+        <div style="height:28px;border:1px solid var(--line-soft);border-radius:2px;background:var(--paper-2);display:flex;align-items:center;padding:0 8px;font-size:11px;color:var(--ink-3)">Search the town…</div>
+        <div style="display:flex;gap:4px;margin-top:7px">
+          <span class="chip chip--accent" style="height:19px;font-size:8.5px"><span class="dot"></span>here</span>
+          <span class="chip" style="height:19px;font-size:8.5px"><span class="dot"></span>friends</span>
+          <span class="chip" style="height:19px;font-size:8.5px"><span class="dot"></span>players</span>
+        </div>
+      </div>
+
+      <div style="overflow:hidden">
+        <div class="person person--on">
+          <div class="avatar avatar--sm" style="border-color:var(--accent)">W</div>
+          <div><div class="n">Wren Adeyemi <span class="chip chip--social" style="height:15px;font-size:7.5px;padding:0 5px"><span class="dot"></span>player</span></div>
+            <div class="s">at your door · friend 61</div></div>
+          <div class="mono tiny dim">now</div>
+        </div>
+        <div class="person">
+          <div class="avatar avatar--sm" style="border-color:var(--work)">B</div>
+          <div><div class="n">Bram Osei <span class="chip chip--work" style="height:15px;font-size:7.5px;padding:0 5px"><span class="dot"></span>player</span></div>
+            <div class="s">Marro Grocers · works here</div></div>
+          <div class="mono tiny dim">2 m</div>
+        </div>
+        <div class="person">
+          <div class="avatar avatar--sm">S</div>
+          <div><div class="n">Sela Marro</div><div class="s">shopkeeper · resident</div></div>
+          <div class="mono tiny dim">3 m</div>
+        </div>
+        <div class="person">
+          <div class="avatar avatar--sm">R</div>
+          <div><div class="n">Rafe Voss <span class="chip" style="height:15px;font-size:7.5px;padding:0 5px"><span class="dot"></span>household</span></div>
+            <div class="s">at the warehouse · partner</div></div>
+          <div class="mono tiny dim">0.9 km</div>
+        </div>
+        <div class="person">
+          <div class="avatar avatar--sm">I</div>
+          <div><div class="n">Idris Kell <span class="chip chip--social" style="height:15px;font-size:7.5px;padding:0 5px"><span class="dot"></span>player</span></div>
+            <div class="s">Kestrel Row · not met yet</div></div>
+          <div class="mono tiny dim">0.2 km</div>
+        </div>
+      </div>
+
+      <div class="grow"></div>
+      <div style="padding:10px 12px;border-top:1px solid var(--line);background:#FBF8F1">
+        <div class="tiny dim">Players and residents share one world, one list. The chip tells you <i>who is a person</i> — the simulation does not.</div>
+      </div>
+    </div>
+
+    <!-- conversation -->
+    <div class="paper conv">
+      <div class="hd">
+        <div style="display:flex;align-items:center;gap:9px">
+          <div class="avatar avatar--sm" style="border-color:var(--accent)">W</div>
+          <div>
+            <div style="font:600 12.5px/1.2 var(--font-ui)">Wren Adeyemi</div>
+            <div class="tiny dim">player · friend 61 · at your door</div>
+          </div>
+        </div>
+        <div class="btn-row"><button class="btn btn--sm btn--ghost">Invite in</button><button class="btn btn--sm btn--ghost">⋯</button></div>
+      </div>
+
+      <div style="overflow:hidden">
+        <div class="sys">08:14 · Wren arrived at 24 Kestrel Row</div>
+        <div class="msg msg--them"><div class="who">Wren</div><div class="body">heard about the cannery hours. you alright? you look like you haven't eaten.</div></div>
+        <div class="msg msg--me"><div class="who">Mira <span class="dim">· you</span></div><div class="body">rent's tight. i'll sort it.</div></div>
+        <div class="msg msg--them"><div class="who">Wren</div><div class="body">there's a clerk job at Kelder. i can walk you over after your shift.</div></div>
+        <div class="sys">08:18 · Wren offered to introduce you at Kelder Freight</div>
+        <div class="msg msg--them"><div class="who">Wren</div><div class="body">also — Rafe asked me to check on you. that's not me snooping, that's him being him.</div></div>
+      </div>
+
+      <div style="padding:10px 12px;border-top:1px solid var(--line-soft);background:var(--paper-2)">
+        <div class="lbl" style="margin-bottom:7px">conversation can change the simulation</div>
+        <div class="btn-row" style="flex-wrap:wrap">
+          <button class="btn btn--sm">Accept introduction <span class="dim">· +1 opening</span></button>
+          <button class="btn btn--sm btn--ghost">Ask for a loan</button>
+          <button class="btn btn--sm btn--ghost">Propose partnership…</button>
+        </div>
+      </div>
+
+      <div class="grow"></div>
+      <div class="composer">
+        <div class="box">Say something to Wren…</div>
+        <div class="between" style="margin-top:7px">
+          <div class="tiny dim">Enter to send · <span class="mono">/block</span> · <span class="mono">/report</span></div>
+          <button class="btn btn--sm btn--primary">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="hint"><span><span class="kbd">Tab</span> household</span><span><span class="kbd">P</span> people</span><span><span class="kbd">Enter</span> talk</span><span><span class="kbd">Esc</span> close</span></div>
+  </div>
+  <div class="caption">
+    <b>M06 — People &amp; conversation.</b> One list for players and residents, because the whole premise is that other people's lives are as real as yours; the chip marks who is a person behind the keyboard, not who matters. Chat is diegetic (it happens because Wren is at your door) and a conversation can produce <b>intents</b> — an introduction, a loan, a partnership — rather than being a separate chat app bolted onto a game.
+  </div>
+</div>
+<script src="assets/town.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    TownMock.drawTown(document.getElementById('town'), {
+      seed: 20261128, tile: 20, originX: 3, originY: 2, tint: 'rgba(24,22,14,.10)',
+      people: [
+        { x: 33.2, y: 22.0, colour: '#C4532A', focus: true },
+        { x: 34.4, y: 22.6, colour: '#A63A5A', label: 'Wren' },
+        { x: 36.6, y: 21.4, colour: '#2F5D8A' },
+        { x: 41.5, y: 30.2, colour: '#7D8794' }, { x: 22.0, y: 30.6, colour: '#7D8794' }
+      ]
+    });
+  });
+</script>
+</body>
+</html>

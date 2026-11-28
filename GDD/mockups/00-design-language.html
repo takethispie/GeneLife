@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GeneLife — M00 Design language</title>
+<link rel="stylesheet" href="assets/mockups.css">
+<style>
+  body{ background:var(--paper); color:var(--ink); }
+  .doc{ width:1080px; margin:0 auto; padding:56px 0 120px; }
+  .doc h1{ font-family:var(--font-display); font-size:44px; line-height:1.05; letter-spacing:-.02em; margin:0; }
+  .doc h2{ font:600 10px/1 var(--font-ui); letter-spacing:.2em; text-transform:uppercase; color:var(--ink-3); margin:44px 0 14px; padding-top:12px; border-top:1px solid var(--line); }
+  .doc h3{ font-family:var(--font-display); font-size:19px; margin:20px 0 6px; }
+  .doc p, .doc li{ font-size:13.5px; line-height:1.65; color:#2C3542; }
+  .doc p{ margin:8px 0; }
+  .lede{ font-family:var(--font-display); font-size:18px; line-height:1.5; color:#3A4453; }
+  .swatches{ display:grid; grid-template-columns:repeat(6,1fr); gap:1px; background:var(--line); border:1px solid var(--line); }
+  .sw{ background:var(--paper); padding:0; }
+  .sw .c{ height:64px; }
+  .sw .m{ padding:8px 9px; }
+  .sw .n{ font:600 10px/1.3 var(--font-ui); }
+  .sw .h{ font:500 9.5px/1.4 var(--font-mono); color:var(--ink-3); }
+  .two{ display:grid; grid-template-columns:1fr 1fr; gap:22px; }
+  table{ width:100%; border-collapse:collapse; font-size:12px; }
+  th{ text-align:left; font:600 9.5px/1 var(--font-ui); letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3); padding:6px 8px; border-bottom:1px solid var(--line); }
+  td{ padding:7px 8px; border-bottom:1px solid var(--line-soft); vertical-align:top; }
+  .demo{ background:#FBF8F1; border:1px solid var(--line); padding:14px; border-radius:2px; }
+  .demo + .demo{ margin-top:10px; }
+  .axis{ display:flex; align-items:baseline; gap:14px; padding:5px 0; border-bottom:1px dotted var(--line-soft); }
+  .axis .tag{ width:96px; font:600 9px/1 var(--font-mono); color:var(--ink-3); letter-spacing:.06em; }
+  .no{ border-left:3px solid var(--warn); padding:6px 0 6px 12px; }
+  .yes{ border-left:3px solid var(--ok); padding:6px 0 6px 12px; }
+</style>
+</head>
+<body>
+<div class="doc">
+  <div class="lbl">GeneLife · GDD chapter 07 · companion sheet</div>
+  <h1>“Civic Paper”</h1>
+  <p class="lede">The design language for the desktop client. Warm paper chrome over a saturated, living town;
+     a serif for the record, a mono for the money, and one accent reserved for the player's own intent.
+     It exists to be the opposite of the prototype's neon-slate web HUD — not a restyle of it.</p>
+
+  <h2>1 · Why this language</h2>
+  <div class="two">
+    <div>
+      <h3>The problem with the prototype HUD</h3>
+      <p>The PixiJS client's HUD is <span class="mono tiny">rgba(12,18,24,.82)</span> panels in cyan-on-slate, system-ui at 13&nbsp;px.
+         It was built to prove the model, and it reads as a <i>debug overlay that grew</i>: one dark rectangle per subsystem, all equal weight,
+         competing with the map instead of framing it.</p>
+      <p>Its palette is also the same temperature as the night-time town, so panels dissolve into the world and the player must squint at both.</p>
+    </div>
+    <div>
+      <h3>What the desktop client needs</h3>
+      <p>A game whose depth is the point needs chrome that reads like <b>records</b>: ledgers, certificates, tenancy papers, school letters.
+         Warm paper separates chrome from the town by <i>temperature</i> rather than by shadow, stays legible over grass, brick and dusk,
+         and makes numbers feel accountable — which is exactly the promise of a conserved, ledgered economy.</p>
+      <p>It also gives every surface a print-like calm that a notification-driven game desperately needs.</p>
+    </div>
+  </div>
+
+  <h2>2 · Principles (ratifying §7.1)</h2>
+  <table>
+    <tr><th style="width:26%">Principle</th><th>Ruling</th></tr>
+    <tr><td><b>Legible depth</b></td><td>Keep. Every bar or number carries a <i>cause line</i> in the simulation's own words ("last meal 11 h ago", "rent lands before the second wage"). Depth is shown, never summarised away.</td></tr>
+    <tr><td><b>Person-first</b></td><td>Keep, and strengthen: the default view is <i>your</i> life. Global metrics never appear in the play surface — they belong to the observer/admin surfaces that already exist.</td></tr>
+    <tr><td><b>Desktop-native</b></td><td>Keep. 1440×900 reference frame, mouse + keyboard, min 1280×720. No responsive reflow; panels may dock, hide or float, never stack like a phone.</td></tr>
+    <tr><td><b>Diegetic where possible</b></td><td>Keep. Interiors, markets and jobs are <i>places</i>. A screen that could be a place should be a place.</td></tr>
+    <tr><td><b>Quiet by default</b></td><td>Keep, and make structural: one <b>Town bell</b> digest per session, no pop-ups over the world, no toasts, no modal interrupts. Anything urgent is also a place you can walk to.</td></tr>
+    <tr><td><b>New: one accent</b></td><td>The player's own intent is the only thing that may use terracotta. Everything else is information. If the screen looks urgent, the player should be the reason.</td></tr>
+  </table>
+
+  <h2>3 · Colour</h2>
+  <p>Three neutrals, four life-domain colours, one action colour. Domain colours are <b>semantic</b> — they may never be used decoratively,
+     and they are always paired with a word, never colour alone.</p>
+  <div class="swatches">
+    <div class="sw"><div class="c" style="background:#F5F1E8"></div><div class="m"><div class="n">Paper</div><div class="h">#F5F1E8 · chrome</div></div></div>
+    <div class="sw"><div class="c" style="background:#EDE7D9"></div><div class="m"><div class="n">Paper 2</div><div class="h">#EDE7D9 · recessed</div></div></div>
+    <div class="sw"><div class="c" style="background:#1B2430"></div><div class="m"><div class="n">Ink</div><div class="h">#1B2430 · text</div></div></div>
+    <div class="sw"><div class="c" style="background:#7D8794"></div><div class="m"><div class="n">Ink 3</div><div class="h">#7D8794 · labels</div></div></div>
+    <div class="sw"><div class="c" style="background:#CFC5AF"></div><div class="m"><div class="n">Line</div><div class="h">#CFC5AF · hairline</div></div></div>
+    <div class="sw"><div class="c" style="background:#151A1C"></div><div class="m"><div class="n">Surround</div><div class="h">#151A1C · frame</div></div></div>
+    <div class="sw"><div class="c" style="background:#C4532A"></div><div class="m"><div class="n">Accent · intent</div><div class="h">#C4532A</div></div></div>
+    <div class="sw"><div class="c" style="background:#B8862B"></div><div class="m"><div class="n">Money</div><div class="h">#B8862B</div></div></div>
+    <div class="sw"><div class="c" style="background:#2E6E5B"></div><div class="m"><div class="n">Body · needs</div><div class="h">#2E6E5B</div></div></div>
+    <div class="sw"><div class="c" style="background:#2F5D8A"></div><div class="m"><div class="n">Work</div><div class="h">#2F5D8A</div></div></div>
+    <div class="sw"><div class="c" style="background:#A63A5A"></div><div class="m"><div class="n">Social</div><div class="h">#A63A5A</div></div></div>
+    <div class="sw"><div class="c" style="background:#5B4B8A"></div><div class="m"><div class="n">Legacy</div><div class="h">#5B4B8A</div></div></div>
+  </div>
+  <p style="margin-top:12px"><b>Rules.</b> (1) Accent = the player's intent or the player's genos, nothing else. (2) A domain colour never exceeds ~8&nbsp;% of a surface.
+     (3) Money is always <span class="mono">#B8862B</span>, including negative money in warnings — the sign, not the hue, carries direction.
+     (4) Night interiors move the chrome toward <span class="mono">#EDE7D9</span>; the language has a dusk variant, not a "dark mode" theme.</p>
+
+  <h2>4 · Type</h2>
+  <div class="demo">
+    <div class="axis"><span class="tag">DISPLAY / 26–44</span><span style="font-family:var(--font-display);font-size:28px">The Voss household</span></div>
+    <div class="axis"><span class="tag">TITLE / 13–20</span><span style="font-family:var(--font-display);font-size:17px">Employment &amp; career</span></div>
+    <div class="axis"><span class="tag">UI / 11.5–12</span><span style="font-size:12.5px">Wren offered to introduce you at Kelder Freight</span></div>
+    <div class="axis"><span class="tag">LABEL / 9–10</span><span class="lbl">household money</span></div>
+    <div class="axis"><span class="tag">FIGURE / 10–22</span><span class="mono" style="font-size:14px">₡ 1 284.40 · 08:12 · 61</span></div>
+  </div>
+  <p><b>Serif for the record, mono for the figure, sans for the interface.</b> Serif is reserved for names, places and chapter titles — the things the town
+     would have written down. Mono is used for every quantity, so digits align in columns without a grid. Tabular figures are mandatory: a balance that
+     reflows when it changes is a balance the player cannot trust.</p>
+
+  <h2>5 · Space, geometry, elevation</h2>
+  <div class="two">
+    <div>
+      <p><b>8&nbsp;px base unit.</b> Spacing is 4, 8, 12, 16, 24, 32 — nothing else. Panel padding is 12 or 14; gutters are 10.</p>
+      <p><b>Corners are nearly square</b> (2–4&nbsp;px). Paper does not have pills. Fully round shapes are reserved for people (portraits, genos dots)
+         and for the intent dial, so roundness means <i>a life</i>.</p>
+      <p><b>One hairline, one shadow.</b> Every surface is separated by a 1&nbsp;px line at <span class="mono">#CFC5AF</span>; floating surfaces get
+         a single soft shadow. No inner glows, no double borders, no bevels.</p>
+    </div>
+    <div class="demo">
+      <div style="display:flex;gap:10px;align-items:flex-end">
+        <div style="width:40px;height:40px;background:#fff;border:1px solid var(--line);border-radius:2px"></div>
+        <div style="width:40px;height:40px;background:#fff;border:1px solid var(--line);border-radius:4px;box-shadow:var(--shadow)"></div>
+        <div style="width:40px;height:40px;border-radius:50%;background:var(--paper-2);border:1px solid var(--line)"></div>
+        <div style="height:24px;width:120px;background:var(--paper-3);border-radius:1px;position:relative"><div style="position:absolute;left:0;top:0;bottom:0;width:64%;background:var(--body)"></div></div>
+      </div>
+      <div class="tiny dim" style="margin-top:10px">square surface · floating surface · life (round) · measure</div>
+    </div>
+  </div>
+
+  <h2>6 · Components</h2>
+  <div class="demo">
+    <div class="flex" style="gap:8px;flex-wrap:wrap">
+      <button class="btn btn--primary">Be born</button>
+      <button class="btn">Apply</button>
+      <button class="btn btn--ghost">Follow</button>
+      <button class="btn btn--danger">Quit…</button>
+      <span class="chip chip--accent"><span class="dot"></span>hungry</span>
+      <span class="chip chip--work"><span class="dot"></span>employed</span>
+      <span class="chip chip--warn"><span class="dot"></span>in arrears</span>
+      <span class="kbd">E</span>
+    </div>
+    <div class="hr"></div>
+    <div class="rows">
+      <div class="row row--head" style="grid-template-columns:1fr 80px 80px"><span>entry</span><span class="r">amount</span><span class="r">balance</span></div>
+      <div class="row" style="grid-template-columns:1fr 80px 80px"><span>Shift · Vell &amp; Sons</span><span class="r mono">+82.40</span><span class="r mono">296.80</span></div>
+      <div class="row row--sel" style="grid-template-columns:1fr 80px 80px"><span>Groceries · Marro</span><span class="r mono">−40.25</span><span class="r mono">256.55</span></div>
+    </div>
+    <div class="tiny dim" style="margin-top:8px">Ledger rows are the universal list: selection is a 3&nbsp;px accent rule, never a fill.</div>
+  </div>
+  <p><b>Buttons state a consequence, not a mood.</b> "Pay at the till · ₡ 40.25" beats "Confirm". Disabled affordances are never silently disabled —
+     they explain themselves ("needs a store", "requires Endurance 5 · you: 3 ✗") and offer the route to becoming available.</p>
+
+  <h2>7 · Motion</h2>
+  <table>
+    <tr><th style="width:22%">Duration</th><th>Use</th></tr>
+    <tr><td class="mono">120 ms</td><td>Hover, selection, chip state. Ease-out.</td></tr>
+    <tr><td class="mono">180 ms</td><td>Panel enter/exit, tab change, dial open. Ease-out, opacity + 6&nbsp;px offset.</td></tr>
+    <tr><td class="mono">240 ms</td><td>Mode change (world → interior), heir confirmation.</td></tr>
+    <tr><td class="mono">0 ms</td><td>Anything under <span class="mono">prefers-reduced-motion</span>. No bounce, no spring, no parallax — ever.</td></tr>
+  </table>
+  <p>The camera, not the chrome, carries the motion. Panels fade in place; the world moves. A simulation that ticks 25 times a second must never have chrome
+     that also twitches.</p>
+
+  <h2>8 · Iconography</h2>
+  <p>1.5&nbsp;px strokes on a 20&nbsp;px grid, drawn from the world's own objects (a door, a coin, a loaf) rather than generic UI glyphs. Icons are
+     <b>optional</b>: any icon that needs a label to be understood gets the label. Domain icons inherit the domain colour; nothing else is coloured.</p>
+
+  <h2>9 · Accessibility &amp; input</h2>
+  <table>
+    <tr><th style="width:26%">Requirement</th><th>Rule</th></tr>
+    <tr><td>Contrast</td><td>Body text ≥ 7:1 on paper; labels ≥ 4.5:1. Never grey-on-grey for anything the player must read.</td></tr>
+    <tr><td>Colour independence</td><td>Every domain colour appears with its word ("work", "social"). Needs carry a numeric value and a direction word.</td></tr>
+    <tr><td>Targets</td><td>≥ 32&nbsp;px for mouse, ≥ 44&nbsp;px on any touch-capable build; the intent dial's items are 132×34 with 8&nbsp;px gaps.</td></tr>
+    <tr><td>Focus</td><td>2&nbsp;px ink outline, 2&nbsp;px offset, on every focusable thing. The world canvas is focusable and documents its keys.</td></tr>
+    <tr><td>Keyboard map</td><td><span class="kbd">WASD</span>/<span class="kbd">↑↓←→</span> move · <span class="kbd">RMB</span> intend · <span class="kbd">E</span> interact · <span class="kbd">Tab</span> household · <span class="kbd">M</span> map · <span class="kbd">B</span> bell · <span class="kbd">Space</span> pause · <span class="kbd">Esc</span> back. Every dial verb has a chord.</td></tr>
+    <tr><td>Scaling</td><td>UI scale 100/125/150&nbsp;% independent of world zoom; the day ribbon reflows, panels dock.</td></tr>
+    <tr><td>Reading</td><td>All money and dates are also plain text in the journal export — the game is playable from its record if the chrome is lost.</td></tr>
+  </table>
+
+  <h2>10 · Anti-patterns (binding)</h2>
+  <div class="no"><b>No web-HUD port.</b> No dark translucent rectangles with a cyan accent, no DOM panel per subsystem, no debug overlay as the default view.</div>
+  <div class="no"><b>No admin dashboard in play.</b> Gini, vacancy, tick time and population belong to the observer surfaces. The player sees their life.</div>
+  <div class="no"><b>No number tables as a substitute for a place.</b> If it can be a shelf, a letter or a room, it is not a table.</div>
+  <div class="no"><b>No notification floods.</b> Nothing appears over the world except the bell's count. No toasts. No "achievement" chrome.</div>
+  <div class="no"><b>No unexplained state.</b> A bar without a cause line, a disabled button without a reason, or a cost revealed after commitment are all defects.</div>
+  <div class="no"><b>No decorative colour.</b> A rose-tinted header that means nothing is a lie about the social domain.</div>
+
+  <div class="hr" style="margin-top:34px"></div>
+  <p class="tiny dim">Adriano · chapter 07 companion · mockups in this folder are self-contained HTML (open any file directly) and are drawn for a 1440×900 desktop frame.
+     The town and interior renders are procedural mockup renderers, not the Godot client.</p>
+</div>
+</body>
+</html>

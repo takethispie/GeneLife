@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GeneLife — M03 Household &amp; lineage</title>
+<link rel="stylesheet" href="assets/mockups.css">
+<style>
+  .househead{ display:flex; align-items:flex-end; justify-content:space-between; gap:20px; padding:18px 20px; border-bottom:1px solid var(--line); background:#FBF8F1; }
+  .kpi{ display:flex; gap:26px; }
+  .kpi .k{ font:600 8.5px/1 var(--font-ui); letter-spacing:.15em; text-transform:uppercase; color:var(--ink-3); }
+  .kpi .v{ font:600 16px/1.15 var(--font-mono); margin-top:5px; }
+  .mate{ display:grid; grid-template-columns:38px 1fr 92px 84px; gap:10px; align-items:center; padding:10px 14px; border-bottom:1px solid var(--line-soft); }
+  .mate:last-child{ border-bottom:0; }
+  .mate .role{ font:600 9px/1 var(--font-ui); letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3); }
+  .budgetline{ display:grid; grid-template-columns:1fr 92px; gap:8px; padding:4px 0; font-size:11.5px; border-bottom:1px dotted var(--line-soft); }
+  .budgetline:last-child{ border-bottom:0; }
+  .tree2{ display:flex; flex-direction:column; }
+  .geng{ display:flex; gap:10px; align-items:stretch; }
+  .geng .lab{ width:44px; flex:0 0 44px; font:600 8px/1.4 var(--font-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); padding-top:9px; text-align:right; }
+  .geng .cells{ display:flex; gap:8px; flex:1; min-width:0; }
+  .n2{ position:relative; flex:1; min-width:0; padding:7px 9px; background:#FBF8F1; border:1px solid var(--line); border-radius:2px; }
+  .n2 .n{ font:600 11.5px/1.2 var(--font-ui); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-right:26px; }
+  .n2 .y{ font:500 9.5px/1.4 var(--font-mono); color:var(--ink-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .n2.dead{ opacity:.55; border-style:dashed; }
+  .n2.me{ border-color:var(--accent); background:#FFF6EC; box-shadow:0 0 0 2px rgba(196,83,42,.12); }
+  .n2.ghost{ border-style:dotted; background:transparent; }
+  .n2 .badge{ position:absolute; right:6px; top:7px; font:600 7.5px/1 var(--font-ui); letter-spacing:.1em; color:var(--accent); }
+  .conn{ height:14px; margin-left:54px; position:relative; }
+  .conn i{ position:absolute; left:50%; top:0; bottom:0; width:1px; background:var(--line); }
+  .join{ margin:10px 0 0 54px; padding-top:8px; border-top:1px dashed var(--line-soft); }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="stage-title">GeneLife · GDD mockups · <b>M03 — Household &amp; lineage</b></div>
+  <div class="frame">
+    <canvas class="bg" id="town"></canvas>
+    <div class="backdrop"></div>
+
+    <div class="sheetbig" style="position:absolute;inset:0;display:grid;place-items:center">
+      <div class="paper modal" style="width:1180px;height:760px">
+        <div class="househead">
+          <div>
+            <div class="lbl">household</div>
+            <div class="display" style="font-size:28px;margin-top:4px">The Voss household</div>
+            <div class="small dim" style="margin-top:3px">24 Kestrel Row · rented from Adeyemi Lettings · tenancy 6 y 2 m</div>
+          </div>
+          <div class="kpi">
+            <div><div class="k">shared money</div><div class="v" style="color:var(--money)">₡ 1 284.40</div></div>
+            <div><div class="k">rent / week</div><div class="v">₡ 96.00</div></div>
+            <div><div class="k">utilities</div><div class="v" style="color:var(--warn)">₡ 31.85 due</div></div>
+            <div><div class="k">members</div><div class="v">3 · 1 ward</div></div>
+          </div>
+        </div>
+
+        <div class="bd">
+          <div style="display:grid;grid-template-columns:1.55fr 1fr;height:100%">
+            <!-- household -->
+            <div style="padding:14px 18px;overflow:hidden">
+              <div class="between">
+                <div class="lbl">who lives here</div>
+                <div class="btn-row"><button class="btn btn--sm">Move someone in…</button><button class="btn btn--sm btn--ghost">Set allowances</button></div>
+              </div>
+              <div class="paper" style="margin-top:10px;box-shadow:none">
+                <div class="mate">
+                  <div class="avatar" style="border-color:var(--accent)">M</div>
+                  <div><div style="font-size:12.5px"><b>Mira Voss</b> <span class="chip chip--accent" style="height:17px;font-size:8.5px;margin-left:4px"><span class="dot"></span>you</span></div>
+                    <div class="tiny dim" style="margin-top:2px">packer · ₡ 412.00 / wk · contributes 70 %</div></div>
+                  <div><div class="role">mood</div><div class="mono tiny" style="margin-top:3px">strained</div></div>
+                  <div><div class="role">next</div><div class="mono tiny" style="margin-top:3px">shift 09:00</div></div>
+                </div>
+                <div class="mate">
+                  <div class="avatar">R</div>
+                  <div><div style="font-size:12.5px"><b>Rafe Voss</b> <span class="dim tiny">· partner</span></div>
+                    <div class="tiny dim" style="margin-top:2px">warehouse clerk · ₡ 388.00 / wk · contributes 100 %</div></div>
+                  <div><div class="role">mood</div><div class="mono tiny" style="margin-top:3px">steady</div></div>
+                  <div><div class="role">next</div><div class="mono tiny" style="margin-top:3px">home 18:20</div></div>
+                </div>
+                <div class="mate">
+                  <div class="avatar">F</div>
+                  <div><div style="font-size:12.5px"><b>Fenn Voss</b> <span class="dim tiny">· child, 7</span></div>
+                    <div class="tiny dim" style="margin-top:2px">ward · school starts in 2 d · no income</div></div>
+                  <div><div class="role">mood</div><div class="mono tiny" style="margin-top:3px">bright</div></div>
+                  <div><div class="role">next</div><div class="mono tiny" style="margin-top:3px">school 08:30</div></div>
+                </div>
+              </div>
+
+              <div class="grid2" style="margin-top:14px">
+                <div class="paper" style="box-shadow:none">
+                  <div class="hd"><h3>Weekly budget</h3><span class="right">week 11</span></div>
+                  <div class="bd" style="padding:10px 12px">
+                    <div class="budgetline"><span>Wages in <span class="dim tiny">(2 earners)</span></span><span class="right mono" style="color:var(--ok)">+800.00</span></div>
+                    <div class="budgetline"><span>Rent</span><span class="right mono">−96.00</span></div>
+                    <div class="budgetline"><span>Utilities <span class="dim tiny">· water 12.40 / power 19.45</span></span><span class="right mono">−31.85</span></div>
+                    <div class="budgetline"><span>Groceries <span class="dim tiny">· 14 baskets</span></span><span class="right mono">−214.60</span></div>
+                    <div class="budgetline"><span>School &amp; fares</span><span class="right mono">−58.00</span></div>
+                    <div class="hr" style="margin:8px 0"></div>
+                    <div class="budgetline" style="border:0"><b>Left this week</b><span class="right mono" style="color:var(--money)"><b>+399.55</b></span></div>
+                    <div class="callout" style="margin-top:9px;border-color:var(--warn);background:#FBF0E7">
+                      Next week is <b>₡ 61.00 short</b> if Mira keeps missing shifts — the ledger is projected, not guessed.
+                    </div>
+                  </div>
+                </div>
+
+                <div class="paper" style="box-shadow:none">
+                  <div class="hd"><h3>The house</h3><span class="right">2 rooms · 41 m²</span></div>
+                  <div style="height:96px;background:
+                      linear-gradient(180deg,#3B4A3C,#2C3A2E);position:relative;overflow:hidden">
+                    <div style="position:absolute;left:16px;top:14px;right:76px;bottom:14px;background:#7A5B3C;border:3px solid #E8DCC0"></div>
+                    <div style="position:absolute;right:34px;top:22px;width:34px;height:44px;background:#7A5B3C;border:3px solid #E8DCC0"></div>
+                    <div style="position:absolute;left:26px;top:28px;width:52px;height:22px;background:#C9B79A"></div>
+                    <div style="position:absolute;left:74px;top:44px;width:34px;height:18px;background:#B8A283"></div>
+                    <div style="position:absolute;right:8px;bottom:6px;font:600 8.5px/1 var(--font-mono);color:#CBD6C7;letter-spacing:.08em">CUTAWAY · IN</div>
+                  </div>
+                  <div class="bd" style="padding:10px 12px">
+                    <div class="budgetline"><span>Condition</span><span class="right mono" style="color:var(--ok)">fair</span></div>
+                    <div class="budgetline"><span>Overcrowding</span><span class="right mono">none</span></div>
+                    <div class="budgetline" style="border:0"><span>Water / power</span><span class="right mono">on · no outages</span></div>
+                    <div class="btn-row" style="margin-top:10px"><button class="btn btn--sm btn--ghost">Enter house</button><button class="btn btn--sm btn--ghost">Pay arrears</button></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="paper" style="box-shadow:none;margin-top:14px">
+                <div class="hd"><h3>Pantry &amp; shared stock</h3><span class="right">14 baskets · 3.2 days</span></div>
+                <div class="bd" style="padding:10px 12px">
+                  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+                    <div><div class="tiny dim">Flour</div><div class="mono small">2.4 kg</div><div class="meter meter--money" style="margin-top:4px"><i style="width:62%"></i></div></div>
+                    <div><div class="tiny dim">Eggs</div><div class="mono small">6 left</div><div class="meter meter--money" style="margin-top:4px"><i style="width:24%"></i></div></div>
+                    <div><div class="tiny dim">Tinned fish</div><div class="mono small">9 tins</div><div class="meter meter--money" style="margin-top:4px"><i style="width:78%"></i></div></div>
+                  </div>
+                  <div class="tiny dim" style="margin-top:9px">Stock is a <b>household</b> resource, not a personal one: any member may eat from it, and the ledger records who did.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- lineage -->
+            <div style="border-left:1px solid var(--line);background:#FBF8F1;padding:14px 16px;position:relative;overflow:hidden">
+              <div class="between">
+                <div class="lbl">lineage</div>
+                <div class="tiny dim mono">3 generations · 9 known</div>
+              </div>
+
+              <div class="tree2" style="margin-top:14px">
+                <div class="geng"><div class="lab">gen −2</div><div class="cells">
+                  <div class="n2 dead"><div class="n">Ada Voss</div><div class="y">1868 – 1948</div></div>
+                  <div class="n2 dead"><div class="n">Tam Voss</div><div class="y">1864 – 1936</div></div>
+                </div></div>
+                <div class="conn"><i></i></div>
+                <div class="geng"><div class="lab">gen −1</div><div class="cells">
+                  <div class="n2"><div class="n">Ada II Voss</div><div class="y">b. 1872 · mother</div></div>
+                  <div class="n2 dead"><div class="n">Hal Voss</div><div class="y">1869 – 1901</div></div>
+                </div></div>
+                <div class="conn"><i></i></div>
+                <div class="geng"><div class="lab">you</div><div class="cells">
+                  <div class="n2 me"><div class="n">Mira Voss</div><div class="y">b. 1904 · playing</div><div class="badge">YOU</div></div>
+                  <div class="n2"><div class="n">Nell Voss</div><div class="y">b. 1900 · sister</div><div class="y">emigrated</div></div>
+                </div></div>
+                <div class="conn"><i></i></div>
+                <div class="geng"><div class="lab">gen +1</div><div class="cells">
+                  <div class="n2"><div class="n">Fenn Voss</div><div class="y">b. 1918 · child</div></div>
+                  <div class="n2 ghost"><div class="n">—</div><div class="y">no other children</div></div>
+                </div></div>
+                <div class="join"><span class="tiny dim">partnered with</span> <b class="small">Rafe Voss</b> <span class="tiny dim">· widowed 1901 · remarried 1902</span></div>
+              </div>
+
+              <div class="hr"></div>
+              <div class="tiny dim">Nodes are clickable; the sheet never hides a dead relative, it fades them. Inheritance edges (Parent / Guardian / Ward) are drawn as solid lines; partnerships as the horizontal join above.</div>
+
+              <div class="paper" style="margin-top:12px;box-shadow:none">
+                <div class="hd"><h3>Continuity</h3><span class="right">on death</span></div>
+                <div class="bd" style="padding:10px 12px">
+                  <div class="small">If Mira dies, play continues as <b>Fenn</b> (ward) or <b>Nell</b> (sibling, abroad). Estate splits by relationship weight, minors held in trust until 16.</div>
+                  <div class="btn-row" style="margin-top:9px"><button class="btn btn--sm btn--primary">Designate heir</button><button class="btn btn--sm btn--ghost">Review estate</button></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="caption">
+    <b>M03 — Household &amp; lineage.</b> The Sims' household, but inside a society: who lives here, who earns, who is a ward, what the week actually costs, and what happens to the family when the player's genos dies. Lineage is a recorded document (faded, not hidden, for the dead) and the <b>heir</b> is chosen here — the continuity rule from §5.5 has a home in the UI rather than a dialog on death.
+  </div>
+</div>
+
+<script src="assets/town.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    TownMock.drawTown(document.getElementById('town'), { seed: 20261128, tile: 20, originX: 3, originY: 2, people: [] });
+  });
+</script>
+</body>
+</html>

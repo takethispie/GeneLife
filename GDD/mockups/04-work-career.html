@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GeneLife — M04 Work &amp; career</title>
+<link rel="stylesheet" href="assets/mockups.css">
+<style>
+  .ladder{ display:flex; flex-direction:column; gap:0; }
+  .rung{ display:grid; grid-template-columns:24px 1fr auto; gap:10px; align-items:center; padding:9px 0; border-bottom:1px solid var(--line-soft); position:relative; }
+  .rung:last-child{ border-bottom:0; }
+  .rung .pin{ width:11px; height:11px; border-radius:50%; border:2px solid var(--ink-3); margin-left:5px; background:var(--paper); }
+  .rung--on .pin{ background:var(--work); border-color:var(--work); box-shadow:0 0 0 4px rgba(47,93,138,.15); }
+  .rung--lock{ opacity:.55; }
+  .rung .t{ font:600 12px/1.25 var(--font-ui); }
+  .rung .s{ font:400 10px/1.35 var(--font-ui); color:var(--ink-3); margin-top:2px; }
+  .job{ padding:11px 12px; border-bottom:1px solid var(--line-soft); display:grid; grid-template-columns:1fr auto; gap:8px; }
+  .job:last-child{ border-bottom:0; }
+  .job .t{ font:600 12.5px/1.25 var(--font-ui); }
+  .job .s{ font:400 10.5px/1.4 var(--font-ui); color:var(--ink-2); margin-top:3px; }
+  .job .fit{ font:600 8.5px/1 var(--font-ui); letter-spacing:.12em; text-transform:uppercase; padding:4px 6px; border-radius:2px; }
+  .fit--good{ background:#EAF3ED; color:var(--ok); border:1px solid #C7E0D2; }
+  .fit--ok{ background:#F7F1E2; color:var(--money); border:1px solid #E4D6B4; }
+  .fit--bad{ background:#F8ECE6; color:var(--warn); border:1px solid #E7CDBE; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="stage-title">GeneLife · GDD mockups · <b>M04 — Work &amp; career</b></div>
+  <div class="frame">
+    <canvas class="bg" id="town"></canvas>
+    <div class="backdrop"></div>
+    <div style="position:absolute;inset:0;display:grid;place-items:center">
+      <div class="paper modal" style="width:1160px;height:720px">
+        <div class="hd" style="padding:14px 18px">
+          <div>
+            <div class="lbl">work</div>
+            <div class="display" style="font-size:23px;margin-top:3px">Employment &amp; career</div>
+          </div>
+          <div class="flex" style="gap:14px">
+            <div class="right"><div class="lbl">weekly wage</div><div class="mono" style="font-size:15px;color:var(--money);margin-top:3px">₡ 412.00</div></div>
+            <div class="right"><div class="lbl">reliability</div><div class="mono" style="font-size:15px;margin-top:3px">0.94</div></div>
+            <button class="btn btn--sm">×</button>
+          </div>
+        </div>
+
+        <div class="bd">
+          <div style="display:grid;grid-template-columns:1.25fr 1fr;height:100%">
+            <!-- current job -->
+            <div style="padding:14px 18px">
+              <div class="paper" style="box-shadow:none;border-color:#C6D3DF;background:#F7FAFC">
+                <div class="bd" style="padding:14px">
+                  <div class="between">
+                    <div>
+                      <div class="chip chip--work" style="margin-bottom:8px"><span class="dot"></span>employed · 4 y 1 m</div>
+                      <div class="display" style="font-size:20px">Packer</div>
+                      <div class="small dim" style="margin-top:2px">Vell &amp; Sons Cannery · 3 stops east · 12 min walk</div>
+                    </div>
+                    <div class="right">
+                      <div class="lbl">next shift</div>
+                      <div class="mono" style="font-size:14px;margin-top:4px">Tue 09:00–17:00</div>
+                      <div class="tiny dim" style="margin-top:2px">in 1 h 12 m</div>
+                    </div>
+                  </div>
+                  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px">
+                    <div class="stat" style="background:#fff"><div class="k">shift pay</div><div class="v" style="font-size:14px">₡ 82.40</div><div class="s">8 h × 10.30</div></div>
+                    <div class="stat" style="background:#fff"><div class="k">tax</div><div class="v" style="font-size:14px">−₡ 6.18</div><div class="s">7.5 % band</div></div>
+                    <div class="stat" style="background:#fff"><div class="k">pension</div><div class="v" style="font-size:14px">−₡ 2.47</div><div class="s">accrues</div></div>
+                    <div class="stat" style="background:#fff"><div class="k">net</div><div class="v" style="font-size:14px;color:var(--ok)">₡ 73.75</div><div class="s">paid at end of shift</div></div>
+                  </div>
+                  <div class="btn-row" style="margin-top:12px">
+                    <button class="btn btn--sm btn--primary">Go to shift</button>
+                    <button class="btn btn--sm btn--ghost">Ask for overtime</button>
+                    <button class="btn btn--sm btn--ghost">Request leave</button>
+                    <button class="btn btn--sm btn--danger">Quit…</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="between" style="margin-top:16px">
+                <div class="lbl">career ladder · cannery</div>
+                <div class="tiny dim">promotion is decided by the simulation, not a menu</div>
+              </div>
+              <div class="ladder" style="margin-top:6px">
+                <div class="rung rung--lock"><div class="pin"></div><div><div class="t">Line supervisor</div><div class="s">needs Packing 6 · Diligence 6 · 2 vacancies this year</div></div><div class="mono tiny dim">−2 skill</div></div>
+                <div class="rung rung--lock"><div class="pin"></div><div><div class="t">Shift lead</div><div class="s">needs Packing 5 · reliability 0.9</div></div><div class="mono tiny dim">−1 skill</div></div>
+                <div class="rung rung--on"><div class="pin"></div><div><div class="t">Packer <span class="chip chip--work" style="height:17px;font-size:8.5px;margin-left:6px"><span class="dot"></span>now</span></div><div class="s">Packing 4 · Endurance 3 · paid 10.30/h</div></div><div class="mono tiny dim">0</div></div>
+                <div class="rung"><div class="pin"></div><div><div class="t">Sorter</div><div class="s">no requirement · paid 8.90/h</div></div><div class="mono tiny dim">−1 rank</div></div>
+              </div>
+              <div class="callout" style="margin-top:12px">
+                Promotions are granted by the employer's own rules (skill, reliability, vacancies). The UI shows the <i>gate</i>, so the rung is a goal, not a lottery.
+              </div>
+            </div>
+
+            <!-- board -->
+            <div style="border-left:1px solid var(--line);background:#FBF8F1;padding:14px 16px;overflow:hidden">
+              <div class="between">
+                <div class="lbl">openings near you</div>
+                <div class="tiny mono dim">7 in 2 km</div>
+              </div>
+              <div class="panel" style="margin-top:8px;border:1px solid var(--line);border-radius:2px;background:var(--paper)">
+                <div class="job">
+                  <div>
+                    <div class="t">Warehouse clerk <span class="mono tiny dim">· 0.8 km</span></div>
+                    <div class="s">Kelder Freight · 11.40/h · 6 h days · starts Mon</div>
+                    <div class="tiny" style="margin-top:5px;color:var(--work)">requires Literacy 3 · you: 4 ✓</div>
+                  </div>
+                  <div style="text-align:right">
+                    <div class="fit fit--good">good fit</div>
+                    <button class="btn btn--sm" style="margin-top:7px">Apply</button>
+                  </div>
+                </div>
+                <div class="job">
+                  <div>
+                    <div class="t">Shop assistant <span class="mono tiny dim">· 0.4 km</span></div>
+                    <div class="s">Marro Grocers · 9.60/h · split shifts · 2 slots</div>
+                    <div class="tiny" style="margin-top:5px;color:var(--work)">requires Warmth 5 · you: 7 ✓</div>
+                  </div>
+                  <div style="text-align:right">
+                    <div class="fit fit--good">good fit</div>
+                    <button class="btn btn--sm">Apply</button>
+                  </div>
+                </div>
+                <div class="job">
+                  <div>
+                    <div class="t">Night watch <span class="mono tiny dim">· 2.9 km</span></div>
+                    <div class="s">Civic Works · 12.10/h · nights · fatigue risk</div>
+                    <div class="tiny" style="margin-top:5px;color:var(--warn)">requires Endurance 5 · you: 3 ✗</div>
+                  </div>
+                  <div style="text-align:right">
+                    <div class="fit fit--bad">not eligible</div>
+                    <button class="btn btn--sm btn--ghost" style="margin-top:7px">Train…</button>
+                  </div>
+                </div>
+                <div class="job">
+                  <div>
+                    <div class="t">School aide <span class="mono tiny dim">· 1.1 km</span></div>
+                    <div class="s">Northgate Primary · 8.20/h · term time only</div>
+                    <div class="tiny" style="margin-top:5px;color:var(--money)">widens school access for Fenn</div>
+                  </div>
+                  <div style="text-align:right">
+                    <div class="fit fit--ok">fair fit</div>
+                    <button class="btn btn--sm">Apply</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="hr"></div>
+              <div class="lbl">applications</div>
+              <div class="rows" style="margin-top:6px">
+                <div class="row" style="grid-template-columns:1fr 96px;padding:6px 0">
+                  <div class="small">Marro Grocers · assistant</div>
+                  <div class="right tiny mono" style="color:var(--money)">waiting · 2 d</div>
+                </div>
+                <div class="row" style="grid-template-columns:1fr 96px;padding:6px 0;border:0">
+                  <div class="small">Vell cannery · shift lead</div>
+                  <div class="right tiny mono" style="color:var(--warn)">turned down</div>
+                </div>
+              </div>
+
+              <div class="callout" style="margin-top:10px;border-color:var(--work);background:#EEF3F8">
+                Applying is an <b>intent</b> the server resolves at tick start: the employer compares every applicant, not just you. This is why the UI says <i>good fit</i> rather than <i>hired</i>.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="caption">
+    <b>M04 — Work &amp; career.</b> Not a list of jobs, but a <i>gate map</i>: what the ladder needs, what you already meet, and what the apply button can and cannot promise. Pay is broken out to net on the spot (shift pay − tax − pension) because the simulation's money is integer cents and every transfer is ledgered — the player should be able to reconcile their own wage.
+  </div>
+</div>
+<script src="assets/town.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    TownMock.drawTown(document.getElementById('town'), { seed: 20261128, tile: 20, originX: 3, originY: 2, people: [] });
+  });
+</script>
+</body>
+</html>

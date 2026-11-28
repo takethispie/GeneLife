@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GeneLife — M07 Interior cutaway</title>
+<link rel="stylesheet" href="assets/mockups.css">
+<style>
+  .crumb{ position:absolute; left:50%; top:22px; transform:translateX(-50%); display:flex; align-items:center; gap:10px; padding:9px 14px; }
+  .crumb .sep{ color:var(--ink-3); }
+  .objtag{ position:absolute; display:flex; flex-direction:column; align-items:center; transform:translate(-50%,-100%); }
+  .objtag .box{
+    background:var(--paper); border:1px solid var(--line); border-radius:2px; padding:6px 9px;
+    box-shadow:var(--shadow); min-width:116px;
+  }
+  .objtag .t{ font:600 11px/1.2 var(--font-ui); display:flex; justify-content:space-between; gap:8px; }
+  .objtag .s{ font:500 9.5px/1.35 var(--font-mono); color:var(--ink-3); margin-top:2px; }
+  .objtag .leader{ width:1px; height:18px; background:rgba(245,241,232,.55); }
+  .objtag .dot{ width:7px; height:7px; border-radius:50%; background:var(--paper); border:2px solid var(--accent); margin-top:-1px; }
+  .objtag--on .box{ border-color:var(--accent); box-shadow:0 0 0 2px rgba(196,83,42,.18), var(--shadow); }
+  .objtag--no{ opacity:.5; }
+  .inroom{ position:absolute; left:24px; top:96px; width:250px; overflow:hidden; }
+  .inside{ position:absolute; right:24px; bottom:22px; width:266px; overflow:hidden; }
+  .exit{ position:absolute; left:24px; bottom:22px; display:flex; gap:8px; align-items:center; padding:9px 12px; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="stage-title">GeneLife · GDD mockups · <b>M07 — Interior cutaway</b></div>
+  <div class="frame" id="frame">
+    <canvas class="bg" id="room" style="background:#3B4A3C"></canvas>
+
+    <!-- breadcrumb / mode -->
+    <div class="paper crumb">
+      <div class="chip chip--accent"><span class="dot"></span>inside</div>
+      <div style="font:600 12.5px/1 var(--font-ui)">24 Kestrel Row</div>
+      <div class="sep">/</div>
+      <div class="small muted">living room</div>
+      <div class="sep">·</div>
+      <div class="mono tiny dim">18:42 · Tuesday</div>
+      <div class="sep">·</div>
+      <div class="tiny dim">cutaway V1</div>
+    </div>
+
+    <!-- who is here -->
+    <div class="paper inroom">
+      <div class="hd"><h3>In this house</h3><span class="right">2 of 3</span></div>
+      <div style="padding:8px 12px;border-bottom:1px solid var(--line-soft);display:flex;align-items:center;gap:9px">
+        <div class="avatar avatar--sm" style="border-color:var(--accent)">M</div>
+        <div><div class="small"><b>Mira</b> <span class="dim tiny">· you</span></div><div class="tiny dim">living room · hungry 29</div></div>
+      </div>
+      <div style="padding:8px 12px;border-bottom:1px solid var(--line-soft);display:flex;align-items:center;gap:9px">
+        <div class="avatar avatar--sm">F</div>
+        <div><div class="small"><b>Fenn</b> <span class="dim tiny">· child, 7</span></div><div class="tiny dim">bedroom · doing homework</div></div>
+      </div>
+      <div style="padding:8px 12px;display:flex;align-items:center;gap:9px;opacity:.6">
+        <div class="avatar avatar--sm">R</div>
+        <div><div class="small"><b>Rafe</b> <span class="dim tiny">· partner</span></div><div class="tiny dim">at the warehouse · home 18:20</div></div>
+      </div>
+      <div style="padding:9px 12px;background:#FBF8F1;border-top:1px solid var(--line)" class="tiny dim">
+        NPC residents show as <b>footprint presence</b> outside; only the player's rooms are simulated and rendered.
+      </div>
+    </div>
+
+    <!-- object affordances are generated from the renderer anchors -->
+
+    <!-- exit -->
+    <div class="paper exit">
+      <div class="avatar avatar--sm" style="border-color:var(--accent)">M</div>
+      <div>
+        <div class="lbl">selected</div>
+        <div class="small" style="margin-top:2px"><b>Mira Voss</b> <span class="dim tiny">· hungry</span></div>
+      </div>
+      <div style="width:1px;height:28px;background:var(--line);margin:0 4px"></div>
+      <button class="btn btn--sm btn--primary">Eat at the table</button>
+      <button class="btn btn--sm btn--ghost">Leave house ⌫</button>
+    </div>
+
+    <!-- household ledger of the room -->
+    <div class="paper inside">
+      <div class="hd"><h3>This room</h3><span class="right">living room · 14 m²</span></div>
+      <div class="bd" style="padding:10px 12px">
+        <div class="budgetline" style="display:grid;grid-template-columns:1fr 66px;gap:8px;font-size:11.5px;padding:4px 0;border-bottom:1px dotted var(--line-soft)">
+          <span>Warmth</span><span class="right mono" style="color:var(--warn)">11 °C · cold</span></div>
+        <div class="budgetline" style="display:grid;grid-template-columns:1fr 66px;gap:8px;font-size:11.5px;padding:4px 0;border-bottom:1px dotted var(--line-soft)">
+          <span>Light</span><span class="right mono">dusk · low</span></div>
+        <div class="budgetline" style="display:grid;grid-template-columns:1fr 66px;gap:8px;font-size:11.5px;padding:4px 0;border-bottom:1px dotted var(--line-soft)">
+          <span>Clutter</span><span class="right mono">2 items</span></div>
+        <div class="budgetline" style="display:grid;grid-template-columns:1fr 66px;gap:8px;font-size:11.5px;padding:4px 0;border:0">
+          <span>Who ate here</span><span class="right mono">M · 06:40</span></div>
+        <div class="tiny dim" style="margin-top:7px">Room state is part of the household's life: cold rooms raise the resolve drain, and the hearth costs fuel the budget already tracks.</div>
+      </div>
+    </div>
+  </div>
+  <div class="caption">
+    <b>M07 — Interior cutaway.</b> Buildings stop being symbols: the roof lifts, the town dims to a quiet surround, and the player's genos is <i>in a room</i>. Affordances are tagged on objects rather than hidden in a menu, each with its cost and effect (<i>eat here · 20 min</i>), unavailable ones explained instead of disabled silently. Everything visible here is player-scoped: the interior is a scoped request for one building, not a replicated map field.
+  </div>
+</div>
+<script src="assets/town.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var a = TownMock.drawInterior(document.getElementById('room'), { seed: 7, tile: 34, padL: 306, padR: 306, padT: 92, padB: 88 });
+    var tags = [
+      { at: a.bed,       t: 'Bed',      s: 'sleep until 06:30', k: 'E' },
+      { at: a.sofa,      t: 'Sofa',     s: 'sit · rest +3/h',   k: 'E' },
+      { at: a.table,     t: 'Table',    s: 'eat here · 20 min', k: 'E', on: true },
+      { at: a.hearth,    t: 'Hearth',   s: 'light fire · fuel 0.4', k: 'E' },
+      { at: a.kitchen,   t: 'Kitchen',  s: 'cook · needs flour', k: 'E', off: true },
+      { at: a.larder,    t: 'Larder',   s: 'take stock · 2 d',  k: 'E' },
+      { at: a.wardrobe,  t: 'Wardrobe', s: 'dress for weather', k: 'E' }
+    ];
+    var frame = document.getElementById('frame');
+    tags.forEach(function (g) {
+      if (!g.at) return;
+      var d = document.createElement('div');
+      d.className = 'objtag' + (g.on ? ' objtag--on' : '') + (g.off ? ' objtag--no' : '');
+      d.style.left = Math.round(g.at.x) + 'px';
+      d.style.top = Math.round(g.at.y - 18) + 'px';
+      d.innerHTML = '<div class="box"><div class="t">' + g.t + ' <span class="tiny dim">' + g.k +
+        '</span></div><div class="s">' + g.s + '</div></div><div class="leader"></div><div class="dot"></div>';
+      frame.appendChild(d);
+    });
+  });
+</script>
+</body>
+</html>
