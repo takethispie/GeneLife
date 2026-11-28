@@ -14,7 +14,7 @@ public sealed class WorldMap
     private readonly Dictionary<NetworkId, Placement> placements = new();
     private readonly Dictionary<TileCoord, NetworkId> occupiedBy = new();
     private readonly Dictionary<LotId, MapLot> lots = new();
-    private TileFlags[] tiles = [];
+    private readonly HashSet<TileCoord> reserved = new();
 
     public MapOptions Options { get; private set; } = MapOptions.Default;
     public GeneratedMap? Layout { get; private set; }
@@ -24,28 +24,16 @@ public sealed class WorldMap
     public IReadOnlyCollection<MapLot> Lots => lots.Values;
     public int OccupiedTileCount => occupiedBy.Count;
 
-    public int ReservedTileCount
-    {
-        get
-        {
-            var count = 0;
-            foreach (var tile in tiles)
-            {
-                if ((tile & TileFlags.Reserved) != 0)
-                    count++;
-            }
-            return count;
-        }
-    }
+    public int ReservedTileCount => reserved.Count;
 
     public void Load(GeneratedMap layout, int version)
     {
         Layout = layout;
         Options = layout.Options;
-        tiles = layout.Tiles.ToArray();
         Version = Math.Max(1, version);
         placements.Clear();
         occupiedBy.Clear();
+        reserved.Clear();
         lots.Clear();
 
         foreach (var lot in layout.Lots)
@@ -72,12 +60,23 @@ public sealed class WorldMap
     public bool IsRoad(TileCoord tile) =>
         IsInBounds(tile) && (FlagsAt(tile) & TileFlags.Road) != 0;
 
+    /// <summary>
+    /// The flags of a tile: base terrain comes from the lazy <see cref="GeneratedMap.Tiles"/>
+    /// grid (Rule 1 — classified on demand), while <see cref="TileFlags.Occupied"/> and
+    /// <see cref="TileFlags.Reserved"/> are sparse overlays tracked by this map. Nothing is
+    /// stored per tile, so the world never materialises an <c>O(area)</c> array.
+    /// </summary>
     public TileFlags FlagsAt(TileCoord tile)
     {
         if (!IsInBounds(tile))
             return TileFlags.None;
-        var bounds = Options.Bounds;
-        return tiles[(tile.Y - bounds.MinY) * bounds.Width + (tile.X - bounds.MinX)];
+
+        var flags = Layout?.FlagsAt(tile) ?? TileFlags.None;
+        if (occupiedBy.ContainsKey(tile))
+            flags |= TileFlags.Occupied;
+        if (reserved.Contains(tile))
+            flags |= TileFlags.Reserved;
+        return flags;
     }
 
     public bool TryGetPlacement(NetworkId id, out Placement placement) =>
@@ -297,10 +296,7 @@ public sealed class WorldMap
             return false;
 
         foreach (var tile in placement.Tiles())
-        {
             occupiedBy.Remove(tile);
-            SetFlag(tile, TileFlags.Occupied, false);
-        }
 
         Version++;
         return true;
@@ -316,7 +312,7 @@ public sealed class WorldMap
         found.IsReserved = true;
         found.ReservedBy = buildingId.Value;
         foreach (var tile in Enumerate(found.Bounds))
-            SetFlag(tile, TileFlags.Reserved, true);
+            SetReserved(tile, true);
         return true;
     }
 
@@ -330,7 +326,7 @@ public sealed class WorldMap
         foreach (var tile in Enumerate(lot.Bounds))
         {
             if (!occupiedBy.ContainsKey(tile))
-                SetFlag(tile, TileFlags.Reserved, false);
+                SetReserved(tile, false);
         }
     }
 
@@ -420,8 +416,7 @@ public sealed class WorldMap
             lot.ReservedBy = null;
         }
 
-        for (var i = 0; i < tiles.Length; i++)
-            tiles[i] &= ~(TileFlags.Occupied | TileFlags.Reserved);
+        reserved.Clear();
 
         var query = new QueryDescription().WithAll<Placement, NetworkId>();
         world.Query(in query, (ref Placement placement, ref NetworkId id) =>
@@ -436,8 +431,7 @@ public sealed class WorldMap
         foreach (var tile in placement.Tiles())
         {
             occupiedBy[tile] = id;
-            SetFlag(tile, TileFlags.Occupied, true);
-            SetFlag(tile, TileFlags.Reserved, false);
+            SetReserved(tile, false);
         }
     }
 
@@ -447,23 +441,22 @@ public sealed class WorldMap
             return;
 
         foreach (var tile in placement.Tiles())
-        {
             occupiedBy.Remove(tile);
-            SetFlag(tile, TileFlags.Occupied, false);
-        }
     }
 
-    private void SetFlag(TileCoord tile, TileFlags flag, bool enabled)
+    /// <summary>
+    /// Sets or clears the sparse <see cref="TileFlags.Reserved"/> overlay on a tile.
+    /// Out-of-bounds tiles are ignored, matching the historical dense-flag guard.
+    /// </summary>
+    private void SetReserved(TileCoord tile, bool enabled)
     {
         if (!IsInBounds(tile))
             return;
 
-        var bounds = Options.Bounds;
-        var index = (tile.Y - bounds.MinY) * bounds.Width + (tile.X - bounds.MinX);
         if (enabled)
-            tiles[index] |= flag;
+            reserved.Add(tile);
         else
-            tiles[index] &= ~flag;
+            reserved.Remove(tile);
     }
 
     private bool HasRoadAccess(Footprint footprint, TileCoord anchor)

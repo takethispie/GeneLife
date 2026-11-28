@@ -20,6 +20,23 @@ public readonly record struct WorldBounds(float MinX, float MinY, float MaxX, fl
         new(
             Math.Clamp(point.X, MinX, MaxX),
             Math.Clamp(point.Y, MinY, MaxY));
+
+    /// <summary>
+    /// The world-space extent covering all of <paramref name="options"/>: the
+    /// map's tile bounds scaled by <see cref="MapOptions.TileSize"/>, optionally
+    /// grown by a margin in world units. This is how an index derives its extent
+    /// from the map instead of carrying a hardcoded world size.
+    /// </summary>
+    public static WorldBounds FromMap(MapOptions options, float margin = 0f)
+    {
+        var bounds = options.Bounds;
+        var tile = options.TileSize;
+        return new WorldBounds(
+            bounds.MinX * tile - margin,
+            bounds.MinY * tile - margin,
+            bounds.MaxX * tile + margin,
+            bounds.MaxY * tile + margin);
+    }
 }
 
 public sealed class SpatialIndex
@@ -42,8 +59,24 @@ public sealed class SpatialIndex
         this.bounds = bounds;
     }
 
+    /// <summary>
+    /// An index whose extent is derived from the map it partitions, so the AOI is
+    /// correct at any world size. The historical <c>halfExtent: 1000f</c> constant
+    /// silently capped the world at 2000 tiles and clamped everything beyond
+    /// <c>±1000</c> into the edge cells (see
+    /// <c>docs/research/world-scale-migration-32000.md</c> §3.3). Bounds now scale
+    /// with <see cref="MapOptions.Width"/>/<see cref="MapOptions.Height"/> instead.
+    /// </summary>
+    public static SpatialIndex CreateForMap(MapOptions options, float cellSize = 10f) =>
+        new(cellSize, WorldBounds.FromMap(options));
+
+    /// <summary>
+    /// Convenience for callers with no map in scope. Unlike the old implementation
+    /// this does not invent a world size — it derives the extent from
+    /// <see cref="MapOptions.Default"/>.
+    /// </summary>
     public static SpatialIndex CreateDefault() =>
-        new(cellSize: 10f, bounds: new WorldBounds(halfExtent: 1000f));
+        CreateForMap(MapOptions.Default);
 
     private (int cx, int cy) Cell(Vector2 position)
     {
