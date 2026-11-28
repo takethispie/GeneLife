@@ -321,6 +321,49 @@ public class SpatialIndexTests
     }
 
     [Fact]
+    public void CreateForMap_DerivesBoundsFromMapOptions_SoTheAoiCapIsGone()
+    {
+        var options = new MapOptions { Width = 32000, Height = 32000 };
+        var index = SpatialIndex.CreateForMap(options);
+
+        // Bounds scale with the world (+/-16000), not the old hardcoded +/-1000.
+        Assert.Equal(-16000f, index.Bounds.MinX, 3);
+        Assert.Equal(15999f, index.Bounds.MaxX, 3);
+        Assert.True(index.Bounds.Contains(new Vector2(5000f, 0f)));
+
+        var world = World.Create();
+        var near = world.Create();
+        var far = world.Create();
+        index.Add(near, new Vector2(5000f, 0f));
+        index.Add(far, new Vector2(7000f, 0f));
+
+        // Under the old 1000 half-extent both positions clamped into the edge cell
+        // and became indistinguishable; now they bucket into distinct cells.
+        Assert.Equal(2, index.CellCount);
+
+        var positions = new Dictionary<Entity, Vector2>
+        {
+            [near] = new(5000f, 0f),
+            [far] = new(7000f, 0f),
+        };
+        var neighbors = index.GetNeighbors(new Vector2(5000f, 0f), 1f, e => positions[e]);
+        Assert.Single(neighbors);
+        Assert.Equal(near, neighbors[0].Entity);
+    }
+
+    [Fact]
+    public void CreateDefault_DerivesItsExtentFromDefaultMapOptions()
+    {
+        var index = SpatialIndex.CreateDefault();
+        Assert.Equal(10f, index.CellSize);
+        Assert.Equal(WorldBounds.FromMap(MapOptions.Default), index.Bounds);
+
+        // No invented world size: the default map is 256 tiles => +/-128.
+        Assert.Equal(-128f, index.Bounds.MinX, 3);
+        Assert.Equal(127f, index.Bounds.MaxX, 3);
+    }
+
+    [Fact]
     public void GetOccupiedCellsInRadius_ReturnsOnlyOccupiedCells()
     {
         var index = new SpatialIndex(10f, DefaultBounds);

@@ -20,6 +20,7 @@ public sealed class RelationshipExposureSystem : ISimulationSystem
     private readonly RelationshipIndex relationships;
     private readonly RelationshipOptions options;
     private readonly RelationshipCache cache;
+    private readonly MapOptions mapOptions;
     private readonly CandidateGenerator generator;
     private readonly int cadenceOffset;
 
@@ -29,6 +30,7 @@ public sealed class RelationshipExposureSystem : ISimulationSystem
         RelationshipIndex relationships,
         RelationshipOptions options,
         RelationshipCache cache,
+        MapOptions mapOptions,
         int cadenceOffset = 0)
     {
         this.world = world;
@@ -36,6 +38,7 @@ public sealed class RelationshipExposureSystem : ISimulationSystem
         this.relationships = relationships;
         this.options = options;
         this.cache = cache;
+        this.mapOptions = mapOptions;
         this.cadenceOffset = cadenceOffset;
         generator = new CandidateGenerator(world, economy, relationships, options);
     }
@@ -50,7 +53,7 @@ public sealed class RelationshipExposureSystem : ISimulationSystem
     {
         options.Validate();
 
-        var spatial = SpatialIndex.CreateDefault();
+        var spatial = SpatialIndex.CreateForMap(mapOptions);
         world.Query(in new QueryDescription().WithAll<Alive, Location>().WithNone<Dead>(),
             (Entity entity, ref Alive _, ref Location location) => spatial.Add(entity, location.Position));
 

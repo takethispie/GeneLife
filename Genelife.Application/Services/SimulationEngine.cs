@@ -451,7 +451,7 @@ private readonly NetworkIdRegistry networkIds = new();
             systems.Register(new FamilyHouseholdSystem(world, economy, relationshipIndex, this.relationshipOptions, this.familyHousingPolicy, cadenceOffset: 8 * stagger));
             systems.Register(new TrustSystem(economy, trustService, cadenceOffset: 12 * stagger));
             systems.Register(new StateCareSystem(world, economy, cadenceOffset: 10 * stagger));
-            systems.Register(new RelationshipExposureSystem(world, economy, relationshipIndex, this.relationshipOptions, relationshipCache, cadenceOffset: 0));
+            systems.Register(new RelationshipExposureSystem(world, economy, relationshipIndex, this.relationshipOptions, relationshipCache, mapContext.Options, cadenceOffset: 0));
             systems.Register(new AttractionSystem(world, economy, relationshipIndex, this.relationshipOptions, relationshipCache, cadenceOffset: 3 * stagger));
             systems.Register(new PairingSystem(world, economy, relationshipService!, relationshipIndex, this.relationshipOptions, relationshipCache, cadenceOffset: 6 * stagger));
             systems.Register(new StageProgressionSystem(world, economy));
