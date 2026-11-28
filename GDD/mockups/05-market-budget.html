@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GeneLife — M05 Market &amp; budget</title>
+<link rel="stylesheet" href="assets/mockups.css">
+<style>
+  .cat{ display:flex; gap:2px; margin-bottom:10px; }
+  .cat span{ padding:6px 9px; font:600 9.5px/1 var(--font-ui); letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); border-bottom:2px solid transparent; }
+  .cat .on{ color:var(--ink); border-bottom-color:var(--money); }
+  .item{ display:grid; grid-template-columns:32px 1fr 76px 62px; gap:10px; align-items:center; padding:8px 12px; border-bottom:1px solid var(--line-soft); }
+  .item:last-child{ border-bottom:0; }
+  .swatch{ width:30px; height:30px; border-radius:2px; border:1px solid rgba(27,36,48,.18); }
+  .nut{ display:flex; gap:2px; margin-top:4px; }
+  .nut i{ height:4px; width:14px; background:var(--paper-3); display:block; }
+  .nut i.on{ background:var(--body); }
+  .basketline{ display:grid; grid-template-columns:1fr 52px 66px 20px; gap:6px; align-items:center; padding:7px 12px; border-bottom:1px solid var(--line-soft); font-size:11.5px; }
+  .wk{ display:flex; align-items:flex-end; gap:10px; height:74px; }
+  .wk .b{ flex:1; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; gap:4px; }
+  .wk .bar{ width:100%; background:var(--money); border-radius:1px 1px 0 0; opacity:.85; }
+  .wk .bar--now{ background:var(--accent); opacity:1; }
+  .wk .bar--neg{ background:var(--warn); opacity:.35; }
+  .wk .k{ font:600 8.5px/1 var(--font-mono); color:var(--ink-3); letter-spacing:.06em; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="stage-title">GeneLife · GDD mockups · <b>M05 — Market &amp; household budget</b></div>
+  <div class="frame">
+    <canvas class="bg" id="town"></canvas>
+    <div class="backdrop"></div>
+    <div style="position:absolute;inset:0;display:grid;place-items:center">
+      <div class="paper modal" style="width:1180px;height:760px">
+        <div class="hd" style="padding:14px 18px">
+          <div>
+            <div class="lbl">inside · Marro Grocers</div>
+            <div class="display" style="font-size:23px;margin-top:3px">Market</div>
+            <div class="tiny dim" style="margin-top:2px">open until 19:00 · 2 customers ahead · prices are the shop's, not a menu's</div>
+          </div>
+          <div class="flex" style="gap:16px">
+            <div class="right"><div class="lbl">money on you</div><div class="mono" style="font-size:15px;color:var(--money);margin-top:3px">₡ 214.40</div></div>
+            <div class="right"><div class="lbl">household</div><div class="mono" style="font-size:15px;margin-top:3px">₡ 1 284.40</div></div>
+            <button class="btn btn--sm">×</button>
+          </div>
+        </div>
+
+        <div class="bd" style="height:100%">
+          <div style="display:grid;grid-template-columns:1.5fr 1fr;height:100%">
+            <!-- catalogue -->
+            <div style="padding:14px 16px;overflow:hidden">
+              <div class="cat"><span class="on">Staples</span><span>Fresh</span><span>Tinned</span><span>Household</span><span>Treats</span></div>
+              <div style="border:1px solid var(--line);border-radius:2px;overflow:hidden;background:#FBF8F1">
+                <div class="item">
+                  <div class="swatch" style="background:#D9C9A3"></div>
+                  <div><div class="small"><b>Flour</b> <span class="dim tiny">· 1 kg sack</span></div>
+                    <div class="tiny dim">fills 4 meals · 1 480 kcal</div>
+                    <div class="nut"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div></div>
+                  <div class="right mono small">₡ 1.35</div>
+                  <div class="right"><button class="btn btn--sm btn--ghost">+</button></div>
+                </div>
+                <div class="item" style="background:#FDF6E6">
+                  <div class="swatch" style="background:#C6A15B"></div>
+                  <div><div class="small"><b>Eggs</b> <span class="dim tiny">· half dozen</span></div>
+                    <div class="tiny dim">protein-rich · 3 meals · 1 020 kcal</div>
+                    <div class="nut"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div></div>
+                  <div class="right mono small">₡ 2.10</div>
+                  <div class="right"><button class="btn btn--sm btn--ghost">+</button></div>
+                </div>
+                <div class="item">
+                  <div class="swatch" style="background:#B8A283"></div>
+                  <div><div class="small"><b>Bread</b> <span class="dim tiny">· day-old loaf</span></div>
+                    <div class="tiny dim">cheap · spoils in 2 d · 2 meals</div>
+                    <div class="nut"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></div></div>
+                  <div class="right mono small">₡ 0.75</div>
+                  <div class="right"><button class="btn btn--sm btn--ghost">+</button></div>
+                </div>
+                <div class="item">
+                  <div class="swatch" style="background:#8A6A2E"></div>
+                  <div><div class="small"><b>Tinned fish</b> <span class="dim tiny">· 200 g</span></div>
+                    <div class="tiny dim">keeps 60 d · 2 meals · 640 kcal</div>
+                    <div class="nut"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div></div>
+                  <div class="right mono small">₡ 3.40</div>
+                  <div class="right"><button class="btn btn--sm btn--ghost">+</button></div>
+                </div>
+                <div class="item">
+                  <div class="swatch" style="background:#9AA6A0"></div>
+                  <div><div class="small"><b>Soap</b> <span class="dim tiny">· household</span></div>
+                    <div class="tiny dim">hygiene · 14 uses</div>
+                    <div class="nut"><i></i><i></i><i></i><i></i><i></i></div></div>
+                  <div class="right mono small">₡ 1.90</div>
+                  <div class="right"><button class="btn btn--sm btn--ghost">+</button></div>
+                </div>
+                <div class="item">
+                  <div class="swatch" style="background:#A63A5A"></div>
+                  <div><div class="small"><b>Cherries</b> <span class="dim tiny">· 250 g</span></div>
+                    <div class="tiny dim">raises resolve for 6 h · treats hunger poorly</div>
+                    <div class="nut"><i class="on"></i><i></i><i></i><i></i><i></i></div></div>
+                  <div class="right mono small">₡ 4.20</div>
+                  <div class="right"><button class="btn btn--sm btn--ghost">+</button></div>
+                </div>
+              </div>
+
+              <div class="hr"></div>
+              <div class="between">
+                <div class="lbl">next 4 weeks · projected</div>
+                <div class="tiny dim">from wages, rent, utilities and this basket</div>
+              </div>
+              <div class="wk" style="margin-top:10px">
+                <div class="b"><div class="bar" style="height:62px"></div><div class="k">W11</div></div>
+                <div class="b"><div class="bar bar--now" style="height:48px"></div><div class="k">W12</div></div>
+                <div class="b"><div class="bar bar--neg" style="height:14px"></div><div class="k">W13</div></div>
+                <div class="b"><div class="bar bar--neg" style="height:8px"></div><div class="k">W14</div></div>
+                <div style="flex:2;padding-left:8px" class="tiny dim">
+                  <b style="color:var(--warn)">W13 dips below zero</b> — rent lands before the second wage, and Mira's shift count fell last week.
+                  The bar is the <i>same ledger</i> the simulation will run; nothing here is a heuristic.
+                </div>
+              </div>
+
+              <div class="hr"></div>
+              <div class="between"><div class="lbl">price watch · this shop</div><div class="tiny dim">shop prices move with stock</div></div>
+              <div class="rows" style="margin-top:6px">
+                <div class="row" style="grid-template-columns:1fr 60px 84px;padding:6px 0">
+                  <div class="small">Flour, 1 kg</div><div class="right mono small">₡ 1.35</div><div class="right tiny mono" style="color:var(--warn)">+0.10 since Mon</div>
+                </div>
+                <div class="row" style="grid-template-columns:1fr 60px 84px;padding:6px 0;border:0">
+                  <div class="small">Tinned fish</div><div class="right mono small">₡ 3.40</div><div class="right tiny mono" style="color:var(--ok)">−0.15 this week</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- basket -->
+            <div style="border-left:1px solid var(--line);background:#FBF8F1;padding:14px 16px;display:flex;flex-direction:column;overflow:hidden">
+              <div class="between">
+                <div class="lbl">basket · 6 items</div>
+                <div class="btn-row"><button class="btn btn--sm btn--ghost">Clear</button></div>
+              </div>
+              <div style="margin-top:8px;border:1px solid var(--line);border-radius:2px;background:var(--paper)">
+                <div class="basketline"><span>Flour × 4 <span class="dim tiny">· 4 kg</span></span><span class="right mono">5.40</span><span class="tiny dim right">16 meals</span><span class="dim">×</span></div>
+                <div class="basketline"><span>Eggs × 2</span><span class="right mono">4.20</span><span class="tiny dim right">6 meals</span><span class="dim">×</span></div>
+                <div class="basketline"><span>Bread × 3</span><span class="right mono">2.25</span><span class="tiny dim right">6 meals</span><span class="dim">×</span></div>
+                <div class="basketline"><span>Tinned fish × 6</span><span class="right mono">20.40</span><span class="tiny dim right">12 meals</span><span class="dim">×</span></div>
+                <div class="basketline"><span>Soap × 2</span><span class="right mono">3.80</span><span class="tiny dim right">28 uses</span><span class="dim">×</span></div>
+                <div class="basketline" style="border-bottom:0"><span>Cherries × 1</span><span class="right mono">4.20</span><span class="tiny dim right">treat</span><span class="dim">×</span></div>
+              </div>
+
+              <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div class="stat"><div class="k">basket total</div><div class="v" style="color:var(--money)">₡ 40.25</div><div class="s">5.9 % of shared money</div></div>
+                <div class="stat"><div class="k">meals bought</div><div class="v">40</div><div class="s">≈ 11 days for three</div></div>
+              </div>
+
+              <div class="paper" style="box-shadow:none;margin-top:12px">
+                <div class="hd"><h3>If you buy this</h3><span class="right">at the till</span></div>
+                <div class="bd" style="padding:10px 12px">
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                    <div><div class="tiny dim">Days of food</div><div class="mono small">11 <span class="dim">for three</span></div></div>
+                    <div><div class="tiny dim">Rent cushion</div><div class="mono small" style="color:var(--warn)">−₡ 214 → −₡ 254</div></div>
+                    <div><div class="tiny dim">Spoilage risk</div><div class="mono small">bread, 2 d</div></div>
+                    <div><div class="tiny dim">Resolve</div><div class="mono small" style="color:var(--ok)">+2 (cherries)</div></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="callout" style="margin-top:12px;border-color:var(--money);background:#FBF4E2">
+                <b>Nutrition is a consequence, not a score.</b> The basket is judged on meals, spoilage and cost — the sim derives fullness from what is actually eaten, so the player buys food, not numbers.
+              </div>
+
+              <div class="grow"></div>
+              <div class="btn-row" style="justify-content:flex-end;margin-top:12px">
+                <button class="btn btn--ghost">Save list</button>
+                <button class="btn btn--primary">Pay at the till · ₡ 40.25</button>
+              </div>
+              <div class="tiny dim right" style="margin-top:6px">queues like any other customer; the shop closes at 19:00</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="caption">
+    <b>M05 — Market &amp; budget.</b> Shopping is a <i>place</i> (you are inside Marro Grocers, with a queue and closing time), and money is a <i>ledger</i>, so the basket shows a projected four-week balance drawn from the same rules the tick will run. Anti-pattern avoided: no nutrition scoreboard, no raw price table — every row is a shelf item with a consequence (meals, spoilage, treats).
+  </div>
+</div>
+<script src="assets/town.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    TownMock.drawTown(document.getElementById('town'), { seed: 20261128, tile: 20, originX: 3, originY: 2, people: [] });
+  });
+</script>
+</body>
+</html>

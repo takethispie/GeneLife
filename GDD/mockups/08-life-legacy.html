@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GeneLife — M08 Life &amp; legacy</title>
+<link rel="stylesheet" href="assets/mockups.css">
+<style>
+  .book{ position:absolute; left:64px; right:64px; top:96px; height:700px; display:grid; grid-template-columns:1.18fr 1fr; background:var(--paper); border:1px solid var(--line); box-shadow:var(--shadow-hard); }
+  .book .pg{ padding:22px 26px; overflow:hidden; }
+  .book .pg + .pg{ border-left:1px solid var(--line); background:#FBF8F1; }
+  .book .spine{ position:absolute; left:calc(54% - 1px); top:0; bottom:0; width:2px; background:linear-gradient(180deg,rgba(0,0,0,.02),rgba(0,0,0,.10),rgba(0,0,0,.02)); }
+  .heir{ padding:10px 12px; border:1px solid var(--line); border-radius:2px; background:#FBF8F1; display:grid; grid-template-columns:30px 1fr auto; gap:9px; align-items:center; }
+  .heir--on{ border-color:var(--legacy); background:#F4F1FB; box-shadow:0 0 0 2px rgba(91,75,138,.12); }
+  .epoch{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="stage-title">GeneLife · GDD mockups · <b>M08 — Life &amp; legacy</b></div>
+  <div class="frame">
+    <canvas class="bg" id="town"></canvas>
+    <div class="backdrop"></div>
+
+    <div class="book">
+      <div class="spine"></div>
+      <!-- left page: the life -->
+      <div class="pg">
+        <div class="between">
+          <div>
+            <div class="lbl">life book</div>
+            <div class="display" style="font-size:26px;margin-top:4px">Mira Voss</div>
+            <div class="small dim" style="margin-top:2px">b. 1904, Kestrel Row · 31 years lived · 1 284 ledgered transfers</div>
+          </div>
+          <div class="right">
+            <div class="lbl">expected</div>
+            <div class="mono" style="font-size:15px;margin-top:3px">62 ± 7 y</div>
+            <div class="tiny dim">vitality 7 · health 78</div>
+          </div>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="tl">
+          <div class="ev"><div class="d">1904 · AGE 0</div><div class="t">Born to Ada II and Hal Voss</div><div class="s">second child; inherited Warmth 6, Vitality 8 from her parents</div></div>
+          <div class="ev"><div class="d">1911 · AGE 7</div><div class="t">Started at Northgate Primary</div><div class="s">school place granted on household income; Literacy rose to 3</div></div>
+          <div class="ev"><div class="d">1919 · AGE 15</div><div class="t">Left school, first wage</div><div class="s">sorter at Vell &amp; Sons · ₡ 6.10/h</div></div>
+          <div class="ev ev--key"><div class="d">1922 · AGE 18</div><div class="t">Partnered with Rafe Voss</div><div class="s">consensual partnership · shared household formed at 24 Kestrel Row</div></div>
+          <div class="ev"><div class="d">1927 · AGE 23</div><div class="t">Became a packer</div><div class="s">promotion on Packing 3 and a 0.95 reliability record</div></div>
+          <div class="ev"><div class="d">1931 · AGE 27</div><div class="t">Fenn born</div><div class="s">traits rolled from both parents · ward until 16</div></div>
+          <div class="ev ev--key"><div class="d">1934 · AGE 30</div><div class="t">First arrears</div><div class="s">water bill missed after two cancelled shifts · resolve −12</div></div>
+          <div class="ev"><div class="d">1935 · NOW</div><div class="t">Packer, four years in</div><div class="s">rent due in 4 days · ₡ 214.40 personal money</div></div>
+        </div>
+      </div>
+
+      <!-- right page: what comes next -->
+      <div class="pg">
+        <div class="lbl">what the simulation will do with her</div>
+        <div class="epoch" style="margin-top:10px">
+          <div class="stat"><div class="k">retirement</div><div class="v" style="font-size:14px">age 64</div><div class="s">pension 31 % of final wage</div></div>
+          <div class="stat"><div class="k">health trend</div><div class="v" style="font-size:14px;color:var(--ok)">stable</div><div class="s">cold rooms cost her 0.3/wk</div></div>
+          <div class="stat"><div class="k">children</div><div class="v" style="font-size:14px">1 · Fenn</div><div class="s">heir eligible at 16</div></div>
+          <div class="stat"><div class="k">estate today</div><div class="v" style="font-size:14px;color:var(--money)">₡ 498.40</div><div class="s">split by relationship weight</div></div>
+        </div>
+
+        <div class="hr"></div>
+        <div class="between"><div class="lbl">on death</div><div class="tiny dim">the town keeps running</div></div>
+        <div class="small" style="margin-top:6px;line-height:1.5">
+          Mira's death is simulated like any other — mortality risk rises with age and health. When it happens the
+          household does not reset: it <b>continues as an heir</b>, inheriting the home, the debts and the ties.
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+          <div class="heir heir--on">
+            <div class="avatar avatar--sm" style="border-color:var(--legacy)">F</div>
+            <div><div class="small"><b>Fenn Voss</b> · child, 7</div><div class="tiny dim">plays as Fenn at 16 · trust holds the estate until then</div></div>
+            <div class="chip chip--legacy" style="height:18px;font-size:8px"><span class="dot"></span>heir</div>
+          </div>
+          <div class="heir">
+            <div class="avatar avatar--sm">N</div>
+            <div><div class="small"><b>Nell Voss</b> · sister, 35</div><div class="tiny dim">emigrated · would recall the household if she inherits</div></div>
+            <div class="tiny dim mono">alt</div>
+          </div>
+          <div class="heir" style="opacity:.6;border-style:dashed">
+            <div class="avatar avatar--sm">—</div>
+            <div><div class="small"><b>No heir</b></div><div class="tiny dim">estate transfers to the town; the line ends here</div></div>
+            <div class="tiny dim mono">end</div>
+          </div>
+        </div>
+
+        <div class="callout callout--legacy" style="margin-top:14px">
+          <b>Why this is not "game over".</b> The personal pillar (Sims) and the genetic pillar (Dwarf-Fortress depth) meet at
+          inheritance: a lineage can be played for generations, and death is a chapter of the town's record, not a reload.
+        </div>
+
+        <div class="btn-row" style="margin-top:14px;justify-content:flex-end">
+          <button class="btn btn--sm btn--ghost">Read the full record</button>
+          <button class="btn btn--sm btn--primary" style="background:var(--legacy);border-color:#43366B">Confirm heir</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="caption">
+    <b>M08 — Life &amp; legacy.</b> A life presented as a <i>record</i> — dates, causes, consequences — because that is exactly what the simulation stores and what makes depth readable. The right page answers the two questions a persistent-life sim must answer honestly: <i>what will the simulation do with me</i>, and <i>what happens to my household when I die</i>. Heir selection lives here, permanently, not in a modal at the moment of death.
+  </div>
+</div>
+<script src="assets/town.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    TownMock.drawTown(document.getElementById('town'), { seed: 20261128, tile: 20, originX: 3, originY: 2, tint: 'rgba(24,22,14,.12)', people: [] });
+  });
+</script>
+</body>
+</html>

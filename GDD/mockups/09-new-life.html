@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GeneLife — M09 A new life</title>
+<link rel="stylesheet" href="assets/mockups.css">
+<style>
+  .choice{ padding:12px 14px; border:1px solid var(--line); border-radius:2px; background:#FBF8F1; display:grid; grid-template-columns:1fr auto; gap:8px; align-items:start; }
+  .choice--on{ border-color:var(--accent); background:#FFF7EF; box-shadow:0 0 0 2px rgba(196,83,42,.12); }
+  .choice .t{ font:600 13px/1.25 var(--font-ui); }
+  .choice .s{ font:400 10.5px/1.45 var(--font-ui); color:var(--ink-2); margin-top:3px; }
+  .alloc{ display:grid; grid-template-columns:1fr 96px 62px; gap:8px; align-items:center; padding:7px 0; border-bottom:1px solid var(--line-soft); }
+  .alloc:last-child{ border-bottom:0; }
+  .stepper{ display:flex; align-items:center; justify-content:space-between; border:1px solid var(--line); border-radius:2px; background:#fff; height:24px; }
+  .stepper span{ width:22px; text-align:center; font:600 12px/1 var(--font-mono); color:var(--ink-3); }
+  .stepper b{ font:600 11.5px/1 var(--font-mono); color:var(--ink); }
+  .derived{ display:grid; grid-template-columns:1fr auto; gap:6px; padding:5px 0; font-size:11px; border-bottom:1px dotted var(--line-soft); }
+  .derived:last-child{ border-bottom:0; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="stage-title">GeneLife · GDD mockups · <b>M09 — A new life (creation)</b></div>
+  <div class="frame">
+    <canvas class="bg" id="town"></canvas>
+    <div class="backdrop"></div>
+    <div style="position:absolute;inset:0;display:grid;place-items:center">
+      <div class="paper modal" style="width:1140px;height:740px">
+        <div class="hd" style="padding:16px 20px">
+          <div>
+            <div class="lbl">new life</div>
+            <div class="display" style="font-size:25px;margin-top:3px">Who are you in this town?</div>
+            <div class="tiny dim" style="margin-top:2px">the town already exists and keeps running while you decide</div>
+          </div>
+          <div class="flex" style="gap:10px">
+            <span class="chip chip--legacy"><span class="dot"></span>slot 2 of 3</span>
+            <button class="btn btn--sm btn--ghost">Back</button>
+          </div>
+        </div>
+
+        <div class="bd" style="height:100%">
+          <div style="display:grid;grid-template-columns:1.05fr 1fr 0.95fr;height:100%">
+
+            <!-- 1. where you start -->
+            <div style="padding:16px 18px;overflow:hidden">
+              <div class="lbl">starting life</div>
+              <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+                <div class="choice choice--on">
+                  <div><div class="t">Born here</div>
+                    <div class="s">Join an existing household as a newborn or a 16-year-old. Inherited traits, a family, a home and a name you did not choose.</div>
+                    <div class="tiny" style="margin-top:6px;color:var(--accent)">hard · least control · most continuity</div></div>
+                  <div class="chip chip--accent" style="height:18px;font-size:8px"><span class="dot"></span>chosen</div>
+                </div>
+                <div class="choice">
+                  <div><div class="t">Immigrate</div>
+                    <div class="s">Arrive at 18 with rolled traits, a small purse and no ties. Find work and housing before the money runs out.</div>
+                    <div class="tiny" style="margin-top:6px;color:var(--ink-3)">medium · nobody knows you</div></div>
+                </div>
+                <div class="choice" style="opacity:.6">
+                  <div><div class="t">Take over an existing genos</div>
+                    <div class="s">Continue a lineage that already lives here (needs an heir, or a death in your household).</div>
+                    <div class="tiny" style="margin-top:6px;color:var(--ink-3)">not available in this slot</div></div>
+                  <div class="chip" style="height:18px;font-size:8px"><span class="dot"></span>locked</div>
+                </div>
+              </div>
+
+              <div class="hr"></div>
+              <div class="lbl">household</div>
+              <div class="small" style="margin-top:6px">The Voss household · 24 Kestrel Row · 2 adults, 1 child</div>
+              <div class="cardlink" style="margin-top:8px">
+                <div class="l"><div class="t">Born to Ada II and Hal Voss</div><div class="s">traits blended from both parents, with mutation</div></div>
+                <div class="mono tiny dim">1904</div>
+              </div>
+              <div class="tiny dim" style="margin-top:8px">Your arrival is a <b>birth event</b> in the simulation: it rolls traits, registers a parent/child edge and changes the household's budget. Nothing about it is free.</div>
+            </div>
+
+            <!-- 2. traits -->
+            <div style="padding:16px 18px;border-left:1px solid var(--line);background:#FBF8F1;overflow:hidden">
+              <div class="between">
+                <div class="lbl">traits</div>
+                <div class="mono tiny" style="color:var(--accent)">3 points left</div>
+              </div>
+              <div class="tiny dim" style="margin-top:6px">Inherited values are the floor; you may spend 4 points to nudge within ±2 of them. Values are 0–9 and never visible as numbers to other players.</div>
+
+              <div style="margin-top:10px;border-top:1px solid var(--line)">
+                <div class="alloc"><div><b class="small">Diligence</b><div class="tiny dim">inherited 5 · work performance</div></div>
+                  <div class="stepper"><span>−</span><b>6</b><span>+</span></div>
+                  <div class="tiny dim right">inherit 5</div></div>
+                <div class="alloc"><div><b class="small">Warmth</b><div class="tiny dim">inherited 6 · relationships</div></div>
+                  <div class="stepper"><span>−</span><b>7</b><span>+</span></div>
+                  <div class="tiny dim right">inherit 6</div></div>
+                <div class="alloc"><div><b class="small">Temper</b><div class="tiny dim">inherited 4 · conflict</div></div>
+                  <div class="stepper"><span>−</span><b>3</b><span>+</span></div>
+                  <div class="tiny dim right">inherit 4</div></div>
+                <div class="alloc"><div><b class="small">Cunning</b><div class="tiny dim">inherited 4 · bargaining</div></div>
+                  <div class="stepper"><span>−</span><b>4</b><span>+</span></div>
+                  <div class="tiny dim right">inherit 4</div></div>
+                <div class="alloc"><div><b class="small">Vitality</b><div class="tiny dim">inherited 8 · health, lifespan</div></div>
+                  <div class="stepper"><span>−</span><b>8</b><span>+</span></div>
+                  <div class="tiny dim right">inherit 8</div></div>
+                <div class="alloc"><div><b class="small">Appetite</b><div class="tiny dim">inherited 5 · need decay</div></div>
+                  <div class="stepper"><span>−</span><b>5</b><span>+</span></div>
+                  <div class="tiny dim right">inherit 5</div></div>
+              </div>
+
+              <div class="callout" style="margin-top:12px">
+                There is no face editor. <b>Appearance is derived</b> from traits, age and sex — you choose a life, not a doll.
+              </div>
+            </div>
+
+            <!-- 3. what it means -->
+            <div style="padding:16px 18px;border-left:1px solid var(--line);overflow:hidden">
+              <div class="lbl">as you will look</div>
+              <div style="display:flex;gap:12px;margin-top:10px;align-items:flex-start">
+                <div style="width:96px;height:120px;border:1px solid var(--line);border-radius:2px;background:linear-gradient(180deg,#FBF6E9,#E7DDC6);display:grid;place-items:center">
+                  <div style="font:600 34px/1 var(--font-display);color:var(--ink)">M</div>
+                </div>
+                <div style="flex:1">
+                  <div class="derived"><span>Built</span><b class="mono">tall · lean</b></div>
+                  <div class="derived"><span>Colouring</span><b class="mono">dark · olive</b></div>
+                  <div class="derived"><span>Face</span><b class="mono">long, flat brow</b></div>
+                  <div class="derived"><span>From</span><b class="mono">Vitality 8, Warmth 7</b></div>
+                </div>
+              </div>
+
+              <div class="hr"></div>
+              <div class="lbl">what this life starts with</div>
+              <div class="grid2" style="margin-top:8px">
+                <div class="stat"><div class="k">money</div><div class="v" style="font-size:15px;color:var(--money)">₡ 0.00</div><div class="s">a child owns nothing</div></div>
+                <div class="stat"><div class="k">home</div><div class="v" style="font-size:15px">Voss</div><div class="s">rented · shares a room</div></div>
+                <div class="stat"><div class="k">school</div><div class="v" style="font-size:15px">in 7 y</div><div class="s">on household income</div></div>
+                <div class="stat"><div class="k">ties</div><div class="v" style="font-size:15px">5</div><div class="s">2 parents, 1 sibling, 2 kin</div></div>
+              </div>
+
+              <div class="hr"></div>
+              <div class="tiny dim" style="line-height:1.55">
+                Starting a life is an <b>intent like any other</b>: the server validates it (slot free, household accepting births, no trait budget overspend) and only then does the genos exist.
+              </div>
+
+              <div class="btn-row" style="margin-top:14px">
+                <button class="btn btn--sm btn--ghost">Randomise</button>
+                <div class="grow"></div>
+                <button class="btn btn--primary">Be born</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="caption">
+    <b>M09 — A new life.</b> Creation is framed as <i>entering an existing society</i>, not building an avatar: you pick how much continuity you want (born into a family, or an immigrant with no ties), traits are inherited first and nudged with a small budget, and the appearance is derived. This is the screen that makes the genetics pillar honest — and the one that stops "creation" from being a character editor that the simulation ignores.
+  </div>
+</div>
+<script src="assets/town.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    TownMock.drawTown(document.getElementById('town'), { seed: 20261128, tile: 20, originX: 3, originY: 2, tint: 'rgba(24,22,14,.16)', people: [] });
+  });
+</script>
+</body>
+</html>

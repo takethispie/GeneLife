@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GeneLife — M01 World view (HUD)</title>
+<link rel="stylesheet" href="assets/mockups.css">
+<style>
+  /* surface-specific only */
+  .zoomctl{ position:absolute; right:24px; bottom:104px; display:flex; flex-direction:column; overflow:hidden; }
+  .zoomctl div{ width:34px; height:32px; display:grid; place-items:center; border-bottom:1px solid var(--line); font:600 13px/1 var(--font-mono); color:var(--ink-2); }
+  .zoomctl div:last-child{ border-bottom:0; }
+  .minimap{ position:absolute; left:24px; bottom:104px; width:150px; height:110px; overflow:hidden; }
+  .minimap .m{ position:absolute; inset:0; background:
+      repeating-linear-gradient(90deg,#67785A 0 6px,#5F7054 6px 12px),
+      repeating-linear-gradient(0deg,rgba(0,0,0,.12) 0 1px,transparent 1px 12px); }
+  .minimap .m::after{ content:""; position:absolute; left:38%; top:30%; width:34px; height:26px; border:1.5px solid var(--accent); background:rgba(196,83,42,.18); }
+  .minimap .m::before{ content:""; position:absolute; left:46%; top:38%; width:5px; height:5px; border-radius:50%; background:#F5F1E8; box-shadow:0 0 0 2px var(--accent); }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="stage-title">GeneLife · GDD mockups · <b>M01 — World view &amp; HUD</b></div>
+  <div class="frame" id="frame">
+    <canvas class="bg" id="town"></canvas>
+
+    <div class="hud">
+      <!-- ── life card: person-first, top-left ───────────────────────── -->
+      <div class="paper lifecard">
+        <div class="soma">
+          <svg width="96" height="96" viewBox="0 0 96 96">
+            <circle cx="48" cy="48" r="44" fill="none" stroke="#E3DCCA" stroke-width="3"/>
+            <g transform="rotate(-90 48 48)" fill="none" stroke-linecap="butt" stroke-width="5">
+              <circle cx="48" cy="48" r="44" pathLength="100" stroke="#2E6E5B" stroke-dasharray="71 29" transform="rotate(0 48 48)"/>
+              <circle cx="48" cy="48" r="44" pathLength="100" stroke="#3F8A72" stroke-dasharray="44 56" transform="rotate(93 48 48)"/>
+              <circle cx="48" cy="48" r="44" pathLength="100" stroke="#B8862B" stroke-dasharray="86 14" transform="rotate(186 48 48)"/>
+              <circle cx="48" cy="48" r="44" pathLength="100" stroke="#C4532A" stroke-dasharray="29 71" transform="rotate(279 48 48)"/>
+            </g>
+          </svg>
+          <div class="core"><div class="portrait">M</div></div>
+        </div>
+        <div class="meta">
+          <div class="name">Mira Voss<small>you · genos #4412</small></div>
+          <div class="where" style="margin-top:8px">
+            <span class="chip chip--accent"><span class="dot"></span>hungry</span>
+            <span class="chip"><span class="dot"></span>shift in 1h 12m</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:11px;align-items:end">
+            <div>
+              <div class="lbl">household money</div>
+              <div class="mono" style="font-size:14px;margin-top:3px">₡ 1&nbsp;284.40</div>
+            </div>
+            <div class="right">
+              <div class="lbl">rent in</div>
+              <div class="mono" style="font-size:14px;margin-top:3px;color:var(--warn)">4 days</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── clock / speed, top-centre ──────────────────────────────── -->
+      <div class="paper clocks">
+        <div class="clock"><div class="v">Tue 14 Mar</div><div class="k">Spring · y 12</div></div>
+        <div class="clock"><div class="v">08:12</div><div class="k">town time</div></div>
+        <div class="clock clock--speed"><div class="speeds"><span>❙❙</span><span class="on">1×</span><span>4×</span><span>16×</span></div><div class="k">speed</div></div>
+      </div>
+
+      <!-- ── the town bell: one digest, never a flood ───────────────── -->
+      <div class="paper bell">
+        <div class="hd"><h3>Town bell</h3><span class="right">4 since 06:00</span></div>
+        <div class="bellitem"><div><div class="sev sev--r"></div></div>
+          <div><div class="small"><b>Rent is due in 4 days.</b> Short by ₡ 214.00 if nothing changes.</div>
+            <div class="tiny dim" style="margin-top:3px">Household · 3 actions</div></div>
+          <div class="kbd">B</div></div>
+        <div class="bellitem"><div><div class="sev sev--a"></div></div>
+          <div><div class="small">Fenn got a school place at Northgate Primary.</div>
+            <div class="tiny dim" style="margin-top:3px">Family · starts in 2 days</div></div>
+          <div class="kbd">B</div></div>
+        <div class="bellitem"><div><div class="sev sev--g"></div></div>
+          <div><div class="small">Odd-job completed at the cannery — ₡ 148.00 paid.</div>
+            <div class="tiny dim" style="margin-top:3px">Work · 07:40</div></div>
+          <div class="kbd">B</div></div>
+        <div class="bellitem"><div><div class="sev"></div></div>
+          <div><div class="small">Wren is at the door. She wants to talk.</div>
+            <div class="tiny dim" style="margin-top:3px">Social · 07:58</div></div>
+          <div class="kbd">B</div></div>
+      </div>
+
+      <!-- ── minimap ────────────────────────────────────────────────── -->
+      <div class="paper minimap"><div class="m"></div>
+        <div style="position:absolute;left:0;right:0;bottom:0;padding:3px 6px;background:rgba(24,20,16,.72);color:#E8E0CE;font:600 8.5px/1 var(--font-mono);letter-spacing:.1em">KESTREL ROW · 24,19</div>
+      </div>
+
+      <!-- ── zoom ───────────────────────────────────────────────────── -->
+      <div class="paper zoomctl"><div>+</div><div>−</div><div>⌂</div></div>
+
+      <!-- ── the day ribbon: "what will happen" ─────────────────────── -->
+      <div class="paper ribbon">
+        <div class="who">
+          <div class="lbl">today</div>
+          <div class="display" style="font-size:15px;margin-top:3px">Work, then home</div>
+          <div class="tiny dim" style="margin-top:2px">next free hour 18:30</div>
+        </div>
+        <div class="track">
+          <div class="hours"><span>06</span><span>09</span><span>12</span><span>15</span><span>18</span><span>21</span></div>
+          <div class="block block--home" style="left:0%;width:9%">sleep</div>
+          <div class="block block--errand" style="left:9%;width:7%">shops</div>
+          <div class="block block--work" style="left:16%;width:22%">shift · cannery</div>
+          <div class="block block--muted" style="left:38%;width:9%">commute</div>
+          <div class="block block--social" style="left:47%;width:10%">Wren</div>
+          <div class="block block--home" style="left:57%;width:33%">household</div>
+          <div class="now" style="left:37.5%"></div>
+        </div>
+        <div class="acts">
+          <button class="btn btn--sm">Plan…</button>
+          <button class="btn btn--sm btn--ghost">Journal</button>
+        </div>
+      </div>
+
+      <!-- ── the intent dial: every verb is a typed intent ──────────── -->
+      <div class="dial" style="left:604px;top:400px">
+        <div class="disc"></div>
+        <div class="ring"></div>
+        <div class="hub"><div><b>M</b>intend</div></div>
+
+        <div class="item item--on" style="left:0px;top:-158px">
+          <div class="t">Eat something<span class="tiny dim">⌘E</span></div>
+          <div class="s">35 min · ₡ 6.50 · pantry</div>
+        </div>
+        <div class="item" style="left:137px;top:-79px">
+          <div class="t">Go to work</div>
+          <div class="s">12 min walk · starts 09:00</div>
+        </div>
+        <div class="item" style="left:137px;top:79px">
+          <div class="t">Talk to Wren</div>
+          <div class="s">here · friendship 61</div>
+        </div>
+        <div class="item item--no" style="left:0px;top:158px">
+          <div class="t">Buy groceries</div>
+          <div class="s">needs a store · ₡ 34.15</div>
+        </div>
+        <div class="item" style="left:-137px;top:79px">
+          <div class="t">Go home</div>
+          <div class="s">9 min walk · 24 Kestrel Row</div>
+        </div>
+        <div class="item" style="left:-137px;top:-79px">
+          <div class="t">Apply for a job…</div>
+          <div class="s">3 openings nearby</div>
+        </div>
+      </div>
+
+      <div class="hint">
+        <span><span class="kbd">RMB</span> intend</span>
+        <span><span class="kbd">LMB</span> select &amp; walk</span>
+        <span><span class="kbd">E</span> enter / use</span>
+        <span><span class="kbd">Tab</span> household</span>
+        <span><span class="kbd">Space</span> pause</span>
+      </div>
+    </div>
+  </div>
+  <div class="caption">
+    <b>M01 — World view.</b> The play surface. Chrome is warm paper so it stays legible over a saturated tile map; the town is never dimmed by the interface. Top-left is the player (person-first), top-centre is town time (diegetic), top-right is a single <i>digest</i> rather than per-event pop-ups. The bottom <b>day ribbon</b> answers "what will happen today" and is also the schedule editor. The <b>intent dial</b> (right-click on the genos) lists verbs grouped by where the genos is; each verb shows cost and duration <i>before</i> it is chosen and maps 1:1 to a typed intent in the contract.
+  </div>
+</div>
+
+<script src="assets/town.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    TownMock.drawTown(document.getElementById('town'), {
+      seed: 20261128, tile: 20, originX: 3, originY: 2, tint: 'rgba(24,22,14,.06)',
+      people: [
+        { x: 33.2, y: 22.0, colour: '#C4532A', focus: true, label: 'Mira · you' },
+        { x: 36.6, y: 21.4, colour: '#A63A5A', label: 'Wren' },
+        { x: 12.1, y: 8.4, colour: '#7D8794' }, { x: 13.4, y: 9.2, colour: '#7D8794' },
+        { x: 22.0, y: 30.6, colour: '#7D8794' }, { x: 46.0, y: 12.0, colour: '#7D8794' },
+        { x: 41.5, y: 30.2, colour: '#7D8794' }, { x: 8.6, y: 26.4, colour: '#7D8794' },
+        { x: 51.2, y: 27.8, colour: '#7D8794' }, { x: 19.4, y: 15.2, colour: '#7D8794' }
+      ]
+    });
+  });
+</script>
+</body>
+</html>

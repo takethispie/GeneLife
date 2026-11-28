@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GeneLife — GDD mockup set</title>
+<link rel="stylesheet" href="assets/mockups.css">
+<style>
+  body{ background:var(--paper); }
+  .wrap{ width:1240px; margin:0 auto; padding:52px 0 100px; }
+  h1{ font-family:var(--font-display); font-size:40px; letter-spacing:-.02em; margin:8px 0 6px; }
+  .lede{ font-family:var(--font-display); font-size:17px; line-height:1.55; color:#3A4453; width:800px; }
+  .grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; margin-top:30px; }
+  .card{ border:1px solid var(--line); background:#FBF8F1; border-radius:2px; overflow:hidden; }
+  .thumb{ position:relative; height:226px; overflow:hidden; background:#20261F; border-bottom:1px solid var(--line); }
+  .thumb iframe{ position:absolute; left:0; top:0; width:1440px; height:900px; border:0; transform:scale(.2764); transform-origin:0 0; pointer-events:none; }
+  .thumb--sheet iframe{ width:1080px; height:1400px; transform:scale(.627); }
+  .meta{ padding:11px 13px 13px; }
+  .meta .k{ font:600 8.5px/1 var(--font-mono); letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3); }
+  .meta .t{ font:600 14px/1.3 var(--font-display); margin-top:5px; }
+  .meta .d{ font-size:11.5px; line-height:1.5; color:var(--ink-2); margin-top:5px; }
+  .meta a{ display:inline-block; margin-top:9px; font:600 10.5px/1 var(--font-ui); letter-spacing:.08em; text-transform:uppercase; color:var(--accent); text-decoration:none; border-bottom:1px solid currentColor; padding-bottom:2px; }
+  .wide{ grid-column:span 3; }
+  .two{ display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:20px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="lbl">GeneLife · GDD chapter 07 · mockups</div>
+  <h1>The desktop client, drawn</h1>
+  <p class="lede">Nine surfaces and a design-language sheet for the Godot client — new designs for the desktop frame,
+  not a port of the web HUD. Every mockup is self-contained HTML at 1440×900; open any file directly to inspect it at size.</p>
+
+  <div class="grid">
+    <div class="card wide" style="display:grid;grid-template-columns:1.2fr 1fr">
+      <div class="thumb thumb--sheet" style="height:300px"><iframe src="00-design-language.html" loading="lazy"></iframe></div>
+      <div class="meta" style="padding:18px 20px">
+        <div class="k">00 · companion sheet</div>
+        <div class="t" style="font-size:20px">Design language — “Civic Paper”</div>
+        <div class="d">Tokens (colour, type, space, elevation), component kit, motion rules, iconography, accessibility and the binding
+          anti-patterns that keep the desktop client away from the prototype's dark-slate web HUD. Read this before any screen.</div>
+        <a href="00-design-language.html">Open sheet</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="thumb"><iframe src="01-world-hud.html" loading="lazy"></iframe></div>
+      <div class="meta"><div class="k">01 · play surface</div><div class="t">World view &amp; HUD</div>
+        <div class="d">Life card, town time, one digest, the day ribbon, and the intent dial — every verb is a typed intent.</div>
+        <a href="01-world-hud.html">Open</a></div>
+    </div>
+    <div class="card">
+      <div class="thumb"><iframe src="02-genos-sheet.html" loading="lazy"></iframe></div>
+      <div class="meta"><div class="k">02 · person</div><div class="t">Genos sheet</div>
+        <div class="d">Needs with cause lines, traits beside their inherited values, ties and the person's own ledger.</div>
+        <a href="02-genos-sheet.html">Open</a></div>
+    </div>
+    <div class="card">
+      <div class="thumb"><iframe src="03-household-lineage.html" loading="lazy"></iframe></div>
+      <div class="meta"><div class="k">03 · household</div><div class="t">Household &amp; lineage</div>
+        <div class="d">Who lives here, who earns, what the week costs, the house cutaway and the family tree with its heir rule.</div>
+        <a href="03-household-lineage.html">Open</a></div>
+    </div>
+    <div class="card">
+      <div class="thumb"><iframe src="04-work-career.html" loading="lazy"></iframe></div>
+      <div class="meta"><div class="k">04 · work</div><div class="t">Employment &amp; career</div>
+        <div class="d">Net pay broken out of the shift, the career ladder as a gate map, and a job board that says fit rather than hired.</div>
+        <a href="04-work-career.html">Open</a></div>
+    </div>
+    <div class="card">
+      <div class="thumb"><iframe src="05-market-budget.html" loading="lazy"></iframe></div>
+      <div class="meta"><div class="k">05 · consumption</div><div class="t">Market &amp; budget</div>
+        <div class="d">Shopping as a place: shelves, meals, spoilage, a basket total and a four-week projection from the same ledger.</div>
+        <a href="05-market-budget.html">Open</a></div>
+    </div>
+    <div class="card">
+      <div class="thumb"><iframe src="06-people-conversation.html" loading="lazy"></iframe></div>
+      <div class="meta"><div class="k">06 · social</div><div class="t">People &amp; conversation</div>
+        <div class="d">Players and residents in one list; chat that can produce intents — an introduction, a loan, a partnership.</div>
+        <a href="06-people-conversation.html">Open</a></div>
+    </div>
+    <div class="card">
+      <div class="thumb"><iframe src="07-interior-cutaway.html" loading="lazy"></iframe></div>
+      <div class="meta"><div class="k">07 · interiors</div><div class="t">Interior cutaway</div>
+        <div class="d">The roof lifts: a dollhouse plan, object affordances with cost and effect, and room state that feeds the sim.</div>
+        <a href="07-interior-cutaway.html">Open</a></div>
+    </div>
+    <div class="card">
+      <div class="thumb"><iframe src="08-life-legacy.html" loading="lazy"></iframe></div>
+      <div class="meta"><div class="k">08 · life course</div><div class="t">Life &amp; legacy</div>
+        <div class="d">A life as a record, what the simulation will do with it, and the heir choice — death as a chapter, not a reload.</div>
+        <a href="08-life-legacy.html">Open</a></div>
+    </div>
+    <div class="card">
+      <div class="thumb"><iframe src="09-new-life.html" loading="lazy"></iframe></div>
+      <div class="meta"><div class="k">09 · entry</div><div class="t">A new life</div>
+        <div class="d">Creation as entering a society: born or immigrant, inherited traits nudged by budget, appearance derived.</div>
+        <a href="09-new-life.html">Open</a></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
