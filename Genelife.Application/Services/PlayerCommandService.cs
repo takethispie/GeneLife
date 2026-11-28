@@ -7,7 +7,19 @@ public readonly record struct PlayerCommandAdmission(
     bool Accepted,
     Guid CommandId,
     string? Code,
-    string? Message);
+    string? Message)
+{
+    /// <summary>Refuses with a member of the closed player-action refusal set.</summary>
+    public static PlayerCommandAdmission Reject(PlayerRefusal refusal, string message) =>
+        new(false, Guid.Empty, refusal.WireCode(), message);
+
+    /// <summary>
+    /// Refuses with a code the closed set does not name. Kept for the rest of the Application layer.
+    /// </summary>
+    [Obsolete("Prefer Reject(PlayerRefusal, string). Kept for the rest of the Application layer while it still produces raw codes.")]
+    public static PlayerCommandAdmission Reject(string code, string message) =>
+        new(false, Guid.Empty, code, message);
+}
 
 /// <summary>
 /// HTTP/hub admission for player commands. It enforces per-player rate and
@@ -42,23 +54,23 @@ public sealed class PlayerCommandService
         Guid? commandId)
     {
         if (string.IsNullOrWhiteSpace(playerId))
-            return Reject("unauthenticated", "A player identity is required.");
+            return PlayerCommandAdmission.Reject(PlayerRefusal.Unauthenticated, "A player identity is required.");
         if (queue is null)
-            return Reject("world_not_ready", "The command queue is not available.");
+            return PlayerCommandAdmission.Reject(PlayerRefusal.WorldNotReady, "The command queue is not available.");
         if (!engine.IsRunning)
-            return Reject("world_not_ready", "The world is not ready yet.");
+            return PlayerCommandAdmission.Reject(PlayerRefusal.WorldNotReady, "The world is not ready yet.");
         if (payload.ValueKind != JsonValueKind.Object)
-            return Reject("malformed_payload", "A payload object is required.");
+            return PlayerCommandAdmission.Reject(PlayerRefusal.MalformedPayload, "A payload object is required.");
 
         var payloadBytes = JsonSerializer.SerializeToUtf8Bytes(payload);
         if (payloadBytes.Length > MaxPayloadBytes)
-            return Reject("payload_too_large", "The payload is too large.");
+            return PlayerCommandAdmission.Reject(PlayerRefusal.PayloadTooLarge, "The payload is too large.");
 
         if (!limiter.TryAcquire($"player-command:{playerId}", MaxCommandsPerSecond, TimeSpan.FromSeconds(1)))
-            return Reject("rate_limited", "Too many actions. Try again shortly.");
+            return PlayerCommandAdmission.Reject(PlayerRefusal.RateLimited, "Too many actions. Try again shortly.");
 
         if (!engine.TryReservePlayerCommand(playerId))
-            return Reject("rate_limited", "Too many actions are already pending.");
+            return PlayerCommandAdmission.Reject(PlayerRefusal.RateLimited, "Too many actions are already pending.");
 
         var id = commandId is null || commandId == Guid.Empty ? Guid.NewGuid() : commandId.Value;
         var resolvedGenos = genosNetworkId != 0 ? genosNetworkId : engine.GetPlayerGenosNetworkId(playerId);
@@ -76,13 +88,10 @@ public sealed class PlayerCommandService
         if (!queue.TryEnqueue(intent, out var error))
         {
             engine.ReleasePlayerCommand(playerId);
-            return Reject("queue_full", error ?? "The command queue is full.");
+            return PlayerCommandAdmission.Reject(PlayerRefusal.QueueFull, error ?? "The command queue is full.");
         }
 
         engine.MarkPlayerConnected(playerId);
         return new PlayerCommandAdmission(true, id, null, null);
     }
-
-    private static PlayerCommandAdmission Reject(string code, string message) =>
-        new(false, Guid.Empty, code, message);
 }
