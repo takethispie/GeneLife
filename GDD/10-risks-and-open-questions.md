@@ -16,6 +16,13 @@
 - [ ] **Building sizing:** minimum-viable vs comfortable — confirm minimum-first for V1.
 - [ ] **Shared households:** what two partnered players share mechanically (see §6.4).
 - [ ] **Heir continuation:** how legacy selection works across players and NPCs.
+- [ ] **Creation — no face editor (PO ruling needed):** chapter 07's design position is that
+      character creation has **no face editor** — appearance is *derived* from traits/age/sex,
+      so the player chooses a life, not a look. Follows the brief and §5.5, but is a
+      product-level position, not styling.
+- [ ] **Death — household continuation (PO ruling needed):** the design position is that death
+      **continues the household as an heir** rather than restarting the playthrough (§5.5,
+      mockup `08-life-legacy`). Needs explicit confirmation.
 - [ ] **Combat/conflict:** confirm anti-goal (no ballistic combat) holds for all visions.
 - [ ] **Client parity bar:** what "the desktop client reaches parity" must include to end
       the bridge.

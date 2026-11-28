@@ -52,3 +52,23 @@ it is a place big enough and real enough to wander, where wandering still has co
 Each vignette is a **playable acceptance sketch**. When a roadmap phase lands, ask: which
 vignette can now be played end-to-end in the desktop client? The answer is a plainer status
 report than any metric table.
+
+## 11.7 The same moment, as fiction and as interface
+
+Each vignette is a moment; each moment is *hosted* by a surface from chapter 07 that owns the
+player's decision at that point. Describing the moment once as fiction here and once as
+interface there keeps the GDD self-consistent — if a vignette's decision has no surface, or a
+surface's decision appears in no vignette, one of the two chapters is wrong.
+
+| Vignette moment | Surface (chapter 07) | Decision the player makes there |
+|---|---|---|
+| 11.1 waking, needs, the shop, rent | `02-genos-sheet`, `05-market-budget`, `07-interior-cutaway` | *Why is my genos like this / what do we eat / what do I do in this room?* |
+| 11.1 leaving and working a shift | `04-work-career` | *Do I stay, apply, train, or quit?* |
+| 11.1 the day as a whole | `01-world-hud` (day ribbon, Town bell) | *What do I do next, and with what?* |
+| 11.2 aging, household, inheritance | `03-household-lineage`, `08-life-legacy` | *Can we afford this life, and who continues it?* |
+| 11.3 launching the desktop client, creation | `09-new-life` | *How much continuity do I want to start with?* |
+| 11.4 watching the town (no input) | *observer/admin surfaces — never the play surface* (07 §7.1, principle 2) | — |
+| 11.5 wandering the open world | `01-world-hud`, `07-interior-cutaway` | *What is worth doing here?* |
+
+This mapping is the join between the **fiction** (this chapter) and the **design language and
+mockups** (chapter 07). When either side changes, update both rows.

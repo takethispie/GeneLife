@@ -73,6 +73,7 @@ server-authoritative town can host for many players at once.
 |---|---|---|---|
 | 0.1 | 2026-11-28 | roberto | Initial fork: index, vision & pillars, current state, world/space. Chapters 06–10 outlined. |
 | 0.2 | 2026-11-28 | adriano | Chapter 07 written: design language “Civic Paper”, six ratified principles, five interaction models, nine mockups under `GDD/mockups/`, interface→simulation mapping for chapter 08. |
+| 0.3 | 2026-11-28 | roberto | Folded chapter 07 into the compiled doc (fast-forward of PR #113 into `feature/gdd`); verified the gallery and world-HUD mockups render; added §11.7 fiction↔interface mapping; surfaced two PO positions (no face editor, household continuation) in chapter 10. |
 
 ---
 
