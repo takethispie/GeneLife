@@ -9,6 +9,9 @@ public class SimulationLoop : BackgroundService
     private readonly SimulationEngine engine;
     private readonly ILogger<SimulationLoop>? logger;
     private const float FixedDeltaTime = 1f / 20f;
+
+    /// <summary>Fixed simulation ticks per real second — the unit travel durations are quoted in.</summary>
+    public const int TicksPerSecond = 20;
     private const int MaxCatchUpTicks = 5;
     private static readonly TimeSpan FixedStep = TimeSpan.FromSeconds(FixedDeltaTime);
     private static readonly double TickBudgetMs = FixedStep.TotalMilliseconds;

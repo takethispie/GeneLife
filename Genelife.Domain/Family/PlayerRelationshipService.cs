@@ -55,34 +55,15 @@ public sealed class PlayerRelationshipService
         string toPlayerId,
         long tick)
     {
-        if (Same(fromPlayerId, toPlayerId))
-            return PlayerRelationshipResult.Reject("self_target", "You cannot invite yourself.");
-
         lock (gate)
         {
             RefreshLocked(tick);
-            if (social.AreInvitationsBlocked(fromPlayerId, tick))
-                return PlayerRelationshipResult.Reject("suspended", "Your invitations are currently restricted.");
-            if (social.IsBlocked(fromPlayerId, toPlayerId))
-                return PlayerRelationshipResult.Reject("blocked", "You cannot invite that player.");
+            var evaluation = EvaluateInvitePartnerLocked(fromPlayerId, toPlayerId, tick);
+            if (!evaluation.Applied)
+                return evaluation;
+
             if (!TryResolve(fromPlayerId, out var fromGenos) || !TryResolve(toPlayerId, out var toGenos))
                 return PlayerRelationshipResult.Reject("not_available", "Both players need an active genos.");
-            if (IsOnCooldown(fromPlayerId, toPlayerId, tick))
-                return PlayerRelationshipResult.Reject("cooldown", "That invitation was declined recently.");
-            if (HasPendingLocked(fromPlayerId, toPlayerId, FamilyInvitationKind.Partnership)
-                || HasAnyPendingFromLocked(fromPlayerId, FamilyInvitationKind.Partnership))
-                return PlayerRelationshipResult.Reject("request_pending", "An invitation is already pending.");
-
-            var eligibility = EligibilityPolicy.Evaluate(
-                world,
-                relationships,
-                fromGenos,
-                toGenos,
-                relationshipOptions);
-            if (!eligibility.Eligible)
-                return PlayerRelationshipResult.Reject(
-                    eligibility.Code ?? "invalid_state",
-                    eligibility.Reason ?? "The pair is not eligible.");
 
             return CreateInvitationLocked(
                 fromPlayerId,
@@ -94,33 +75,63 @@ public sealed class PlayerRelationshipService
         }
     }
 
-    public PlayerRelationshipResult InviteCohabit(
+    /// <summary>
+    /// Pure precondition pass for a partnership invitation, shared by the applying path and the
+    /// action catalogue (GDD chapter 08 §8.5(1)): no world mutation and no invitation created.
+    /// </summary>
+    public PlayerRelationshipResult EvaluateInvitePartner(string fromPlayerId, string toPlayerId, long tick)
+    {
+        lock (gate)
+            return EvaluateInvitePartnerLocked(fromPlayerId, toPlayerId, tick);
+    }
+
+    private PlayerRelationshipResult EvaluateInvitePartnerLocked(
         string fromPlayerId,
         string toPlayerId,
         long tick)
     {
         if (Same(fromPlayerId, toPlayerId))
             return PlayerRelationshipResult.Reject("self_target", "You cannot invite yourself.");
+        if (social.AreInvitationsBlocked(fromPlayerId, tick))
+            return PlayerRelationshipResult.Reject("suspended", "Your invitations are currently restricted.");
+        if (social.IsBlocked(fromPlayerId, toPlayerId))
+            return PlayerRelationshipResult.Reject("blocked", "You cannot invite that player.");
+        if (!TryResolve(fromPlayerId, out var fromGenos) || !TryResolve(toPlayerId, out var toGenos))
+            return PlayerRelationshipResult.Reject("not_available", "Both players need an active genos.");
+        if (IsOnCooldown(fromPlayerId, toPlayerId, tick))
+            return PlayerRelationshipResult.Reject("cooldown", "That invitation was declined recently.");
+        if (HasPendingLocked(fromPlayerId, toPlayerId, FamilyInvitationKind.Partnership)
+            || HasAnyPendingFromLocked(fromPlayerId, FamilyInvitationKind.Partnership))
+            return PlayerRelationshipResult.Reject("request_pending", "An invitation is already pending.");
 
+        var eligibility = EligibilityPolicy.Evaluate(
+            world,
+            relationships,
+            fromGenos,
+            toGenos,
+            relationshipOptions);
+        if (!eligibility.Eligible)
+            return PlayerRelationshipResult.Reject(
+                eligibility.Code ?? "invalid_state",
+                eligibility.Reason ?? "The pair is not eligible.");
+
+        return PlayerRelationshipResult.Success();
+    }
+
+    public PlayerRelationshipResult InviteCohabit(
+        string fromPlayerId,
+        string toPlayerId,
+        long tick)
+    {
         lock (gate)
         {
             RefreshLocked(tick);
-            if (social.AreInvitationsBlocked(fromPlayerId, tick))
-                return PlayerRelationshipResult.Reject("suspended", "Your invitations are currently restricted.");
-            if (social.IsBlocked(fromPlayerId, toPlayerId))
-                return PlayerRelationshipResult.Reject("blocked", "You cannot invite that player.");
+            var evaluation = EvaluateInviteCohabitLocked(fromPlayerId, toPlayerId, tick);
+            if (!evaluation.Applied)
+                return evaluation;
+
             if (!TryResolve(fromPlayerId, out var fromGenos) || !TryResolve(toPlayerId, out var toGenos))
                 return PlayerRelationshipResult.Reject("not_available", "Both players need an active genos.");
-            if (!relationships.PartnersOf(fromGenos).Contains(toGenos)
-                || !relationships.PartnersOf(toGenos).Contains(fromGenos))
-                return PlayerRelationshipResult.Reject("not_partner", "You need an active partnership first.");
-            if (IsOnCooldown(fromPlayerId, toPlayerId, tick))
-                return PlayerRelationshipResult.Reject("cooldown", "That invitation was declined recently.");
-            if (HasPendingLocked(fromPlayerId, toPlayerId, FamilyInvitationKind.Cohabitation)
-                || HasAnyPendingFromLocked(fromPlayerId, FamilyInvitationKind.Cohabitation))
-                return PlayerRelationshipResult.Reject("request_pending", "A cohabitation invitation is already pending.");
-            if (SameHousehold(fromGenos, toGenos))
-                return PlayerRelationshipResult.Reject("already_cohoused", "You already share a household.");
 
             return CreateInvitationLocked(
                 fromPlayerId,
@@ -130,6 +141,60 @@ public sealed class PlayerRelationshipService
                 FamilyInvitationKind.Cohabitation,
                 tick);
         }
+    }
+
+    /// <summary>Pure precondition pass for a cohabitation invitation; shared by apply and catalogue.</summary>
+    public PlayerRelationshipResult EvaluateInviteCohabit(string fromPlayerId, string toPlayerId, long tick)
+    {
+        lock (gate)
+            return EvaluateInviteCohabitLocked(fromPlayerId, toPlayerId, tick);
+    }
+
+    private PlayerRelationshipResult EvaluateInviteCohabitLocked(
+        string fromPlayerId,
+        string toPlayerId,
+        long tick)
+    {
+        if (Same(fromPlayerId, toPlayerId))
+            return PlayerRelationshipResult.Reject("self_target", "You cannot invite yourself.");
+        if (social.AreInvitationsBlocked(fromPlayerId, tick))
+            return PlayerRelationshipResult.Reject("suspended", "Your invitations are currently restricted.");
+        if (social.IsBlocked(fromPlayerId, toPlayerId))
+            return PlayerRelationshipResult.Reject("blocked", "You cannot invite that player.");
+        if (!TryResolve(fromPlayerId, out var fromGenos) || !TryResolve(toPlayerId, out var toGenos))
+            return PlayerRelationshipResult.Reject("not_available", "Both players need an active genos.");
+        if (!relationships.PartnersOf(fromGenos).Contains(toGenos)
+            || !relationships.PartnersOf(toGenos).Contains(fromGenos))
+            return PlayerRelationshipResult.Reject("not_partner", "You need an active partnership first.");
+        if (IsOnCooldown(fromPlayerId, toPlayerId, tick))
+            return PlayerRelationshipResult.Reject("cooldown", "That invitation was declined recently.");
+        if (HasPendingLocked(fromPlayerId, toPlayerId, FamilyInvitationKind.Cohabitation)
+            || HasAnyPendingFromLocked(fromPlayerId, FamilyInvitationKind.Cohabitation))
+            return PlayerRelationshipResult.Reject("request_pending", "A cohabitation invitation is already pending.");
+        if (SameHousehold(fromGenos, toGenos))
+            return PlayerRelationshipResult.Reject("already_cohoused", "You already share a household.");
+
+        return PlayerRelationshipResult.Success();
+    }
+
+    /// <summary>Pure precondition pass for ending a partnership; shared by apply and catalogue.</summary>
+    public PlayerRelationshipResult EvaluateEndPartnership(string playerId, string partnerPlayerId)
+    {
+        lock (gate)
+            return EvaluateEndPartnershipLocked(playerId, partnerPlayerId);
+    }
+
+    private PlayerRelationshipResult EvaluateEndPartnershipLocked(string playerId, string partnerPlayerId)
+    {
+        if (Same(playerId, partnerPlayerId))
+            return PlayerRelationshipResult.Reject("invalid_state", "You cannot end a partnership with yourself.");
+        if (!TryResolve(playerId, out var genos) || !TryResolve(partnerPlayerId, out var partner))
+            return PlayerRelationshipResult.Reject("not_available", "Both players need an active genos.");
+        if (!relationships.PartnersOf(genos).Contains(partner)
+            || !relationships.PartnersOf(partner).Contains(genos))
+            return PlayerRelationshipResult.Reject("not_partner", "No active partnership exists.");
+
+        return PlayerRelationshipResult.Success();
     }
 
     public PlayerRelationshipResult Respond(
@@ -201,18 +266,15 @@ public sealed class PlayerRelationshipService
         long tick,
         bool splitHousehold = true)
     {
-        if (Same(playerId, partnerPlayerId))
-            return PlayerRelationshipResult.Reject("invalid_state", "You cannot end a partnership with yourself.");
-
         lock (gate)
         {
             RefreshLocked(tick);
+            var evaluation = EvaluateEndPartnershipLocked(playerId, partnerPlayerId);
+            if (!evaluation.Applied)
+                return evaluation;
+
             if (!TryResolve(playerId, out var genos) || !TryResolve(partnerPlayerId, out var partner))
                 return PlayerRelationshipResult.Reject("not_available", "Both players need an active genos.");
-
-            if (!relationships.PartnersOf(genos).Contains(partner)
-                || !relationships.PartnersOf(partner).Contains(genos))
-                return PlayerRelationshipResult.Reject("not_partner", "No active partnership exists.");
 
             var firstId = NetworkIdOf(genos);
             var secondId = NetworkIdOf(partner);

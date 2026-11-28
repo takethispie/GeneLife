@@ -24,6 +24,9 @@ public sealed record VenueActivityResult(
 {
     public static VenueActivityResult Reject(string code, string message) =>
         new(false, code, message, Array.Empty<string>(), null);
+
+    public static VenueActivityResult Success() =>
+        new(true, null, null, Array.Empty<string>(), null);
 }
 
 /// <summary>
@@ -59,7 +62,12 @@ public sealed class VenueActivityService
         this.options = options ?? venues.Options;
     }
 
-    public VenueActivityResult TryPerform(
+    /// <summary>
+    /// The pure precondition pass shared by the applying path and the action catalogue
+    /// (GDD chapter 08 §8.5(1)): reads world state, mutates nothing. A <c>ShareMeal</c> is checked
+    /// for food without consuming it; the consumption stays in <see cref="TryPerform"/>.
+    /// </summary>
+    public VenueActivityResult Evaluate(
         string playerId,
         Entity venue,
         VenueActivity activity,
@@ -89,7 +97,24 @@ public sealed class VenueActivityService
                 return VenueActivityResult.Reject("activity_cooldown", "Wait a moment before another activity.");
         }
 
-        var genos = profile.ControlledGenos;
+        if (activity == VenueActivity.ShareMeal && !HasMeal(profile.ControlledGenos))
+            return VenueActivityResult.Reject("no_food", "You have no food to share.");
+
+        return VenueActivityResult.Success();
+    }
+
+    public VenueActivityResult TryPerform(
+        string playerId,
+        Entity venue,
+        VenueActivity activity,
+        long tick)
+    {
+        var evaluation = Evaluate(playerId, venue, activity, tick);
+        if (!evaluation.Applied)
+            return evaluation;
+
+        players.TryGet(playerId, out var profile);
+        var genos = profile!.ControlledGenos;
         if (activity == VenueActivity.ShareMeal && !TryConsumeMeal(genos))
             return VenueActivityResult.Reject("no_food", "You have no food to share.");
 
@@ -133,6 +158,15 @@ public sealed class VenueActivityService
                 .Where(item => !social.IsMuted(viewerPlayerId, item.PlayerId))
                 .ToArray();
         }
+    }
+
+    private bool HasMeal(Entity genos)
+    {
+        var household = HouseholdLookup.HouseholdOf(world, economy, genos);
+        return household != Entity.Null &&
+               world.IsAlive(household) &&
+               world.Has<HouseholdPantry>(household) &&
+               world.Get<HouseholdPantry>(household).FoodUnits > 0;
     }
 
     private bool TryConsumeMeal(Entity genos)

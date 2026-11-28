@@ -272,6 +272,30 @@ private readonly NetworkIdRegistry networkIds = new();
     public bool TryDequeuePlayerLifecycleNotice(out PlayerLifecycleNotice notice) =>
         playerLifecycleNotices.TryDequeue(out notice!);
 
+    /// <summary>
+    /// Drains context-change notices for the action catalogue push (GDD chapter 08 §8.5(1)). The
+    /// broadcast service builds the catalogue off the tick thread; enqueueing is O(1).
+    /// </summary>
+    public bool TryDequeueActionCatalogueNotice(out ActionCatalogueNotice notice) =>
+        actionCatalogueNotices.TryDequeue(out notice!);
+
+    private readonly ConcurrentQueue<ActionCatalogueNotice> actionCatalogueNotices = new();
+    private readonly Dictionary<string, long> catalogueNoticeTicks = new(StringComparer.Ordinal);
+
+    private void EnqueueActionCatalogueNotice(string playerId)
+    {
+        if (string.IsNullOrWhiteSpace(playerId))
+            return;
+        if (catalogueNoticeTicks.TryGetValue(playerId, out var last) && last == tick)
+            return;
+
+        catalogueNoticeTicks[playerId] = tick;
+        if (catalogueNoticeTicks.Count > 8_192)
+            catalogueNoticeTicks.Clear();
+
+        actionCatalogueNotices.Enqueue(new ActionCatalogueNotice(playerId, tick));
+    }
+
     private void RejectIntent(string playerId, long sequence, string code, string message)
     {
         if (string.IsNullOrWhiteSpace(playerId))
@@ -432,7 +456,8 @@ private readonly NetworkIdRegistry networkIds = new();
                 this.reproductionOptions,
                 playerRelationships,
                 venueService,
-                venueActivities);
+                venueActivities,
+                mapContext.Map);
 
             systems = new SystemRegistry(samplingInterval: 5);
             systems.Register(new NeedsDecaySystem(world));
@@ -797,6 +822,22 @@ private readonly NetworkIdRegistry networkIds = new();
 
     private void ObservePlayerLifecycleEvent(World currentWorld, object @event, List<object> events)
     {
+        switch (@event)
+        {
+            case PlayerMoved moved:
+                EnqueueActionCatalogueNotice(moved.PlayerId);
+                return;
+            case PlayerLeaseStarted lease:
+                EnqueueActionCatalogueNotice(lease.PlayerId);
+                return;
+            case PlayerHired hired:
+                EnqueueActionCatalogueNotice(hired.PlayerId);
+                return;
+            case PlayerQuitJob quit:
+                EnqueueActionCatalogueNotice(quit.PlayerId);
+                return;
+        }
+
         if (@event is GenosDied died &&
             networkIds.TryGetEntity(new NetworkId(died.GenosNetworkId), out var dead) &&
             currentWorld.IsAlive(dead))
@@ -1319,7 +1360,10 @@ private readonly NetworkIdRegistry networkIds = new();
         }
 
         if (applied)
+        {
             playerRegistry.RecordCommand();
+            EnqueueActionCatalogueNotice(intent.PlayerId);
+        }
 
         economy?.Emit(new PlayerCommandApplied(
             intent.CommandId,
@@ -4771,6 +4815,27 @@ private readonly NetworkIdRegistry networkIds = new();
             return new PlayerLifePage(rows.Skip(skip).Take(take).ToList(), rows.Count);
         }
     }
+
+    /// <summary>
+    /// The action catalogue read model (GDD chapter 08 §8.5(1)): one <c>Evaluate</c> per kind, the
+    /// same evaluation the tick uses. Null when the world or the player is not ready.
+    /// </summary>
+    public ActionCatalogue? BuildActionCatalogue(string playerId, ActionCatalogueRequest request)
+    {
+        using (WriteLock())
+        {
+            if (world is null || playerActions is null || string.IsNullOrWhiteSpace(playerId))
+                return null;
+            return playerActions.BuildCatalogue(playerId, request, tick);
+        }
+    }
+
+    /// <summary>
+    /// Catalogue for a hub push: the caller supplies no targets, so the read model derives what the
+    /// server already knows (offers, invitations, partner, venue) and evaluates the rest as refusals.
+    /// </summary>
+    public ActionCatalogue? BuildPlayerActionCatalogue(string playerId) =>
+        BuildActionCatalogue(playerId, new ActionCatalogueRequest(0));
 
     public PlayerLifeStatus? BuildPlayerLife(string playerId)
     {

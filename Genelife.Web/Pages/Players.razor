@@ -1,6 +1,7 @@
 @page "/players"
 @page "/player"
 @using Genelife.Web.Services
+@using Genelife.Api.Commands
 @inject GameDataService GameData
 @implements IAsyncDisposable
 
@@ -211,6 +212,49 @@
                 <div class="alert alert-info py-2 mt-3 mb-0">Lease offer: unit @selected.LeaseOffer.UnitId for @Money(selected.LeaseOffer.RentCents)/mo (expires @selected.LeaseOffer.ExpiresTick).</div>
             }
 
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <h3 class="h6 mb-0">Action catalogue</h3>
+                <button class="btn btn-sm btn-outline-secondary" type="button" @onclick="LoadCatalogueAsync" disabled="@isBusy">Reload</button>
+            </div>
+            @if (catalogue is null)
+            {
+                <div class="text-muted small">No catalogue loaded.</div>
+            }
+            else
+            {
+                <div class="small text-muted mb-2">
+                    as of tick @catalogue.AsOfTick &middot; shape v@catalogue.ShapeVersion &middot; refusals @catalogue.RefusalEnumVersion
+                    &middot; every entry is the tick drain's own evaluation
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead><tr><th>Verb</th><th>Available</th><th>Refusal</th><th>Cost</th><th>Duration</th><th>Target</th></tr></thead>
+                        <tbody>
+                            @foreach (var entry in catalogue.Entries)
+                            {
+                                <tr>
+                                    <td>@entry.Kind</td>
+                                    <td>
+                                        @if (entry.Available)
+                                        {
+                                            <span class="badge text-bg-success">yes</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge text-bg-secondary">no</span>
+                                        }
+                                    </td>
+                                    <td><code>@(entry.RefusalCode ?? "—")</code></td>
+                                    <td>@(entry.CostCents > 0 ? Money(entry.CostCents) : "—")</td>
+                                    <td>@(entry.DurationTicks > 0 ? $"{entry.DurationTicks} ticks" : "—")</td>
+                                    <td class="small text-muted">@(entry.TargetHint ?? "—")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+
             <h3 class="h6 mt-4">Recent actions</h3>
             @if (selected.RecentActions.Count == 0)
             {
@@ -265,6 +309,7 @@
     private PlayerOverviewData? overview;
     private PlayerLifePageData? lifePage;
     private PlayerLifeData? selected;
+    private ActionCatalogue? catalogue;
     private string search = string.Empty;
     private string state = string.Empty;
     private string policy = "Respawn";
@@ -290,6 +335,29 @@
         selected = row;
         policy = row.ContinuationPolicy;
         reason = string.Empty;
+        await LoadCatalogueAsync();
+    }
+
+    private async Task LoadCatalogueAsync()
+    {
+        if (selected is null)
+            return;
+
+        isBusy = true;
+        error = null;
+        try
+        {
+            catalogue = await GameData.GetPlayerActionCatalogueAsync(selected.PlayerId);
+        }
+        catch (Exception ex)
+        {
+            catalogue = null;
+            error = ex.Message;
+        }
+        finally
+        {
+            isBusy = false;
+        }
     }
 
     private async Task RefreshAsync()

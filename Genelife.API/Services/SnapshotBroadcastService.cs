@@ -87,6 +87,7 @@ public sealed class SnapshotBroadcastService : BackgroundService, IWorldResetNot
 
                 await BroadcastIntentRejections(cancellationToken);
                 await BroadcastPlayerLifecycle(cancellationToken);
+                await BroadcastActionCatalogues(cancellationToken);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -148,6 +149,33 @@ public sealed class SnapshotBroadcastService : BackgroundService, IWorldResetNot
             {
                 await hubContext.Clients.Client(connectionId)
                     .SendAsync("PlayerLifecycle", notice, cancellationToken);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Pushes a fresh action catalogue to a player whose context changed (an action applied, a move,
+    /// a hire, a lease). The catalogue is the server read model — the dial never derives its own
+    /// list — so a stale dial hears about the change instead of guessing (GDD chapter 08 §8.5(1)).
+    /// </summary>
+    private async Task BroadcastActionCatalogues(CancellationToken cancellationToken)
+    {
+        var processed = 0;
+        while (processed < 64 && engine.TryDequeueActionCatalogueNotice(out var notice))
+        {
+            processed++;
+            var connections = registry.GetConnections(notice.PlayerId);
+            if (connections.Count == 0)
+                continue;
+
+            var catalogue = engine.BuildPlayerActionCatalogue(notice.PlayerId);
+            if (catalogue is null)
+                continue;
+
+            foreach (var connectionId in connections)
+            {
+                await hubContext.Clients.Client(connectionId)
+                    .SendAsync("SendActionCatalogue", catalogue, cancellationToken);
             }
         }
     }

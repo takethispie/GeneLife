@@ -40,6 +40,30 @@ public static class PlayerEndpoints
         });
     }
 
+    /// <summary>
+    /// The action catalogue read model (GDD chapter 08 §8.5(1)): for the authenticated player's genos,
+    /// the verbs valid now with their refusal code, cost, duration and target hint. Produced by the
+    /// same <c>Evaluate</c> the tick drain uses; the client never derives its own action list.
+    /// </summary>
+    [WolverinePost("/api/player/actions/catalogue")]
+    [Authorize(Policy = AuthPolicies.Player)]
+    public static IResult ActionCatalogue(
+        ActionCatalogueRequest request,
+        SimulationEngine engine,
+        HttpContext http)
+    {
+        var playerId = http.User.GetPlayerId();
+        if (string.IsNullOrWhiteSpace(playerId))
+            return Results.Unauthorized();
+
+        var catalogue = engine.BuildActionCatalogue(playerId, request);
+        if (catalogue is null)
+            return Results.Json(
+                new { code = PlayerRefusal.WorldNotReady.WireCode(), message = "The world is not ready yet." },
+                statusCode: 503);
+        return Results.Ok(catalogue);
+    }
+
     [WolverineGet("/api/player/actions/{commandId}")]
     [Authorize(Policy = AuthPolicies.Player)]
     public static IResult GetAction(Guid commandId, SimulationEngine engine, HttpContext http)
@@ -109,6 +133,17 @@ public static class PlayerEndpoints
         string? search = null,
         string? state = null) =>
         engine.BuildPlayerLives(take, skip, search, state);
+
+    /// <summary>Operator view of one player's catalogue — the admin-first observability rule (§8.6).</summary>
+    [WolverineGet("/api/player/{playerId}/actions/catalogue")]
+    [Authorize(Policy = AuthPolicies.Admin)]
+    public static IResult AdminActionCatalogue(string playerId, SimulationEngine engine)
+    {
+        var catalogue = engine.BuildActionCatalogue(playerId, new ActionCatalogueRequest(0));
+        return catalogue is null
+            ? Results.NotFound(new { message = "Player not found." })
+            : Results.Ok(catalogue);
+    }
 
     [WolverineGet("/api/player/lives/{playerId}")]
     [Authorize(Policy = AuthPolicies.Admin)]
