@@ -9,6 +9,9 @@ namespace Genelife.Api.Services;
 /// <summary>
 /// Persists simulation events off the tick thread. The tick loop enqueues events and
 /// never waits for the event store, so database latency cannot stall the fixed-step loop.
+/// The same drain fans the events out to any registered <see cref="ISimulationEventSink"/>
+/// (for example the Town bell digest), so a second consumer never has to own the
+/// single-reader outbound channel.
 /// </summary>
 public sealed class SimulationEventWriter : BackgroundService
 {
@@ -18,23 +21,23 @@ public sealed class SimulationEventWriter : BackgroundService
 
     private readonly SimulationEngine engine;
     private readonly IDocumentStore? documentStore;
+    private readonly ISimulationEventSink? sink;
     private readonly ILogger<SimulationEventWriter>? logger;
 
     public SimulationEventWriter(
         SimulationEngine engine,
         IDocumentStore? documentStore = null,
+        ISimulationEventSink? sink = null,
         ILogger<SimulationEventWriter>? logger = null)
     {
         this.engine = engine;
         this.documentStore = documentStore;
+        this.sink = sink;
         this.logger = logger;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (documentStore is null)
-            return;
-
         var reader = engine.OutboundEvents;
         var batch = new List<object>(MaxBatchSize);
         var lastDropped = 0L;
@@ -54,7 +57,7 @@ public sealed class SimulationEventWriter : BackgroundService
 
                 if (batch.Count > 0)
                 {
-                    await FlushAsync(batch, stoppingToken);
+                    await DispatchAsync(batch, stoppingToken);
                     batch.Clear();
                 }
 
@@ -95,23 +98,55 @@ public sealed class SimulationEventWriter : BackgroundService
             if (batch.Count < MaxBatchSize)
                 continue;
 
-            await TryFlushAsync(batch);
+            await TryDispatchAsync(batch);
             batch.Clear();
         }
 
         if (batch.Count > 0)
-            await TryFlushAsync(batch);
+            await TryDispatchAsync(batch);
     }
 
-    private async Task TryFlushAsync(List<object> batch)
+    private async Task TryDispatchAsync(List<object> batch)
     {
         try
         {
-            await FlushAsync(batch, CancellationToken.None);
+            await DispatchAsync(batch, CancellationToken.None);
         }
         catch (Exception ex)
         {
             logger?.LogError(ex, "Failed to persist {Count} simulation event(s) during shutdown", batch.Count);
+        }
+    }
+
+    /// <summary>
+    /// Fans the batch out to registered sinks, then persists it. A sink failure
+    /// is logged and swallowed — the digest is a read model and must never take
+    /// down persistence.
+    /// </summary>
+    private async Task DispatchAsync(List<object> batch, CancellationToken cancellationToken)
+    {
+        ForwardToSinks(batch);
+
+        if (documentStore is not null)
+            await FlushAsync(batch, cancellationToken);
+    }
+
+    private void ForwardToSinks(List<object> batch)
+    {
+        if (sink is null)
+            return;
+
+        var tick = engine.CurrentTick;
+        foreach (var e in batch)
+        {
+            try
+            {
+                sink.OnEvent(e, tick);
+            }
+            catch (Exception ex)
+            {
+                logger?.LogWarning(ex, "Event sink failed for {EventType}", e.GetType().Name);
+            }
         }
     }
 

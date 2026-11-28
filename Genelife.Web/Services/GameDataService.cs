@@ -54,6 +54,32 @@ public sealed class GameDataService
             ?? new MapStatus();
     }
 
+    public async Task<TownBellDigestDto?> GetDigestAsync(
+        string playerId,
+        long? windowTicks = null,
+        CancellationToken cancellationToken = default)
+    {
+        var url = $"api/admin/digest/{Uri.EscapeDataString(playerId)}";
+        if (windowTicks is > 0)
+            url += $"?windowTicks={windowTicks.Value}";
+
+        using var response = await SendWithAuthRetryAsync(
+            () => http.GetAsync(url, cancellationToken), cancellationToken);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return null;
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<TownBellDigestDto>(cancellationToken: cancellationToken);
+    }
+
+    public async Task<DigestStatusDto> GetDigestStatusAsync(CancellationToken cancellationToken = default)
+    {
+        using var response = await SendWithAuthRetryAsync(
+            () => http.GetAsync("api/admin/digest", cancellationToken), cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<DigestStatusDto>(cancellationToken: cancellationToken)
+            ?? new DigestStatusDto(0, 0, 0, 0, 0, Array.Empty<DigestEntryDto>());
+    }
+
     public async Task PlaceBuildingAsync(
         ulong networkId,
         PlaceBuildingRequest request,

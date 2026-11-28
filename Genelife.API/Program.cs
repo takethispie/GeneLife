@@ -108,6 +108,18 @@ builder.Services.AddSingleton<SnapshotBroadcastService>();
 builder.Services.AddSingleton<IWorldResetNotifier>(provider => provider.GetRequiredService<SnapshotBroadcastService>());
 builder.Services.AddHostedService(provider => provider.GetRequiredService<SnapshotBroadcastService>());
 
+// Town bell digest (GDD ch.08 section 8.5(6)). A read-only, in-memory projection
+// over the outbound event channel; the writer fans events out to it. No new
+// persistence and no schema change.
+builder.Services.Configure<Genelife.Api.Digest.DigestOptions>(
+    builder.Configuration.GetSection(Genelife.Api.Digest.DigestOptions.SectionName));
+builder.Services.AddSingleton(provider =>
+    provider.GetRequiredService<IOptions<Genelife.Api.Digest.DigestOptions>>().Value);
+builder.Services.AddSingleton<Genelife.Api.Digest.PlayerDigestScopeResolver>();
+builder.Services.AddSingleton<Genelife.Api.Digest.TownBellDigestService>();
+builder.Services.AddSingleton<Genelife.Api.Services.ISimulationEventSink>(provider =>
+    provider.GetRequiredService<Genelife.Api.Digest.TownBellDigestService>());
+
 // Marten document store. Reads, projections and the event store are the only
 // read/write path; there is no snapshot fallback.
 var connectionString = builder.Configuration.GetConnectionString("genelife")
