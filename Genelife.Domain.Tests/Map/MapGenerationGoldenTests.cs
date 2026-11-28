@@ -4,14 +4,21 @@ using Genelife.Map;
 namespace Genelife.UnitTests.Map;
 
 /// <summary>
-/// Pins the generated world bit-for-bit across the Phase 1 rewrite
-/// (<c>docs/research/world-scale-migration-32000.md</c> §5.2). The generator
-/// changed *how* the world is produced — a coordinate is now classified on
-/// demand instead of written into a dense array — but not *what* it produces.
+/// Pins the generated world bit-for-bit. The generator changed *how* the world
+/// is produced — a coordinate is now classified on demand instead of written
+/// into a dense array (<c>docs/research/world-scale-migration-32000.md</c> §5.2)
+/// — while the phase-1 rewrite itself was behaviour-preserving.
 ///
-/// The digests below were captured from the dense generator immediately before
-/// the rewrite, so a failure here means the lazy classifier changed the world
-/// and the migration is no longer behaviour-preserving.
+/// <para>
+/// These digests were then re-pinned once, deliberately, by the building-sizing
+/// migration (<c>docs/research/building-sizing-and-world-scale.md</c>): the
+/// default <see cref="MapGenerationOptions.RoadSpacing"/> rose from 12 to 24 so a
+/// lot can contain a properly-sized footprint, and water is no longer placed
+/// inside a lot interior (a dry parcel). Both change the world on purpose, so
+/// <see cref="MapGenerator.GeneratorVersion"/> was bumped to 3 in the same change
+/// and the pins below follow it. A failure here now means the generator moved
+/// again without the version (or this pin) moving with it.
+/// </para>
 /// </summary>
 public class MapGenerationGoldenTests
 {
@@ -34,9 +41,9 @@ public class MapGenerationGoldenTests
         var map = new MapGenerator().Generate(MapOptions.Default, MapGenerationOptions.Default);
 
         Assert.Equal(
-            "3D6346DD7864017C1A628FC2B528AE454872195DE2F4F5EA9D5D4A63407EA1B1",
+            "86454ED7400118DBD35C72F6590A82F5305B0EC1E1A4582DD4322D31FA055B6B",
             TileDigest(map));
-        Assert.Equal(400, map.Lots.Count);
+        Assert.Equal(100, map.Lots.Count);
         Assert.Equal(9, map.SpawnPoints.Count);
     }
 
@@ -48,7 +55,7 @@ public class MapGenerationGoldenTests
             new MapGenerationOptions { RoadSpacing = 10, WaterFraction = 0.01f });
 
         Assert.Equal(
-            "5B666E99C9439611AE047C31105F8395400429066C839E273D87AE3E44172C9F",
+            "F7EDCC87C14F339E387D58CE0D968F0342FB1A0F5611E0F0F6FD7F906E0777F7",
             TileDigest(map));
         Assert.Equal(36, map.Lots.Count);
         Assert.Equal(9, map.SpawnPoints.Count);
@@ -60,9 +67,9 @@ public class MapGenerationGoldenTests
         var map = new MapGenerator().Generate(new MapOptions { Seed = 42, Width = 64, Height = 64 });
 
         Assert.Equal(
-            "3E4631B2EDEEA657E97F6904C921A03AF328C36063E517BD73925A4ED3046D9A",
+            "7520FDFB163F0D9F9BC5CF6DE4E4E588723E211A821F96D2A3F55BD92C9DBC4D",
             TileDigest(map));
-        Assert.Equal(16, map.Lots.Count);
+        Assert.Equal(4, map.Lots.Count);
     }
 
     [Fact]
@@ -92,7 +99,7 @@ public class MapGenerationGoldenTests
         var map = new MapGenerator().Generate(MapOptions.Default, MapGenerationOptions.Default);
 
         Assert.Equal(
-            "31BA8602D6F3BE79FF30D540F4F4EC8ED6C8C3A6B014C70C75392809CE523E34",
+            "F7BC46A66631A9D2925E3499986FD0C15957691A82E8D8D6BA64C99C49336DA6",
             map.CanonicalSignature);
     }
 

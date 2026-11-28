@@ -14,6 +14,21 @@ regenerated (acceptance criterion 7). Every claim about *this* codebase carries 
 measured rather than read is marked **measured**, with the harness that produced it in the appendix. Where a number
 cannot be established from the repository, the text says so instead of inventing one (criterion 8).
 
+> **Implementation status (landed).** Part 1's MINIMUM VIABLE column and the
+> footprint → lot-pitch coupling of §5.1 are implemented. `BuildingFootprints`
+> (`ForProperty`/`ForOffice`/`ForSchool`) now derives the minimal near-square
+> footprint from the occupant places (2×2 room, ×1.25 circulation, plus the kind's
+> common area), clamped to `BuildingFootprints.MaxDimension = 23` (the largest
+> minimum-viable value above, the 100-pupil school). `MapGenerationOptions.RoadSpacing`
+> is derived from that maximum (`MaxDimension + 1 = 24`), so a lot interior is
+> 23×23 and contains every footprint the generator can produce. In the same change
+> water is no longer placed inside a lot interior — a lot is a buildable parcel
+> (`WorldMap.CanPlace` requires `lot.Bounds.Contains(footprint)`), and at these
+> sizes a scattered water tile would make generation throw (Part 1.3) — and
+> `MapGenerator.GeneratorVersion` moved 2 → 3. See the card *"map(footprints):
+> size the building footprints to hold a real interior, lot pitch in the same
+> change"* (`t_6e420a42`) for the landed before/after per kind.
+
 ---
 
 ## The question, and why it is the cutaway's problem
