@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -6,32 +7,40 @@ namespace Genelife.Map;
 /// <summary>
 /// Deterministic map structure generator. Produces terrain, roads, lots and
 /// spawn points; never creates buildings.
+///
+/// Generation is a pure function of the coordinate (Rule 1 of
+/// <c>docs/research/world-scale-migration-32000.md</c> §4.1): the generator no
+/// longer materialises a dense <c>TileFlags[width * height]</c> grid, so a world
+/// can be classified for a coordinate without the world existing as an array.
+/// The only per-world state is the sparse water mask, itself a deterministic
+/// function of the seed and generation options; every other tile decides itself
+/// from its coordinate.
 /// </summary>
 public sealed class MapGenerator
 {
-    private static readonly MapZone[] ZoneOrder =
-    {
-        MapZone.Residential,
-        MapZone.Commercial,
-        MapZone.Education,
-        MapZone.Civic,
-        MapZone.Mixed
-    };
+    /// <summary>
+    /// Generator algorithm version.<br/>
+    /// This is part of the world's canonical signature, so it MUST be bumped
+    /// whenever <see cref="Generate"/> (via <see cref="Classify"/> or the water
+    /// mask) starts producing a different tile for a coordinate. A signature is
+    /// only sound while a deterministic function's identity is exactly its
+    /// inputs, so leaving this constant behind would let two different worlds
+    /// share a signature that lies. Bump it — never recompute the tiles into the
+    /// signature to "prove" a change.
+    /// </summary>
+    public const int GeneratorVersion = 2;
 
     public GeneratedMap Generate(MapOptions options, MapGenerationOptions? generationOptions = null)
     {
         generationOptions ??= MapGenerationOptions.Default;
         var bounds = options.Bounds;
-        var tiles = new TileFlags[Math.Max(1, bounds.Area)];
-        var random = new SimulationRandom(options.Seed).For("map-generation");
 
-        FillLand(tiles);
-        CarveWater(tiles, bounds, generationOptions, random);
-        CarveRoads(tiles, bounds, generationOptions);
+        var water = BuildWaterMask(bounds, generationOptions, options.Seed);
+        var tiles = TileGrid.Lazy(bounds, tile => Classify(tile, bounds, generationOptions, water));
         var lots = BuildLots(bounds, generationOptions);
         AssignZones(lots, generationOptions);
         var spawns = BuildSpawnPoints(tiles, bounds);
-        var signature = ComputeSignature(options, tiles, lots, spawns);
+        var signature = ComputeSignature(options, generationOptions);
 
         return new GeneratedMap
         {
@@ -43,21 +52,49 @@ public sealed class MapGenerator
         };
     }
 
-    private static void FillLand(TileFlags[] tiles)
+    /// <summary>
+    /// The single tile classifier. Terrain is land unless the tile is water (a
+    /// deterministic pick from the seed) or falls on a road line (and is not
+    /// water). This reproduces the historical land → water → road carve order
+    /// exactly, so at 256×256 the generated world is bit-for-bit what the dense
+    /// generator produced.
+    /// </summary>
+    private static TileFlags Classify(
+        TileCoord tile,
+        MapBounds bounds,
+        MapGenerationOptions options,
+        HashSet<long> water)
     {
-        for (var i = 0; i < tiles.Length; i++)
-            tiles[i] = TileFlags.Land;
+        if (!bounds.Contains(tile))
+            return TileFlags.None;
+
+        if (water.Contains(Key(tile.X, tile.Y)))
+            return TileFlags.Water;
+
+        var spacing = Math.Max(4, options.RoadSpacing);
+        if (Mod(tile.X, spacing) == 0 || Mod(tile.Y, spacing) == 0)
+            return TileFlags.Land | TileFlags.Road;
+
+        return TileFlags.Land;
     }
 
-    private static void CarveWater(TileFlags[] tiles, MapBounds bounds, MapGenerationOptions options, Random random)
+    /// <summary>
+    /// Reproduces the historical water fill deterministically, but stores the
+    /// chosen tiles in a sparse set instead of a world-sized flag array. The
+    /// draw sequence, the centre exclusion and the attempt budget are unchanged,
+    /// so the water a coordinate reports is identical to the dense generator's.
+    /// </summary>
+    private static HashSet<long> BuildWaterMask(MapBounds bounds, MapGenerationOptions options, int seed)
     {
+        var water = new HashSet<long>();
         if (options.WaterFraction <= 0f)
-            return;
+            return water;
 
         var waterTiles = (int)(bounds.Area * options.WaterFraction);
         if (waterTiles <= 0)
-            return;
+            return water;
 
+        var random = new SimulationRandom(seed).For("map-generation");
         var placed = 0;
         var attempts = 0;
         while (placed < waterTiles && attempts++ < waterTiles * 20)
@@ -67,42 +104,14 @@ public sealed class MapGenerator
             if (Math.Abs(x) < bounds.Width / 8 && Math.Abs(y) < bounds.Height / 8)
                 continue;
 
-            var index = IndexOf(bounds, new TileCoord(x, y));
-            if (tiles[index] == TileFlags.Land)
-            {
-                tiles[index] = TileFlags.Water;
+            if (water.Add(Key(x, y)))
                 placed++;
-            }
-        }
-    }
-
-    private static void CarveRoads(TileFlags[] tiles, MapBounds bounds, MapGenerationOptions options)
-    {
-        var spacing = Math.Max(4, options.RoadSpacing);
-        for (var x = bounds.MinX; x <= bounds.MaxX; x++)
-        {
-            if (Mod(x, spacing) != 0)
-                continue;
-            for (var y = bounds.MinY; y <= bounds.MaxY; y++)
-            {
-                var index = IndexOf(bounds, new TileCoord(x, y));
-                if ((tiles[index] & TileFlags.Water) == 0)
-                    tiles[index] |= TileFlags.Road;
-            }
         }
 
-        for (var y = bounds.MinY; y <= bounds.MaxY; y++)
-        {
-            if (Mod(y, spacing) != 0)
-                continue;
-            for (var x = bounds.MinX; x <= bounds.MaxX; x++)
-            {
-                var index = IndexOf(bounds, new TileCoord(x, y));
-                if ((tiles[index] & TileFlags.Water) == 0)
-                    tiles[index] |= TileFlags.Road;
-            }
-        }
+        return water;
     }
+
+    private static long Key(int x, int y) => ((long)x << 32) ^ (uint)y;
 
     private static List<MapLot> BuildLots(MapBounds bounds, MapGenerationOptions options)
     {
@@ -168,12 +177,11 @@ public sealed class MapGenerator
         }
     }
 
-    private static List<TileCoord> BuildSpawnPoints(TileFlags[] tiles, MapBounds bounds)
+    private static List<TileCoord> BuildSpawnPoints(TileGrid tiles, MapBounds bounds)
     {
         var spawns = new List<TileCoord>();
         var center = new TileCoord(0, 0);
-        var centerIndex = IndexOf(bounds, center);
-        if (IsWalkable(tiles[centerIndex]))
+        if (IsWalkable(tiles[center]))
             spawns.Add(center);
 
         for (var radius = 1; radius <= Math.Max(bounds.Width, bounds.Height) && spawns.Count < 8; radius++)
@@ -187,7 +195,7 @@ public sealed class MapGenerator
                     var tile = new TileCoord(x, y);
                     if (!bounds.Contains(tile))
                         continue;
-                    if (IsWalkable(tiles[IndexOf(bounds, tile)]) && !spawns.Contains(tile))
+                    if (IsWalkable(tiles[tile]) && !spawns.Contains(tile))
                         spawns.Add(tile);
                 }
             }
@@ -196,42 +204,39 @@ public sealed class MapGenerator
         return spawns;
     }
 
-    private static string ComputeSignature(
-        MapOptions options,
-        TileFlags[] tiles,
-        List<MapLot> lots,
-        List<TileCoord> spawns)
+    /// <summary>
+    /// Hashes the generator SPEC, not its output. A deterministic function's
+    /// identity is its inputs, so <c>SHA256(MapId | GeneratorVersion | seed |
+    /// size | generation params)</c> identifies the world in a few dozen bytes —
+    /// where hashing the tiles would need gigabytes of text at 32000×32000.
+    /// The same spec string is hashed for the same inputs, so the value is
+    /// stable across processes and machines.
+    /// </summary>
+    private static string ComputeSignature(MapOptions options, MapGenerationOptions generation)
     {
-        var builder = new StringBuilder();
-        builder.Append(options.MapId).Append('|')
+        var spec = new StringBuilder()
+            .Append("MapGenerator|").Append(GeneratorVersion).Append('|')
+            .Append(options.MapId).Append('|')
             .Append(options.Version).Append('|')
             .Append(options.Seed).Append('|')
             .Append(options.Width).Append('|')
-            .Append(options.Height).Append('|');
+            .Append(options.Height).Append('|')
+            .Append(options.TileSize.ToString("R", CultureInfo.InvariantCulture)).Append('|')
+            .Append(generation.RoadSpacing).Append('|')
+            .Append(generation.BlockPadding).Append('|')
+            .Append(generation.WaterFraction.ToString("R", CultureInfo.InvariantCulture)).Append('|')
+            .Append(generation.MinLotTiles).Append('|')
+            .Append(generation.ResidentialShare).Append('|')
+            .Append(generation.CommercialShare).Append('|')
+            .Append(generation.EducationShare).Append('|')
+            .Append(generation.CivicShare);
 
-        foreach (var tile in tiles)
-            builder.Append((byte)tile).Append(',');
-
-        foreach (var lot in lots)
-        {
-            builder.Append(lot.Id.Value).Append(':')
-                .Append(lot.Bounds.MinX).Append(',').Append(lot.Bounds.MinY).Append(',')
-                .Append(lot.Bounds.MaxX).Append(',').Append(lot.Bounds.MaxY).Append(':')
-                .Append(lot.Zone).Append(';');
-        }
-
-        foreach (var spawn in spawns)
-            builder.Append(spawn.X).Append(',').Append(spawn.Y).Append(';');
-
-        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(builder.ToString())));
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(spec.ToString())));
     }
 
     private static bool IsWalkable(TileFlags flags) =>
         (flags & (TileFlags.Water | TileFlags.Occupied | TileFlags.Reserved)) == 0 &&
         (flags & (TileFlags.Land | TileFlags.Road)) != 0;
-
-    private static int IndexOf(MapBounds bounds, TileCoord tile) =>
-        (tile.Y - bounds.MinY) * bounds.Width + (tile.X - bounds.MinX);
 
     private static int Mod(int value, int modulus)
     {

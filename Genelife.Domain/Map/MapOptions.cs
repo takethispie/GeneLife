@@ -4,6 +4,18 @@ namespace Genelife.Map;
 /// Static configuration for one world map. The map is centred on the origin so
 /// the existing float world-space convention and snapshot coordinates remain
 /// compatible.
+/// <para>
+/// <see cref="Width"/> and <see cref="Height"/> are counts of <b>tiles</b>, and
+/// <see cref="TileSize"/> is fixed at <c>1f</c> — so one tile is one world unit
+/// and the extent in tiles equals the extent in world units. This settles the
+/// unit question left open in
+/// <c>docs/research/world-scale-migration-32000.md</c> §0.1.
+/// </para>
+/// <para>
+/// The size is configuration: it must be read from here and never hardcoded in
+/// game logic (the V3 rule), so a future resize is a config change rather than a
+/// code change.
+/// </para>
 /// </summary>
 public sealed record MapOptions
 {

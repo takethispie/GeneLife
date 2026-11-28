@@ -51,8 +51,11 @@ working throughout (§5).
 > and *world units*; the client resolved it as **tiles** (`CityGen.Size` in tiles, `TilePx = 32`,
 > `scripts/City/CityGen.cs:48-64`), and `MapOptions` is also in tiles (`TileSize = 1f` ⇒ 1 tile = 1 world unit,
 > `Genelife.Domain/Map/MapOptions.cs:17`). The two units coincide, so **32000 tiles = 32000 world units = 32000
-> `MapOptions.Width`**. If the PO meant something else, say so before Phase 1 — changing the unit later re-does every
-> number below.
+> `MapOptions.Width`**.
+>
+> **Resolved (Phase 1, 2026-11-28).** The unit is settled: **1 tile = 1 world unit**, `TileSize` stays `1f`, and
+> `MapOptions.Width`/`Height` are counts of tiles. The convention is now recorded in `MapOptions`'s own comment.
+> This caveat is closed; every number below stands as written.
 
 ---
 

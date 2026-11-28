@@ -42,7 +42,7 @@ public sealed class WorldMap
     {
         Layout = layout;
         Options = layout.Options;
-        tiles = (TileFlags[])layout.Tiles.Clone();
+        tiles = layout.Tiles.ToArray();
         Version = Math.Max(1, version);
         placements.Clear();
         occupiedBy.Clear();
