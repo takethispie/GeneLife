@@ -1,0 +1,20 @@
+{
+  "$comment": "Single source of the Civic Paper contrast rule (GDD chapter 07 §7.5). Colours live in mockups.css; this file holds the pairs, their thresholds and what each pair is for. Read by GDD/mockups/assets/contrast_check.py (designer loop) and Genelife.Domain.Tests/Docs/ContrastTokenTests.cs (CI gate). Thresholds restate §7.5.2: body text >= 7:1, everything else >= 4.5:1. Add a pair here, and both readers check it — there is no second copy.",
+  "pairs": [
+    { "foreground": "--ink", "background": "--paper", "minimum": 7.0, "use": "body text" },
+    { "foreground": "--ink-2", "background": "--paper", "minimum": 7.0, "use": "secondary body text" },
+    { "foreground": "--ink-2", "background": "--paper-2", "minimum": 4.5, "use": "secondary text on recessed surface" },
+    { "foreground": "--ink-3", "background": "--paper", "minimum": 4.5, "use": "labels / tertiary text" },
+    { "foreground": "--ink-3", "background": "--paper-2", "minimum": 4.5, "use": "labels on recessed surface" },
+    { "foreground": "--money", "background": "--paper", "minimum": 4.5, "use": "money figures" },
+    { "foreground": "--accent", "background": "--paper", "minimum": 4.5, "use": "accent text and links" },
+    { "foreground": "--body", "background": "--paper", "minimum": 4.5, "use": "needs domain" },
+    { "foreground": "--work", "background": "--paper", "minimum": 4.5, "use": "work domain" },
+    { "foreground": "--social", "background": "--paper", "minimum": 4.5, "use": "social domain" },
+    { "foreground": "--legacy", "background": "--paper", "minimum": 4.5, "use": "legacy domain" },
+    { "foreground": "--warn", "background": "--paper", "minimum": 4.5, "use": "warning text" },
+    { "foreground": "--ok", "background": "--paper", "minimum": 4.5, "use": "success text" },
+    { "foreground": "--paper", "background": "--ink", "minimum": 4.5, "use": "text on primary button / dark chip" },
+    { "foreground": "--paper", "background": "--accent", "minimum": 4.5, "use": "text on accent button" }
+  ]
+}
