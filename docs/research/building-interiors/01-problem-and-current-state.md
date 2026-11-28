@@ -25,7 +25,8 @@ lives on the server side of the wire.
 
 ### 2.1 The world is a single deterministic tile map; a building is a footprint on it
 
-- A world is a **256×256 tile map centred on the origin**, integer tile coordinates, 1.0 world unit per tile
+- A world is a **32000×32000 tile map centred on the origin** (256×256 before the world-scale
+  migration, `docs/research/world-scale-migration-32000.md`), integer tile coordinates, 1.0 world unit per tile
   (`Genelife.Domain/Map/MapOptions.cs:14-15,20-23,34-35`).
 - A building is **one `Placement`**: an anchor tile, a rectangular `Footprint`, an `Entry` tile, and a
   `BuildingKind` (`Genelife.Domain/Map/Placement.cs:7-29`). `Placement.Covers(tile)` is the entire notion of "is

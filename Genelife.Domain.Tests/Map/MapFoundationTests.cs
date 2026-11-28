@@ -128,7 +128,10 @@ public class MapFoundationTests
         var state = engine.CaptureState(engine.NetworkIds);
 
         Assert.NotEmpty(state.Placements);
-        Assert.NotEmpty(state.Map.Tiles);
+        // Schema v17 persists the world as its generator spec, not its tiles.
+        Assert.False(string.IsNullOrEmpty(state.Map.CanonicalSignature));
+        Assert.Equal(map.Options.Width, state.Map.Width);
+        Assert.Equal(map.Options.Height, state.Map.Height);
 
         using var restored = new SimulationEngine();
         restored.Restore(state, restored.NetworkIds);

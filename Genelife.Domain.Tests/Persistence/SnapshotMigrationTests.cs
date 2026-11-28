@@ -29,7 +29,7 @@ public class SnapshotMigrationTests
         Assert.Equal(700, company.WagesThisCycleCents);
         Assert.Equal(50, company.CostsThisCycleCents);
         Assert.Equal(10, company.InterestPaidThisCycleCents);
-        Assert.Equal(16, PersistedWorldState.CurrentSchemaVersion);
-        Assert.Equal(16, state.SchemaVersion);
+        Assert.Equal(17, PersistedWorldState.CurrentSchemaVersion);
+        Assert.Equal(17, state.SchemaVersion);
     }
 }

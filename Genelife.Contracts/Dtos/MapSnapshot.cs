@@ -2,7 +2,17 @@ namespace Genelife.Api.DTOs;
 
 /// <summary>
 /// Static map layout sent once on connect and on demand. Tiles are
-/// run-length encoded per row so a 256x256 map stays a small payload.
+/// run-length encoded per row.
+/// <para>
+/// This is the whole-map, <c>O(area)</c> snapshot path, retained for the
+/// 256-scale protocol and for old clients (versioned, not feature-flagged). At
+/// 32000x32000 it is infeasible (~11 GB of runs), which is why the
+/// viewport/chunk protocol (<c>MapChunk</c>, see
+/// <c>docs/research/world-scale-migration-32000.md</c> §4.2) is the path the
+/// client uses. Coordinates are <c>int32</c> tiles and <c>float32</c> world
+/// units (exact to +/-16000 tiles / +/-1.02e6 px); the wire encodings are
+/// specified by <c>MapChunkProtocol</c>.
+/// </para>
 /// </summary>
 public sealed class MapSnapshot
 {

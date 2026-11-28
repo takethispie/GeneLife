@@ -19,13 +19,30 @@ namespace Genelife.Map;
 /// </summary>
 public sealed record MapOptions
 {
+    /// <summary>
+    /// The product's default world extent — the size a world gets when one is
+    /// created without an explicit size. This is the number flipped to
+    /// <c>32000×32000</c> by Phase 4 of
+    /// <c>docs/research/world-scale-migration-32000.md</c> §5.2, per the PO
+    /// ruling that the client's city map <b>is</b> the simulation's world.
+    /// </summary>
     public static readonly MapOptions Default = new();
+
+    /// <summary>
+    /// The engine's pre-creation placeholder world. A fresh <c>SimulationEngine</c>
+    /// (a unit test, or the idle admin console before any map is created) gets
+    /// this instead of <see cref="Default"/>: materialising a real 32000×32000
+    /// world is the deliberate act of creating a world, not the cost of starting
+    /// an empty engine. It stays small on purpose — see the phase-4 PR note on
+    /// 32000 generation cost.
+    /// </summary>
+    public static readonly MapOptions Scaffold = new() { Width = 256, Height = 256 };
 
     public string MapId { get; init; } = "world";
     public int Version { get; init; } = 1;
     public int Seed { get; init; } = 1;
-    public int Width { get; init; } = 256;
-    public int Height { get; init; } = 256;
+    public int Width { get; init; } = 32000;
+    public int Height { get; init; } = 32000;
     public float TileSize { get; init; } = 1f;
 
     public MapBounds Bounds => new(

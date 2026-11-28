@@ -185,7 +185,14 @@ private readonly NetworkIdRegistry networkIds = new();
     public EconomyContext? Economy { get { using (ReadLock()) { return economy; } } }
     public SimulationClock Clock => clock;
     public SimulationClockOptions ClockOptions { get; set; } = new();
-    public Genelife.Map.MapOptions MapOptions { get; set; } = Genelife.Map.MapOptions.Default;
+    /// <summary>
+    /// The map this engine runs. Defaults to <see cref="Genelife.Map.MapOptions.Scaffold"/>
+    /// — a small pre-creation placeholder — not the 32000×32000 product default
+    /// (<see cref="Genelife.Map.MapOptions.Default"/>), which a real world gets
+    /// when it is created. See the Phase-4 note in
+    /// <c>docs/research/world-scale-migration-32000.md</c> §5.2.
+    /// </summary>
+    public Genelife.Map.MapOptions MapOptions { get; set; } = Genelife.Map.MapOptions.Scaffold;
     public Genelife.Map.MapGenerationOptions MapGenerationOptions { get; set; } = Genelife.Map.MapGenerationOptions.Default;
     public Genelife.Map.MovementOptions MovementOptions { get; set; } = Genelife.Map.MovementOptions.Default;
     public Genelife.Map.CommuteOptions CommuteOptions { get; set; } = Genelife.Map.CommuteOptions.Default;
@@ -1034,7 +1041,8 @@ private readonly NetworkIdRegistry networkIds = new();
             options.Width,
             options.Height,
             options.TileSize,
-            eventTick));
+            eventTick,
+            mapContext.Generated.CanonicalSignature));
     }
 
     private void EmitAllMapBuildings(long eventTick)
@@ -7836,6 +7844,11 @@ private readonly NetworkIdRegistry networkIds = new();
             {
                 var options = mapContext.Options;
                 var generated = mapContext.Generated;
+                // Schema v17: persist the generator SPEC, not the tiles. A
+                // 32000x32000 world's tile array is ~1 GB and its lot list ~7e6
+                // objects; both are a deterministic function of the spec below
+                // and are regenerated on restore. See
+                // docs/research/world-scale-migration-32000.md §4.2.
                 mapState = new PersistedMap
                 {
                     MapId = options.MapId,
@@ -7844,22 +7857,8 @@ private readonly NetworkIdRegistry networkIds = new();
                     Width = options.Width,
                     Height = options.Height,
                     TileSize = options.TileSize,
-                    Tiles = generated.Tiles.Select(flags => (byte)flags).ToArray(),
-                    CanonicalSignature = generated.CanonicalSignature,
-                    Lots = generated.Lots.Select(lot => new PersistedLot
-                    {
-                        Id = lot.Id.Value,
-                        MinX = lot.Bounds.MinX,
-                        MinY = lot.Bounds.MinY,
-                        MaxX = lot.Bounds.MaxX,
-                        MaxY = lot.Bounds.MaxY,
-                        Zone = lot.Zone.ToString()
-                    }).ToList(),
-                    SpawnPoints = generated.SpawnPoints.Select(tile => new PersistedCoord
-                    {
-                        X = tile.X,
-                        Y = tile.Y
-                    }).ToList()
+                    GenerationOptions = mapContext.GenerationOptions,
+                    CanonicalSignature = generated.CanonicalSignature
                 };
 
                 foreach (var pair in mapContext.Map.Placements.OrderBy(pair => pair.Key.Value))
@@ -8333,7 +8332,11 @@ private readonly NetworkIdRegistry networkIds = new();
                 state.InheritanceOptions,
                 state.GuardianshipOptions);
 
-            if (state.Map.Tiles.Length > 0)
+            // Schema v17 persists the world as its spec; the map is regenerated on
+            // restore. The canonical signature is the "a world exists" signal
+            // (pre-v17 snapshots populated it from their tile-derived generator).
+            if (!string.IsNullOrWhiteSpace(state.Map.CanonicalSignature) &&
+                state.Map.Width > 0 && state.Map.Height > 0)
             {
                 var options = new Genelife.Map.MapOptions
                 {
@@ -8344,21 +8347,8 @@ private readonly NetworkIdRegistry networkIds = new();
                     Height = state.Map.Height,
                     TileSize = state.Map.TileSize
                 };
-                var generated = new GeneratedMap
-                {
-                    Options = options,
-                    Tiles = TileGrid.FromArray(
-                        state.Map.Tiles.Select(flags => (TileFlags)flags).ToArray(),
-                        options.Bounds),
-                    Lots = state.Map.Lots.Select(lot => new MapLot
-                    {
-                        Id = new LotId(lot.Id),
-                        Bounds = new MapBounds(lot.MinX, lot.MinY, lot.MaxX, lot.MaxY),
-                        Zone = Enum.TryParse<MapZone>(lot.Zone, out var zone) ? zone : MapZone.Mixed
-                    }).ToList(),
-                    SpawnPoints = state.Map.SpawnPoints.Select(point => new TileCoord(point.X, point.Y)).ToList(),
-                    CanonicalSignature = state.Map.CanonicalSignature
-                };
+                var generationOptions = state.Map.GenerationOptions ?? Genelife.Map.MapGenerationOptions.Default;
+                var generated = new MapGenerator().Generate(options, generationOptions);
                 mapContext!.LoadRestored(generated, state.Map.Version);
             }
 

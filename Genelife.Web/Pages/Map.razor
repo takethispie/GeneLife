@@ -108,11 +108,11 @@
                 </div>
                 <div class="col-6 col-md-3">
                     <label class="form-label small">Width</label>
-                    <input class="form-control form-control-sm" type="number" min="64" max="512" @bind="createWidth" />
+                    <input class="form-control form-control-sm" type="number" min="64" max="32000" @bind="createWidth" />
                 </div>
                 <div class="col-6 col-md-3">
                     <label class="form-label small">Height</label>
-                    <input class="form-control form-control-sm" type="number" min="64" max="512" @bind="createHeight" />
+                    <input class="form-control form-control-sm" type="number" min="64" max="32000" @bind="createHeight" />
                 </div>
                 <div class="col-6 col-md-3">
                     <label class="form-label small">Population</label>
@@ -427,8 +427,8 @@
     private string? createMessage;
     private string? createError;
     private int createSeed = 1;
-    private int createWidth = 256;
-    private int createHeight = 256;
+    private int createWidth = 32000;
+    private int createHeight = 32000;
     private int createPopulation = 500;
     private int createPopulationSeed = 1;
     private int? createAdults;
@@ -516,8 +516,8 @@
             return;
 
         createSeed = map.Seed != 0 ? map.Seed : 1;
-        createWidth = map.Width >= 64 ? map.Width : 256;
-        createHeight = map.Height >= 64 ? map.Height : 256;
+        createWidth = map.Width >= 64 ? map.Width : 32000;
+        createHeight = map.Height >= 64 ? map.Height : 32000;
 
         var living = world.Genoses.Count(genos => !genos.IsDead);
         createPopulation = Math.Clamp(living == 0 ? 500 : living, 0, 5000);

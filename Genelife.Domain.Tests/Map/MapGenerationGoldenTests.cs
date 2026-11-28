@@ -29,9 +29,14 @@ public class MapGenerationGoldenTests
     }
 
     [Fact]
-    public void Default_256_world_is_unchanged()
+    public void TwoFiftySix_world_is_unchanged()
     {
-        var map = new MapGenerator().Generate(MapOptions.Default, MapGenerationOptions.Default);
+        // Pins the historical 256x256 world explicitly: the product default
+        // (MapOptions.Default) is now 32000x32000 (Phase 4), so this test names
+        // the size it means instead of inheriting the default.
+        var map = new MapGenerator().Generate(
+            new MapOptions { Width = 256, Height = 256 },
+            MapGenerationOptions.Default);
 
         Assert.Equal(
             "3D6346DD7864017C1A628FC2B528AE454872195DE2F4F5EA9D5D4A63407EA1B1",
@@ -89,7 +94,9 @@ public class MapGenerationGoldenTests
     [Fact]
     public void Signature_is_a_pure_function_of_the_generator_spec()
     {
-        var map = new MapGenerator().Generate(MapOptions.Default, MapGenerationOptions.Default);
+        var map = new MapGenerator().Generate(
+            new MapOptions { Width = 256, Height = 256 },
+            MapGenerationOptions.Default);
 
         Assert.Equal(
             "31BA8602D6F3BE79FF30D540F4F4EC8ED6C8C3A6B014C70C75392809CE523E34",

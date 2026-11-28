@@ -23,15 +23,27 @@ public static class MapEndpoints
         HttpContext http)
     {
         const int minimumDimension = 64;
-        const int maximumDimension = 512;
+        // Phase 4: the 64..512 per-side cap is replaced by a TILE BUDGET so a
+        // 32000x32000 request (1.024e9 tiles) is legal but still bounded. Keep the
+        // sides explicit; the product is the world, and 32000 is the ruled extent.
+        const long maximumTiles = 32000L * 32000L;
         const int maximumPopulation = 5000;
 
-        if (request.Width < minimumDimension || request.Width > maximumDimension ||
-            request.Height < minimumDimension || request.Height > maximumDimension)
+        if (request.Width < minimumDimension || request.Height < minimumDimension)
         {
             return Results.BadRequest(new
             {
-                message = $"Width and height must be between {minimumDimension} and {maximumDimension}."
+                message = $"Width and height must each be at least {minimumDimension} tiles."
+            });
+        }
+
+        var requestedTiles = (long)request.Width * request.Height;
+        if (requestedTiles > maximumTiles)
+        {
+            return Results.BadRequest(new
+            {
+                message = $"{request.Width}x{request.Height} = {requestedTiles} tiles exceeds the " +
+                          $"{maximumTiles}-tile world budget."
             });
         }
 

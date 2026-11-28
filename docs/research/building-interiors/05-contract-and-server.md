@@ -72,7 +72,8 @@ The card asks for a *measured* premise. Serialising representative payloads (fie
 *(JSON, compact separators; `MapBuildingStatus` = `{networkId, kind, name, district, x, y, w, h, entryX, entryY,
 ownerNetworkId}` with `ownerNetworkId: null`; `InteriorPlan` = `{buildingNetworkId, template, rooms:[6 ×
 {roomId, role, x, y, w, h, capacity, binding}]}`. The building footprint sizes that make these counts plausible are
-in `BuildingFootprints.cs:6-31`; the map is 256×256 = 65,536 tiles, `MapOptions.cs:14-15`.)*
+in `BuildingFootprints.cs:6-31`; the map is 32000×32000 = 1,024,000,000 tiles since the world-scale
+migration — 256×256 = 65,536 tiles before it.)*
 
 **Read this honestly:**
 

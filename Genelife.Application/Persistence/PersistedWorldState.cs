@@ -2,7 +2,7 @@ namespace Genelife.Api.Persistence;
 
 public sealed class PersistedWorldState
 {
-    public const int CurrentSchemaVersion = 16;
+    public const int CurrentSchemaVersion = 17;
 
     public int SchemaVersion { get; set; }
     public long Tick { get; set; }
@@ -643,29 +643,11 @@ public sealed class PersistedMap
     public string MapId { get; set; } = "world";
     public int Version { get; set; } = 1;
     public int Seed { get; set; } = 1;
-    public int Width { get; set; } = 256;
-    public int Height { get; set; } = 256;
+    public int Width { get; set; } = 32000;
+    public int Height { get; set; } = 32000;
     public float TileSize { get; set; } = 1f;
-    public byte[] Tiles { get; set; } = [];
+    public Genelife.Map.MapGenerationOptions? GenerationOptions { get; set; }
     public string CanonicalSignature { get; set; } = string.Empty;
-    public List<PersistedLot> Lots { get; set; } = [];
-    public List<PersistedCoord> SpawnPoints { get; set; } = [];
-}
-
-public sealed class PersistedLot
-{
-    public int Id { get; set; }
-    public int MinX { get; set; }
-    public int MinY { get; set; }
-    public int MaxX { get; set; }
-    public int MaxY { get; set; }
-    public string Zone { get; set; } = "Mixed";
-}
-
-public sealed class PersistedCoord
-{
-    public int X { get; set; }
-    public int Y { get; set; }
 }
 
 public sealed class PersistedPlacement

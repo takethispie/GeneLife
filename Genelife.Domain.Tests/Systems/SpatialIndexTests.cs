@@ -358,9 +358,10 @@ public class SpatialIndexTests
         Assert.Equal(10f, index.CellSize);
         Assert.Equal(WorldBounds.FromMap(MapOptions.Default), index.Bounds);
 
-        // No invented world size: the default map is 256 tiles => +/-128.
-        Assert.Equal(-128f, index.Bounds.MinX, 3);
-        Assert.Equal(127f, index.Bounds.MaxX, 3);
+        // No invented world size: the extent follows the product default, which
+        // Phase 4 set to 32000 tiles => +/-16000.
+        Assert.Equal(-16000f, index.Bounds.MinX, 3);
+        Assert.Equal(15999f, index.Bounds.MaxX, 3);
     }
 
     [Fact]
