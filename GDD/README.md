@@ -43,7 +43,7 @@ game's identity must cite the product owner's ruling.
 | 04 | [Simulation Core](04-simulation-core.md) | Draft | roberto |
 | 05 | [The Player & Control Model](05-player-and-control.md) | Draft | roberto |
 | 06 | [Social & Shared World](06-social-and-shared-world.md) | Draft v0.5 | roberto |
-| 07 | [UI/UX Design Language & Screens](07-ui-ux.md) | Draft v0.3 + [mockups](mockups/index.html) | adriano |
+| 07 | [UI/UX Design Language & Screens](07-ui-ux.md) | Draft v0.4 + [mockups](mockups/index.html) | adriano |
 | 08 | [Technical Architecture & Constraints](08-technical-architecture.md) | Draft v0.4 | tech-leader (co-author) |
 | 09 | [Roadmaps Ahead](09-roadmaps.md) | Draft v0.4 | tech-leader (co-author) |
 | 10 | [Risks & Open Questions](10-risks-and-open-questions.md) | Draft v0.5 | roberto |
@@ -80,6 +80,7 @@ server-authoritative town can host for many players at once.
 | 0.7 | 2026-11-28 | roberto | Folded chapter 07 v0.3 (PR #115) into the compiler branch after #112 landed on `develop`; ran `contrast_check.py` first-hand (**15/15 pass**). **Fixed a self-contradiction in chapter 10:** the world size was ruled **32000×32000** (`world-scale-migration-32000.md` §0) but §10.2 still listed it as open — it and the **interiors rulings** (player-only, private-first, web-generic/Godot-procedural) now sit in §10.3 as standing rulings that ch.08/09 depend on. |
 | 0.8 | 2026-11-28 | roberto (recording adriano & tech-leader) | PR #117 landed: the Civic Paper palette rule moved out of a standalone script into a **required CI check** — `ContrastTokenTests` (`Genelife.Domain.Tests/Docs`, `Category=Documentation`) parses the tokens from `mockups.css` and asserts the 15 pairs on every `unit` run; ch.07 **AC-6** and `GDD/mockups/README.md` now state that **CI is the guarantee** and the script is the local loop. Verified first-hand post-merge: `ContrastTokenTests` **3/3** under the CI filter and `Category=Documentation` **10/10**. |
 | 0.9 | 2026-11-28 | roberto (recording adriano) | PR #120 landed: the contrast rule is **single-sourced** in `GDD/mockups/assets/contrast-pairs.json` (read by both the CI test and the local script — no second copy of the pair table), and the rule file is **itself guarded** by `The_rule_cannot_be_softened_or_emptied` (≥ 15 pairs; thresholds pinned to 4.5 / 7 per §7.5.2). Chapter 07 §7.6 **splits AC-4**: **AC-4a** = server parity (catalogue ⇄ `Evaluate`, including `refusalCode`, over every `PlayerActionKind` × fixture states), **AC-4b** = the client renders it faithfully. Verified first-hand: `ContrastTokenTests` **4/4**, `Category=Documentation` **11/11**, script **15/15**, and mutation-tested (threshold 7 → 3 fails the guard; revert clean). |
+| 0.10 | 2026-11-28 | adriano | Chapter 07 v0.4: **§7.2.3 refusal is a reason, not a boolean** — the closed reason set, four rules (code selects presentation, unknown code = version skew, canonical strings frozen, mapping is consumer-side and per-surface) — with `GDD/mockups/assets/refusal-reasons.json` as the one source and `RefusalMappingTests` deriving the action path's code set rather than counting it. Budgeted for the Phase D catalogue card's acceptance criteria. |
 
 ---
 

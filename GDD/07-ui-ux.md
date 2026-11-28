@@ -1,6 +1,6 @@
 # 07 — UI/UX Design Language & Screens
 
-> **Status: Draft v0.3 — authored by @adriano (UI/UX).** Supersedes the outline in v0.1.
+> **Status: Draft v0.4 — authored by @adriano (UI/UX).** Supersedes the outline in v0.1.
 > **Contract status:** all seven interface→simulation questions are answered in chapter 08 §8.5 (§7.4 below);
 > the remaining items are the two product-level rulings parked in chapter 10 §10.2.
 > **Product owner's instruction stands:** these are **new desktop-client designs**, not a port of the
@@ -116,9 +116,46 @@ affordance tags on objects (“Table — eat here · 20 min”; “Kitchen — c
 affordances explain themselves instead of greying out silently. Interiors are player-scoped by design (per
 chapter 03 §3.4), and the UI never asks for more than the one building's plan.
 
+### 7.2.3 Refusal is a reason, not a boolean
+
+The dial and the dollhouse both promise to **explain, never grey out** — which means a refusal has to
+arrive as a *reason the interface can render*, not as `allowed: false`. The simulation returns far more
+distinct codes than a player can meaningfully act on, so the design owns a **closed set of reasons** and
+maps the wire vocabulary onto it. One source: `GDD/mockups/assets/refusal-reasons.json` (reasons, the
+canonical code strings, their surface and producer), guarded by `RefusalMappingTests`.
+
+| Reason | The player is told | What it offers |
+|---|---|---|
+| `no_money` | "You can't afford that yet" — with the shortfall in figures | — |
+| `no_stock` | "There is none left" | Buy groceries |
+| `not_here` | "You need to be there" | Go there · *n* min |
+| `not_open` | "That isn't open right now" | — |
+| `already_done` | "You have already done that" | — |
+| `not_yours` | "That isn't yours to do" | — |
+| `expired` | "That offer has lapsed" | Apply again |
+| `busy` | "There is a queue" | Wait |
+| `declined` | "They said no" | — |
+| `not_ready` | "That can't happen right now" | — |
+
+Four rules make this a design language rather than a lookup table:
+
+1. **The code selects the presentation; the data supplies the numbers.** "You're ₡ 12.40 short" is
+   arithmetic on `costCents` and the balance, never a server string — the same rule as cause lines (§7.4).
+2. **An unknown code is a version-skew signal, not a prompt to improvise.** With the mapping guarded in
+   both directions, a matching build cannot emit an unmapped code; if one arrives the client is behind, and
+   it must say so and re-request rather than invent a sentence. The catalogue envelope therefore carries
+   its shape and refusal-set version next to `asOfTick` (chapter 08 §8.5(1)).
+3. **Canonical strings are frozen, not just enum values.** The shipped browser client keys its message and
+   its notification cue off the string, so a rename that preserves a byte value still breaks the player's
+   experience. Renames move the mapping in the same change, or the guard fails.
+4. **The mapping is consumer-side and per-surface.** It is keyed by the *wire string*, so codes produced by
+   the movement engine or the social surfaces are covered without being converted — each entry declares
+   `surface` (`dial` / `social` / `engine` / `system`) and the producer that emits it, and only the dial's
+   entries are required to be reachable from the action path.
+
 ---
 
-## 7.3 What each surface must *not* be
+## 7.3 What each surface must
 
 | Surface | Not this |
 |---|---|
@@ -203,7 +240,7 @@ They belong in the desktop client's own test suite (screenshot + assertion), not
 | AC-1 | **Fonts bundled.** The client ships its own serif (display) and mono (figures); no system-font fallback is load-bearing. | A screenshot with the fallback font disabled still renders the display serif and tabular figures; `1 284.40` and `1 188.40` occupy identical widths. |
 | AC-2 | **HUD scale independent of camera zoom.** 100 / 125 / 150 %. | At world zoom 0.5× and 2×, HUD text height is unchanged for a fixed UI scale; at 150 % no panel clips its content and the day ribbon reflows. |
 | AC-3 | **Frame contract.** 1440×900 reference, 1280×720 minimum. | At 1280×720 every surface still shows its primary decision and its primary action without scrolling; nothing overlaps the ribbon. |
-| AC-4a | **Catalogue ⇄ rule parity (server, no client needed).** The catalogue never offers a verb `Evaluate(...)` would refuse, and never withholds one it would accept — with the **reason**, not just a boolean. | Over an enumerated context matrix (every `PlayerActionKind` × fixture states: no money, no stock, wrong building, wrong tile, cooldown active, valid) the catalogue entry equals the `Evaluate` result **including `refusalCode`**. A boolean-only assertion would pass while the dial's refusal line and the dollhouse's “explain, don't grey out” promise stayed unmet. Lands with Phase D, before any Godot pixel. |
+| AC-4a | **Catalogue ⇄ rule parity (server, no client needed).** The catalogue never offers a verb `Evaluate(...)` would refuse, and never withholds one it would accept — with the **reason**, not just a boolean (the design's side of that contract is §7.2.3 and `refusal-reasons.json`). | Over an enumerated context matrix (every `PlayerActionKind` × fixture states: no money, no stock, wrong building, wrong tile, cooldown active, valid) the catalogue entry equals the `Evaluate` result **including `refusalCode`**. A boolean-only assertion would pass while the dial's refusal line and the dollhouse's “explain, don't grey out” promise stayed unmet. Lands with Phase D, before any Godot pixel. |
 | AC-4b | **Dial ⇄ catalogue parity (client).** The dial renders the catalogue faithfully. | The rendered dial set equals the response; a forced stale `asOfTick` shows the re-request state, not a guessed list. Asserted against a shape AC-4a has already frozen. |
 | AC-5 | **Cause lines contain no server prose.** | Every explanation string visible on the genos sheet is composed client-side from `(code, fact, sinceTick)`; a string arriving from the server is a test failure. |
 | AC-6 | **Contrast.** §7.5.1 ratios hold in the shipped theme. | **Enforced, not aspirational.** `ContrastTokenTests` (`Genelife.Domain.Tests/Docs`) reads the colours out of `mockups.css` and the rule out of `contrast-pairs.json` — one copy each — and asserts 15 text/surface pairs; it carries `Category=Documentation`, so it runs inside the **required `unit` check** and a palette regression fails the merge. Its `The_check_can_fail` test is a permanent negative control (the v0.2 label colour, 3.23:1). `python3 GDD/mockups/assets/contrast_check.py` is the designer's fast local loop over the same rule. |
@@ -239,6 +276,10 @@ Both follow from the brief and from §5.5; neither is styling, and both change t
 an explicit PO ruling rather than a designer's assumption.
 
 ---
+
+*Revision: v0.4 — 2026-11-28, @adriano. Added §7.2.3 (refusal is a reason, not a boolean): the closed
+reason set, the four rules, and `refusal-reasons.json` as the one source, guarded by `RefusalMappingTests`
+in the required unit check.*
 
 *Revision: v0.3 — 2026-11-28, @adriano. §7.4 closed against chapter 08 §8.5 (all seven items answered, two
 changed hands); §7.5 contrast re-measured and the palette darkened where it failed its own rule; §7.6 client
